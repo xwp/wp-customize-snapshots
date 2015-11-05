@@ -67,7 +67,7 @@ module.exports = function( grunt ) {
 				],
 				expand: true
 			}
-		},
+		}
 
 	});
 
@@ -75,5 +75,11 @@ module.exports = function( grunt ) {
 	grunt.loadNpmTasks( 'grunt-contrib-jshint' );
 	grunt.loadNpmTasks( 'grunt-wp-i18n' );
 	grunt.loadNpmTasks( 'grunt-checktextdomain' );
+
+	// Register tasks
+	grunt.registerTask( 'default', [
+		'jshint',
+		'checktextdomain'
+	] );
 
 };
