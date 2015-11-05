@@ -2,7 +2,7 @@
 /**
  * Instantiates Customize Snapshots
  *
- * @package CustomizeSnapshot
+ * @package CustomizeSnapshots
  */
 
 namespace CustomizeSnapshots;

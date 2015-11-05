@@ -34,7 +34,7 @@ if ( version_compare( phpversion(), '5.3', '>=' ) ) {
 	require_once __DIR__ . '/instance.php';
 } else {
 	/**
-	 * Creates an admin notice about the minimum PHP version.
+	 * Creates an admin notice describing the minimum PHP version.
 	 */
 	function customize_snapshots_php_version_error() {
 		printf( '<div class="error"><p>%s</p></div>', esc_html__( 'Customize Snapshots plugin error: Your version of PHP is too old to run this plugin. You must be running PHP 5.3 or higher.', 'customize-snapshots' ) );

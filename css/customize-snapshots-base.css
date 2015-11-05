@@ -1,0 +1,48 @@
+#snapshot-button {
+	background: none;
+	border: none;
+	border-right: 1px solid #ddd;
+	box-shadow: none;
+	color: #444;
+	cursor: pointer;
+	height: 45px;
+	line-height: 45px;
+	padding: 0 12px;
+	position: absolute;
+	left: 48px;
+	top: 0px;
+	width: 48px;
+	transition: color 0.1s ease-in-out 0s, background 0.1s ease-in-out 0s;
+	z-index: 10;
+}
+
+#snapshot-button:focus,
+#snapshot-button:hover {
+	background: #ddd;
+	border-color: #ccc;
+	box-shadow: none;
+	color: #000;
+	outline: none;
+}
+
+#snapshot-dialog-form label {
+	padding-bottom: 1em;
+}
+
+#snapshot-dialog-share-link {
+	word-wrap: break-word;
+}
+
+#snapshot-dialog-share-link p {
+	margin-top: 0;
+}
+
+@media screen and (max-width: 640px) {
+	.has-snapshot-button .customize-controls-preview-toggle {
+		left: 96px;
+	}
+}
+
+.wp-customizer.js .ui-dialog {
+	z-index: 999999;
+}
