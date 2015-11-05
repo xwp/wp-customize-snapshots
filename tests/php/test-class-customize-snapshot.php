@@ -264,4 +264,14 @@ class Test_Customize_Snapshot extends \WP_UnitTestCase {
 		$this->assertEquals( 'publish', $snapshot->status() );
 	}
 
+	/**
+	 * @see Customize_Snapshot::save()
+	 */
+	function test_save_error() {
+		wp_set_current_user( $this->factory->user->create( array( 'role' => 'editor' ) ) );
+		$snapshot = new Customize_Snapshot( $this->snapshot_manager, null );
+		$error = $snapshot->save();
+		$this->assertTrue( is_wp_error( $error ) );
+	}
+
 }

@@ -360,7 +360,7 @@ class Customize_Snapshot {
 	 */
 	public function save( $status = 'draft' ) {
 		if ( ! current_user_can( 'customize' ) ) {
-			return new WP_Error( 'customize_not_allowed', __( 'You are not authorized to save Snapshots.', 'customize-snapshots' ) );
+			return new \WP_Error( 'customize_not_allowed', __( 'You are not authorized to save Snapshots.', 'customize-snapshots' ) );
 		}
 
 		$options = 0;

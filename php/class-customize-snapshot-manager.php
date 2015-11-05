@@ -132,8 +132,7 @@ class Customize_Snapshot_Manager {
 	 */
 	public function maybe_force_redirect() {
 		if ( false === $this->snapshot->is_preview() && isset( $_GET['customize_snapshot_uuid'] ) ) {
-			$args = array( 'customize_snapshot_uuid', 'scope' );
-			$current_url = esc_url( remove_query_arg( $args, $this->current_url() ) );
+			$current_url = esc_url( remove_query_arg( array( 'customize_snapshot_uuid', 'scope' ), $this->current_url() ) );
 			wp_safe_redirect( $current_url );
 			exit;
 		}
@@ -248,7 +247,7 @@ class Customize_Snapshot_Manager {
 		$new_setting_ids = array_diff( array_keys( $this->post_data ), array_keys( $this->customize_manager->settings() ) );
 		$added_settings = $this->customize_manager->add_dynamic_settings( $new_setting_ids );
 		if ( ! empty( $new_setting_ids ) && 0 === count( $added_settings ) ) {
-			trigger_error( 'Unable to snapshot settings for: ' . join( ', ', $new_setting_ids ), E_USER_WARNING );
+			trigger_error( 'Unable to snapshot settings for: ' . join( ', ', $new_setting_ids ), \E_USER_WARNING );
 		}
 
 		foreach ( $this->customize_manager->settings() as $setting ) {

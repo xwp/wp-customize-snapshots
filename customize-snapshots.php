@@ -33,15 +33,25 @@
 if ( version_compare( phpversion(), '5.3', '>=' ) ) {
 	require_once __DIR__ . '/instance.php';
 } else {
-	/**
-	 * Creates an admin notice describing the minimum PHP version.
-	 */
-	function customize_snapshots_php_version_error() {
-		printf( '<div class="error"><p>%s</p></div>', esc_html__( 'Customize Snapshots plugin error: Your version of PHP is too old to run this plugin. You must be running PHP 5.3 or higher.', 'customize-snapshots' ) );
-	}
 	if ( defined( 'WP_CLI' ) ) {
-		WP_CLI::warning( esc_html__( 'Customize Snapshots plugin error: Your PHP version is too old. You must have 5.3 or higher.', 'customize-snapshots' ) );
+		WP_CLI::warning( customize_snapshots_php_version_text() );
 	} else {
 		add_action( 'admin_notices', 'customize_snapshots_php_version_error' );
 	}
+}
+
+/**
+ * Admin notice for incompatible versions of PHP.
+ */
+function customize_snapshots_php_version_error() {
+	printf( '<div class="error"><p>%s</p></div>', customize_snapshots_php_version_text() );
+}
+
+/**
+ * String describing the minimum PHP version.
+ *
+ * @return string
+ */
+function customize_snapshots_php_version_text() {
+	return esc_html__( 'Customize Snapshots plugin error: Your version of PHP is too old to run this plugin. You must be running PHP 5.3 or higher.', 'customize-snapshots' );
 }
