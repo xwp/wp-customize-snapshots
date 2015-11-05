@@ -49,8 +49,8 @@ class Test_Customize_Snapshot extends \WP_UnitTestCase {
 	public static function setUpBeforeClass() {
 		$args = array(
 			'labels' => array(
-				'name' => __( 'Customize Snapshots', 'customize-widgets-plus' ),
-				'singular_name' => __( 'Customize Snapshot', 'customize-widgets-plus' ),
+				'name' => __( 'Customize Snapshots' ),
+				'singular_name' => __( 'Customize Snapshot' ),
 			),
 			'public' => false,
 			'capability_type' => 'post',

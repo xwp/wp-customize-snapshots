@@ -396,7 +396,7 @@ class Customize_Snapshot_Manager {
 		$wp_admin_bar->add_menu(
 			array(
 				'id'     => 'customize',
-				'title'  => __( 'Customize' ),
+				'title'  => __( 'Customize', 'customize-snapshots' ),
 				'href'   => $customize_url,
 				'meta'   => array(
 					'class' => 'hide-if-no-customize',

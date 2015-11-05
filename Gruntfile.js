@@ -62,7 +62,8 @@ module.exports = function( grunt ) {
 			files: {
 				src:	[
 					'**/*.php', // Include all files
-					'!node_modules/**' // Exclude node_modules/
+					'!node_modules/**', // Exclude node_modules/
+					'!tests/**' // Exclude tests/
 				],
 				expand: true
 			}
