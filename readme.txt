@@ -1,21 +1,18 @@
 === Customize Snapshots ===
-Contributors: xwp
-Requires at least: 4.1
-Tested up to: 4.1
+Contributors: westonruter, valendesigns, xwp, newscorpau
+Requires at least: trunk
+Tested up to: trunk
 Stable tag: trunk
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
+Tags: customizer, customize, snapshots
 
-Template plugin for scaffolding WordPress plugins at XWP.
+Allow Customizer states to be drafted, and previewed with a private URL.
 
 == Description ==
 
-Template plugin for scaffolding WordPress plugins at XWP.
+Customize Snapshots save the state of a Customizer session so it can be shared or even publish at a future date. A snapshot can be shared with a private URL to both authenticated and non authenticated users. This means anyone can preview a snapshot's settings on the front-end without loading the Customizer, and authenticated users can load the snapshot into the Customizer and publish or amend the settings at any time. Snapshots are saved with a `scope` of `full` or `dirty`, which tells the preview how to playback the settings stored in the snapshot. A `full` snapshot preview will playback all the settings during preview, while the `dirty` snapshot preview will only playback the ones that were marked `dirty` when the snapshot was taken.
 
-Use the [`init-plugin.sh`](init-plugin.sh) script on your system to pull down this repo and make the necessary replacements via:
+Requires PHP 5.3+.
 
-```bash
-./init-plugin.sh "Hello World"
-```
-
-This will create a plugin `hello-world` in the current directory. The `init-plugin.sh` script will be removed from the scaffolded plugin.
+**Development of this plugin is done [on GitHub](https://github.com/xwp/wp-customize-snapshots). Pull requests welcome. Please see [issues](https://github.com/xwp/wp-customize-snapshots) reported there before going to the [plugin forum](https://wordpress.org/support/plugin/customize-snapshots).**
