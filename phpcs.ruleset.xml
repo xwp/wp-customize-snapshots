@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<ruleset name="WordPress Coding Standards for Customize Snapshots plugin">
+<ruleset name="WordPress Coding Standards for the Customize Snapshots plugin">
 
 	<rule ref="WordPress-Core" />
 	<rule ref="WordPress-Docs" />
