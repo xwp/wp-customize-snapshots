@@ -38,7 +38,7 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 		$this->wp_customize = $GLOBALS['wp_customize'];
 		$_SERVER['REQUEST_METHOD'] = 'POST';
 		$_REQUEST['wp_customize'] = 'on';
-		wp_set_current_user( $this->factory()->user->create( array( 'role' => 'administrator' ) ) );
+		wp_set_current_user( $this->factory->user->create( array( 'role' => 'administrator' ) ) );
 		$this->manager = new Customize_Snapshot_Manager( $this->plugin );
 	}
 
@@ -122,7 +122,7 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 	 * @param array  $expected_results  Expected results.
 	 */
 	function test_ajax_update_snapshot_cap_check( $role, $expected_results ) {
-		wp_set_current_user( $this->factory()->user->create( array( 'role' => $role ) ) );
+		wp_set_current_user( $this->factory->user->create( array( 'role' => $role ) ) );
 
 		$_POST = array(
 			'action' => Customize_Snapshot_Manager::AJAX_ACTION,

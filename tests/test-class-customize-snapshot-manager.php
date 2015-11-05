@@ -41,7 +41,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		$this->wp_customize->add_setting( 'bar', array( 'default' => 'bar_default' ) );
 
 		$this->manager = new Customize_Snapshot_Manager( $this->plugin );
-		$this->user_id = $this->factory()->user->create( array( 'role' => 'administrator' ) );
+		$this->user_id = $this->factory->user->create( array( 'role' => 'administrator' ) );
 
 		remove_action( 'after_setup_theme', 'twentyfifteen_setup' );
 	}
@@ -226,7 +226,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	 * @see Customize_Snapshot_Manager::can_preview()
 	 */
 	public function test_can_preview_cap_check() {
-		wp_set_current_user( $this->factory()->user->create( array( 'role' => 'editor' ) ) );
+		wp_set_current_user( $this->factory->user->create( array( 'role' => 'editor' ) ) );
 
 		$foo = $this->wp_customize->get_setting( 'foo' );
 		$this->assertEquals( 'foo_default', $foo->value() );
