@@ -46,10 +46,9 @@ class Customize_Snapshot_Manager {
 	/**
 	 * Customize_Snapshot instance.
 	 *
-	 * @access protected
 	 * @var Customize_Snapshot
 	 */
-	protected $snapshot;
+	public $snapshot;
 
 	/**
 	 * Customize manager.
@@ -128,12 +127,20 @@ class Customize_Snapshot_Manager {
 	}
 
 	/**
+	 * Get the clean version of current URL.
+	 *
+	 * @return string
+	 */
+	public function clean_current_url() {
+		return esc_url( remove_query_arg( array( 'customize_snapshot_uuid', 'scope' ), $this->current_url() ) );
+	}
+
+	/**
 	 * Redirect when preview is not allowed for the current theme.
 	 */
 	public function maybe_force_redirect() {
 		if ( false === $this->snapshot->is_preview() && isset( $_GET['customize_snapshot_uuid'] ) ) {
-			$current_url = esc_url( remove_query_arg( array( 'customize_snapshot_uuid', 'scope' ), $this->current_url() ) );
-			wp_safe_redirect( $current_url );
+			wp_safe_redirect( $this->clean_current_url() );
 			exit;
 		}
 	}
@@ -178,13 +185,11 @@ class Customize_Snapshot_Manager {
 	 * @action customize_controls_enqueue_scripts
 	 */
 	public function enqueue_scripts() {
-		$handle = 'base';
-
 		// Enqueue styles.
-		wp_enqueue_style( $this->plugin->style_handles[ $handle ] );
+		wp_enqueue_style( $this->plugin->slug );
 
 		// Enqueue scripts.
-		wp_enqueue_script( $this->plugin->script_handles[ $handle ] );
+		wp_enqueue_script( $this->plugin->slug );
 
 		// Set the sanpshot theme.
 		$snapshot_theme = null;
@@ -218,7 +223,7 @@ class Customize_Snapshot_Manager {
 
 		// Export data to JS.
 		wp_scripts()->add_data(
-			$this->plugin->script_handles[ $handle ],
+			$this->plugin->slug,
 			'data',
 			sprintf( 'var _customizeSnapshots = %s;', wp_json_encode( $exports ) )
 		);

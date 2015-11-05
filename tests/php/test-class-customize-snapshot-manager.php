@@ -110,6 +110,19 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	}
 
 	/**
+	 * @see Customize_Snapshot_Manager::clean_current_url()
+	 */
+	function test_clean_current_url() {
+		$this->go_to( home_url( '?customize_snapshot_uuid=' . self::UUID . '&scope=dirty' ) );
+		ob_start();
+		$manager = new Customize_Snapshot_Manager( $this->plugin );
+		$this->assertContains( 'customize_snapshot_uuid', $manager->current_url() );
+		echo $manager->clean_current_url();
+		$buffer = ob_get_clean();
+		$this->assertEquals( home_url( '/' ), $buffer );
+	}
+
+	/**
 	 * @see Customize_Snapshot_Manager::create_post_type()
 	 */
 	function test_create_post_type() {
@@ -139,8 +152,8 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		$manager->set_snapshot_uuid();
 		$manager->save_snapshot();
 		$manager->enqueue_scripts();
-		$this->assertTrue( wp_script_is( 'customize-snapshots-base', 'enqueued' ) );
-		$this->assertTrue( wp_style_is( 'customize-snapshots-base', 'enqueued' ) );
+		$this->assertTrue( wp_script_is( $this->plugin->slug, 'enqueued' ) );
+		$this->assertTrue( wp_style_is( $this->plugin->slug, 'enqueued' ) );
 	}
 
 	/**
@@ -151,6 +164,26 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		$this->do_customize_boot_actions( true );
 		$manager = new Customize_Snapshot_Manager( $this->plugin );
 		$this->assertInstanceOf( 'CustomizeSnapshots\Customize_Snapshot', $manager->snapshot() );
+	}
+
+	/**
+	 * @see Customize_Snapshot_Manager::save_snapshot()
+	 */
+	function test_save_error() {
+		set_error_handler( function ( $errno, $errstr ) {
+			$this->assertEquals( 'Unable to snapshot settings for: baz', $errstr );
+			$this->assertEquals( \E_USER_WARNING, $errno );
+    } );
+		wp_set_current_user( $this->user_id );
+		$this->do_customize_boot_actions( true );
+		$_POST = array(
+			'nonce' => wp_create_nonce( 'save-customize_' . $this->wp_customize->get_stylesheet() ),
+			'snapshot_uuid' => self::UUID,
+			'snapshot_customized' => '{"baz":{"value":"","dirty":true}}',
+		);
+		$manager = new Customize_Snapshot_Manager( $this->plugin );
+		$manager->save();
+		restore_error_handler();
 	}
 
 	/**
