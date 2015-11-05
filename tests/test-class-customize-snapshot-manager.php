@@ -125,7 +125,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	/**
 	 * @see Customize_Snapshot_Manager::enqueue_scripts()
 	 */
-	function test_register_scripts() {
+	function test_enqueue_scripts() {
 		$this->plugin->register_scripts( wp_scripts() );
 		$this->plugin->register_styles( wp_styles() );
 		$this->manager->enqueue_scripts();
