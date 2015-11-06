@@ -113,17 +113,20 @@ module.exports = function( grunt ) {
 			}
 		},
 
-		// Shell actions for transifex client
+		// Shell actions
 		shell: {
 			options: {
 				stdout: true,
 				stderr: true
 			},
 			txpush: {
-				command: 'tx push -s' // Push the resources
+				command: 'tx push -s' // Push the .pot to transifex
 			},
 			txpull: {
-				command: 'tx pull -a -f' // Pull the .po files
+				command: 'tx pull -a -f' // Pull the .po files from transifex
+			},
+			readme: {
+				command: 'cd ./dev-lib/ && ./generate-markdown-readme' // Genrate the readme.md
 			}
 		},
 
@@ -174,7 +177,8 @@ module.exports = function( grunt ) {
 	// Register tasks
 	grunt.registerTask( 'default', [
 		'jshint',
-		'checktextdomain'
+		'checktextdomain',
+		'shell:readme'
 	] );
 
 	grunt.registerTask( 'po', [
