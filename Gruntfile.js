@@ -126,7 +126,7 @@ module.exports = function( grunt ) {
 				command: 'tx pull -a -f' // Pull the .po files from transifex
 			},
 			readme: {
-				command: 'cd ./dev-lib/ && ./generate-markdown-readme' // Genrate the readme.md
+				command: 'cd ./dev-lib && ./generate-markdown-readme' // Genrate the readme.md
 			}
 		},
 
