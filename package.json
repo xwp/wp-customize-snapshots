@@ -6,7 +6,7 @@
 		"type": "git",
 		"url": "https://github.com/xwp/wp-customize-snapshots.git"
 	},
-	"author": "XWP",
+	"author": "XWP News Corp Australia",
 	"license": "GPL-2.0+",
 	"devDependencies": {
 		"grunt": "~0.4.5",

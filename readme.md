@@ -5,7 +5,7 @@ Allow Customizer states to be drafted, and previewed with a private URL.
 
 **Contributors:** [westonruter](https://profiles.wordpress.org/westonruter), [valendesigns](https://profiles.wordpress.org/valendesigns), [xwp](https://profiles.wordpress.org/xwp), [newscorpau](https://profiles.wordpress.org/newscorpau)  
 **Tags:** [customizer](https://wordpress.org/plugins/tags/customizer), [customize](https://wordpress.org/plugins/tags/customize), [snapshots](https://wordpress.org/plugins/tags/snapshots)  
-**Requires at least:** trunk  
+**Requires at least:** 4.3  
 **Tested up to:** trunk  
 **Stable tag:** trunk (master)  
 **License:** [GPLv2 or later](http://www.gnu.org/licenses/gpl-2.0.html)  

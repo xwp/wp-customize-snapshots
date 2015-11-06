@@ -1,7 +1,7 @@
 {
 	"name": "xwp/wp-customize-snapshots",
 	"description": "Allow Customizer states to be drafted, and previewed with a private URL.",
-	"version": "trunk",
+	"version": "1.0.0-beta",
 	"type": "wordpress-plugin",
 	"homepage": "https://github.com/xwp/wp-customize-snapshots",
 	"license": "GPL-2.0+",
