@@ -177,8 +177,17 @@ module.exports = function( grunt ) {
 	// Register tasks
 	grunt.registerTask( 'default', [
 		'jshint',
-		'checktextdomain',
+		'checktextdomain'
+	] );
+
+	grunt.registerTask( 'readme', [
 		'shell:readme'
+	] );
+
+	grunt.registerTask( 'dev', [
+		'default',
+		'readme',
+		'makepot'
 	] );
 
 	grunt.registerTask( 'po', [
@@ -191,13 +200,10 @@ module.exports = function( grunt ) {
 		'potomo'
 	] );
 
-	grunt.registerTask( 'dev', [
-		'default',
-		'po'
-	] );
-
 	grunt.registerTask( 'build', [
-		'dev',
+		'default',
+		'readme',
+		'po',
 		'mo',
 		'copy'
 	] );
