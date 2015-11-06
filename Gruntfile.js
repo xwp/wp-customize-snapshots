@@ -156,7 +156,7 @@ module.exports = function( grunt ) {
 					assets_dir: 'wp-assets'
 				}
 			}
-    }
+		}
 
 	} );
 
