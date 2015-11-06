@@ -170,9 +170,10 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	 * @see Customize_Snapshot_Manager::save_snapshot()
 	 */
 	function test_save_error() {
-		set_error_handler( function ( $errno, $errstr ) {
-			$this->assertEquals( 'Unable to snapshot settings for: baz', $errstr );
-			$this->assertEquals( \E_USER_WARNING, $errno );
+		$obj = $this;
+		set_error_handler( function ( $errno, $errstr ) use( $obj ) {
+			$obj->assertEquals( 'Unable to snapshot settings for: baz', $errstr );
+			$obj->assertEquals( \E_USER_WARNING, $errno );
     } );
 		wp_set_current_user( $this->user_id );
 		$this->do_customize_boot_actions( true );

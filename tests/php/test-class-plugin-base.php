@@ -28,9 +28,10 @@ class Test_Plugin_Base extends \WP_UnitTestCase {
 	 * @see Plugin_Base::trigger_warning()
 	 */
 	function test_trigger_warning() {
-		set_error_handler( function ( $errno, $errstr ) {
-			$this->assertEquals( 'CustomizeSnapshots\Plugin: Param is 0!', $errstr );
-			$this->assertEquals( \E_USER_WARNING, $errno );
+		$obj = $this;
+		set_error_handler( function ( $errno, $errstr ) use( $obj ) {
+			$obj->assertEquals( 'CustomizeSnapshots\Plugin: Param is 0!', $errstr );
+			$obj->assertEquals( \E_USER_WARNING, $errno );
     } );
 		$this->plugin->trigger_warning( 'Param is 0!', \E_USER_WARNING );
 		restore_error_handler();
