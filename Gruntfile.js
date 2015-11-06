@@ -18,6 +18,41 @@ module.exports = function( grunt ) {
 			]
 		},
 
+		// Minify .js files.
+		uglify: {
+			options: {
+				preserveComments: false
+			},
+			core: {
+				files: [ {
+					expand: true,
+					cwd: 'js/',
+					src: [
+						'*.js',
+						'!*.min.js'
+					],
+					dest: 'js/',
+					ext: '.min.js'
+				} ]
+			}
+		},
+
+		// Minify .css files.
+		cssmin: {
+			core: {
+				files: [ {
+					expand: true,
+					cwd: 'css/',
+					src: [
+						'*.css',
+						'!*.min.css'
+					],
+					dest: 'css/',
+					ext: '.min.css'
+				} ]
+			}
+		},
+
 		// Generate POT files.
 		makepot: {
 			target: {
@@ -113,6 +148,12 @@ module.exports = function( grunt ) {
 			}
 		},
 
+		// VVV (Varying Vagrant Vagrants) Paths
+		vvv: {
+			'plugin': '/srv/www/wordpress-develop/src/wp-content/plugins/<%= pkg.name %>',
+			'coverage': '/srv/www/default/coverage/<%= pkg.name %>'
+		},
+
 		// Shell actions
 		shell: {
 			options: {
@@ -127,6 +168,12 @@ module.exports = function( grunt ) {
 			},
 			readme: {
 				command: 'cd ./dev-lib && ./generate-markdown-readme' // Genrate the readme.md
+			},
+			phpunit: {
+				command: 'vagrant ssh -c "cd <%= vvv.plugin %> && phpunit"' 
+			},
+			phpunit_c: {
+				command: 'vagrant ssh -c "cd <%= vvv.plugin %> && phpunit --coverage-html <%= vvv.coverage %>"'
 			}
 		},
 
@@ -167,16 +214,19 @@ module.exports = function( grunt ) {
 	grunt.loadNpmTasks( 'grunt-checktextdomain' );
 	grunt.loadNpmTasks( 'grunt-contrib-clean' );
 	grunt.loadNpmTasks( 'grunt-contrib-copy' );
+	grunt.loadNpmTasks( 'grunt-contrib-cssmin' );
 	grunt.loadNpmTasks( 'grunt-contrib-jshint' );
+	grunt.loadNpmTasks( 'grunt-contrib-uglify' );
 	grunt.loadNpmTasks( 'grunt-potomo' );
 	grunt.loadNpmTasks( 'grunt-shell' );
-	grunt.loadNpmTasks( 'grunt-wp-deploy' );
 	grunt.loadNpmTasks( 'grunt-wp-deploy' );
 	grunt.loadNpmTasks( 'grunt-wp-i18n' );
 
 	// Register tasks
 	grunt.registerTask( 'default', [
 		'jshint',
+		'uglify',
+		'cssmin',
 		'checktextdomain'
 	] );
 

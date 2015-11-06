@@ -46,7 +46,8 @@ class Plugin extends Plugin_Base {
 	 * @action wp_default_scripts
 	 */
 	function register_scripts( \WP_Scripts $wp_scripts ) {
-		$src = $this->dir_url . 'js/customize-snapshots.js';
+		$min = ( WP_DEBUG ? '' : '.min' );
+		$src = $this->dir_url . 'js/customize-snapshots' . $min . '.js';
 		$deps = array( 'jquery', 'jquery-ui-dialog', 'wp-util', 'customize-widgets' );
 		$wp_scripts->add( $this->slug, $src, $deps );
 	}
@@ -58,7 +59,8 @@ class Plugin extends Plugin_Base {
 	 * @action wp_default_styles
 	 */
 	function register_styles( \WP_Styles $wp_styles ) {
-		$src = $this->dir_url . 'css/customize-snapshots.css';
+		$min = ( WP_DEBUG ? '' : '.min' );
+		$src = $this->dir_url . 'css/customize-snapshots' . $min . '.css';
 		$deps = array( 'wp-jquery-ui-dialog' );
 		$wp_styles->add( $this->slug, $src, $deps );
 	}
