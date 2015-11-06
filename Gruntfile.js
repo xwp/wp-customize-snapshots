@@ -104,6 +104,45 @@ module.exports = function( grunt ) {
 		clean: {
 			build: {
 				src: [ 'build' ]
+			},
+			languages: {
+				src: [
+					'languages/*.po',
+					'languages/*.mo'
+				]
+			}
+		},
+
+		// Shell actions for transifex client
+		shell: {
+			options: {
+				stdout: true,
+				stderr: true
+			},
+			txpush: {
+				command: 'tx push -s' // Push the resources
+			},
+			txpull: {
+				command: 'tx pull -a -f' // Pull the .po files
+			}
+		},
+
+		// Convert .po to .mo
+		potomo: {
+			options: {
+				poDel: false
+			},
+			dist: {
+				files: [ {
+					expand: true,
+					cwd: 'languages/',
+					src: [
+						'*.po'
+					],
+					dest: 'languages/',
+					ext: '.mo',
+					nonull: true
+				} ]
 			}
 		},
 
@@ -126,6 +165,8 @@ module.exports = function( grunt ) {
 	grunt.loadNpmTasks( 'grunt-contrib-clean' );
 	grunt.loadNpmTasks( 'grunt-contrib-copy' );
 	grunt.loadNpmTasks( 'grunt-contrib-jshint' );
+	grunt.loadNpmTasks( 'grunt-potomo' );
+	grunt.loadNpmTasks( 'grunt-shell' );
 	grunt.loadNpmTasks( 'grunt-wp-deploy' );
 	grunt.loadNpmTasks( 'grunt-wp-deploy' );
 	grunt.loadNpmTasks( 'grunt-wp-i18n' );
@@ -136,16 +177,31 @@ module.exports = function( grunt ) {
 		'checktextdomain'
 	] );
 
-	grunt.registerTask( 'build', [
-		'default',
+	grunt.registerTask( 'po', [
 		'makepot',
+		'shell:txpush'
+	] );
+
+	grunt.registerTask( 'mo', [
+		'shell:txpull',
+		'potomo'
+	] );
+
+	grunt.registerTask( 'dev', [
+		'default',
+		'po'
+	] );
+
+	grunt.registerTask( 'build', [
+		'dev',
+		'mo',
 		'copy'
 	] );
 
 	grunt.registerTask( 'deploy', [
 		'build',
 		'wp_deploy',
-		'clean'
+		'clean:build'
 	] );
 
 };
