@@ -14,6 +14,7 @@ Before submitting your contribution, please make sure to take a moment and read 
 
 - Checkout a topic branch from `wip` and merge back against `wip`.
     - If you are not familiar with branching please read [_A successful Git branching model_](http://nvie.com/posts/a-successful-git-branching-model/) before you go any further.
+- **DO NOT** check-in the `build` directory with your commits.
 - Follow the [WordPress Coding Standards](https://make.wordpress.org/core/handbook/coding-standards/).
 - Make sure the default grunt task passes. (see [development setup](#development-setup))
 - If adding a new feature:
