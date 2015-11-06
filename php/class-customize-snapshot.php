@@ -381,7 +381,7 @@ class Customize_Snapshot {
 		 * @param \WP_Customize_Manager $manager
 		 * @return array
 		 */
-		$data = apply_filters( 'customize_snapshot_before_save', $data, $manager );
+		$data = apply_filters( 'customize_snapshot_save', $data, $manager );
 
 		// JSON encoded snapshot data.
 		$post_content = wp_json_encode( $data, $options );
