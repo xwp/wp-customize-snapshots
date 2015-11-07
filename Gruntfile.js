@@ -53,29 +53,6 @@ module.exports = function( grunt ) {
 			}
 		},
 
-		// Generate POT files.
-		makepot: {
-			target: {
-				options: {
-					potFilename: '<%= pkg.name %>.pot',
-					exclude: [
-						'build/.*' // Exclude build directory
-					],
-					processPot: function( pot ) {
-						pot.headers['project-id-version'];
-						return pot;
-					},
-					type: 'wp-plugin',
-					domainPath: 'languages',
-					potHeaders: {
-						'report-msgid-bugs-to': 'XWP',
-						'last-translator': 'XWP',
-						'language-team': 'XWP'
-					}
-				}
-			}
-		},
-
 		// Check textdomain errors.
 		checktextdomain: {
 			options:{
@@ -139,12 +116,6 @@ module.exports = function( grunt ) {
 		clean: {
 			build: {
 				src: [ 'build' ]
-			},
-			languages: {
-				src: [
-					'languages/*.po',
-					'languages/*.mo'
-				]
 			}
 		},
 
@@ -160,12 +131,6 @@ module.exports = function( grunt ) {
 				stdout: true,
 				stderr: true
 			},
-			txpush: {
-				command: 'tx push -s' // Push the .pot to transifex
-			},
-			txpull: {
-				command: 'tx pull -a -f' // Pull the .po files from transifex
-			},
 			readme: {
 				command: 'cd ./dev-lib && ./generate-markdown-readme' // Genrate the readme.md
 			},
@@ -177,25 +142,6 @@ module.exports = function( grunt ) {
 			}
 		},
 
-		// Convert .po to .mo
-		potomo: {
-			options: {
-				poDel: false
-			},
-			dist: {
-				files: [ {
-					expand: true,
-					cwd: 'languages/',
-					src: [
-						'*.po'
-					],
-					dest: 'languages/',
-					ext: '.mo',
-					nonull: true
-				} ]
-			}
-		},
-
 		// Deploys a git Repo to the WordPress SVN repo
 		wp_deploy: {
 			deploy: {
@@ -203,7 +149,7 @@ module.exports = function( grunt ) {
 					plugin_slug: '<%= pkg.name %>',
 					svn_user: 'westonruter',
 					build_dir: 'build',
-					assets_dir: 'wp-assets'
+					assets_dir: 'assets'
 				}
 			}
 		}
@@ -217,10 +163,8 @@ module.exports = function( grunt ) {
 	grunt.loadNpmTasks( 'grunt-contrib-cssmin' );
 	grunt.loadNpmTasks( 'grunt-contrib-jshint' );
 	grunt.loadNpmTasks( 'grunt-contrib-uglify' );
-	grunt.loadNpmTasks( 'grunt-potomo' );
 	grunt.loadNpmTasks( 'grunt-shell' );
 	grunt.loadNpmTasks( 'grunt-wp-deploy' );
-	grunt.loadNpmTasks( 'grunt-wp-i18n' );
 
 	// Register tasks
 	grunt.registerTask( 'default', [
@@ -234,34 +178,29 @@ module.exports = function( grunt ) {
 		'shell:readme'
 	] );
 
+	grunt.registerTask( 'phpunit', [
+		'shell:phpunit'
+	] );
+
+	grunt.registerTask( 'phpunit_c', [
+		'shell:phpunit_c'
+	] );
+
 	grunt.registerTask( 'dev', [
 		'default',
-		'readme',
-		'makepot'
-	] );
-
-	grunt.registerTask( 'po', [
-		'makepot',
-		'shell:txpush'
-	] );
-
-	grunt.registerTask( 'mo', [
-		'shell:txpull',
-		'potomo'
+		'readme'
 	] );
 
 	grunt.registerTask( 'build', [
 		'default',
 		'readme',
-		'po',
-		'mo',
 		'copy'
 	] );
 
 	grunt.registerTask( 'deploy', [
 		'build',
 		'wp_deploy',
-		'clean:build'
+		'clean'
 	] );
 
 };

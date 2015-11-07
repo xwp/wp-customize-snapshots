@@ -4,8 +4,3 @@
 /build/
 /node_modules/
 npm-debug.log
-
-# Transifex
-.transifexrc
-/languages/*.po
-/languages/*.mo
