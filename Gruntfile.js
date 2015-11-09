@@ -148,7 +148,7 @@ module.exports = function( grunt ) {
 				options: {
 					plugin_slug: '<%= pkg.name %>',
 					svn_user: 'westonruter',
-					build_dir: 'build',
+					build_dir: 'build/<%= pkg.name %>',
 					assets_dir: 'assets'
 				}
 			}
