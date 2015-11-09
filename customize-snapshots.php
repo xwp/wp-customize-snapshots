@@ -3,7 +3,7 @@
  * Plugin Name: Customize Snapshots
  * Plugin URI: https://github.com/xwp/wp-customize-snapshots
  * Description: Allow Customizer states to be drafted, and previewed with a private URL.
- * Version: 1.0.0-dev
+ * Version: 0.1
  * Author:  XWP News Corp Australia
  * Author URI: https://xwp.co/
  * License: GPLv2+
