@@ -371,7 +371,6 @@ class Customize_Snapshot {
 			$options |= JSON_PRETTY_PRINT;
 		}
 
-		$data = $this->data;
 		$manager = $this->snapshot_manager->customize_manager;
 
 		/**
@@ -381,10 +380,10 @@ class Customize_Snapshot {
 		 * @param \WP_Customize_Manager $manager
 		 * @return array
 		 */
-		$data = apply_filters( 'customize_snapshot_save', $data, $manager );
+		$this->data = apply_filters( 'customize_snapshot_save', $this->data, $manager );
 
 		// JSON encoded snapshot data.
-		$post_content = wp_json_encode( $data, $options );
+		$post_content = wp_json_encode( $this->data, $options );
 
 		if ( ! $this->post ) {
 			$postarr = array(
