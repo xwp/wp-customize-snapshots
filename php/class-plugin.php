@@ -24,7 +24,9 @@ class Plugin extends Plugin_Base {
 	 */
 	public function __construct() {
 		parent::__construct();
-		add_action( 'after_setup_theme', array( $this, 'init' ) );
+
+		$priority = 9; // Because WP_Customize_Widgets::register_settings() happens at after_setup_theme priority 10.
+		add_action( 'after_setup_theme', array( $this, 'init' ), $priority );
 	}
 
 	/**
