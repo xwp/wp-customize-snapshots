@@ -209,7 +209,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	 * @see Customize_Snapshot_Manager::customize_menu()
 	 */
 	public function test_customize_menu() {
-		$customize_url = admin_url( 'customize.php' ) . '?customize_snapshot_uuid=' . self::UUID . '&scope=dirty&url=http%3A%2F%2Fexample.org%2F%3Fcustomize_snapshot_uuid%3D' . self::UUID . '%26scope%3Ddirty';
+		$customize_url = admin_url( 'customize.php' ) . '?customize_snapshot_uuid=' . self::UUID . '&scope=dirty&url=http%3A%2F%2Fexample.org%2F';
 
 		require_once( ABSPATH . WPINC . '/class-wp-admin-bar.php' );
 		$wp_admin_bar = new \WP_Admin_Bar;
@@ -226,8 +226,6 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	 * @see Customize_Snapshot_Manager::customize_menu()
 	 */
 	public function test_customize_menu_return() {
-		$customize_url = admin_url( 'customize.php' ) . '?customize_snapshot_uuid=' . self::UUID . '&scope=dirty&url=http%3A%2F%2Fexample.org%2F%3Fcustomize_snapshot_uuid%3D' . self::UUID . '%26scope%3Ddirty';
-
 		require_once( ABSPATH . WPINC . '/class-wp-admin-bar.php' );
 		$wp_admin_bar = new \WP_Admin_Bar;
 		$this->assertInstanceOf( 'WP_Admin_Bar', $wp_admin_bar );
