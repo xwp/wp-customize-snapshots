@@ -305,7 +305,7 @@ class Customize_Snapshot_Manager {
 			$this->snapshot->set_uuid( $this->snapshot_uuid );
 			$r = $this->save( 'publish' );
 			if ( is_wp_error( $r ) ) {
-				add_filter( 'customize_save_response', function( $response ) {
+				add_filter( 'customize_save_response', function( $response ) use ( $r ) {
 					$response[ $r->get_error_code() ] = $r->get_error_message();
 					return $response;
 				} );
