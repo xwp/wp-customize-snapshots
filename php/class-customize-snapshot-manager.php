@@ -105,13 +105,14 @@ class Customize_Snapshot_Manager {
 
 		// Set the return URL in the Customizer.
 		if ( $this->snapshot->is_preview() ) {
-			add_action( 'customize_controls_init', function () use ( $uuid, $scope ) {
+			$that = $this;
+			add_action( 'customize_controls_init', function () use ( $uuid, $scope, $that ) {
 				$args = array(
 					'customize_snapshot_uuid' => $uuid,
 					'scope' => $scope,
 				);
-				$return_url = add_query_arg( $args, $this->customize_manager->get_return_url() );
-				$this->customize_manager->set_return_url( $return_url );
+				$return_url = add_query_arg( $args, $that->customize_manager->get_return_url() );
+				$that->customize_manager->set_return_url( $return_url );
 			} );
 		}
 
