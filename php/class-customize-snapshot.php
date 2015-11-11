@@ -371,16 +371,13 @@ class Customize_Snapshot {
 			$options |= JSON_PRETTY_PRINT;
 		}
 
-		$manager = $this->snapshot_manager->customize_manager;
-
 		/**
 		 * Filter the snapshot's data before it's saved to 'post_content_filtered'.
 		 *
 		 * @param array $data Customizer settings and values.
-		 * @param \WP_Customize_Manager $manager
 		 * @return array
 		 */
-		$this->data = apply_filters( 'customize_snapshot_save', $this->data, $manager );
+		$this->data = apply_filters( 'customize_snapshot_save', $this->data );
 
 		// JSON encoded snapshot data.
 		$post_content = wp_json_encode( $this->data, $options );
@@ -399,7 +396,7 @@ class Customize_Snapshot {
 				return $r;
 			}
 			$this->post = get_post( $r );
-			update_post_meta( $this->post->ID, '_snapshot_theme', $manager->get_stylesheet() );
+			update_post_meta( $this->post->ID, '_snapshot_theme', $this->snapshot_manager->customize_manager->get_stylesheet() );
 		} else {
 			$postarr = array(
 				'ID' => $this->post->ID,
