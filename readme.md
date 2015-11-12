@@ -22,3 +22,16 @@ Requires PHP 5.3+.
 
 **Development of this plugin is done [on GitHub](https://github.com/xwp/wp-customize-snapshots). Pull requests welcome. Please see [issues](https://github.com/xwp/wp-customize-snapshots) reported there before going to the [plugin forum](https://wordpress.org/support/plugin/customize-snapshots).**
 
+## Changelog ##
+
+### 0.2 ###
+Added the `customize_publish` capability.
+Separated the "Save" & "Publish" buttons.
+
+### 0.1.1 ###
+Fixed widget preview.
+
+### 0.1 ###
+Initial release.
+
+
