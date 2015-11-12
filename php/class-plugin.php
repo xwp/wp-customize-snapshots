@@ -72,9 +72,8 @@ class Plugin extends Plugin_Base {
 	 * Add the 'customize_publish' capability if the role can 'edit_theme_options'.
 	 */
 	function add_caps() {
-		$roles = get_editable_roles();
 		foreach ( wp_roles()->role_objects as $role => $roleObj ) {
-			if ( isset( $roles[ $role ] ) && $roleObj->has_cap( 'edit_theme_options' ) ) {
+			if ( ! $roleObj->has_cap( 'customize_publish' ) && $roleObj->has_cap( 'edit_theme_options' ) ) {
 				$roleObj->add_cap( 'customize_publish' );
 			}
 		}
