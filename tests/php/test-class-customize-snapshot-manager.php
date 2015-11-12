@@ -107,6 +107,19 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		$_GET['scope'] = 'full';
 		$manager = new Customize_Snapshot_Manager( $this->plugin );
 		$this->assertInstanceOf( 'WP_Customize_Manager', $GLOBALS['wp_customize'] );
+		
+	}
+
+	/**
+	 * @see Customize_Snapshot_Manager::set_return_url()
+	 */
+	public function test_set_return_url() {
+		$this->assertNotContains( 'customize_snapshot_uuid', $this->manager->customize_manager->get_return_url() );
+		$this->manager->snapshot()->set_uuid( self::UUID );
+		$this->manager->snapshot()->is_preview = true;
+		$this->manager->set_return_url();
+		$this->assertContains( 'customize_snapshot_uuid', $this->manager->customize_manager->get_return_url() );
+		$this->assertContains( 'scope=dirty', $this->manager->customize_manager->get_return_url() );
 	}
 
 	/**

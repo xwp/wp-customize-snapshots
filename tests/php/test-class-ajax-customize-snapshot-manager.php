@@ -70,6 +70,23 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 	}
 
 	/**
+	 * Testing capabilities check for the customize_save ajax call
+	 */
+	function test_ajax_customize_save() {
+		wp_set_current_user( $this->factory->user->create( array( 'role' => 'editor' ) ) );
+		$this->make_ajax_call( 'customize_save' );
+
+		// Get the results.
+		$response = json_decode( $this->_last_response, true );
+		$expected_results = array(
+			'success' => false,
+			'data'    => 'publish_not_allowed',
+		);
+
+		$this->assertSame( $expected_results, $response );
+	}
+
+	/**
 	 * Testing capabilities check for the update_snapshot method
 	 */
 	function test_ajax_update_snapshot_nonce_check() {

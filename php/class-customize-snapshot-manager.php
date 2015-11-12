@@ -103,19 +103,7 @@ class Customize_Snapshot_Manager {
 
 		$this->snapshot = new Customize_Snapshot( $this, $uuid, $apply_dirty );
 
-		// Set the return URL in the Customizer.
-		if ( $this->snapshot->is_preview() ) {
-			$that = $this;
-			add_action( 'customize_controls_init', function () use ( $uuid, $scope, $that ) {
-				$args = array(
-					'customize_snapshot_uuid' => $uuid,
-					'scope' => $scope,
-				);
-				$return_url = add_query_arg( $args, $that->customize_manager->get_return_url() );
-				$that->customize_manager->set_return_url( $return_url );
-			} );
-		}
-
+		add_action( 'customize_controls_init', array( $this, 'set_return_url' ) );
 		add_action( 'init', array( $this, 'maybe_force_redirect' ), 0 );
 		add_action( 'init', array( $this, 'create_post_type' ), 0 );
 		add_action( 'customize_controls_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
@@ -128,6 +116,20 @@ class Customize_Snapshot_Manager {
 		// Preview a Snapshot.
 		add_action( 'after_setup_theme', array( $this, 'set_post_values' ), 1 );
 		add_action( 'wp_loaded', array( $this, 'preview' ) );
+	}
+
+	/**
+	 * Set the Customizer return URL.
+	 */
+	public function set_return_url() {
+		if ( $this->snapshot->is_preview() && $this->snapshot->uuid() ) {
+			$args = array(
+				'customize_snapshot_uuid' => $this->snapshot->uuid(),
+				'scope' => $this->snapshot->apply_dirty ? 'dirty' : 'full',
+			);
+			$return_url = add_query_arg( $args, $this->customize_manager->get_return_url() );
+			$this->customize_manager->set_return_url( $return_url );
+		}
 	}
 
 	/**
