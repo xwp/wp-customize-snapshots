@@ -26,7 +26,7 @@ Requires PHP 5.3+.
 
 ### 0.2 ###
 * Added the `customize_publish` capability.
-* Separated the "Save" & "Publish" buttons.
+* Separate "Save" & "Publish" buttons.
 
 ### 0.1.1 ###
 * Fixed widget preview.
