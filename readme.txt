@@ -22,11 +22,11 @@ Requires PHP 5.3+.
 == Changelog ==
 
 = 0.2 =
-Added the `customize_publish` capability.
-Separated the "Save" & "Publish" buttons.
+* Added the `customize_publish` capability.
+* Separated the "Save" & "Publish" buttons.
 
 = 0.1.1 =
-Fixed widget preview.
+* Fixed widget preview.
 
 = 0.1 =
-Initial release.
+* Initial release.
