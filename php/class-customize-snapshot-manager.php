@@ -450,8 +450,8 @@ class Customize_Snapshot_Manager {
 		<script type="text/html" id="tmpl-snapshot-dialog-form">
 			<div id="snapshot-dialog-form" title="{{ data.title }}">
 				<form>
-					<p>{{ data.message }}</p>
 					<fieldset>
+						<p>{{ data.message }}</p>
 						<# if ( data.is_preview ) { #>
 							<input type="hidden" value="{{ data.scope }}" name="scope">
 						<# } else { #>
