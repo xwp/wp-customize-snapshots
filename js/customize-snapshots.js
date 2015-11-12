@@ -13,6 +13,9 @@ var customizeSnapshots = ( function( $ ) {
 	 * Inject the functionality.
 	 */
 	self.init = function() {
+		window._wpCustomizeControlsL10n.save = _customizeSnapshots.i18n.publish;
+		window._wpCustomizeControlsL10n.saved = _customizeSnapshots.i18n.published;
+
 		api.bind( 'ready', function() {
 			if ( ! api.settings.theme.active || ( theme && theme !== api.settings.theme.stylesheet ) ) {
 				return;
@@ -62,13 +65,14 @@ var customizeSnapshots = ( function( $ ) {
 		var header = $( '#customize-header-actions' ),
 			snapshotButton, data;
 
-		if ( header.length ) {
-			snapshotButton = wp.template( 'snapshot-button' );
+		if ( header.length && 0 === header.find( '#snapshot-save' ).length ) {
+			snapshotButton = wp.template( 'snapshot-save' ),
 			data = {
-				buttonText: _customizeSnapshots.i18n.shareButton
+				buttonText: _customizeSnapshots.i18n.saveButton
 			};
-			header.addClass( 'has-snapshot-button' ).append( snapshotButton( data ) );
+			$( snapshotButton( data ) ).insertAfter( header.find( '#save' ) );
 		}
+		// @todo Change the button text depending on the snapshot state.
 	};
 
 	/**
@@ -79,8 +83,9 @@ var customizeSnapshots = ( function( $ ) {
 			data = {
 				title: _customizeSnapshots.i18n.formTitle,
 				is_preview: is_preview,
-				message: _customizeSnapshots.i18n.updateMsg,
+				message: _customizeSnapshots.i18n.saveMsg,
 				scope: _customizeSnapshots.scope,
+				scopeTitle: _customizeSnapshots.i18n.scopeTitle,
 				dirtyLabel: _customizeSnapshots.i18n.dirtyLabel,
 				fullLabel: _customizeSnapshots.i18n.fullLabel
 			};
@@ -117,7 +122,7 @@ var customizeSnapshots = ( function( $ ) {
 			self.sendUpdateSnapshotRequest();
 		} );
 
-		$( '#snapshot-button' ).on( 'click', function( event ) {
+		$( '#snapshot-save' ).on( 'click', function( event ) {
 			event.preventDefault();
 			dialog.dialog( 'open' );
 			dialog.find( 'form input[name=scope]' ).blur();

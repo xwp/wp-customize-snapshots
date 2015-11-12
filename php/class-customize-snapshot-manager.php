@@ -221,16 +221,21 @@ class Customize_Snapshot_Manager {
 			'i18n' => array(
 				'saveButton' => __( 'Save', 'customize-snapshots' ),
 				'cancelButton' => __( 'Cancel', 'customize-snapshots' ),
-				'shareButton' => __( 'Share URL to preview', 'customize-snapshots' ),
-				'updateMsg' => __( 'Clicking "Save" will update the current snapshot.', 'customize-snapshots' ),
-				'errorMsg' => __( 'The snapshot could not be saved.', 'customize-snapshots' ),
-				'previewTitle' => __( 'Snapshot Permalink', 'customize-snapshots' ),
-				'formTitle' => ( $this->snapshot->is_preview() ?
-					__( 'Update Snapshot', 'customize-snapshots' ) :
-					__( 'Snapshot Scope', 'customize-snapshots' )
+				'publish' => __( 'Publish', 'customize-snapshots' ),
+				'published' => __( 'Published', 'customize-snapshots' ),
+				'saveMsg' => ( $this->snapshot->is_preview() ?
+					__( 'Clicking "Save" will update the current snapshot.', 'customize-snapshots' ) :
+					__( 'Clicking "Save" will create a new snapshot.', 'customize-snapshots' )
 				),
-				'dirtyLabel' => __( 'Diff Snapshot (preview dirty settings)', 'customize-snapshots' ),
-				'fullLabel' => __( 'Full Snapshot (preview all settings)', 'customize-snapshots' ),
+				'errorMsg' => __( 'The snapshot could not be saved.', 'customize-snapshots' ),
+				'previewTitle' => __( 'Preview Permalink', 'customize-snapshots' ),
+				'formTitle' => ( $this->snapshot->is_preview() ?
+					__( 'Update', 'customize-snapshots' ) :
+					__( 'Save', 'customize-snapshots' )
+				),
+				'scopeTitle' => __( 'Preview Scope', 'customize-snapshots' ),
+				'dirtyLabel' => __( 'diff - Previews the dirty settings', 'customize-snapshots' ),
+				'fullLabel' => __( 'full - Previews all the settings', 'customize-snapshots' ),
 			),
 		);
 
@@ -424,9 +429,9 @@ class Customize_Snapshot_Manager {
 	 */
 	public function render_templates() {
 		?>
-		<script type="text/html" id="tmpl-snapshot-button">
-			<button id="snapshot-button" class="dashicons dashicons-share">
-				<span class="screen-reader-text">{{ data.buttonText }}</span>
+		<script type="text/html" id="tmpl-snapshot-save">
+			<button id="snapshot-save" class="button">
+				{{ data.buttonText }}
 			</button>
 		</script>
 
@@ -445,11 +450,12 @@ class Customize_Snapshot_Manager {
 		<script type="text/html" id="tmpl-snapshot-dialog-form">
 			<div id="snapshot-dialog-form" title="{{ data.title }}">
 				<form>
+					<p>{{ data.message }}</p>
 					<fieldset>
 						<# if ( data.is_preview ) { #>
-							<p>{{ data.message }}</p>
 							<input type="hidden" value="{{ data.scope }}" name="scope">
 						<# } else { #>
+							<h4>{{ data.scopeTitle }}</h4>
 							<label for="type-0">
 								<input id="type-0" type="radio" checked="checked" value="dirty" name="scope">{{ data.dirtyLabel }}
 							</label>
