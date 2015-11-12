@@ -37,6 +37,7 @@ class Plugin extends Plugin_Base {
 	function init() {
 		add_action( 'wp_default_scripts', array( $this, 'register_scripts' ), 11 );
 		add_action( 'wp_default_styles', array( $this, 'register_styles' ), 11 );
+		add_action( 'admin_init', array( $this, 'add_caps' ) );
 
 		$this->customize_snapshot_manager = new Customize_Snapshot_Manager( $this );
 	}
@@ -65,5 +66,17 @@ class Plugin extends Plugin_Base {
 		$src = $this->dir_url . 'css/customize-snapshots' . $min . '.css';
 		$deps = array( 'wp-jquery-ui-dialog' );
 		$wp_styles->add( $this->slug, $src, $deps );
+	}
+
+	/**
+	 * Add the 'customize_publish' capability if the role can 'edit_theme_options'.
+	 */
+	function add_caps() {
+		$roles = get_editable_roles();
+		foreach ( wp_roles()->role_objects as $role => $roleObj ) {
+			if ( isset( $roles[ $role ] ) && $roleObj->has_cap( 'edit_theme_options' ) ) {
+				$roleObj->add_cap( 'customize_publish' );
+			}
+		}
 	}
 }
