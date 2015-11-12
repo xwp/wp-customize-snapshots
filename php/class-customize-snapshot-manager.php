@@ -204,7 +204,7 @@ class Customize_Snapshot_Manager {
 		// Enqueue scripts.
 		wp_enqueue_script( $this->plugin->slug );
 
-		// Set the sanpshot theme.
+		// Set the snapshot theme.
 		$snapshot_theme = null;
 		if ( isset( $this->snapshot->post()->ID ) ) {
 			$snapshot_theme = get_post_meta( $this->snapshot->post()->ID, '_snapshot_theme', true );
