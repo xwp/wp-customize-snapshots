@@ -303,6 +303,15 @@ class Customize_Snapshot {
 	}
 
 	/**
+	 * Get the underlying data for the snapshot.
+	 *
+	 * @return array
+	 */
+	public function data() {
+		return $this->data;
+	}
+
+	/**
 	 * Return the Customizer settings corresponding to the data contained in the snapshot.
 	 *
 	 * @return \WP_Customize_Setting[]
