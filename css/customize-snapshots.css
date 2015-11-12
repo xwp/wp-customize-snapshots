@@ -12,20 +12,18 @@
 	padding: 0;
 }
 
+#snapshot-dialog-form p,
+#snapshot-dialog-link a,
+#snapshot-dialog-error p {
+	margin-top: .5em;
+}
+
 #snapshot-dialog-form label {
 	padding-bottom: 1em;
 }
 
 #snapshot-dialog-link {
 	word-wrap: break-word;
-}
-
-#snapshot-dialog-link p {
-	margin-top: 0;
-}
-
-#snapshot-dialog-error p {
-	margin-top: .5em;
 }
 
 .wp-customizer.js .ui-dialog {

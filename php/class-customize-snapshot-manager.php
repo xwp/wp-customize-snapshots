@@ -290,7 +290,7 @@ class Customize_Snapshot_Manager {
 	 * Fires at `wp_ajax_customize_save`.
 	 */
 	public function set_snapshot_uuid() {
-		if ( ! current_user_can( 'customize_publish' ) ) {
+		if ( current_user_can( 'customize_publish' ) ) {
 			status_header( 403 );
 			wp_send_json_error( 'publish_not_allowed' );
 		}
