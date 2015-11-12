@@ -122,7 +122,12 @@ class Customize_Snapshot_Manager {
 	 * Set the Customizer return URL.
 	 */
 	public function set_return_url() {
-		if ( $this->snapshot->is_preview() && $this->snapshot->uuid() ) {
+		global $wp_version;
+		if (
+			version_compare( $wp_version, '4.4-beta', '>=' )
+			&& $this->snapshot->is_preview()
+			&& $this->snapshot->uuid()
+		) {
 			$args = array(
 				'customize_snapshot_uuid' => $this->snapshot->uuid(),
 				'scope' => $this->snapshot->apply_dirty ? 'dirty' : 'full',
