@@ -30,7 +30,7 @@ var customizeSnapshots = ( function( $ ) {
 		} );
 
 		api.bind( 'save', function( request ) {
-			request.fail( function ( response ) {
+			request.fail( function( response ) {
 				var id = 'snapshot-dialog-error',
 					snapshotDialogPublishError = wp.template( id );
 
