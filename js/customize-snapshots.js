@@ -28,6 +28,33 @@ var customizeSnapshots = ( function( $ ) {
 				api.state( 'saved' ).set( false );
 			}
 		} );
+
+		api.bind( 'save', function( request ) {
+			request.fail( function ( response ) {
+				var id = 'snapshot-dialog-error',
+					snapshotDialogPublishError = wp.template( id );
+
+				if ( response.responseText ) {
+
+					// Insert the dialog error template.
+					if ( 0 === $( '#' + id ).length ) {
+						$( 'body' ).append( snapshotDialogPublishError( {
+							title: _customizeSnapshots.i18n.publish,
+							message: _customizeSnapshots.i18n.permsMsg
+						} ) );
+					}
+
+					$( '#customize-header-actions .spinner' ).removeClass( 'is-active' );
+
+					// Open the dialog.
+					$( '#' + id ).dialog( {
+						autoOpen: true,
+						modal: true
+					} );
+				}
+			} );
+			return request;
+		} );
 	};
 
 	/**
@@ -72,7 +99,6 @@ var customizeSnapshots = ( function( $ ) {
 			};
 			$( snapshotButton( data ) ).insertAfter( header.find( '#save' ) );
 		}
-		// @todo Change the button text depending on the snapshot state.
 	};
 
 	/**
@@ -166,7 +192,7 @@ var customizeSnapshots = ( function( $ ) {
 			var url = wp.customize.previewer.previewUrl(),
 				regex = new RegExp( '([?&])customize_snapshot_uuid=.*?(&|$)', 'i' ),
 				separator = url.indexOf( '?' ) !== -1 ? '&' : '?',
-				id = 'snapshot-dialog-share-link',
+				id = 'snapshot-dialog-link',
 				snapshotDialogShareLink = wp.template( id );
 
 			if ( url.match( regex ) ) {
@@ -190,7 +216,7 @@ var customizeSnapshots = ( function( $ ) {
 				$( '#' + id ).remove();
 			}
 
-			// Insert the snapshot dialog share link template.
+			// Insert the snapshot dialog link template.
 			$( 'body' ).append( snapshotDialogShareLink( {
 				title: _customizeSnapshots.i18n.previewTitle,
 				url: url
@@ -207,10 +233,10 @@ var customizeSnapshots = ( function( $ ) {
 		} );
 
 		request.fail( function() {
-			var id = 'snapshot-dialog-share-error',
+			var id = 'snapshot-dialog-error',
 				snapshotDialogShareError = wp.template( id );
 
-			// Insert the snapshot dialog share error template.
+			// Insert the snapshot dialog error template.
 			if ( 0 === $( '#' + id ).length ) {
 				$( 'body' ).append( snapshotDialogShareError( {
 					title: _customizeSnapshots.i18n.formTitle,

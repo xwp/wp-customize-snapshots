@@ -246,8 +246,8 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		$templates = ob_get_contents();
 		ob_end_clean();
 		$this->assertContains( 'tmpl-snapshot-save', $templates );
-		$this->assertContains( 'tmpl-snapshot-dialog-share-link', $templates );
-		$this->assertContains( 'tmpl-snapshot-dialog-share-error', $templates );
+		$this->assertContains( 'tmpl-snapshot-dialog-link', $templates );
+		$this->assertContains( 'tmpl-snapshot-dialog-error', $templates );
 		$this->assertContains( 'tmpl-snapshot-dialog-form', $templates );
 	}
 

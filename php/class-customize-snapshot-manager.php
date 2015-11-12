@@ -119,7 +119,7 @@ class Customize_Snapshot_Manager {
 		add_action( 'init', array( $this, 'maybe_force_redirect' ), 0 );
 		add_action( 'init', array( $this, 'create_post_type' ), 0 );
 		add_action( 'customize_controls_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
-		add_action( 'wp_ajax_customize_save', array( $this, 'set_snapshot_uuid' ) );
+		add_action( 'wp_ajax_customize_save', array( $this, 'set_snapshot_uuid' ), 0 );
 		add_action( 'wp_ajax_' . self::AJAX_ACTION, array( $this, 'update_snapshot' ) );
 		add_action( 'customize_save_after', array( $this, 'save_snapshot' ) );
 		add_action( 'admin_bar_menu', array( $this, 'customize_menu' ), 41 );
@@ -227,6 +227,7 @@ class Customize_Snapshot_Manager {
 					__( 'Clicking "Save" will update the current snapshot.', 'customize-snapshots' ) :
 					__( 'Clicking "Save" will create a new snapshot.', 'customize-snapshots' )
 				),
+				'permsMsg' => __( "You do not have 'customize_publish' capabilities, but you can create a snapshot by clicking the save button.", 'customize-snapshots' ),
 				'errorMsg' => __( 'The snapshot could not be saved.', 'customize-snapshots' ),
 				'previewTitle' => __( 'Preview Permalink', 'customize-snapshots' ),
 				'formTitle' => ( $this->snapshot->is_preview() ?
@@ -289,6 +290,11 @@ class Customize_Snapshot_Manager {
 	 * Fires at `wp_ajax_customize_save`.
 	 */
 	public function set_snapshot_uuid() {
+		if ( ! current_user_can( 'customize_publish' ) ) {
+			status_header( 403 );
+			wp_send_json_error( 'publish_not_allowed' );
+		}
+
 		$uuid = ! empty( $_POST['snapshot_uuid'] ) ? $_POST['snapshot_uuid'] : null;
 		if ( current_user_can( 'customize' ) && $uuid && $this->snapshot->is_valid_uuid( $uuid ) ) {
 			$this->snapshot_uuid = $uuid;
@@ -435,14 +441,14 @@ class Customize_Snapshot_Manager {
 			</button>
 		</script>
 
-		<script type="text/html" id="tmpl-snapshot-dialog-share-link">
-			<div id="snapshot-dialog-share-link" title="{{ data.title }}">
+		<script type="text/html" id="tmpl-snapshot-dialog-link">
+			<div id="snapshot-dialog-link" title="{{ data.title }}">
 				<a href="{{ data.url }}" target="_blank">{{ data.url }}</a>
 			</div>
 		</script>
 
-		<script type="text/html" id="tmpl-snapshot-dialog-share-error">
-			<div id="snapshot-dialog-share-error" title="{{ data.title }}">
+		<script type="text/html" id="tmpl-snapshot-dialog-error">
+			<div id="snapshot-dialog-error" title="{{ data.title }}">
 				<p>{{ data.message }}</p>
 			</div>
 		</script>
