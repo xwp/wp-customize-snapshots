@@ -97,7 +97,7 @@ var customizeSnapshots = ( function( $ ) {
 			data = {
 				buttonText: _customizeSnapshots.i18n.saveButton
 			};
-			$( snapshotButton( data ) ).insertAfter( header.find( '#save' ) );
+			$( $.trim( snapshotButton( data ) ) ).insertAfter( header.find( '#save' ) );
 		}
 	};
 
