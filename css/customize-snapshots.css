@@ -6,10 +6,10 @@
 
 #snapshot-dialog-form h4 {
 	font-weight: bold;
-	font-size: 13px;
+	font-size: 14px;
 	line-height: 1.5em;
 	margin: 0 0 .65em;
-	padding: 0;
+	padding: .25em 0 0;
 }
 
 #snapshot-dialog-form p,
