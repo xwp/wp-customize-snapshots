@@ -278,7 +278,7 @@ class Customize_Snapshot_Manager {
 		$new_setting_ids = array_diff( array_keys( $this->post_data ), array_keys( $this->customize_manager->settings() ) );
 		$added_settings = $this->customize_manager->add_dynamic_settings( $new_setting_ids );
 		if ( ! empty( $new_setting_ids ) && 0 === count( $added_settings ) ) {
-			trigger_error( 'Unable to snapshot settings for: ' . join( ', ', $new_setting_ids ), \E_USER_WARNING );
+			$this->plugin->trigger_warning( 'Unable to snapshot settings for: ' . join( ', ', $new_setting_ids ) );
 		}
 
 		foreach ( $this->customize_manager->settings() as $setting ) {
