@@ -36,12 +36,12 @@ class Customize_Snapshot_Manager {
 	public $plugin;
 
 	/**
-	 * JSON-decoded value of $_POST['customized'] if present in request.
+	 * Unsanitized JSON-decoded value of $_POST['snapshot_customized'] if present in request.
 	 *
 	 * @access protected
 	 * @var array|null
 	 */
-	protected $post_data;
+	protected $unsanitized_snapshot_post_data;
 
 	/**
 	 * Customize_Snapshot instance.
@@ -85,9 +85,9 @@ class Customize_Snapshot_Manager {
 
 		if ( ! did_action( 'setup_theme' ) ) {
 			// Note that Customize_Snapshot::populate_customized_post_var() happens next at priority 1.
-			add_action( 'setup_theme', array( $this, 'store_post_data' ), 0 );
+			add_action( 'setup_theme', array( $this, 'capture_unsanitized_snapshot_post_data' ), 0 );
 		} else {
-			$this->store_post_data();
+			$this->capture_unsanitized_snapshot_post_data();
 		}
 
 		$uuid = isset( $_REQUEST['customize_snapshot_uuid'] ) ? $_REQUEST['customize_snapshot_uuid'] : null;
@@ -103,23 +103,11 @@ class Customize_Snapshot_Manager {
 
 		$this->snapshot = new Customize_Snapshot( $this, $uuid, $apply_dirty );
 
-		// Set the return URL in the Customizer.
-		if ( $this->snapshot->is_preview() ) {
-			$that = $this;
-			add_action( 'customize_controls_init', function () use ( $uuid, $scope, $that ) {
-				$args = array(
-					'customize_snapshot_uuid' => $uuid,
-					'scope' => $scope,
-				);
-				$return_url = add_query_arg( $args, $that->customize_manager->get_return_url() );
-				$that->customize_manager->set_return_url( $return_url );
-			} );
-		}
-
+		add_action( 'customize_controls_init', array( $this, 'set_return_url' ) );
 		add_action( 'init', array( $this, 'maybe_force_redirect' ), 0 );
 		add_action( 'init', array( $this, 'create_post_type' ), 0 );
 		add_action( 'customize_controls_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
-		add_action( 'wp_ajax_customize_save', array( $this, 'set_snapshot_uuid' ) );
+		add_action( 'wp_ajax_customize_save', array( $this, 'set_snapshot_uuid' ), 0 );
 		add_action( 'wp_ajax_' . self::AJAX_ACTION, array( $this, 'update_snapshot' ) );
 		add_action( 'customize_save_after', array( $this, 'save_snapshot' ) );
 		add_action( 'admin_bar_menu', array( $this, 'customize_menu' ), 41 );
@@ -128,6 +116,25 @@ class Customize_Snapshot_Manager {
 		// Preview a Snapshot.
 		add_action( 'after_setup_theme', array( $this, 'set_post_values' ), 1 );
 		add_action( 'wp_loaded', array( $this, 'preview' ) );
+	}
+
+	/**
+	 * Set the Customizer return URL.
+	 */
+	public function set_return_url() {
+		global $wp_version;
+		if (
+			version_compare( $wp_version, '4.4-beta', '>=' )
+			&& $this->snapshot->is_preview()
+			&& $this->snapshot->uuid()
+		) {
+			$args = array(
+				'customize_snapshot_uuid' => $this->snapshot->uuid(),
+				'scope' => $this->snapshot->apply_dirty ? 'dirty' : 'full',
+			);
+			$return_url = add_query_arg( $args, $this->customize_manager->get_return_url() );
+			$this->customize_manager->set_return_url( $return_url );
+		}
 	}
 
 	/**
@@ -163,9 +170,9 @@ class Customize_Snapshot_Manager {
 	 *
 	 * The value is used by Customize_Snapshot_Manager::save().
 	 */
-	public function store_post_data() {
+	public function capture_unsanitized_snapshot_post_data() {
 		if ( current_user_can( 'customize' ) && isset( $_POST['snapshot_customized'] ) ) {
-			$this->post_data = json_decode( wp_unslash( $_POST['snapshot_customized'] ), true );
+			$this->unsanitized_snapshot_post_data = json_decode( wp_unslash( $_POST['snapshot_customized'] ), true );
 		}
 	}
 
@@ -216,21 +223,29 @@ class Customize_Snapshot_Manager {
 			'action' => self::AJAX_ACTION,
 			'uuid' => $this->snapshot->uuid(),
 			'is_preview' => $this->snapshot->is_preview(),
+			'current_user_can_publish' => current_user_can( 'customize_publish' ),
 			'snapshot_theme' => $snapshot_theme,
 			'scope' => ( isset( $_GET['scope'] ) ? $_GET['scope'] : 'dirty' ),
 			'i18n' => array(
 				'saveButton' => __( 'Save', 'customize-snapshots' ),
+				'saveDraftButton' => __( 'Save Draft', 'customize-snapshots' ),
 				'cancelButton' => __( 'Cancel', 'customize-snapshots' ),
-				'shareButton' => __( 'Share URL to preview', 'customize-snapshots' ),
-				'updateMsg' => __( 'Clicking "Save" will update the current snapshot.', 'customize-snapshots' ),
-				'errorMsg' => __( 'The snapshot could not be saved.', 'customize-snapshots' ),
-				'previewTitle' => __( 'Snapshot Permalink', 'customize-snapshots' ),
-				'formTitle' => ( $this->snapshot->is_preview() ?
-					__( 'Update Snapshot', 'customize-snapshots' ) :
-					__( 'Snapshot Scope', 'customize-snapshots' )
+				'publish' => __( 'Publish', 'customize-snapshots' ),
+				'published' => __( 'Published', 'customize-snapshots' ),
+				'saveMsg' => ( $this->snapshot->is_preview() ?
+					__( 'Clicking "Save" will update the current snapshot.', 'customize-snapshots' ) :
+					__( 'Clicking "Save" will create a new snapshot.', 'customize-snapshots' )
 				),
-				'dirtyLabel' => __( 'Diff Snapshot (preview dirty settings)', 'customize-snapshots' ),
-				'fullLabel' => __( 'Full Snapshot (preview all settings)', 'customize-snapshots' ),
+				'permsMsg' => __( 'You do not have permission to publish changes, but you can create a snapshot by clicking the "Save Draft" button.', 'customize-snapshots' ),
+				'errorMsg' => __( 'The snapshot could not be saved.', 'customize-snapshots' ),
+				'previewTitle' => __( 'Preview Permalink', 'customize-snapshots' ),
+				'formTitle' => ( $this->snapshot->is_preview() ?
+					__( 'Update', 'customize-snapshots' ) :
+					__( 'Save', 'customize-snapshots' )
+				),
+				'scopeTitle' => __( 'Preview Scope', 'customize-snapshots' ),
+				'dirtyLabel' => __( 'diff - Previews the dirty settings', 'customize-snapshots' ),
+				'fullLabel' => __( 'full - Previews all the settings', 'customize-snapshots' ),
 			),
 		);
 
@@ -258,19 +273,19 @@ class Customize_Snapshot_Manager {
 	 * @return null|\WP_Error Null if success, WP_Error on failure.
 	 */
 	public function save( $status = 'draft' ) {
-		foreach ( $this->post_data as $setting_id => $setting_info ) {
+		foreach ( $this->unsanitized_snapshot_post_data as $setting_id => $setting_info ) {
 			$this->customize_manager->set_post_value( $setting_id, $setting_info['value'] );
 		}
 
-		$new_setting_ids = array_diff( array_keys( $this->post_data ), array_keys( $this->customize_manager->settings() ) );
+		$new_setting_ids = array_diff( array_keys( $this->unsanitized_snapshot_post_data ), array_keys( $this->customize_manager->settings() ) );
 		$added_settings = $this->customize_manager->add_dynamic_settings( $new_setting_ids );
 		if ( ! empty( $new_setting_ids ) && 0 === count( $added_settings ) ) {
-			trigger_error( 'Unable to snapshot settings for: ' . join( ', ', $new_setting_ids ), \E_USER_WARNING );
+			$this->plugin->trigger_warning( 'Unable to snapshot settings for: ' . join( ', ', $new_setting_ids ) );
 		}
 
 		foreach ( $this->customize_manager->settings() as $setting ) {
-			if ( $this->can_preview( $setting, $this->post_data ) ) {
-				$post_data = $this->post_data[ $setting->id ];
+			if ( $this->can_preview( $setting, $this->unsanitized_snapshot_post_data ) ) {
+				$post_data = $this->unsanitized_snapshot_post_data[ $setting->id ];
 				$this->snapshot->set( $setting, $post_data['value'], $post_data['dirty'] );
 			}
 		}
@@ -284,6 +299,11 @@ class Customize_Snapshot_Manager {
 	 * Fires at `wp_ajax_customize_save`.
 	 */
 	public function set_snapshot_uuid() {
+		if ( ! current_user_can( 'customize_publish' ) ) {
+			status_header( 403 );
+			wp_send_json_error( 'publish_not_allowed' );
+		}
+
 		$uuid = ! empty( $_POST['snapshot_uuid'] ) ? $_POST['snapshot_uuid'] : null;
 		if ( current_user_can( 'customize' ) && $uuid && $this->snapshot->is_valid_uuid( $uuid ) ) {
 			$this->snapshot_uuid = $uuid;
@@ -297,7 +317,7 @@ class Customize_Snapshot_Manager {
 	 */
 	public function save_snapshot() {
 		if ( $this->snapshot_uuid ) {
-			if ( empty( $this->post_data ) ) {
+			if ( empty( $this->unsanitized_snapshot_post_data ) ) {
 				add_filter( 'customize_save_response', function( $response ) {
 					$response['missing_snapshot_customized'] = __( 'The Snapshots customized data was missing from the request.', 'customize-snapshots' );
 					return $response;
@@ -336,7 +356,7 @@ class Customize_Snapshot_Manager {
 		} else if ( empty( $_POST['scope'] ) ) {
 			status_header( 400 );
 			wp_send_json_error( 'invalid_customize_snapshot_scope' );
-		} else if ( empty( $this->post_data ) ) {
+		} else if ( empty( $this->unsanitized_snapshot_post_data ) ) {
 			status_header( 400 );
 			wp_send_json_error( 'missing_snapshot_customized' );
 		} else if ( empty( $_POST['preview'] ) ) {
@@ -395,8 +415,8 @@ class Customize_Snapshot_Manager {
 		$current_url = remove_query_arg( array( 'customize_snapshot_uuid', 'scope' ), $this->current_url() );
 
 		$args = array();
-		$uuid = isset( $_GET['customize_snapshot_uuid'] ) ? $_GET['customize_snapshot_uuid'] : null;
-		$scope = isset( $_GET['scope'] ) ? $_GET['scope'] : 'dirty';
+		$uuid = isset( $_GET['customize_snapshot_uuid'] ) ? wp_unslash( $_GET['customize_snapshot_uuid'] ) : null;
+		$scope = isset( $_GET['scope'] ) ? wp_unslash( $_GET['scope'] ) : 'dirty';
 
 		if ( $uuid && $this->snapshot->is_valid_uuid( $uuid ) ) {
 			$args['customize_snapshot_uuid'] = $uuid;
@@ -424,20 +444,20 @@ class Customize_Snapshot_Manager {
 	 */
 	public function render_templates() {
 		?>
-		<script type="text/html" id="tmpl-snapshot-button">
-			<button id="snapshot-button" class="dashicons dashicons-share">
-				<span class="screen-reader-text">{{ data.buttonText }}</span>
+		<script type="text/html" id="tmpl-snapshot-save">
+			<button id="snapshot-save" class="button">
+				{{ data.buttonText }}
 			</button>
 		</script>
 
-		<script type="text/html" id="tmpl-snapshot-dialog-share-link">
-			<div id="snapshot-dialog-share-link" title="{{ data.title }}">
+		<script type="text/html" id="tmpl-snapshot-dialog-link">
+			<div id="snapshot-dialog-link" title="{{ data.title }}">
 				<a href="{{ data.url }}" target="_blank">{{ data.url }}</a>
 			</div>
 		</script>
 
-		<script type="text/html" id="tmpl-snapshot-dialog-share-error">
-			<div id="snapshot-dialog-share-error" title="{{ data.title }}">
+		<script type="text/html" id="tmpl-snapshot-dialog-error">
+			<div id="snapshot-dialog-error" title="{{ data.title }}">
 				<p>{{ data.message }}</p>
 			</div>
 		</script>
@@ -446,10 +466,11 @@ class Customize_Snapshot_Manager {
 			<div id="snapshot-dialog-form" title="{{ data.title }}">
 				<form>
 					<fieldset>
+						<p>{{ data.message }}</p>
 						<# if ( data.is_preview ) { #>
-							<p>{{ data.message }}</p>
 							<input type="hidden" value="{{ data.scope }}" name="scope">
 						<# } else { #>
+							<h4>{{ data.scopeTitle }}</h4>
 							<label for="type-0">
 								<input id="type-0" type="radio" checked="checked" value="dirty" name="scope">{{ data.dirtyLabel }}
 							</label>

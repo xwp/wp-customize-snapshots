@@ -37,6 +37,7 @@ class Plugin extends Plugin_Base {
 	function init() {
 		add_action( 'wp_default_scripts', array( $this, 'register_scripts' ), 11 );
 		add_action( 'wp_default_styles', array( $this, 'register_styles' ), 11 );
+		add_action( 'user_has_cap', array( $this, 'filter_user_has_cap' ), 10, 4 );
 
 		$this->customize_snapshot_manager = new Customize_Snapshot_Manager( $this );
 	}
@@ -65,5 +66,22 @@ class Plugin extends Plugin_Base {
 		$src = $this->dir_url . 'css/customize-snapshots' . $min . '.css';
 		$deps = array( 'wp-jquery-ui-dialog' );
 		$wp_styles->add( $this->slug, $src, $deps );
+	}
+
+	/**
+	 * Add the customize_publish capability to users who can edit_theme_options by default.
+	 *
+	 * @param array    $allcaps An array of all the user's capabilities.
+	 * @param array    $caps    Actual capabilities for meta capability.
+	 * @param array    $args    Optional parameters passed to has_cap(), typically object ID.
+	 * @param \WP_User $user    The user object.
+	 * @return array All caps.
+	 */
+	public function filter_user_has_cap( $allcaps, $caps, $args, $user ) {
+		unset( $caps, $args, $user );
+		if ( ! empty( $allcaps['edit_theme_options'] ) ) {
+			$allcaps['customize_publish'] = true;
+		}
+		return $allcaps;
 	}
 }

@@ -5,14 +5,18 @@ var customizeSnapshots = ( function( $ ) {
 	var self = {},
 		api = wp.customize,
 		uuid = _customizeSnapshots.uuid,
-		is_preview = _customizeSnapshots.is_preview,
+		isPreview = _customizeSnapshots.is_preview,
 		theme = _customizeSnapshots.snapshot_theme,
+		currentUserCanPublish = _customizeSnapshots.current_user_can_publish,
 		dialog, form;
 
 	/**
 	 * Inject the functionality.
 	 */
 	self.init = function() {
+		window._wpCustomizeControlsL10n.save = _customizeSnapshots.i18n.publish;
+		window._wpCustomizeControlsL10n.saved = _customizeSnapshots.i18n.published;
+
 		api.bind( 'ready', function() {
 			if ( ! api.settings.theme.active || ( theme && theme !== api.settings.theme.stylesheet ) ) {
 				return;
@@ -21,9 +25,36 @@ var customizeSnapshots = ( function( $ ) {
 			self.addButton();
 			self.addDialogForm();
 			self.dialogEvents();
-			if ( is_preview ) {
+			if ( isPreview ) {
 				api.state( 'saved' ).set( false );
 			}
+		} );
+
+		api.bind( 'save', function( request ) {
+			request.fail( function( response ) {
+				var id = 'snapshot-dialog-error',
+					snapshotDialogPublishError = wp.template( id );
+
+				if ( response.responseText ) {
+
+					// Insert the dialog error template.
+					if ( 0 === $( '#' + id ).length ) {
+						$( 'body' ).append( snapshotDialogPublishError( {
+							title: _customizeSnapshots.i18n.publish,
+							message: _customizeSnapshots.i18n.permsMsg
+						} ) );
+					}
+
+					$( '#customize-header-actions .spinner' ).removeClass( 'is-active' );
+
+					// Open the dialog.
+					$( '#' + id ).dialog( {
+						autoOpen: true,
+						modal: true
+					} );
+				}
+			} );
+			return request;
 		} );
 	};
 
@@ -40,7 +71,7 @@ var customizeSnapshots = ( function( $ ) {
 
 			retval = originalQuery.apply( previewer, arguments );
 
-			if ( is_preview ) {
+			if ( isPreview ) {
 				api.each( function( value, key ) {
 					allCustomized[ key ] = {
 						'value': value(),
@@ -60,15 +91,27 @@ var customizeSnapshots = ( function( $ ) {
 	 */
 	self.addButton = function() {
 		var header = $( '#customize-header-actions' ),
+			publishButton = header.find( '#save' ),
 			snapshotButton, data;
 
-		if ( header.length ) {
-			snapshotButton = wp.template( 'snapshot-button' );
+		if ( header.length && 0 === header.find( '#snapshot-save' ).length ) {
+			snapshotButton = wp.template( 'snapshot-save' );
 			data = {
-				buttonText: _customizeSnapshots.i18n.shareButton
+				buttonText: currentUserCanPublish ? _customizeSnapshots.i18n.saveButton : _customizeSnapshots.i18n.saveDraftButton
 			};
-			header.addClass( 'has-snapshot-button' ).append( snapshotButton( data ) );
+			snapshotButton = $( $.trim( snapshotButton( data ) ) );
+			if ( ! currentUserCanPublish ) {
+				snapshotButton.attr( 'title', _customizeSnapshots.i18n.permsMsg );
+				snapshotButton.addClass( 'button-primary' ).removeClass( 'button-secondary' );
+			}
+			snapshotButton.insertAfter( publishButton );
 		}
+
+		if ( ! currentUserCanPublish ) {
+			publishButton.hide();
+		}
+
+		header.addClass( 'button-added' );
 	};
 
 	/**
@@ -78,9 +121,10 @@ var customizeSnapshots = ( function( $ ) {
 		var snapshotDialogForm = wp.template( 'snapshot-dialog-form' ),
 			data = {
 				title: _customizeSnapshots.i18n.formTitle,
-				is_preview: is_preview,
-				message: _customizeSnapshots.i18n.updateMsg,
+				is_preview: isPreview,
+				message: _customizeSnapshots.i18n.saveMsg,
 				scope: _customizeSnapshots.scope,
+				scopeTitle: _customizeSnapshots.i18n.scopeTitle,
 				dirtyLabel: _customizeSnapshots.i18n.dirtyLabel,
 				fullLabel: _customizeSnapshots.i18n.fullLabel
 			};
@@ -117,7 +161,7 @@ var customizeSnapshots = ( function( $ ) {
 			self.sendUpdateSnapshotRequest();
 		} );
 
-		$( '#snapshot-button' ).on( 'click', function( event ) {
+		$( '#snapshot-save' ).on( 'click', function( event ) {
 			event.preventDefault();
 			dialog.dialog( 'open' );
 			dialog.find( 'form input[name=scope]' ).blur();
@@ -154,14 +198,14 @@ var customizeSnapshots = ( function( $ ) {
 			snapshot_customized: JSON.stringify( customized ),
 			customize_snapshot_uuid: uuid,
 			scope: scope,
-			preview: ( is_preview ? 'on' : 'off' )
+			preview: ( isPreview ? 'on' : 'off' )
 		} );
 
 		request.done( function( response ) {
 			var url = wp.customize.previewer.previewUrl(),
 				regex = new RegExp( '([?&])customize_snapshot_uuid=.*?(&|$)', 'i' ),
 				separator = url.indexOf( '?' ) !== -1 ? '&' : '?',
-				id = 'snapshot-dialog-share-link',
+				id = 'snapshot-dialog-link',
 				snapshotDialogShareLink = wp.template( id );
 
 			if ( url.match( regex ) ) {
@@ -176,7 +220,7 @@ var customizeSnapshots = ( function( $ ) {
 			url += '&scope=' + scope;
 
 			// Write over the UUID
-			if ( ! is_preview ) {
+			if ( ! isPreview ) {
 				uuid = response.customize_snapshot_next_uuid;
 			}
 
@@ -185,7 +229,7 @@ var customizeSnapshots = ( function( $ ) {
 				$( '#' + id ).remove();
 			}
 
-			// Insert the snapshot dialog share link template.
+			// Insert the snapshot dialog link template.
 			$( 'body' ).append( snapshotDialogShareLink( {
 				title: _customizeSnapshots.i18n.previewTitle,
 				url: url
@@ -202,10 +246,10 @@ var customizeSnapshots = ( function( $ ) {
 		} );
 
 		request.fail( function() {
-			var id = 'snapshot-dialog-share-error',
+			var id = 'snapshot-dialog-error',
 				snapshotDialogShareError = wp.template( id );
 
-			// Insert the snapshot dialog share error template.
+			// Insert the snapshot dialog error template.
 			if ( 0 === $( '#' + id ).length ) {
 				$( 'body' ).append( snapshotDialogShareError( {
 					title: _customizeSnapshots.i18n.formTitle,
@@ -224,4 +268,6 @@ var customizeSnapshots = ( function( $ ) {
 	};
 
 	self.init();
+
+	return self;
 }( jQuery ) );

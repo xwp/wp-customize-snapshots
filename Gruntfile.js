@@ -106,7 +106,7 @@ module.exports = function( grunt ) {
 					'!readme.md',
 					'!tests/**'
 				],
-				dest: 'build/<%= pkg.name %>',
+				dest: 'build',
 				expand: true,
 				dot: true
 			}
@@ -147,7 +147,7 @@ module.exports = function( grunt ) {
 			deploy: {
 				options: {
 					plugin_slug: '<%= pkg.name %>',
-					build_dir: 'build/<%= pkg.name %>'
+					build_dir: 'build'
 				}
 			}
 		}

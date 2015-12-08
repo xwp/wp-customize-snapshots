@@ -70,6 +70,23 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 	}
 
 	/**
+	 * Testing capabilities check for the customize_save ajax call
+	 */
+	function test_ajax_customize_save() {
+		wp_set_current_user( $this->factory->user->create( array( 'role' => 'editor' ) ) );
+		$this->make_ajax_call( 'customize_save' );
+
+		// Get the results.
+		$response = json_decode( $this->_last_response, true );
+		$expected_results = array(
+			'success' => false,
+			'data'    => 'publish_not_allowed',
+		);
+
+		$this->assertSame( $expected_results, $response );
+	}
+
+	/**
 	 * Testing capabilities check for the update_snapshot method
 	 */
 	function test_ajax_update_snapshot_nonce_check() {
@@ -247,7 +264,7 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 			'snapshot_customized' => '{"header_background_color":{"value":"#ffffff","dirty":false}}',
 		);
 
-		$this->manager->store_post_data();
+		$this->manager->capture_unsanitized_snapshot_post_data();
 		$this->make_ajax_call( Customize_Snapshot_Manager::AJAX_ACTION );
 
 		// Get the results.
@@ -276,7 +293,7 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 		$this->wp_customize->add_setting( 'foo', array( 'default' => 'foo_default' ) );
 		$this->wp_customize->add_setting( 'bar', array( 'default' => 'bar_default' ) );
 
-		$this->manager->store_post_data();
+		$this->manager->capture_unsanitized_snapshot_post_data();
 		$this->manager->create_post_type();
 		$this->make_ajax_call( Customize_Snapshot_Manager::AJAX_ACTION );
 
@@ -307,7 +324,7 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 		$this->wp_customize->add_setting( 'foo', array( 'default' => 'foo_default' ) );
 		$this->wp_customize->add_setting( 'bar', array( 'default' => 'bar_default' ) );
 
-		$this->manager->store_post_data();
+		$this->manager->capture_unsanitized_snapshot_post_data();
 		$this->manager->create_post_type();
 		$this->make_ajax_call( Customize_Snapshot_Manager::AJAX_ACTION );
 

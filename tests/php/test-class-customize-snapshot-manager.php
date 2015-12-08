@@ -44,6 +44,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		$this->user_id = $this->factory->user->create( array( 'role' => 'administrator' ) );
 
 		remove_action( 'after_setup_theme', 'twentyfifteen_setup' );
+		remove_action( 'after_setup_theme', 'twentysixteen_setup' );
 	}
 
 	function tearDown() {
@@ -110,6 +111,21 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	}
 
 	/**
+	 * @see Customize_Snapshot_Manager::set_return_url()
+	 */
+	public function test_set_return_url() {
+		global $wp_version;
+		if ( version_compare( $wp_version, '4.4-beta', '>=' ) ) {
+			$this->assertNotContains( 'customize_snapshot_uuid', $this->manager->customize_manager->get_return_url() );
+			$this->manager->snapshot()->set_uuid( self::UUID );
+			$this->manager->snapshot()->is_preview = true;
+			$this->manager->set_return_url();
+			$this->assertContains( 'customize_snapshot_uuid', $this->manager->customize_manager->get_return_url() );
+			$this->assertContains( 'scope=dirty', $this->manager->customize_manager->get_return_url() );
+		}
+	}
+
+	/**
 	 * @see Customize_Snapshot_Manager::clean_current_url()
 	 */
 	function test_clean_current_url() {
@@ -172,9 +188,9 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	function test_save_error() {
 		$obj = $this;
 		set_error_handler( function ( $errno, $errstr ) use( $obj ) {
-			$obj->assertEquals( 'Unable to snapshot settings for: baz', $errstr );
+			$obj->assertEquals( 'CustomizeSnapshots\Plugin: Unable to snapshot settings for: baz', $errstr );
 			$obj->assertEquals( \E_USER_WARNING, $errno );
-    } );
+        } );
 		wp_set_current_user( $this->user_id );
 		$this->do_customize_boot_actions( true );
 		$_POST = array(
@@ -245,9 +261,9 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		$this->manager->render_templates();
 		$templates = ob_get_contents();
 		ob_end_clean();
-		$this->assertContains( 'tmpl-snapshot-button', $templates );
-		$this->assertContains( 'tmpl-snapshot-dialog-share-link', $templates );
-		$this->assertContains( 'tmpl-snapshot-dialog-share-error', $templates );
+		$this->assertContains( 'tmpl-snapshot-save', $templates );
+		$this->assertContains( 'tmpl-snapshot-dialog-link', $templates );
+		$this->assertContains( 'tmpl-snapshot-dialog-error', $templates );
 		$this->assertContains( 'tmpl-snapshot-dialog-form', $templates );
 	}
 
