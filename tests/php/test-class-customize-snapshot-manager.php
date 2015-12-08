@@ -30,6 +30,16 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	 */
 	protected $user_id;
 
+	/**
+	 * @var int
+	 */
+	protected $css_concat_init_priority;
+
+	/**
+	 * @var int
+	 */
+	protected $js_concat_init_priority;
+
 	function setUp() {
 		parent::setUp();
 		$this->plugin = get_plugin_instance();
@@ -45,6 +55,17 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 
 		remove_action( 'after_setup_theme', 'twentyfifteen_setup' );
 		remove_action( 'after_setup_theme', 'twentysixteen_setup' );
+		remove_all_actions( 'send_headers' ); // prevent X-hacker header in VIP Quickstart
+
+		// For why these hooks have to be removed, see https://github.com/Automattic/nginx-http-concat/issues/5
+		$this->css_concat_init_priority = has_action( 'init', 'css_concat_init' );
+		if ( $this->css_concat_init_priority ) {
+			remove_action( 'init', 'css_concat_init', $this->css_concat_init_priority );
+		}
+		$this->js_concat_init_priority = has_action( 'init', 'js_concat_init' );
+		if ( $this->js_concat_init_priority ) {
+			remove_action( 'init', 'js_concat_init', $this->js_concat_init_priority );
+		}
 	}
 
 	function tearDown() {
@@ -190,7 +211,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		set_error_handler( function ( $errno, $errstr ) use( $obj ) {
 			$obj->assertEquals( 'CustomizeSnapshots\Plugin: Unable to snapshot settings for: baz', $errstr );
 			$obj->assertEquals( \E_USER_WARNING, $errno );
-        } );
+		} );
 		wp_set_current_user( $this->user_id );
 		$this->do_customize_boot_actions( true );
 		$_POST = array(
@@ -225,7 +246,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	 * @see Customize_Snapshot_Manager::customize_menu()
 	 */
 	public function test_customize_menu() {
-		$customize_url = admin_url( 'customize.php' ) . '?customize_snapshot_uuid=' . self::UUID . '&scope=dirty&url=http%3A%2F%2Fexample.org%2F';
+		$customize_url = admin_url( 'customize.php' ) . '?customize_snapshot_uuid=' . self::UUID . '&scope=dirty&url=' . urlencode( esc_url( home_url( '/' ) ) );
 
 		require_once( ABSPATH . WPINC . '/class-wp-admin-bar.php' );
 		$wp_admin_bar = new \WP_Admin_Bar;
