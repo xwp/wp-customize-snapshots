@@ -7,6 +7,7 @@ var customizeSnapshots = ( function( $ ) {
 		uuid = _customizeSnapshots.uuid,
 		isPreview = _customizeSnapshots.is_preview,
 		theme = _customizeSnapshots.snapshot_theme,
+		currentUserCanPublish = _customizeSnapshots.current_user_can_publish,
 		dialog, form;
 
 	/**
@@ -90,14 +91,23 @@ var customizeSnapshots = ( function( $ ) {
 	 */
 	self.addButton = function() {
 		var header = $( '#customize-header-actions' ),
+			publishButton = header.find( '#save' ),
 			snapshotButton, data;
 
 		if ( header.length && 0 === header.find( '#snapshot-save' ).length ) {
-			snapshotButton = wp.template( 'snapshot-save' ),
+			snapshotButton = wp.template( 'snapshot-save' );
 			data = {
-				buttonText: _customizeSnapshots.i18n.saveButton
+				buttonText: currentUserCanPublish ? _customizeSnapshots.i18n.saveButton : _customizeSnapshots.i18n.saveDraftButton
 			};
-			$( $.trim( snapshotButton( data ) ) ).insertAfter( header.find( '#save' ) );
+			snapshotButton = $( $.trim( snapshotButton( data ) ) )
+			if ( ! currentUserCanPublish ) {
+				snapshotButton.attr( 'title', _customizeSnapshots.i18n.permsMsg );
+			}
+			snapshotButton.insertAfter( publishButton );
+		}
+
+		if ( ! currentUserCanPublish ) {
+			publishButton.hide();
 		}
 	};
 
@@ -255,4 +265,6 @@ var customizeSnapshots = ( function( $ ) {
 	};
 
 	self.init();
+
+	return self;
 }( jQuery ) );

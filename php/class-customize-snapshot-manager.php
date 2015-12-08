@@ -223,10 +223,12 @@ class Customize_Snapshot_Manager {
 			'action' => self::AJAX_ACTION,
 			'uuid' => $this->snapshot->uuid(),
 			'is_preview' => $this->snapshot->is_preview(),
+			'current_user_can_publish' => current_user_can( 'customize_publish' ),
 			'snapshot_theme' => $snapshot_theme,
 			'scope' => ( isset( $_GET['scope'] ) ? $_GET['scope'] : 'dirty' ),
 			'i18n' => array(
 				'saveButton' => __( 'Save', 'customize-snapshots' ),
+				'saveDraftButton' => __( 'Save Draft', 'customize-snapshots' ),
 				'cancelButton' => __( 'Cancel', 'customize-snapshots' ),
 				'publish' => __( 'Publish', 'customize-snapshots' ),
 				'published' => __( 'Published', 'customize-snapshots' ),
@@ -234,7 +236,7 @@ class Customize_Snapshot_Manager {
 					__( 'Clicking "Save" will update the current snapshot.', 'customize-snapshots' ) :
 					__( 'Clicking "Save" will create a new snapshot.', 'customize-snapshots' )
 				),
-				'permsMsg' => __( "You do not have 'customize_publish' capabilities, but you can create a snapshot by clicking the save button.", 'customize-snapshots' ),
+				'permsMsg' => __( 'You do not have permission to publish changes, but you can create a snapshot by clicking the "Save Draft" button.', 'customize-snapshots' ),
 				'errorMsg' => __( 'The snapshot could not be saved.', 'customize-snapshots' ),
 				'previewTitle' => __( 'Preview Permalink', 'customize-snapshots' ),
 				'formTitle' => ( $this->snapshot->is_preview() ?
