@@ -24,11 +24,12 @@ class Test_Plugin extends \WP_UnitTestCase {
 	}
 
 	/**
-	 * @see Plugin::add_cap()
+	 * @see Plugin::filter_user_has_cap()
 	 */
-	function test_add_cap() {
-		$plugin = get_plugin_instance();
-		$this->assertFalse( wp_roles()->get_role( 'editor' )->has_cap( 'customize_publish' ) );
-		$this->assertTrue( wp_roles()->get_role( 'administrator' )->has_cap( 'customize_publish' ) );
+	function test_filter_user_has_cap() {
+		$admin_user_id = $this->factory()->user->create( array( 'role' => 'administrator' ) );
+		$editor_user_id = $this->factory()->user->create( array( 'role' => 'editor' ) );
+		$this->assertFalse( user_can( $editor_user_id, 'customize_publish' ) );
+		$this->assertTrue( user_can( $admin_user_id, 'customize_publish' ) );
 	}
 }

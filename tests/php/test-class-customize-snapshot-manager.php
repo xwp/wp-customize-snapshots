@@ -44,6 +44,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		$this->user_id = $this->factory->user->create( array( 'role' => 'administrator' ) );
 
 		remove_action( 'after_setup_theme', 'twentyfifteen_setup' );
+		remove_action( 'after_setup_theme', 'twentysixteen_setup' );
 	}
 
 	function tearDown() {
@@ -187,9 +188,9 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	function test_save_error() {
 		$obj = $this;
 		set_error_handler( function ( $errno, $errstr ) use( $obj ) {
-			$obj->assertEquals( 'Unable to snapshot settings for: baz', $errstr );
+			$obj->assertEquals( 'CustomizeSnapshots\Plugin: Unable to snapshot settings for: baz', $errstr );
 			$obj->assertEquals( \E_USER_WARNING, $errno );
-    } );
+        } );
 		wp_set_current_user( $this->user_id );
 		$this->do_customize_boot_actions( true );
 		$_POST = array(
