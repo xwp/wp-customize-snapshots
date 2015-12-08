@@ -36,7 +36,7 @@ class Plugin extends Plugin_Base {
 	public function init() {
 		add_action( 'wp_default_scripts', array( $this, 'register_scripts' ), 11 );
 		add_action( 'wp_default_styles', array( $this, 'register_styles' ), 11 );
-		add_action( 'admin_init', array( $this, 'add_caps' ) );
+		add_action( 'user_has_cap', array( $this, 'filter_user_has_cap' ), 10, 4 );
 
 		$this->customize_snapshot_manager = new Customize_Snapshot_Manager( $this );
 	}
@@ -68,13 +68,19 @@ class Plugin extends Plugin_Base {
 	}
 
 	/**
-	 * Add the 'customize_publish' capability if the role can 'edit_theme_options'.
+	 * Add the customize_publish capability to users who can edit_theme_options by default.
+	 *
+	 * @param array    $allcaps An array of all the user's capabilities.
+	 * @param array    $caps    Actual capabilities for meta capability.
+	 * @param array    $args    Optional parameters passed to has_cap(), typically object ID.
+	 * @param \WP_User $user    The user object.
+	 * @return array All caps.
 	 */
-	function add_caps() {
-		foreach ( wp_roles()->role_objects as $role ) {
-			if ( ! $role->has_cap( 'customize_publish' ) && $role->has_cap( 'edit_theme_options' ) ) {
-				$role->add_cap( 'customize_publish' );
-			}
+	public function filter_user_has_cap( $allcaps, $caps, $args, $user ) {
+		unset( $caps, $args, $user );
+		if ( ! empty( $allcaps['edit_theme_options'] ) ) {
+			$allcaps['customize_publish'] = true;
 		}
+		return $allcaps;
 	}
 }
