@@ -413,8 +413,8 @@ class Customize_Snapshot_Manager {
 		$current_url = remove_query_arg( array( 'customize_snapshot_uuid', 'scope' ), $this->current_url() );
 
 		$args = array();
-		$uuid = isset( $_GET['customize_snapshot_uuid'] ) ? $_GET['customize_snapshot_uuid'] : null;
-		$scope = isset( $_GET['scope'] ) ? $_GET['scope'] : 'dirty';
+		$uuid = isset( $_GET['customize_snapshot_uuid'] ) ? wp_unslash( $_GET['customize_snapshot_uuid'] ) : null;
+		$scope = isset( $_GET['scope'] ) ? wp_unslash( $_GET['scope'] ) : 'dirty';
 
 		if ( $uuid && $this->snapshot->is_valid_uuid( $uuid ) ) {
 			$args['customize_snapshot_uuid'] = $uuid;
