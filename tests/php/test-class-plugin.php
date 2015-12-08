@@ -27,8 +27,8 @@ class Test_Plugin extends \WP_UnitTestCase {
 	 * @see Plugin::filter_user_has_cap()
 	 */
 	function test_filter_user_has_cap() {
-		$admin_user_id = $this->factory()->user->create( array( 'role' => 'administrator' ) );
-		$editor_user_id = $this->factory()->user->create( array( 'role' => 'editor' ) );
+		$admin_user_id = self::factory()->user->create( array( 'role' => 'administrator' ) );
+		$editor_user_id = self::factory()->user->create( array( 'role' => 'editor' ) );
 		$this->assertFalse( user_can( $editor_user_id, 'customize_publish' ) );
 		$this->assertTrue( user_can( $admin_user_id, 'customize_publish' ) );
 	}
