@@ -99,7 +99,7 @@ var customizeSnapshots = ( function( $ ) {
 			data = {
 				buttonText: currentUserCanPublish ? _customizeSnapshots.i18n.saveButton : _customizeSnapshots.i18n.saveDraftButton
 			};
-			snapshotButton = $( $.trim( snapshotButton( data ) ) )
+			snapshotButton = $( $.trim( snapshotButton( data ) ) );
 			if ( ! currentUserCanPublish ) {
 				snapshotButton.attr( 'title', _customizeSnapshots.i18n.permsMsg );
 				snapshotButton.addClass( 'button-primary' ).removeClass( 'button-secondary' );
