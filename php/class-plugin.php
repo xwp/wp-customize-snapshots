@@ -25,7 +25,8 @@ class Plugin extends Plugin_Base {
 	public function __construct() {
 		parent::__construct();
 
-		add_action( 'after_setup_theme', array( $this, 'init' ) );
+		$priority = 9; // Because WP_Customize_Widgets::register_settings() happens at after_setup_theme priority 10.
+		add_action( 'after_setup_theme', array( $this, 'init' ), $priority );
 	}
 
 	/**
@@ -33,7 +34,7 @@ class Plugin extends Plugin_Base {
 	 *
 	 * @action after_setup_theme
 	 */
-	public function init() {
+	function init() {
 		add_action( 'wp_default_scripts', array( $this, 'register_scripts' ), 11 );
 		add_action( 'wp_default_styles', array( $this, 'register_styles' ), 11 );
 		add_action( 'user_has_cap', array( $this, 'filter_user_has_cap' ), 10, 4 );
@@ -47,7 +48,7 @@ class Plugin extends Plugin_Base {
 	 * @param \WP_Scripts $wp_scripts Instance of \WP_Scripts.
 	 * @action wp_default_scripts
 	 */
-	public function register_scripts( \WP_Scripts $wp_scripts ) {
+	function register_scripts( \WP_Scripts $wp_scripts ) {
 		$min = ( WP_DEBUG ? '' : '.min' );
 		$src = $this->dir_url . 'js/customize-snapshots' . $min . '.js';
 		$deps = array( 'jquery', 'jquery-ui-dialog', 'wp-util', 'customize-widgets' );
@@ -60,7 +61,7 @@ class Plugin extends Plugin_Base {
 	 * @param \WP_Styles $wp_styles Instance of \WP_Styles.
 	 * @action wp_default_styles
 	 */
-	public function register_styles( \WP_Styles $wp_styles ) {
+	function register_styles( \WP_Styles $wp_styles ) {
 		$min = ( WP_DEBUG ? '' : '.min' );
 		$src = $this->dir_url . 'css/customize-snapshots' . $min . '.css';
 		$deps = array( 'wp-jquery-ui-dialog' );
