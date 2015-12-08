@@ -3,6 +3,9 @@
 	margin-top: 9px;
 	margin-right: 9px;
 }
+#customize-header-actions:not(.button-added) .button#save {
+	visibility: hidden;
+}
 
 #snapshot-dialog-form h4 {
 	font-weight: bold;

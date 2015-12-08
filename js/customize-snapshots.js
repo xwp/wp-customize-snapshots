@@ -102,6 +102,7 @@ var customizeSnapshots = ( function( $ ) {
 			snapshotButton = $( $.trim( snapshotButton( data ) ) )
 			if ( ! currentUserCanPublish ) {
 				snapshotButton.attr( 'title', _customizeSnapshots.i18n.permsMsg );
+				snapshotButton.addClass( 'button-primary' ).removeClass( 'button-secondary' );
 			}
 			snapshotButton.insertAfter( publishButton );
 		}
@@ -109,6 +110,8 @@ var customizeSnapshots = ( function( $ ) {
 		if ( ! currentUserCanPublish ) {
 			publishButton.hide();
 		}
+
+		header.addClass( 'button-added' );
 	};
 
 	/**
