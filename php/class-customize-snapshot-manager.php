@@ -36,12 +36,12 @@ class Customize_Snapshot_Manager {
 	public $plugin;
 
 	/**
-	 * JSON-decoded value of $_POST['customized'] if present in request.
+	 * Unsanitized JSON-decoded value of $_POST['snapshot_customized'] if present in request.
 	 *
 	 * @access protected
 	 * @var array|null
 	 */
-	protected $post_data;
+	protected $unsanitized_snapshot_post_data;
 
 	/**
 	 * Customize_Snapshot instance.
@@ -85,9 +85,9 @@ class Customize_Snapshot_Manager {
 
 		if ( ! did_action( 'setup_theme' ) ) {
 			// Note that Customize_Snapshot::populate_customized_post_var() happens next at priority 1.
-			add_action( 'setup_theme', array( $this, 'store_post_data' ), 0 );
+			add_action( 'setup_theme', array( $this, 'capture_unsanitized_snapshot_post_data' ), 0 );
 		} else {
-			$this->store_post_data();
+			$this->capture_unsanitized_snapshot_post_data();
 		}
 
 		$uuid = isset( $_REQUEST['customize_snapshot_uuid'] ) ? $_REQUEST['customize_snapshot_uuid'] : null;
@@ -170,9 +170,9 @@ class Customize_Snapshot_Manager {
 	 *
 	 * The value is used by Customize_Snapshot_Manager::save().
 	 */
-	public function store_post_data() {
+	public function capture_unsanitized_snapshot_post_data() {
 		if ( current_user_can( 'customize' ) && isset( $_POST['snapshot_customized'] ) ) {
-			$this->post_data = json_decode( wp_unslash( $_POST['snapshot_customized'] ), true );
+			$this->unsanitized_snapshot_post_data = json_decode( wp_unslash( $_POST['snapshot_customized'] ), true );
 		}
 	}
 
@@ -271,19 +271,19 @@ class Customize_Snapshot_Manager {
 	 * @return null|\WP_Error Null if success, WP_Error on failure.
 	 */
 	public function save( $status = 'draft' ) {
-		foreach ( $this->post_data as $setting_id => $setting_info ) {
+		foreach ( $this->unsanitized_snapshot_post_data as $setting_id => $setting_info ) {
 			$this->customize_manager->set_post_value( $setting_id, $setting_info['value'] );
 		}
 
-		$new_setting_ids = array_diff( array_keys( $this->post_data ), array_keys( $this->customize_manager->settings() ) );
+		$new_setting_ids = array_diff( array_keys( $this->unsanitized_snapshot_post_data ), array_keys( $this->customize_manager->settings() ) );
 		$added_settings = $this->customize_manager->add_dynamic_settings( $new_setting_ids );
 		if ( ! empty( $new_setting_ids ) && 0 === count( $added_settings ) ) {
 			$this->plugin->trigger_warning( 'Unable to snapshot settings for: ' . join( ', ', $new_setting_ids ) );
 		}
 
 		foreach ( $this->customize_manager->settings() as $setting ) {
-			if ( $this->can_preview( $setting, $this->post_data ) ) {
-				$post_data = $this->post_data[ $setting->id ];
+			if ( $this->can_preview( $setting, $this->unsanitized_snapshot_post_data ) ) {
+				$post_data = $this->unsanitized_snapshot_post_data[ $setting->id ];
 				$this->snapshot->set( $setting, $post_data['value'], $post_data['dirty'] );
 			}
 		}
@@ -315,7 +315,7 @@ class Customize_Snapshot_Manager {
 	 */
 	public function save_snapshot() {
 		if ( $this->snapshot_uuid ) {
-			if ( empty( $this->post_data ) ) {
+			if ( empty( $this->unsanitized_snapshot_post_data ) ) {
 				add_filter( 'customize_save_response', function( $response ) {
 					$response['missing_snapshot_customized'] = __( 'The Snapshots customized data was missing from the request.', 'customize-snapshots' );
 					return $response;
@@ -354,7 +354,7 @@ class Customize_Snapshot_Manager {
 		} else if ( empty( $_POST['scope'] ) ) {
 			status_header( 400 );
 			wp_send_json_error( 'invalid_customize_snapshot_scope' );
-		} else if ( empty( $this->post_data ) ) {
+		} else if ( empty( $this->unsanitized_snapshot_post_data ) ) {
 			status_header( 400 );
 			wp_send_json_error( 'missing_snapshot_customized' );
 		} else if ( empty( $_POST['preview'] ) ) {

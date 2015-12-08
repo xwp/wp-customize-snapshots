@@ -264,7 +264,7 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 			'snapshot_customized' => '{"header_background_color":{"value":"#ffffff","dirty":false}}',
 		);
 
-		$this->manager->store_post_data();
+		$this->manager->capture_unsanitized_snapshot_post_data();
 		$this->make_ajax_call( Customize_Snapshot_Manager::AJAX_ACTION );
 
 		// Get the results.
@@ -293,7 +293,7 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 		$this->wp_customize->add_setting( 'foo', array( 'default' => 'foo_default' ) );
 		$this->wp_customize->add_setting( 'bar', array( 'default' => 'bar_default' ) );
 
-		$this->manager->store_post_data();
+		$this->manager->capture_unsanitized_snapshot_post_data();
 		$this->manager->create_post_type();
 		$this->make_ajax_call( Customize_Snapshot_Manager::AJAX_ACTION );
 
@@ -324,7 +324,7 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 		$this->wp_customize->add_setting( 'foo', array( 'default' => 'foo_default' ) );
 		$this->wp_customize->add_setting( 'bar', array( 'default' => 'bar_default' ) );
 
-		$this->manager->store_post_data();
+		$this->manager->capture_unsanitized_snapshot_post_data();
 		$this->manager->create_post_type();
 		$this->make_ajax_call( Customize_Snapshot_Manager::AJAX_ACTION );
 
