@@ -4,7 +4,7 @@
  * Plugin URI: https://github.com/xwp/wp-customize-snapshots
  * Description: Allow Customizer states to be drafted, and previewed with a private URL.
  * Version: 0.2
- * Author:  XWP News Corp Australia
+ * Author:  XWP
  * Author URI: https://xwp.co/
  * License: GPLv2+
  * License URI: http://www.gnu.org/licenses/gpl-2.0.txt
