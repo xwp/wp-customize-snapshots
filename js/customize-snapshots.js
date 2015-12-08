@@ -5,7 +5,7 @@ var customizeSnapshots = ( function( $ ) {
 	var self = {},
 		api = wp.customize,
 		uuid = _customizeSnapshots.uuid,
-		is_preview = _customizeSnapshots.is_preview,
+		isPreview = _customizeSnapshots.is_preview,
 		theme = _customizeSnapshots.snapshot_theme,
 		dialog, form;
 
@@ -24,7 +24,7 @@ var customizeSnapshots = ( function( $ ) {
 			self.addButton();
 			self.addDialogForm();
 			self.dialogEvents();
-			if ( is_preview ) {
+			if ( isPreview ) {
 				api.state( 'saved' ).set( false );
 			}
 		} );
@@ -70,7 +70,7 @@ var customizeSnapshots = ( function( $ ) {
 
 			retval = originalQuery.apply( previewer, arguments );
 
-			if ( is_preview ) {
+			if ( isPreview ) {
 				api.each( function( value, key ) {
 					allCustomized[ key ] = {
 						'value': value(),
@@ -108,7 +108,7 @@ var customizeSnapshots = ( function( $ ) {
 		var snapshotDialogForm = wp.template( 'snapshot-dialog-form' ),
 			data = {
 				title: _customizeSnapshots.i18n.formTitle,
-				is_preview: is_preview,
+				is_preview: isPreview,
 				message: _customizeSnapshots.i18n.saveMsg,
 				scope: _customizeSnapshots.scope,
 				scopeTitle: _customizeSnapshots.i18n.scopeTitle,
@@ -185,7 +185,7 @@ var customizeSnapshots = ( function( $ ) {
 			snapshot_customized: JSON.stringify( customized ),
 			customize_snapshot_uuid: uuid,
 			scope: scope,
-			preview: ( is_preview ? 'on' : 'off' )
+			preview: ( isPreview ? 'on' : 'off' )
 		} );
 
 		request.done( function( response ) {
@@ -207,7 +207,7 @@ var customizeSnapshots = ( function( $ ) {
 			url += '&scope=' + scope;
 
 			// Write over the UUID
-			if ( ! is_preview ) {
+			if ( ! isPreview ) {
 				uuid = response.customize_snapshot_next_uuid;
 			}
 
