@@ -27,6 +27,7 @@ var customizeSnapshots = ( function( $ ) {
 			self.dialogEvents();
 			if ( isPreview ) {
 				api.state( 'saved' ).set( false );
+				self.resetSavedStateQuietly();
 			}
 		} );
 
@@ -170,6 +171,21 @@ var customizeSnapshots = ( function( $ ) {
 	};
 
 	/**
+	 * Silently update the saved state to be true without triggering the
+	 * changed event so that the AYS beforeunload dialog won't appear
+	 * if no settings have been changed after saving a snapshot. Note
+	 * that it would be better if jQuery's callbacks allowed them to
+	 * disabled and then re-enabled later, for example:
+	 *   wp.customize.state.topics.change.disable();
+	 *   wp.customize.state( 'saved' ).set( true );
+	 *   wp.customize.state.topics.change.enable();
+	 * But unfortunately there is no such enable method.
+	 */
+	self.resetSavedStateQuietly = function() {
+		wp.customize.state( 'saved' )._value = true;
+	};
+
+	/**
 	 * Make the AJAX request to update/save a snapshot.
 	 */
 	self.sendUpdateSnapshotRequest = function() {
@@ -243,6 +259,8 @@ var customizeSnapshots = ( function( $ ) {
 				modal: true
 			} );
 			$( '#' + id ).find( 'a' ).blur();
+
+			self.resetSavedStateQuietly();
 		} );
 
 		request.fail( function() {
