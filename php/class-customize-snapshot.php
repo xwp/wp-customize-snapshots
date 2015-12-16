@@ -140,7 +140,9 @@ class Customize_Snapshot {
 	 */
 	public function populate_customized_post_var() {
 		$_POST['customized'] = add_magic_quotes( wp_json_encode( $this->values() ) );
+		// @codingStandardsIgnoreStart
 		$_REQUEST['customized'] = $_POST['customized'];
+		// @codingStandardsIgnoreEnd
 	}
 
 	/**
@@ -221,12 +223,13 @@ class Customize_Snapshot {
 		}
 
 		add_action( 'pre_get_posts', array( $this, '_override_wp_query_is_single' ) );
-		$posts = get_posts( array(
+		$query = new \WP_Query( array(
 			'name' => $this->uuid,
 			'posts_per_page' => 1,
 			'post_type' => Customize_Snapshot_Manager::POST_TYPE,
 			'post_status' => array( 'draft', 'publish' ),
 		) );
+		$posts = $query->get_posts();
 		remove_action( 'pre_get_posts', array( $this, '_override_wp_query_is_single' ) );
 
 		if ( empty( $posts ) ) {
@@ -279,7 +282,7 @@ class Customize_Snapshot {
 
 		$value = $this->data[ $setting_id ];
 
-		// @todo if ( $setting ) { $setting->sanitize( wp_slash( $value ) ); } ?
+		// @todo is not empty, then return the unslashed sanitized value? e.g. if ( $setting ) { $value = $setting->sanitize( wp_slash( $value ) ); } ?
 		unset( $setting );
 
 		return $value;
