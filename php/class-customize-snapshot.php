@@ -306,7 +306,7 @@ class Customize_Snapshot {
 			// Find widgets in the dirty sidebars.
 			foreach ( $dirty_values as $setting_id => $setting ) {
 				if ( -1 !== strpos( $setting_id, 'sidebars_widgets' ) ) {
-					$dirty_widgets += (array) $setting['value'];
+					$dirty_widgets = array_unique( array_merge( $dirty_widgets, (array) $setting['value'] ) );
 				}
 			}
 
