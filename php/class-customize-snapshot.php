@@ -296,9 +296,25 @@ class Customize_Snapshot {
 
 		// Filter when the scope is dirty.
 		if ( $dirty ) {
-			$values = array_filter( $values, function( $setting ) use ( $dirty ) {
+			$dirtyValues = array_filter( $values, function( $setting ) use ( $dirty ) {
 				return $setting['dirty'] === $dirty;
 			} );
+
+			// Add widgets found in a dirty sidebar to the `$dirtyValues` array.
+			$needle = 'sidebars_widgets';
+			foreach ( $dirtyValues as $setting_id => $setting ) {
+				if ( -1 !== strpos( $setting_id, "{$needle}[" ) || -1 !== strpos( $setting_id, "[{$needle}][" ) ) {
+					foreach ( (array) $setting['value'] as $id_base ) {
+						$widget_id = $this->snapshot_manager->customize_manager->widgets->get_setting_id( $id_base );
+						if ( isset( $values[ $widget_id ] ) ) {
+							$dirtyValues[ $widget_id ] = $values[ $widget_id ];
+						}
+					}
+				}
+			}
+
+			// Replace the values array with the settings marked `dirty`.
+			$values = $dirtyValues;
 		}
 
 		$values = wp_list_pluck( $values, 'value' );
