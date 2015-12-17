@@ -2,7 +2,7 @@
 Contributors: westonruter, valendesigns, xwp, newscorpau
 Requires at least: 4.3
 Tested up to: trunk
-Stable tag: 0.2
+Stable tag: 0.2.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 Tags: customizer, customize, snapshots
@@ -21,12 +21,17 @@ Requires PHP 5.3+.
 
 == Changelog ==
 
+= 0.2.1 =
+* Fix AYS confirmation if the snapshot state is saved.
+* Register dynamic settings to ensure that snapshot settings are recognized in the post values.
+* Slash input for `wp_insert_post()` to prevent loss of slashes.
+
 = 0.2 =
 * Added the `customize_publish` capability.
 * Separate "Save" & "Publish" buttons.
 
 = 0.1.1 =
-* Fixed widget preview.
+* Fix widget preview.
 
 = 0.1 =
 * Initial release.
