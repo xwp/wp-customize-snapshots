@@ -300,20 +300,40 @@ class Customize_Snapshot {
 				return $setting['dirty'] === $dirty;
 			} );
 
-			// Add widgets found in a dirty sidebar to the `$dirtyValues` array.
-			$needle = 'sidebars_widgets';
+			$customizeWidgets = $this->snapshot_manager->customize_manager->widgets;
+			$dirtyWidgets = array();
+
+			// Find widgets in the dirty sidebars.
 			foreach ( $dirtyValues as $setting_id => $setting ) {
-				if ( -1 !== strpos( $setting_id, "{$needle}[" ) || -1 !== strpos( $setting_id, "[{$needle}][" ) ) {
-					foreach ( (array) $setting['value'] as $id_base ) {
-						$widget_id = $this->snapshot_manager->customize_manager->widgets->get_setting_id( $id_base );
-						if ( isset( $values[ $widget_id ] ) ) {
-							$dirtyValues[ $widget_id ] = $values[ $widget_id ];
-						}
-					}
+				if ( -1 !== strpos( $setting_id, 'sidebars_widgets' ) ) {
+					$dirtyWidgets += (array) $setting['value'];
 				}
 			}
 
-			// Replace the values array with the settings marked `dirty`.
+			// Add widgets found in dirty sidebars to the `$dirtyValues` array.
+			foreach ( $dirtyWidgets as $id_base ) {
+				$widget_id = $customizeWidgets->get_setting_id( $id_base );
+
+				if ( isset( $values[ $widget_id ] ) ) {
+					$dirtyValues[ $widget_id ] = $values[ $widget_id ];
+
+					/**
+					 * Filter the snapshot's dirty widget values.
+					 *
+					 * This is used to support the Widget Subareas plugin by including widgets
+					 * in the snapshot that would not otherwise be included in the dirty values.
+					 *
+					 * @param array                 $dirtyValues      Dirty values in the snapshot.
+					 * @param array                 $values           All values in the snapshot.
+					 * @param string                $widget_id        The widget ID being filtered.
+					 * @param \WP_Customize_Widgets $customizeWidgets Customize Widgets instance.
+					 * @return array
+					 */
+					$dirtyValues = apply_filters( 'customize_snapshot_dirty_widget_values', $dirtyValues, $values, $widget_id, $customizeWidgets );
+				}
+			}
+
+			// Replace the values array with the dirty settings.
 			$values = $dirtyValues;
 		}
 
