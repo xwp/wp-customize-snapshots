@@ -480,7 +480,6 @@ class Customize_Snapshot_Manager {
 							</label>
 							<br>
 						<# } #>
-						<input type="submit" tabindex="-1" style="position:absolute; top:-5000px" />
 					</fieldset>
 				</form>
 			</div>
