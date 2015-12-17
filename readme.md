@@ -7,7 +7,7 @@ Allow Customizer states to be drafted, and previewed with a private URL.
 **Tags:** [customizer](https://wordpress.org/plugins/tags/customizer), [customize](https://wordpress.org/plugins/tags/customize), [snapshots](https://wordpress.org/plugins/tags/snapshots)  
 **Requires at least:** 4.3  
 **Tested up to:** trunk  
-**Stable tag:** 0.2  
+**Stable tag:** 0.2.1  
 **License:** [GPLv2 or later](http://www.gnu.org/licenses/gpl-2.0.html)  
 
 [![Build Status](https://travis-ci.org/xwp/wp-customize-snapshots.svg?branch=master)](https://travis-ci.org/xwp/wp-customize-snapshots) [![Build Status](https://coveralls.io/repos/xwp/wp-customize-snapshots/badge.svg?branch=master)](https://coveralls.io/github/xwp/wp-customize-snapshots) [![devDependency Status](https://david-dm.org/xwp/wp-customize-snapshots/dev-status.svg)](https://david-dm.org/xwp/wp-customize-snapshots#info=devDependencies) 
@@ -24,12 +24,17 @@ Requires PHP 5.3+.
 
 ## Changelog ##
 
+### 0.2.1 ###
+* Fix AYS confirmation if the snapshot state is saved.
+* Register dynamic settings to ensure that snapshot settings are recognized in the post values.
+* Slash input for `wp_insert_post()` to prevent loss of slashes.
+
 ### 0.2 ###
 * Added the `customize_publish` capability.
 * Separate "Save" & "Publish" buttons.
 
 ### 0.1.1 ###
-* Fixed widget preview.
+* Fix widget preview.
 
 ### 0.1 ###
 * Initial release.

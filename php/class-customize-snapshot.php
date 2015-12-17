@@ -102,6 +102,9 @@ class Customize_Snapshot {
 		if ( $post ) {
 			// For reason why base64 encoding is used, see Customize_Snapshot::save().
 			$this->data = json_decode( $post->post_content_filtered, true );
+			if ( json_last_error() ) {
+				$this->snapshot_manager->plugin->trigger_warning( 'JSON parse error: ' . ( function_exists( 'json_last_error_msg' ) ? json_last_error_msg() : json_last_error() ) );
+			}
 
 			if ( ! empty( $this->data ) ) {
 
@@ -400,7 +403,7 @@ class Customize_Snapshot {
 				'post_author' => get_current_user_id(),
 				'post_content_filtered' => $post_content,
 			);
-			$r = wp_insert_post( $postarr, true );
+			$r = wp_insert_post( wp_slash( $postarr ), true );
 			if ( is_wp_error( $r ) ) {
 				return $r;
 			}
