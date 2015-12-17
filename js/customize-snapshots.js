@@ -182,7 +182,7 @@ var customizeSnapshots = ( function( $ ) {
 	 * But unfortunately there is no such enable method.
 	 */
 	self.resetSavedStateQuietly = function() {
-		wp.customize.state( 'saved' )._value = true;
+		api.state( 'saved' )._value = true;
 	};
 
 	/**
