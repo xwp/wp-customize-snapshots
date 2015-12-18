@@ -127,7 +127,9 @@ class Customize_Snapshot_Manager {
 		 * filter \WP_Customize_Widgets::filter_option_sidebars_widgets_for_theme_switch()
 		 * which causes the sidebars_widgets to be overridden with a global variable.
 		 */
-		remove_action( 'wp_loaded', array( $this->customize_manager->widgets, 'override_sidebars_widgets_for_theme_switch' ) );
+		if ( ! is_admin() ) {
+			remove_action( 'wp_loaded', array( $this->customize_manager->widgets, 'override_sidebars_widgets_for_theme_switch' ) );
+		}
 	}
 
 	/**
