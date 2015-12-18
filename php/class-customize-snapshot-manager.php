@@ -116,6 +116,18 @@ class Customize_Snapshot_Manager {
 		// Preview a Snapshot.
 		add_action( 'after_setup_theme', array( $this, 'set_post_values' ), 1 );
 		add_action( 'wp_loaded', array( $this, 'preview' ) );
+
+		/*
+		 * Disable routine which fails because \WP_Customize_Manager::setup_theme() is
+		 * never called in a frontend preview context, whereby the original_stylesheet
+		 * is never set and so \WP_Customize_Manager::is_theme_active() will thus
+		 * always return true because get_stylesheet() !== null.
+		 *
+		 * The action being removed is responsible for adding an option_sidebar_widgets
+		 * filter \WP_Customize_Widgets::filter_option_sidebars_widgets_for_theme_switch()
+		 * which causes the sidebars_widgets to be overridden with a global variable.
+		 */
+		remove_action( 'wp_loaded', array( $this->customize_manager->widgets, 'override_sidebars_widgets_for_theme_switch' ) );
 	}
 
 	/**
