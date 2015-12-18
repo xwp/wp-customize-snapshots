@@ -25,7 +25,13 @@ class Plugin extends Plugin_Base {
 	public function __construct() {
 		parent::__construct();
 
-		$priority = 9; // Because WP_Customize_Widgets::register_settings() happens at after_setup_theme priority 10.
+		/*
+		 * Priority is 8 because \CustomizeWidgetsPlus\Widget_Posts::init() happens
+		 * at priority 9, and this calls \CustomizeWidgetsPlus\Widget_Posts::add_customize_hooks().
+		 * So we need priority 8 so that the Customizer will be initialized before Widget Posts
+		 * initializes.
+		 */
+		$priority = 8;
 		add_action( 'after_setup_theme', array( $this, 'init' ), $priority );
 	}
 

@@ -530,7 +530,6 @@ class Customize_Snapshot_Manager {
 	 * Set the snapshot settings post value.
 	 */
 	public function set_post_values() {
-
 		if ( true === $this->snapshot->is_preview() ) {
 			$values = $this->snapshot->values();
 
