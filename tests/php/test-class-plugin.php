@@ -9,9 +9,9 @@ class Test_Plugin extends \WP_UnitTestCase {
 	 */
 	function test_construct() {
 		$plugin = get_plugin_instance();
-		$this->assertEquals( 9, has_action( 'after_setup_theme', array( $plugin, 'init' ) ) );
+		$this->assertEquals( 8, has_action( 'after_setup_theme', array( $plugin, 'init' ) ) );
 	}
-	
+
 	/**
 	 * @see Plugin::init()
 	 */
