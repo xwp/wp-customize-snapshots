@@ -7,7 +7,7 @@ Allow Customizer states to be drafted, and previewed with a private URL.
 **Tags:** [customizer](https://wordpress.org/plugins/tags/customizer), [customize](https://wordpress.org/plugins/tags/customize), [snapshots](https://wordpress.org/plugins/tags/snapshots)  
 **Requires at least:** 4.3  
 **Tested up to:** trunk  
-**Stable tag:** 0.2.1  
+**Stable tag:** 0.3.0  
 **License:** [GPLv2 or later](http://www.gnu.org/licenses/gpl-2.0.html)  
 
 [![Build Status](https://travis-ci.org/xwp/wp-customize-snapshots.svg?branch=master)](https://travis-ci.org/xwp/wp-customize-snapshots) [![Coverage Status](https://coveralls.io/repos/xwp/wp-customize-snapshots/badge.svg?branch=master)](https://coveralls.io/github/xwp/wp-customize-snapshots) [![Built with Grunt](https://cdn.gruntjs.com/builtwith.png)](http://gruntjs.com) [![devDependency Status](https://david-dm.org/xwp/wp-customize-snapshots/dev-status.svg)](https://david-dm.org/xwp/wp-customize-snapshots#info=devDependencies) 
@@ -23,6 +23,12 @@ Requires PHP 5.3+.
 **Development of this plugin is done [on GitHub](https://github.com/xwp/wp-customize-snapshots). Pull requests welcome. Please see [issues](https://github.com/xwp/wp-customize-snapshots) reported there before going to the [plugin forum](https://wordpress.org/support/plugin/customize-snapshots).**
 
 ## Changelog ##
+
+### 0.3.0 ###
+* Initialize Snapshots before Widget Posts so that `$wp_customize` will be set on the front-end.
+* Fix WordPress VIP PHPCS issues.
+* Update `dev-lib`.
+* Remove unused button markup in dialog.
 
 ### 0.2.1 ###
 * Fix AYS confirmation if the snapshot state is saved.
