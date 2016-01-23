@@ -22,11 +22,10 @@ branches:
     only:
         - master
 
-before_script:
+install:
     - export DEV_LIB_PATH=dev-lib
     - if [ ! -e "$DEV_LIB_PATH" ] && [ -L .travis.yml ]; then export DEV_LIB_PATH=$( dirname $( readlink .travis.yml ) ); fi
-    - source $DEV_LIB_PATH/travis.before_script.sh
-    - export LIMIT_TRAVIS_PR_CHECK_SCOPE=patches
+    - source $DEV_LIB_PATH/travis.install.sh
 
 script:
     - $DEV_LIB_PATH/travis.script.sh
