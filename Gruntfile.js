@@ -95,6 +95,7 @@ module.exports = function( grunt ) {
 					'!.DS_Store',
 					'!build/**',
 					'!composer.json',
+					'!composer.lock',
 					'!contributing.md',
 					'!dev-lib/**',
 					'!Gruntfile.js',
@@ -104,7 +105,8 @@ module.exports = function( grunt ) {
 					'!phpcs.ruleset.xml',
 					'!phpunit.xml.dist',
 					'!readme.md',
-					'!tests/**'
+					'!tests/**',
+					'!vendor/**'
 				],
 				dest: 'build',
 				expand: true,
@@ -132,7 +134,7 @@ module.exports = function( grunt ) {
 				stderr: true
 			},
 			readme: {
-				command: 'cd ./dev-lib && ./generate-markdown-readme' // Genrate the readme.md
+				command: 'cd ./dev-lib && ./generate-markdown-readme' // Generate the readme.md
 			},
 			phpunit: {
 				command: 'vagrant ssh -c "cd <%= vvv.plugin %> && phpunit"' 
