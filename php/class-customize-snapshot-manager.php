@@ -18,12 +18,14 @@ class Customize_Snapshot_Manager {
 
 	/**
 	 * Post type.
+	 *
 	 * @type string
 	 */
 	const POST_TYPE = 'customize_snapshot';
 
 	/**
 	 * Action nonce.
+	 *
 	 * @type string
 	 */
 	const AJAX_ACTION = 'customize_update_snapshot';
@@ -90,14 +92,16 @@ class Customize_Snapshot_Manager {
 			$this->capture_unsanitized_snapshot_post_data();
 		}
 
-		$uuid = isset( $_REQUEST['customize_snapshot_uuid'] ) ? sanitize_key( wp_unslash( $_REQUEST['customize_snapshot_uuid'] ) ) : null; // WPCS: input var ok.
-		$scope = isset( $_REQUEST['scope'] ) ? sanitize_key( wp_unslash( $_REQUEST['scope'] ) ) : 'dirty';  // WPCS: input var ok.
+		$uuid = isset( $_REQUEST['customize_snapshot_uuid'] ) ? sanitize_text_field( sanitize_key( wp_unslash( $_REQUEST['customize_snapshot_uuid'] ) ) ) : null; // WPCS: input var ok.
+		$scope = isset( $_REQUEST['scope'] ) ? sanitize_text_field( sanitize_key( wp_unslash( $_REQUEST['scope'] ) ) ) : 'dirty';  // WPCS: input var ok.
 		$apply_dirty = ( 'dirty' === $scope );
 
 		// Bootstrap the Customizer.
 		if ( empty( $GLOBALS['wp_customize'] ) || ! ( $GLOBALS['wp_customize'] instanceof \WP_Customize_Manager ) && $uuid ) {
 			require_once( ABSPATH . WPINC . '/class-wp-customize-manager.php' );
+			// @codingStandardsIgnoreStart
 			$GLOBALS['wp_customize'] = new \WP_Customize_Manager();
+			// @codingStandardsIgnoreEnd
 		}
 		$this->customize_manager = $GLOBALS['wp_customize'];
 
@@ -146,7 +150,7 @@ class Customize_Snapshot_Manager {
 				'customize_snapshot_uuid' => $this->snapshot->uuid(),
 				'scope' => $this->snapshot->apply_dirty ? 'dirty' : 'full',
 			);
-			$return_url = add_query_arg( $args, $this->customize_manager->get_return_url() );
+			$return_url = add_query_arg( array_map( 'rawurlencode', $args ), $this->customize_manager->get_return_url() );
 			$this->customize_manager->set_return_url( $return_url );
 		}
 	}
@@ -159,7 +163,7 @@ class Customize_Snapshot_Manager {
 	public function current_url() {
 		$http_host = isset( $_SERVER['HTTP_HOST'] ) ? wp_unslash( $_SERVER['HTTP_HOST'] ) : parse_url( home_url(), PHP_URL_HOST ); // WPCS: input var ok; sanitization ok.
 		$request_uri = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '/'; // WPCS: input var ok; sanitization ok.
-		return esc_url_raw( ( is_ssl() ? 'https://' : 'http://' ) . $http_host . $request_uri );
+		return ( is_ssl() ? 'https://' : 'http://' ) . $http_host . $request_uri;
 	}
 
 	/**
@@ -168,7 +172,7 @@ class Customize_Snapshot_Manager {
 	 * @return string
 	 */
 	public function clean_current_url() {
-		return esc_url( remove_query_arg( array( 'customize_snapshot_uuid', 'scope' ), $this->current_url() ) );
+		return remove_query_arg( array( 'customize_snapshot_uuid', 'scope' ), $this->current_url() );
 	}
 
 	/**
@@ -176,7 +180,7 @@ class Customize_Snapshot_Manager {
 	 */
 	public function maybe_force_redirect() {
 		if ( false === $this->snapshot->is_preview() && isset( $_GET['customize_snapshot_uuid'] ) ) { // WPCS: input var ok.
-			wp_safe_redirect( $this->clean_current_url() );
+			wp_safe_redirect( esc_url_raw( $this->clean_current_url() ) );
 			exit;
 		}
 	}
@@ -242,7 +246,7 @@ class Customize_Snapshot_Manager {
 			'is_preview' => $this->snapshot->is_preview(),
 			'current_user_can_publish' => current_user_can( 'customize_publish' ),
 			'snapshot_theme' => $snapshot_theme,
-			'scope' => ( isset( $_GET['scope'] ) ? sanitize_key( wp_unslash( $_GET['scope'] ) ) : 'dirty' ), // WPCS: input var ok.
+			'scope' => ( isset( $_GET['scope'] ) ? sanitize_text_field( sanitize_key( wp_unslash( $_GET['scope'] ) ) ) : 'dirty' ), // WPCS: input var ok.
 			'i18n' => array(
 				'saveButton' => __( 'Save', 'customize-snapshots' ),
 				'saveDraftButton' => __( 'Save Draft', 'customize-snapshots' ),
@@ -322,7 +326,7 @@ class Customize_Snapshot_Manager {
 		}
 		false && check_ajax_referer(); // Note: This is a workaround for PHPCS nonce verification check.
 
-		$uuid = ! empty( $_POST['snapshot_uuid'] ) ? sanitize_key( wp_unslash( $_POST['snapshot_uuid'] ) ) : null; // WPCS: input var ok.
+		$uuid = ! empty( $_POST['snapshot_uuid'] ) ? sanitize_text_field( sanitize_key( wp_unslash( $_POST['snapshot_uuid'] ) ) ) : null; // WPCS: input var ok.
 		if ( current_user_can( 'customize' ) && $uuid && $this->snapshot->is_valid_uuid( $uuid ) ) {
 			$this->snapshot_uuid = $uuid;
 		}
@@ -383,7 +387,7 @@ class Customize_Snapshot_Manager {
 		}
 
 		// Set the snapshot UUID.
-		$this->snapshot->set_uuid( sanitize_key( wp_unslash( $_POST['customize_snapshot_uuid'] ) ) ); // WPCS: input var ok.
+		$this->snapshot->set_uuid( sanitize_text_field( sanitize_key( wp_unslash( $_POST['customize_snapshot_uuid'] ) ) ) ); // WPCS: input var ok.
 		$uuid = $this->snapshot->uuid();
 		$next_uuid = $uuid;
 
@@ -430,19 +434,17 @@ class Customize_Snapshot_Manager {
 			return;
 		}
 
-		$current_url = remove_query_arg( array( 'customize_snapshot_uuid', 'scope' ), $this->current_url() );
-
 		$args = array();
-		$uuid = isset( $_GET['customize_snapshot_uuid'] ) ? sanitize_key( wp_unslash( $_GET['customize_snapshot_uuid'] ) ) : null; // WPCS: input var ok.
-		$scope = isset( $_GET['scope'] ) ? sanitize_key( wp_unslash( $_GET['scope'] ) ) : 'dirty'; // WPCS: input var ok.
+		$uuid = isset( $_GET['customize_snapshot_uuid'] ) ? sanitize_text_field( sanitize_key( wp_unslash( $_GET['customize_snapshot_uuid'] ) ) ) : null; // WPCS: input var ok.
+		$scope = isset( $_GET['scope'] ) ? sanitize_text_field( sanitize_key( wp_unslash( $_GET['scope'] ) ) ) : 'dirty'; // WPCS: input var ok.
 
 		if ( $uuid && $this->snapshot->is_valid_uuid( $uuid ) ) {
 			$args['customize_snapshot_uuid'] = $uuid;
 			$args['scope'] = ( 'dirty' !== $scope ? 'full' : 'dirty' );
 		}
 
-		$args['url'] = urlencode( $current_url );
-		$customize_url = add_query_arg( $args, wp_customize_url() );
+		$args['url'] = esc_url_raw( $this->clean_current_url() );
+		$customize_url = add_query_arg( array_map( 'rawurlencode', $args ), wp_customize_url() );
 
 		$wp_admin_bar->add_menu(
 			array(
