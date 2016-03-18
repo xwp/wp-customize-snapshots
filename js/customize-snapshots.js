@@ -225,15 +225,15 @@ var customizeSnapshots = ( function( $ ) {
 				snapshotDialogShareLink = wp.template( id );
 
 			if ( url.match( regex ) ) {
-				url = url.replace( regex, '$1' + 'customize_snapshot_uuid=' + response.customize_snapshot_uuid + '$2' );
+				url = url.replace( regex, '$1' + 'customize_snapshot_uuid=' + encodeURIComponent( response.customize_snapshot_uuid ) + '$2' );
 			} else {
-				url = url + separator + 'customize_snapshot_uuid=' + response.customize_snapshot_uuid;
+				url = url + separator + 'customize_snapshot_uuid=' + encodeURIComponent( response.customize_snapshot_uuid );
 			}
 
 			if ( 'dirty' !== scope ) {
 				scope = 'full';
 			}
-			url += '&scope=' + scope;
+			url += '&scope=' + encodeURIComponent( scope );
 
 			// Write over the UUID
 			if ( ! isPreview ) {
