@@ -228,8 +228,10 @@ class Customize_Snapshot {
 			'posts_per_page' => 1,
 			'post_type' => Customize_Snapshot_Manager::POST_TYPE,
 			'post_status' => array( 'draft', 'publish' ),
+			'no_found_rows' => true,
+			'ignore_sticky_posts' => true,
 		) );
-		$posts = $query->get_posts();
+		$posts = $query->posts;
 		remove_action( 'pre_get_posts', array( $this, '_override_wp_query_is_single' ) );
 
 		if ( empty( $posts ) ) {
