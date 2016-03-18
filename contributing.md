@@ -58,13 +58,7 @@ To check the text domain:
 $ grunt checktextdomain
 ```
 
-To create a pot file:
-
-``` bash
-$ grunt makepot
-```
-
-The default task (simply running `grunt`) will do the following: `jshint -> checktextdomain`.
+The default task (simply running `grunt`) will do the following: `jshint -> uglify -> cssmin -> checktextdomain`.
 
 ### PHPUnit Testing
 
