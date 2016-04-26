@@ -57,7 +57,7 @@ class Plugin extends Plugin_Base {
 	public function register_scripts( \WP_Scripts $wp_scripts ) {
 		$min = ( SCRIPT_DEBUG ? '' : '.min' );
 		$src = $this->dir_url . 'js/customize-snapshots' . $min . '.js';
-		$deps = array( 'jquery', 'jquery-ui-dialog', 'wp-util', 'customize-widgets' );
+		$deps = array( 'jquery', 'jquery-ui-dialog', 'wp-util', 'customize-controls' );
 		$wp_scripts->add( $this->slug, $src, $deps );
 	}
 
