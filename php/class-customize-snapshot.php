@@ -139,7 +139,7 @@ class Customize_Snapshot {
 	 * magic quotes may end up getting added twice.
 	 */
 	public function populate_customized_post_var() {
-		$_POST['customized'] = add_magic_quotes( wp_json_encode( $this->values() ) );
+		$_POST['customized'] = wp_slash( wp_json_encode( $this->values() ) );
 		// @codingStandardsIgnoreStart
 		$_REQUEST['customized'] = $_POST['customized'];
 		// @codingStandardsIgnoreEnd
