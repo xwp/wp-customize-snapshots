@@ -300,7 +300,6 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 		// Get the results.
 		$response = json_decode( $this->_last_response, true );
 		$this->assertSame( self::UUID, $response['data']['customize_snapshot_uuid'] );
-		$this->assertNotSame( self::UUID, $response['data']['customize_snapshot_next_uuid'] );
 		$settings = array(
 			'foo' => 'foo_default',
 			'bar' => 'bar_default',
@@ -331,7 +330,6 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 		// Get the results.
 		$response = json_decode( $this->_last_response, true );
 		$this->assertSame( self::UUID, $response['data']['customize_snapshot_uuid'] );
-		$this->assertSame( self::UUID, $response['data']['customize_snapshot_next_uuid'] );
 		$this->assertEmpty( $response['data']['customize_snapshot_settings'] );
 	}
 

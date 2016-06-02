@@ -1,33 +1,43 @@
 /* global jQuery, _customizeSnapshots, JSON */
-/* exported customizeSnapshots */
-var customizeSnapshots = ( function( $ ) {
+( function( api, $ ) {
+	'use strict';
 
-	var self = {},
-		api = wp.customize,
-		uuid = _customizeSnapshots.uuid,
-		isPreview = _customizeSnapshots.is_preview,
-		theme = _customizeSnapshots.snapshot_theme,
-		currentUserCanPublish = _customizeSnapshots.current_user_can_publish,
-		dialog, form;
+	var component;
+
+	if ( ! api.Snapshots ) {
+		api.Snapshots = {};
+	}
+
+	component = api.Snapshots;
+
+	component.data = {};
+
+	if ( 'undefined' !== typeof _customizeSnapshots ) {
+		_.extend( component.data, _customizeSnapshots );
+	}
 
 	/**
 	 * Inject the functionality.
 	 */
-	self.init = function() {
-		window._wpCustomizeControlsL10n.save = _customizeSnapshots.i18n.publish;
-		window._wpCustomizeControlsL10n.saved = _customizeSnapshots.i18n.published;
+	component.init = function() {
+		window._wpCustomizeControlsL10n.save = component.data.i18n.publish;
+		window._wpCustomizeControlsL10n.saved = component.data.i18n.published;
 
 		api.bind( 'ready', function() {
-			if ( ! api.settings.theme.active || ( theme && theme !== api.settings.theme.stylesheet ) ) {
+			if ( ! api.settings.theme.active || ( component.data.theme && component.data.theme !== api.settings.theme.stylesheet ) ) {
 				return;
 			}
-			self.previewerQuery();
-			self.addButton();
-			self.addDialogForm();
-			self.dialogEvents();
-			if ( isPreview ) {
+			component.previewerQuery();
+			component.addButton();
+
+			$( '#snapshot-save' ).on( 'click', function( event ) {
+				event.preventDefault();
+				component.sendUpdateSnapshotRequest( event );
+			} );
+
+			if ( component.data.isPreview ) {
 				api.state( 'saved' ).set( false );
-				self.resetSavedStateQuietly();
+				component.resetSavedStateQuietly();
 			}
 		} );
 
@@ -41,8 +51,8 @@ var customizeSnapshots = ( function( $ ) {
 					// Insert the dialog error template.
 					if ( 0 === $( '#' + id ).length ) {
 						$( 'body' ).append( snapshotDialogPublishError( {
-							title: _customizeSnapshots.i18n.publish,
-							message: _customizeSnapshots.i18n.permsMsg
+							title: component.data.i18n.publish,
+							message: component.data.i18n.permsMsg
 						} ) );
 					}
 
@@ -62,7 +72,7 @@ var customizeSnapshots = ( function( $ ) {
 	/**
 	 * Amend the preview query so we can update the snapshot during `customize_save`.
 	 */
-	self.previewerQuery = function() {
+	component.previewerQuery = function() {
 		var originalQuery = api.previewer.query;
 
 		api.previewer.query = function() {
@@ -72,7 +82,7 @@ var customizeSnapshots = ( function( $ ) {
 
 			retval = originalQuery.apply( previewer, arguments );
 
-			if ( isPreview ) {
+			if ( component.data.isPreview ) {
 				api.each( function( value, key ) {
 					allCustomized[ key ] = {
 						'value': value(),
@@ -80,7 +90,7 @@ var customizeSnapshots = ( function( $ ) {
 					};
 				} );
 				retval.snapshot_customized = JSON.stringify( allCustomized );
-				retval.snapshot_uuid = uuid;
+				retval.snapshot_uuid = component.data.uuid;
 			}
 
 			return retval;
@@ -90,7 +100,7 @@ var customizeSnapshots = ( function( $ ) {
 	/**
 	 * Create the snapshot share button.
 	 */
-	self.addButton = function() {
+	component.addButton = function() {
 		var header = $( '#customize-header-actions' ),
 			publishButton = header.find( '#save' ),
 			snapshotButton, data;
@@ -98,76 +108,21 @@ var customizeSnapshots = ( function( $ ) {
 		if ( header.length && 0 === header.find( '#snapshot-save' ).length ) {
 			snapshotButton = wp.template( 'snapshot-save' );
 			data = {
-				buttonText: currentUserCanPublish ? _customizeSnapshots.i18n.saveButton : _customizeSnapshots.i18n.saveDraftButton
+				buttonText: component.data.isPreview ? component.data.i18n.updateButton : component.data.i18n.saveButton
 			};
 			snapshotButton = $( $.trim( snapshotButton( data ) ) );
-			if ( ! currentUserCanPublish ) {
-				snapshotButton.attr( 'title', _customizeSnapshots.i18n.permsMsg );
+			if ( ! component.data.currentUserCanPublish ) {
+				snapshotButton.attr( 'title', component.data.i18n.permsMsg );
 				snapshotButton.addClass( 'button-primary' ).removeClass( 'button-secondary' );
 			}
 			snapshotButton.insertAfter( publishButton );
 		}
 
-		if ( ! currentUserCanPublish ) {
+		if ( ! component.data.currentUserCanPublish ) {
 			publishButton.hide();
 		}
 
 		header.addClass( 'button-added' );
-	};
-
-	/**
-	 * Create the snapshot dialog form.
-	 */
-	self.addDialogForm = function() {
-		var snapshotDialogForm = wp.template( 'snapshot-dialog-form' ),
-			data = {
-				title: _customizeSnapshots.i18n.formTitle,
-				is_preview: isPreview,
-				message: _customizeSnapshots.i18n.saveMsg,
-				scope: _customizeSnapshots.scope,
-				scopeTitle: _customizeSnapshots.i18n.scopeTitle,
-				dirtyLabel: _customizeSnapshots.i18n.dirtyLabel,
-				fullLabel: _customizeSnapshots.i18n.fullLabel
-			};
-		$( 'body' ).append( snapshotDialogForm( data ) );
-	};
-
-	/**
-	 * Create the dialog events.
-	 */
-	self.dialogEvents = function() {
-		dialog = $( '#snapshot-dialog-form' ).dialog( {
-			autoOpen: false,
-			modal: true,
-			buttons: {
-				Save: {
-					text: _customizeSnapshots.i18n.saveButton,
-					click: self.sendUpdateSnapshotRequest
-				},
-				Cancel: {
-					text: _customizeSnapshots.i18n.cancelButton,
-					click: function() {
-						dialog.dialog( 'close' );
-					}
-				}
-			},
-			close: function() {
-				form[ 0 ].reset();
-			}
-		} );
-
-		form = dialog.find( 'form' ).on( 'submit', function( event ) {
-			event.preventDefault();
-			dialog.next( '.ui-dialog-buttonpane' ).find( 'button:first-child' ).disabled( true );
-			self.sendUpdateSnapshotRequest();
-		} );
-
-		$( '#snapshot-save' ).on( 'click', function( event ) {
-			event.preventDefault();
-			dialog.dialog( 'open' );
-			dialog.find( 'form input[name=scope]' ).blur();
-			dialog.next( '.ui-dialog-buttonpane' ).find( 'button' ).blur();
-		} );
 	};
 
 	/**
@@ -181,23 +136,20 @@ var customizeSnapshots = ( function( $ ) {
 	 *   wp.customize.state.topics.change.enable();
 	 * But unfortunately there is no such enable method.
 	 */
-	self.resetSavedStateQuietly = function() {
+	component.resetSavedStateQuietly = function() {
 		api.state( 'saved' )._value = true;
 	};
 
 	/**
 	 * Make the AJAX request to update/save a snapshot.
+	 *
+	 * @param {object} event jQuery Event object
 	 */
-	self.sendUpdateSnapshotRequest = function() {
+	component.sendUpdateSnapshotRequest = function( event ) {
 		var spinner = $( '#customize-header-actions .spinner' ),
-			scope = dialog.find( 'form input[name="scope"]:checked' ).val(),
+			scope = component.data.scope,
 			request, customized;
 
-		if ( ! scope ) {
-			scope = dialog.find( 'form input[type="hidden"]' ).val();
-		}
-
-		dialog.dialog( 'close' );
 		spinner.addClass( 'is-active' );
 
 		customized = {};
@@ -209,20 +161,21 @@ var customizeSnapshots = ( function( $ ) {
 		} );
 
 		request = wp.ajax.post( 'customize_update_snapshot', {
-			nonce: _customizeSnapshots.nonce,
+			nonce: component.data.nonce,
 			wp_customize: 'on',
 			snapshot_customized: JSON.stringify( customized ),
-			customize_snapshot_uuid: uuid,
+			customize_snapshot_uuid: component.data.uuid,
 			scope: scope,
-			preview: ( isPreview ? 'on' : 'off' )
+			preview: ( component.data.isPreview ? 'on' : 'off' )
 		} );
 
 		request.done( function( response ) {
-			var url = wp.customize.previewer.previewUrl(),
+			var url = api.previewer.previewUrl(),
 				regex = new RegExp( '([?&])customize_snapshot_uuid=.*?(&|$)', 'i' ),
 				separator = url.indexOf( '?' ) !== -1 ? '&' : '?',
-				id = 'snapshot-dialog-link',
-				snapshotDialogShareLink = wp.template( id );
+				header = $( '#customize-header-actions' ),
+				customizeUrl = api.previewer.targetWindow.get().location.toString(),
+				customizeSeparator = customizeUrl.indexOf( '?' ) !== -1 ? '&' : '?';
 
 			if ( url.match( regex ) ) {
 				url = url.replace( regex, '$1' + 'customize_snapshot_uuid=' + encodeURIComponent( response.customize_snapshot_uuid ) + '$2' );
@@ -230,37 +183,36 @@ var customizeSnapshots = ( function( $ ) {
 				url = url + separator + 'customize_snapshot_uuid=' + encodeURIComponent( response.customize_snapshot_uuid );
 			}
 
-			if ( 'dirty' !== scope ) {
-				scope = 'full';
-			}
-			url += '&scope=' + encodeURIComponent( scope );
-
-			// Write over the UUID
-			if ( ! isPreview ) {
-				uuid = response.customize_snapshot_next_uuid;
+			if ( 'full' === scope ) {
+				url += '&scope=' + encodeURIComponent( scope );
 			}
 
-			// We need to remove old dialog before building a new one.
-			if ( $( '#' + id ).length ) {
-				$( '#' + id ).remove();
+			// Set the UUID.
+			if ( ! component.data.uuid ) {
+				component.data.uuid = response.customize_snapshot_uuid;
 			}
 
-			// Insert the snapshot dialog link template.
-			$( 'body' ).append( snapshotDialogShareLink( {
-				title: _customizeSnapshots.i18n.previewTitle,
-				url: url
-			} ) );
+			// Change the save button text to update.
+			if ( header.length && 0 !== header.find( '#snapshot-save' ).length ) {
+				header.find( '#snapshot-save' ).text( component.data.i18n.updateButton );
+			}
 
 			spinner.removeClass( 'is-active' );
+			component.resetSavedStateQuietly();
 
-			// Open the dialog.
-			$( '#' + id ).dialog( {
-				autoOpen: true,
-				modal: true
-			} );
-			$( '#' + id ).find( 'a' ).blur();
+			// Replace the history state with an updated Customizer URL that includes the Snapshot UUID.
+			if ( history.replaceState && ! customizeUrl.match( regex ) ) {
+				customizeUrl += customizeSeparator + 'customize_snapshot_uuid=' + encodeURIComponent( response.customize_snapshot_uuid );
+				if ( 'full' === scope ) {
+					customizeUrl += '&scope=' + encodeURIComponent( scope );
+				}
+				history.replaceState( {}, document.title, customizeUrl );
+			}
 
-			self.resetSavedStateQuietly();
+			// Open the preview in a new window on shift+click.
+			if ( event.shiftKey ) {
+				window.open( url, '_blank' );
+			}
 		} );
 
 		request.fail( function() {
@@ -270,22 +222,21 @@ var customizeSnapshots = ( function( $ ) {
 			// Insert the snapshot dialog error template.
 			if ( 0 === $( '#' + id ).length ) {
 				$( 'body' ).append( snapshotDialogShareError( {
-					title: _customizeSnapshots.i18n.formTitle,
-					message: _customizeSnapshots.i18n.errorMsg
+					title: component.data.i18n.errorTitle,
+					message: component.data.i18n.errorMsg
 				} ) );
 			}
-
-			spinner.removeClass( 'is-active' );
 
 			// Open the dialog.
 			$( '#' + id ).dialog( {
 				autoOpen: true,
 				modal: true
 			} );
+
+			spinner.removeClass( 'is-active' );
 		} );
 	};
 
-	self.init();
+	component.init();
 
-	return self;
-}( jQuery ) );
+} )( wp.customize, jQuery );

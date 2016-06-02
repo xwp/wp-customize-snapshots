@@ -239,36 +239,24 @@ class Customize_Snapshot_Manager {
 		}
 
 		// Script data array.
-		$exports = array(
+		$exports = apply_filters( 'customize-snapshots-export-data', array(
 			'nonce' => wp_create_nonce( self::AJAX_ACTION ),
 			'action' => self::AJAX_ACTION,
 			'uuid' => $this->snapshot->uuid(),
-			'is_preview' => $this->snapshot->is_preview(),
-			'current_user_can_publish' => current_user_can( 'customize_publish' ),
-			'snapshot_theme' => $snapshot_theme,
+			'isPreview' => $this->snapshot->is_preview(),
+			'currentUserCanPublish' => current_user_can( 'customize_publish' ),
+			'theme' => $snapshot_theme,
 			'scope' => ( isset( $_GET['scope'] ) ? sanitize_text_field( sanitize_key( wp_unslash( $_GET['scope'] ) ) ) : 'dirty' ), // WPCS: input var ok.
 			'i18n' => array(
 				'saveButton' => __( 'Save', 'customize-snapshots' ),
-				'saveDraftButton' => __( 'Save Draft', 'customize-snapshots' ),
-				'cancelButton' => __( 'Cancel', 'customize-snapshots' ),
+				'updateButton' => __( 'Update', 'customize-snapshots' ),
 				'publish' => __( 'Publish', 'customize-snapshots' ),
 				'published' => __( 'Published', 'customize-snapshots' ),
-				'saveMsg' => ( $this->snapshot->is_preview() ?
-					__( 'Clicking "Save" will update the current snapshot.', 'customize-snapshots' ) :
-					__( 'Clicking "Save" will create a new snapshot.', 'customize-snapshots' )
-				),
 				'permsMsg' => __( 'You do not have permission to publish changes, but you can create a snapshot by clicking the "Save Draft" button.', 'customize-snapshots' ),
 				'errorMsg' => __( 'The snapshot could not be saved.', 'customize-snapshots' ),
-				'previewTitle' => __( 'Preview Permalink', 'customize-snapshots' ),
-				'formTitle' => ( $this->snapshot->is_preview() ?
-					__( 'Update', 'customize-snapshots' ) :
-					__( 'Save', 'customize-snapshots' )
-				),
-				'scopeTitle' => __( 'Preview Scope', 'customize-snapshots' ),
-				'dirtyLabel' => __( 'diff - Previews the dirty settings', 'customize-snapshots' ),
-				'fullLabel' => __( 'full - Previews all the settings', 'customize-snapshots' ),
+				'errorTitle' => __( 'Error', 'customize-snapshots' ),
 			),
-		);
+		) );
 
 		// Export data to JS.
 		wp_scripts()->add_data(
@@ -389,8 +377,6 @@ class Customize_Snapshot_Manager {
 		// Set the snapshot UUID.
 		$this->snapshot->set_uuid( sanitize_text_field( sanitize_key( wp_unslash( $_POST['customize_snapshot_uuid'] ) ) ) ); // WPCS: input var ok.
 		$uuid = $this->snapshot->uuid();
-		$next_uuid = $uuid;
-
 		$post = $this->snapshot->post();
 		$post_type = get_post_type_object( self::POST_TYPE );
 		$authorized = ( $post ?
@@ -409,14 +395,8 @@ class Customize_Snapshot_Manager {
 			wp_send_json_error( $r->get_error_message() );
 		}
 
-		// Set a new UUID every time Share is clicked, when the user is not previewing a snapshot.
-		if ( 'on' !== $_POST['preview'] ) { // WPCS: input var ok.
-			$next_uuid = $this->snapshot->reset_uuid();
-		}
-
 		$response = array(
 			'customize_snapshot_uuid' => $uuid, // Current UUID.
-			'customize_snapshot_next_uuid' => $next_uuid, // Next UUID if not previewing, else current UUID.
 			'customize_snapshot_settings' => $this->snapshot->values(), // Send back sanitized settings values.
 		);
 
@@ -440,7 +420,9 @@ class Customize_Snapshot_Manager {
 
 		if ( $uuid && $this->snapshot->is_valid_uuid( $uuid ) ) {
 			$args['customize_snapshot_uuid'] = $uuid;
-			$args['scope'] = ( 'dirty' !== $scope ? 'full' : 'dirty' );
+			if ( 'full' === $scope ) {
+				$args['scope'] = $scope;
+			}
 		}
 
 		$args['url'] = esc_url_raw( $this->clean_current_url() );
@@ -470,38 +452,9 @@ class Customize_Snapshot_Manager {
 			</button>
 		</script>
 
-		<script type="text/html" id="tmpl-snapshot-dialog-link">
-			<div id="snapshot-dialog-link" title="{{ data.title }}">
-				<a href="{{ data.url }}" target="_blank">{{ data.url }}</a>
-			</div>
-		</script>
-
 		<script type="text/html" id="tmpl-snapshot-dialog-error">
 			<div id="snapshot-dialog-error" title="{{ data.title }}">
 				<p>{{ data.message }}</p>
-			</div>
-		</script>
-
-		<script type="text/html" id="tmpl-snapshot-dialog-form">
-			<div id="snapshot-dialog-form" title="{{ data.title }}">
-				<form>
-					<fieldset>
-						<p>{{ data.message }}</p>
-						<# if ( data.is_preview ) { #>
-							<input type="hidden" value="{{ data.scope }}" name="scope">
-						<# } else { #>
-							<h4>{{ data.scopeTitle }}</h4>
-							<label for="type-0">
-								<input id="type-0" type="radio" checked="checked" value="dirty" name="scope">{{ data.dirtyLabel }}
-							</label>
-							<br>
-							<label for="type-1">
-								<input id="type-1" type="radio" value="full" name="scope">{{ data.fullLabel }}
-							</label>
-							<br>
-						<# } #>
-					</fieldset>
-				</form>
 			</div>
 		</script>
 		<?php
