@@ -1,4 +1,6 @@
 /* global jQuery, _customizeSnapshots, JSON */
+/* eslint-disable no-extra-parens */
+
 ( function( api, $ ) {
 	'use strict';
 
@@ -76,11 +78,10 @@
 		var originalQuery = api.previewer.query;
 
 		api.previewer.query = function() {
-			var previewer = this,
-				allCustomized = {},
+			var allCustomized = {},
 				retval;
 
-			retval = originalQuery.apply( previewer, arguments );
+			retval = originalQuery.apply( this, arguments );
 
 			if ( component.data.isPreview ) {
 				api.each( function( value, key ) {
