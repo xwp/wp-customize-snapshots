@@ -177,19 +177,19 @@
 				customizeUrl = api.previewer.targetWindow.get().location.toString(),
 				customizeSeparator = customizeUrl.indexOf( '?' ) !== -1 ? '&' : '?';
 
+			// Set the UUID.
+			if ( ! component.data.uuid ) {
+				component.data.uuid = response.customize_snapshot_uuid;
+			}
+
 			if ( url.match( regex ) ) {
-				url = url.replace( regex, '$1' + 'customize_snapshot_uuid=' + encodeURIComponent( response.customize_snapshot_uuid ) + '$2' );
+				url = url.replace( regex, '$1customize_snapshot_uuid=' + encodeURIComponent( component.data.uuid ) + '$2' );
 			} else {
-				url = url + separator + 'customize_snapshot_uuid=' + encodeURIComponent( response.customize_snapshot_uuid );
+				url = url + separator + 'customize_snapshot_uuid=' + encodeURIComponent( component.data.uuid );
 			}
 
 			if ( 'full' === scope ) {
 				url += '&scope=' + encodeURIComponent( scope );
-			}
-
-			// Set the UUID.
-			if ( ! component.data.uuid ) {
-				component.data.uuid = response.customize_snapshot_uuid;
 			}
 
 			// Change the save button text to update.
@@ -202,7 +202,7 @@
 
 			// Replace the history state with an updated Customizer URL that includes the Snapshot UUID.
 			if ( history.replaceState && ! customizeUrl.match( regex ) ) {
-				customizeUrl += customizeSeparator + 'customize_snapshot_uuid=' + encodeURIComponent( response.customize_snapshot_uuid );
+				customizeUrl += customizeSeparator + 'customize_snapshot_uuid=' + encodeURIComponent( component.data.uuid );
 				if ( 'full' === scope ) {
 					customizeUrl += '&scope=' + encodeURIComponent( scope );
 				}
@@ -213,6 +213,13 @@
 			if ( event.shiftKey ) {
 				window.open( url, '_blank' );
 			}
+
+			// Trigger an event for plugins to use.
+			api.trigger( 'customize-snapshots-update', {
+				previewUrl: url,
+				customizeUrl: customizeUrl,
+				uuid: component.data.uuid
+			} );
 		} );
 
 		request.fail( function() {
