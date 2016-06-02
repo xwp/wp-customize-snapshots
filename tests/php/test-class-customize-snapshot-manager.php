@@ -140,9 +140,10 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 			$this->assertNotContains( 'customize_snapshot_uuid', $this->manager->customize_manager->get_return_url() );
 			$this->manager->snapshot()->set_uuid( self::UUID );
 			$this->manager->snapshot()->is_preview = true;
+			$this->manager->snapshot()->apply_dirty = false;
 			$this->manager->set_return_url();
 			$this->assertContains( 'customize_snapshot_uuid', $this->manager->customize_manager->get_return_url() );
-			$this->assertContains( 'scope=dirty', $this->manager->customize_manager->get_return_url() );
+			$this->assertContains( 'scope=full', $this->manager->customize_manager->get_return_url() );
 		}
 	}
 

@@ -148,8 +148,10 @@ class Customize_Snapshot_Manager {
 		) {
 			$args = array(
 				'customize_snapshot_uuid' => $this->snapshot->uuid(),
-				'scope' => $this->snapshot->apply_dirty ? 'dirty' : 'full',
 			);
+			if ( ! $this->snapshot->apply_dirty ) {
+				$args['scope'] = 'full';
+			}
 			$return_url = add_query_arg( array_map( 'rawurlencode', $args ), $this->customize_manager->get_return_url() );
 			$this->customize_manager->set_return_url( $return_url );
 		}
