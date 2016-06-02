@@ -37,8 +37,6 @@ class Plugin extends Plugin_Base {
 
 	/**
 	 * Initiate the plugin resources.
-	 *
-	 * @action after_setup_theme
 	 */
 	public function init() {
 		add_action( 'wp_default_scripts', array( $this, 'register_scripts' ), 11 );
@@ -52,7 +50,6 @@ class Plugin extends Plugin_Base {
 	 * Register scripts.
 	 *
 	 * @param \WP_Scripts $wp_scripts Instance of \WP_Scripts.
-	 * @action wp_default_scripts
 	 */
 	public function register_scripts( \WP_Scripts $wp_scripts ) {
 		$min = ( SCRIPT_DEBUG ? '' : '.min' );
@@ -65,7 +62,6 @@ class Plugin extends Plugin_Base {
 	 * Register styles.
 	 *
 	 * @param \WP_Styles $wp_styles Instance of \WP_Styles.
-	 * @action wp_default_styles
 	 */
 	public function register_styles( \WP_Styles $wp_styles ) {
 		$min = ( SCRIPT_DEBUG ? '' : '.min' );
