@@ -90,24 +90,11 @@ module.exports = function( grunt ) {
 		copy: {
 			build: {
 				src: [
-					'**',
-					'!.*',
-					'!.*/**',
-					'!.DS_Store',
-					'!build/**',
-					'!composer.json',
-					'!composer.lock',
-					'!contributing.md',
-					'!dev-lib/**',
-					'!Gruntfile.js',
-					'!node_modules/**',
-					'!npm-debug.log',
-					'!package.json',
-					'!phpcs.ruleset.xml',
-					'!phpunit.xml.dist',
-					'!readme.md',
-					'!tests/**',
-					'!vendor/**'
+					'*.php',
+					'css/*',
+					'js/*',
+					'php/*',
+					'readme.txt'
 				],
 				dest: 'build',
 				expand: true,
@@ -150,7 +137,8 @@ module.exports = function( grunt ) {
 			deploy: {
 				options: {
 					plugin_slug: '<%= pkg.name %>',
-					build_dir: 'build'
+					build_dir: 'build',
+					assets_dir: 'wp-assets'
 				}
 			}
 		}

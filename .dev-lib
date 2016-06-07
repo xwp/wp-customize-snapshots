@@ -1,1 +1,2 @@
 PATH_INCLUDES='*.* php js css tests'
+ASSETS_DIR=wp-assets
