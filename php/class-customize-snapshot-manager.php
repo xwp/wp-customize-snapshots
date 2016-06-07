@@ -489,13 +489,8 @@ class Customize_Snapshot_Manager {
 		if ( true === $this->snapshot->is_preview() ) {
 			$values = $this->snapshot->values();
 
-			// Register dynamic settings for settings in the snapshot.
-			$this->customize_manager->add_dynamic_settings( array_keys( $values ) );
-
-			foreach ( $this->snapshot->settings() as $setting ) {
-				if ( $this->can_preview( $setting, $values ) ) {
-					$this->customize_manager->set_post_value( $setting->id, $values[ $setting->id ] );
-				}
+			foreach ( $values as $setting_id => $value ) {
+				$this->customize_manager->set_post_value( $setting_id, $value );
 			}
 		}
 	}
