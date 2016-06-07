@@ -117,6 +117,37 @@ class Customize_Snapshot_Manager {
 		add_action( 'admin_bar_menu', array( $this, 'customize_menu' ), 41 );
 		add_action( 'customize_controls_print_footer_scripts', array( $this, 'render_templates' ) );
 
+		/*
+		 * Add WP_Customize_Widget component hooks which were short-circuited in 4.5 (r36611 for #35895).
+		 * See https://core.trac.wordpress.org/ticket/35895
+		 */
+		if ( isset( $this->customize_manager->widgets ) && ! current_user_can( 'edit_theme_options' ) ) {
+			$hooks = array(
+				'customize_dynamic_setting_args' => array(
+					'callback' => array( $this->customize_manager->widgets, 'filter_customize_dynamic_setting_args' ),
+					'priority' => 10,
+				),
+				'widgets_init' => array(
+					'callback' => array( $this->customize_manager->widgets, 'register_settings' ),
+					'priority' => 95,
+				),
+				'wp_loaded' => array(
+					'callback' => array( $this->customize_manager->widgets, 'override_sidebars_widgets_for_theme_switch' ),
+					'priority' => 10,
+				),
+				'customize_register' => array(
+					'callback' => array( $this->customize_manager->widgets, 'schedule_customize_register' ),
+					'priority' => 1,
+				),
+			);
+			foreach ( $hooks as $hook_name => $hook_args ) {
+				// Note that add_action()/has_action() are just aliases for add_filter()/has_filter().
+				if ( ! has_filter( $hook_name, $hook_args['callback'] ) ) {
+					add_filter( $hook_name, $hook_args['callback'], $hook_args['priority'], PHP_INT_MAX );
+				}
+			}
+		}
+
 		// Preview a Snapshot.
 		add_action( 'after_setup_theme', array( $this, 'set_post_values' ), 1 );
 		add_action( 'wp_loaded', array( $this, 'preview' ) );
@@ -489,13 +520,8 @@ class Customize_Snapshot_Manager {
 		if ( true === $this->snapshot->is_preview() ) {
 			$values = $this->snapshot->values();
 
-			// Register dynamic settings for settings in the snapshot.
-			$this->customize_manager->add_dynamic_settings( array_keys( $values ) );
-
-			foreach ( $this->snapshot->settings() as $setting ) {
-				if ( $this->can_preview( $setting, $values ) ) {
-					$this->customize_manager->set_post_value( $setting->id, $values[ $setting->id ] );
-				}
+			foreach ( $values as $setting_id => $value ) {
+				$this->customize_manager->set_post_value( $setting_id, $value );
 			}
 		}
 	}
