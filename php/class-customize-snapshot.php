@@ -65,6 +65,13 @@ class Customize_Snapshot {
 	public $apply_dirty;
 
 	/**
+	 * Whether kses filters on content_save_pre are added.
+	 *
+	 * @var bool
+	 */
+	protected $kses_suspended = false;
+
+	/**
 	 * Initial loader.
 	 *
 	 * @access public
@@ -101,7 +108,7 @@ class Customize_Snapshot {
 
 		if ( $post ) {
 			// For reason why base64 encoding is used, see Customize_Snapshot::save().
-			$this->data = json_decode( $post->post_content_filtered, true );
+			$this->data = json_decode( $post->post_content, true );
 			if ( json_last_error() ) {
 				$this->snapshot_manager->plugin->trigger_warning( 'JSON parse error: ' . ( function_exists( 'json_last_error_msg' ) ? json_last_error_msg() : json_last_error() ) );
 			}
@@ -390,7 +397,7 @@ class Customize_Snapshot {
 		}
 
 		/**
-		 * Filter the snapshot's data before it's saved to 'post_content_filtered'.
+		 * Filter the snapshot's data before it's saved to 'post_content'.
 		 *
 		 * @param array $data Customizer settings and values.
 		 * @return array
@@ -400,6 +407,7 @@ class Customize_Snapshot {
 		// JSON encoded snapshot data.
 		$post_content = wp_json_encode( $this->data, $options );
 
+		$this->suspend_kses();
 		if ( ! $this->post ) {
 			$postarr = array(
 				'post_type' => Customize_Snapshot_Manager::POST_TYPE,
@@ -407,7 +415,7 @@ class Customize_Snapshot {
 				'post_title' => $this->uuid,
 				'post_status' => $status,
 				'post_author' => get_current_user_id(),
-				'post_content_filtered' => $post_content,
+				'post_content' => $post_content,
 			);
 			$r = wp_insert_post( wp_slash( $postarr ), true );
 			if ( is_wp_error( $r ) ) {
@@ -419,7 +427,7 @@ class Customize_Snapshot {
 			$postarr = array(
 				'ID' => $this->post->ID,
 				'post_status' => $status,
-				'post_content_filtered' => wp_slash( $post_content ),
+				'post_content' => wp_slash( $post_content ),
 			);
 			$r = wp_update_post( $postarr, true );
 			if ( is_wp_error( $r ) ) {
@@ -427,7 +435,32 @@ class Customize_Snapshot {
 			}
 			$this->post = get_post( $r );
 		}
+		$this->restore_kses();
 
 		return null;
+	}
+
+	/**
+	 * Suspend kses which runs on content_save_pre and can corrupt JSON in post_content.
+	 *
+	 * @see \sanitize_post()
+	 */
+	function suspend_kses() {
+		if ( false !== has_filter( 'content_save_pre', 'wp_filter_post_kses' ) ) {
+			$this->kses_suspended = true;
+			kses_remove_filters();
+		}
+	}
+
+	/**
+	 * Restore kses which runs on content_save_pre and can corrupt JSON in post_content.
+	 *
+	 * @see \sanitize_post()
+	 */
+	function restore_kses() {
+		if ( $this->kses_suspended ) {
+			kses_init_filters();
+			$this->kses_suspended = false;
+		}
 	}
 }
