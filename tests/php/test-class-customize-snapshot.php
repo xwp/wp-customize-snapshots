@@ -250,7 +250,7 @@ class Test_Customize_Snapshot extends \WP_UnitTestCase {
 		$this->assertTrue( $snapshot->saved() );
 		$this->assertEquals( 'draft', $snapshot->status() );
 
-		$decoded = json_decode( $snapshot->post()->post_content_filtered, true );
+		$decoded = json_decode( $snapshot->post()->post_content, true );
 		$this->assertEquals( $decoded['foo'], $snapshot->get( $this->foo ) );
 		$this->assertEquals( $decoded['bar'], $snapshot->get( $this->bar ) );
 
@@ -259,7 +259,7 @@ class Test_Customize_Snapshot extends \WP_UnitTestCase {
 		$snapshot->set( $this->bar, 'bar_custom', true );
 
 		$snapshot->save( 'publish' );
-		$decoded = json_decode( $snapshot->post()->post_content_filtered, true );
+		$decoded = json_decode( $snapshot->post()->post_content, true );
 		$this->assertEquals( $decoded['bar'], $snapshot->get( $this->bar ) );
 		$this->assertEquals( 'publish', $snapshot->status() );
 	}

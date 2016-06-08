@@ -75,6 +75,8 @@ class Customize_Snapshot_Manager {
 	 * @param Plugin $plugin Plugin instance.
 	 */
 	public function __construct( Plugin $plugin ) {
+		add_action( 'init', array( $this, 'create_post_type' ), 0 );
+
 		// Bail if our conditions are not met.
 		if ( ! ( ( isset( $_REQUEST['wp_customize'] ) && 'on' === $_REQUEST['wp_customize'] ) // WPCS: input var ok.
 			|| ( is_admin() && isset( $_SERVER['PHP_SELF'] ) && 'customize.php' === basename( $_SERVER['PHP_SELF'] ) ) // WPCS: input var ok; sanitization ok.
@@ -109,7 +111,6 @@ class Customize_Snapshot_Manager {
 
 		add_action( 'customize_controls_init', array( $this, 'set_return_url' ) );
 		add_action( 'init', array( $this, 'maybe_force_redirect' ), 0 );
-		add_action( 'init', array( $this, 'create_post_type' ), 0 );
 		add_action( 'customize_controls_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
 		add_action( 'wp_ajax_customize_save', array( $this, 'set_snapshot_uuid' ), 0 );
 		add_action( 'wp_ajax_' . self::AJAX_ACTION, array( $this, 'update_snapshot' ) );
@@ -236,21 +237,127 @@ class Customize_Snapshot_Manager {
 	 * @access public
 	 */
 	public function create_post_type() {
+		$labels = array(
+			'name'               => _x( 'Snapshots', 'post type general name', 'customize-snapshots' ),
+			'singular_name'      => _x( 'Snapshot', 'post type singular name', 'customize-snapshots' ),
+			'menu_name'          => _x( 'Snapshots', 'admin menu', 'customize-snapshots' ),
+			'name_admin_bar'     => _x( 'Snapshot', 'add new on admin bar', 'customize-snapshots' ),
+			'add_new'            => _x( 'Add New', 'Customize Snapshot', 'customize-snapshots' ),
+			'add_new_item'       => __( 'Add New Snapshot', 'customize-snapshots' ),
+			'new_item'           => __( 'New Snapshot', 'customize-snapshots' ),
+			'edit_item'          => __( 'Inspect Snapshot', 'customize-snapshots' ),
+			'view_item'          => __( 'View Snapshot', 'customize-snapshots' ),
+			'all_items'          => __( 'All Snapshots', 'customize-snapshots' ),
+			'search_items'       => __( 'Search Snapshots', 'customize-snapshots' ),
+			'not_found'          => __( 'No snapshots found.', 'customize-snapshots' ),
+			'not_found_in_trash' => __( 'No snapshots found in Trash.', 'customize-snapshots' ),
+		);
+
 		$args = array(
-			'labels' => array(
-				'name' => __( 'Customize Snapshots', 'customize-snapshots' ),
-				'singular_name' => __( 'Customize Snapshot', 'customize-snapshots' ),
-			),
-			'public' => false,
+			'labels' => $labels,
+			'description' => __( 'Customize Snapshots.', 'customize-snapshots' ),
+			'public' => true,
 			'capability_type' => 'post',
+			'publicly_queryable' => false,
+			'query_var' => false,
+			'exclude_from_search' => true,
+			'show_ui' => true,
+			'show_in_nav_menus' => false,
+			'show_in_menu' => true,
+			'show_in_admin_bar' => false,
 			'map_meta_cap' => true,
 			'hierarchical' => false,
-			'rewrite' => false,
 			'delete_with_user' => false,
-			'supports' => array( 'title', 'author', 'revisions' ),
+			'menu_position' => null,
+			'supports' => array( 'revisions' ),
+			'rewrite' => false,
+			'show_in_customizer' => false,
+			'menu_icon' => 'dashicons-camera',
+			'register_meta_box_cb' => array( $this, 'setup_metaboxes' ),
 		);
 
 		register_post_type( self::POST_TYPE, $args );
+	}
+
+	/**
+	 * Add the metabox.
+	 */
+	function setup_metaboxes() {
+		$id = self::POST_TYPE;
+		$title = __( 'Data', 'customize-snapshots' );
+		$callback = array( $this, 'render_data_metabox' );
+		$screen = self::POST_TYPE;
+		$context = 'normal';
+		$priority = 'high';
+		add_meta_box( $id, $title, $callback, $screen, $context, $priority );
+		remove_meta_box( 'slugdiv', $screen, 'normal' );
+	}
+
+	/**
+	 * Render the metabox.
+	 *
+	 * @param \WP_Post $post Post object.
+	 */
+	function render_data_metabox( $post ) {
+		$snapshot_content = static::get_post_content( $post );
+
+		echo '<h2><code>' . esc_html( $post->post_name ) . '</code></h2>';
+
+		$allowed_tags = array(
+			'details' => array( 'class' => true ),
+			'pre' => array( 'class' => true ),
+			'summary' => array(),
+		);
+		$rendered_content = sprintf( '<pre class="pre">%s</pre>', esc_html( static::encode_json( $snapshot_content ) ) );
+		echo wp_kses(
+			apply_filters( 'rendered_customize_snapshot_data', $rendered_content, $snapshot_content, $post ),
+			$allowed_tags
+		);
+	}
+
+	/**
+	 * Get the snapshot array out of the post_content.
+	 *
+	 * A post revision for a customize_snapshot may also be supplied.
+	 *
+	 * @param \WP_Post $post A customize_snapshot post or a revision post.
+	 * @return array
+	 */
+	static function get_post_content( \WP_Post $post ) {
+		if ( self::POST_TYPE !== $post->post_type ) {
+			$parent_post = null;
+			if ( 'revision' === $post->post_type ) {
+				$parent_post = get_post( $post->post_parent );
+			}
+			if ( ! $parent_post || self::POST_TYPE !== $parent_post->post_type ) {
+				return array();
+			}
+		}
+
+		// Snapshot is stored as JSON in post_content.
+		$snapshot = json_decode( $post->post_content, true );
+		if ( is_array( $snapshot ) ) {
+			return $snapshot;
+		}
+
+		return array();
+	}
+
+	/**
+	 * Encode JSON with pretty formatting.
+	 *
+	 * @param array $value The snapshot value.
+	 * @return string
+	 */
+	static function encode_json( $value ) {
+		$flags = 0;
+		if ( defined( '\JSON_PRETTY_PRINT' ) ) {
+			$flags |= \JSON_PRETTY_PRINT;
+		}
+		if ( defined( '\JSON_UNESCAPED_SLASHES' ) ) {
+			$flags |= \JSON_UNESCAPED_SLASHES;
+		}
+		return wp_json_encode( $value, $flags );
 	}
 
 	/**
