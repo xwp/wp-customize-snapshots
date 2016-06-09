@@ -175,7 +175,7 @@
 				regex = new RegExp( '([?&])customize_snapshot_uuid=.*?(&|$)', 'i' ),
 				separator = url.indexOf( '?' ) !== -1 ? '&' : '?',
 				header = $( '#customize-header-actions' ),
-				customizeUrl = api.previewer.targetWindow.get().location.toString(),
+				customizeUrl = window.location.href,
 				customizeSeparator = customizeUrl.indexOf( '?' ) !== -1 ? '&' : '?';
 
 			// Set the UUID.
