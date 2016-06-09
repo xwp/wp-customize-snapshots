@@ -70,7 +70,6 @@ class Plugin extends Plugin_Base {
 		$wp_styles->add( $this->slug, $src, $deps );
 	}
 
-
 	/**
 	 * Add the customize_publish capability to users who can edit_theme_options by default.
 	 *

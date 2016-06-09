@@ -287,9 +287,9 @@ class Customize_Snapshot_Manager {
 	/**
 	 * Add the metabox.
 	 */
-	function setup_metaboxes() {
+	function setup_metaboxes( $post ) {
 		$id = self::POST_TYPE;
-		$title = __( 'Data', 'customize-snapshots' );
+		$title = $post->post_name;
 		$callback = array( $this, 'render_data_metabox' );
 		$screen = self::POST_TYPE;
 		$context = 'normal';
@@ -306,18 +306,19 @@ class Customize_Snapshot_Manager {
 	function render_data_metabox( $post ) {
 		$snapshot_content = static::get_post_content( $post );
 
-		echo '<h2><code>' . esc_html( $post->post_name ) . '</code></h2>';
-
-		$allowed_tags = array(
-			'details' => array( 'class' => true ),
-			'pre' => array( 'class' => true ),
-			'summary' => array(),
-		);
-		$rendered_content = sprintf( '<pre class="pre">%s</pre>', esc_html( static::encode_json( $snapshot_content ) ) );
-		echo wp_kses(
-			apply_filters( 'rendered_customize_snapshot_data', $rendered_content, $snapshot_content, $post ),
-			$allowed_tags
-		);
+		// @todo Allow non-dirty settings to be revealed: echo '<p><label><input id="show-unmodified-settings" type="checkbox"> ' . esc_html__( 'Show unmodified settings.', 'customize-snapshots' ) . '</label></p>'.
+		ksort( $snapshot_content );
+		echo '<ul>';
+		foreach ( $snapshot_content as $setting_id => $setting_args ) {
+			$dirty = ! empty( $setting_args['dirty'] );
+			echo '<li class="' . ( $dirty ? 'dirty' : '' ) . '" ' . ( ! $dirty ? 'hidden' : '' ) . '>';
+			echo '<details ' . ( $dirty ? 'open' : '' ) . '>';
+			echo '<summary><code>' . esc_html( $setting_id ) . '</code></summary>';
+			echo sprintf( '<pre class="pre">%s</pre>', esc_html( static::encode_json( $setting_args['value'] ) ) );
+			echo '</details>';
+			echo '</li>';
+		}
+		echo '</ul>';
 	}
 
 	/**
