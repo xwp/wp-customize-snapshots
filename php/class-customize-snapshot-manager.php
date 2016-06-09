@@ -296,6 +296,24 @@ class Customize_Snapshot_Manager {
 		$priority = 'high';
 		add_meta_box( $id, $title, $callback, $screen, $context, $priority );
 		remove_meta_box( 'slugdiv', $screen, 'normal' );
+		add_action( 'admin_print_footer_scripts', array( $this, 'print_metabox_js' ) );
+	}
+
+	/**
+	 * Add the metabox JavaScript to toggle the unmodified settings.
+	 */
+	function print_metabox_js() {
+		echo '
+		<script>
+			( function( $ ) {
+				$( "#show-unmodified-settings" ).on( "click", function() {
+					var hidden = ! this.checked;
+					$( "#snapshot-settings li:not(.dirty)" ).each( function() {
+						$( this ).attr( "hidden", hidden );
+					} );
+				} );
+			} )( jQuery );
+		</script>';
 	}
 
 	/**
@@ -308,9 +326,10 @@ class Customize_Snapshot_Manager {
 
 		echo '<h2>' . esc_html__( 'UUID:', 'customize-snapshots' ) . '<code>' . esc_html( $post->post_name ) . '</code></h2>';
 
-		// @todo Allow non-dirty settings to be revealed: echo '<p><label><input id="show-unmodified-settings" type="checkbox"> ' . esc_html__( 'Show unmodified settings.', 'customize-snapshots' ) . '</label></p>'.
+		echo '<p><label><input id="show-unmodified-settings" type="checkbox"> ' . esc_html__( 'Show unmodified settings.', 'customize-snapshots' ) . '</label></p>';
+
 		ksort( $snapshot_content );
-		echo '<ul>';
+		echo '<ul id="snapshot-settings">';
 		foreach ( $snapshot_content as $setting_id => $setting_args ) {
 			$dirty = ! empty( $setting_args['dirty'] );
 			echo '<li class="' . ( $dirty ? 'dirty' : '' ) . '" ' . ( ! $dirty ? 'hidden' : '' ) . '>';
