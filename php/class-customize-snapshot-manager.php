@@ -269,7 +269,7 @@ class Customize_Snapshot_Manager {
 			'hierarchical' => false,
 			'delete_with_user' => false,
 			'menu_position' => null,
-			'supports' => array( 'revisions' ),
+			'supports' => array( 'author', 'revisions' ),
 			'rewrite' => false,
 			'show_in_customizer' => false,
 			'menu_icon' => 'dashicons-camera',
