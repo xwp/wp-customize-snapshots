@@ -309,6 +309,16 @@ class Customize_Snapshot_Manager {
 				),
 				$actions
 			);
+		} else {
+			unset( $actions['inline hide-if-no-js'] );
+			unset( $actions['trash'] );
+			$actions['edit'] = sprintf(
+				'<a href="%s" aria-label="%s">%s</a>',
+				get_edit_post_link( $post->ID ),
+				/* translators: %s: post title */
+				esc_attr( sprintf( __( 'View &#8220;%s&#8221;', 'customize-snapshots' ), get_the_title( $post->ID ) ) ),
+				__( 'View', 'customize-snapshots' )
+			);
 		}
 		return $actions;
 	}
