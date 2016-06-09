@@ -291,7 +291,11 @@ class Customize_Snapshot_Manager {
 	 * @return array Actions.
 	 */
 	function filter_post_row_actions( $actions, $post ) {
-		if ( self::POST_TYPE === $post->post_type ) {
+		if ( self::POST_TYPE !== $post->post_type ) {
+			return $actions;
+		}
+
+		if ( 'publish' !== $post->post_status ) {
 			$args = array(
 				'customize_snapshot_uuid' => $post->post_name,
 			);
@@ -348,15 +352,17 @@ class Customize_Snapshot_Manager {
 
 		echo '<h2>' . esc_html__( 'UUID:', 'customize-snapshots' ) . '<code>' . esc_html( $post->post_name ) . '</code></h2>';
 
-		$args = array(
-			'customize_snapshot_uuid' => $post->post_name,
-		);
-		$customize_url = add_query_arg( array_map( 'rawurlencode', $args ), wp_customize_url() );
-		echo sprintf(
-			'<p><a href="%s" class="button button-secondary">%s</a></p>',
-			esc_url( $customize_url ),
-			esc_html__( 'Open in Customizer', 'customize-snapshots' )
-		);
+		if ( 'publish' !== $post->post_status ) {
+			$args = array(
+				'customize_snapshot_uuid' => $post->post_name,
+			);
+			$customize_url = add_query_arg( array_map( 'rawurlencode', $args ), wp_customize_url() );
+			echo sprintf(
+				'<p><a href="%s" class="button button-secondary">%s</a></p>',
+				esc_url( $customize_url ),
+				esc_html__( 'Open in Customizer', 'customize-snapshots' )
+			);
+		}
 
 		echo '<p><label><input id="show-unmodified-settings" type="checkbox"> ' . esc_html__( 'Show unmodified settings.', 'customize-snapshots' ) . '</label></p>';
 
