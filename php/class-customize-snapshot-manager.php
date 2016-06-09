@@ -114,6 +114,7 @@ class Customize_Snapshot_Manager {
 		add_action( 'customize_controls_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
 		add_action( 'wp_ajax_customize_save', array( $this, 'set_snapshot_uuid' ), 0 );
 		add_action( 'wp_ajax_' . self::AJAX_ACTION, array( $this, 'update_snapshot' ) );
+		add_action( 'wp_ajax_customize_get_snapshot_uuid', array( $this, 'get_snapshot_uuid' ) );
 		add_action( 'customize_save_after', array( $this, 'save_snapshot' ) );
 		add_action( 'admin_bar_menu', array( $this, 'customize_menu' ), 41 );
 		add_action( 'customize_controls_print_footer_scripts', array( $this, 'render_templates' ) );
@@ -541,6 +542,20 @@ class Customize_Snapshot_Manager {
 		);
 
 		wp_send_json_success( $response );
+	}
+
+	/**
+	 * Generate a snapshot UUID via AJAX.
+	 */
+	public function get_snapshot_uuid() {
+		if ( ! check_ajax_referer( self::AJAX_ACTION, 'nonce', false ) ) {
+			status_header( 400 );
+			wp_send_json_error( 'bad_nonce' );
+		}
+
+		wp_send_json_success( array(
+			'uuid' => $this->snapshot->generate_uuid(),
+		) );
 	}
 
 	/**
