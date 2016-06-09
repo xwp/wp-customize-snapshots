@@ -72,8 +72,9 @@
 
 		api.bind( 'saved', function() {
 			var url = window.location.href,
-				regex = new RegExp( '([?&])customize_snapshot_uuid=.*?(&|$)', 'i' ),
-				request;
+				request,
+				updatedUrl,
+				urlParts;
 
 			// Set the button text back to "Save".
 			$( '#customize-header-actions' ).find( '#snapshot-save' ).text( component.data.i18n.saveButton );
@@ -90,24 +91,14 @@
 			} );
 
 			// Replace the history state with an updated Customizer URL that does not include the Snapshot UUID or scope.
-			if ( history.replaceState && url.match( regex ) ) {
-				$.each( [ 'customize_snapshot_uuid', 'scope' ], function( key, param ) {
-					var parts = url.split( '?' ),
-						params,
-						count;
-
-					if ( 2 <= parts.length ) {
-						params = parts[1].split( /[&;]/g );
-						for ( count = params.length; count-- > 0; ) {
-							if ( -1 !== params[ count ].lastIndexOf( ( encodeURIComponent( param ) + '=' ), 0 ) ) {
-								params.splice( count, 1 );
-							}
-						}
-						url = parts[0] + ( params.length > 0 ? '?' + params.join( '&' ) : '' );
-					}
-				} );
-
-				history.replaceState( {}, document.title, url );
+			urlParts = url.split( '?' );
+			if ( history.replaceState && urlParts[1] ) {
+				updatedUrl = urlParts[0] + '?' + _.filter( urlParts[1].split( '&' ), function( queryPair ) {
+					return ! /^(customize_snapshot_uuid|scope)=/.test( queryPair );
+				} ).join( '&' );
+				if ( updatedUrl !== url ) {
+					history.replaceState( {}, document.title, updatedUrl );
+				}
 			}
 		} );
 	};
