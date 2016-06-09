@@ -46,6 +46,10 @@
 		} );
 
 		api.bind( 'save', function( request ) {
+
+			// Make sure that saved state is false so that Published button behaves as expected.
+			api.state( 'saved' ).set( false );
+
 			request.fail( function( response ) {
 				var id = 'snapshot-dialog-error',
 					snapshotDialogPublishError = wp.template( id );
