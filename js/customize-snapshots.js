@@ -20,6 +20,8 @@
 
 	/**
 	 * Inject the functionality.
+	 *
+	 * @return {void}
 	 */
 	component.init = function() {
 		window._wpCustomizeControlsL10n.save = component.data.i18n.publish;
@@ -73,6 +75,8 @@
 
 	/**
 	 * Amend the preview query so we can update the snapshot during `customize_save`.
+	 *
+	 * @return {void}
 	 */
 	component.previewerQuery = function() {
 		var originalQuery = api.previewer.query;
@@ -100,6 +104,8 @@
 
 	/**
 	 * Create the snapshot share button.
+	 *
+	 * @return {void}
 	 */
 	component.addButton = function() {
 		var header = $( '#customize-header-actions' ),
@@ -136,6 +142,8 @@
 	 *   wp.customize.state( 'saved' ).set( true );
 	 *   wp.customize.state.topics.change.enable();
 	 * But unfortunately there is no such enable method.
+	 *
+	 * @return {void}
 	 */
 	component.resetSavedStateQuietly = function() {
 		api.state( 'saved' )._value = true;
@@ -145,6 +153,7 @@
 	 * Make the AJAX request to update/save a snapshot.
 	 *
 	 * @param {object} event jQuery Event object
+	 * @return {void}
 	 */
 	component.sendUpdateSnapshotRequest = function( event ) {
 		var spinner = $( '#customize-header-actions .spinner' ),
