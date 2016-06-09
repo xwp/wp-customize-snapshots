@@ -91,7 +91,7 @@
 				api.each( function( value, key ) {
 					allCustomized[ key ] = {
 						'value': value(),
-						'dirty': false
+						'dirty': value._dirty
 					};
 				} );
 				retval.snapshot_customized = JSON.stringify( allCustomized );
@@ -206,6 +206,7 @@
 			if ( header.length && 0 !== header.find( '#snapshot-save' ).length ) {
 				header.find( '#snapshot-save' ).text( component.data.i18n.updateButton );
 			}
+			component.data.isPreview = true;
 
 			spinner.removeClass( 'is-active' );
 			component.resetSavedStateQuietly();
