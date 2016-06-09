@@ -102,6 +102,7 @@
 				updatedUrl = urlParts[0] + '?' + _.filter( urlParts[1].split( '&' ), function( queryPair ) {
 					return ! /^(customize_snapshot_uuid|scope)=/.test( queryPair );
 				} ).join( '&' );
+				updatedUrl = updatedUrl.replace( /\?$/, '' );
 				if ( updatedUrl !== url ) {
 					history.replaceState( {}, document.title, updatedUrl );
 				}
