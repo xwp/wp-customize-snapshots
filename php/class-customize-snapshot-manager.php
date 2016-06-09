@@ -76,6 +76,7 @@ class Customize_Snapshot_Manager {
 	 */
 	public function __construct( Plugin $plugin ) {
 		add_action( 'init', array( $this, 'create_post_type' ), 0 );
+		add_filter( 'post_row_actions', array( $this, 'filter_post_row_actions' ), 10, 2 );
 
 		// Bail if our conditions are not met.
 		if ( ! ( ( isset( $_REQUEST['wp_customize'] ) && 'on' === $_REQUEST['wp_customize'] ) // WPCS: input var ok.
@@ -280,6 +281,29 @@ class Customize_Snapshot_Manager {
 		);
 
 		register_post_type( self::POST_TYPE, $args );
+	}
+
+	/**
+	 * Add Customize link to quick edit links.
+	 *
+	 * @param array    $actions Actions.
+	 * @param \WP_Post $post    Post.
+	 * @return array Actions.
+	 */
+	function filter_post_row_actions( $actions, $post ) {
+		if ( self::POST_TYPE === $post->post_type ) {
+			$args = array(
+				'customize_snapshot_uuid' => $post->post_name,
+			);
+			$customize_url = add_query_arg( array_map( 'rawurlencode', $args ), wp_customize_url() );
+			$actions = array_merge(
+				array(
+					'customize' => sprintf( '<a href="%s">%s</a>', esc_url( $customize_url ), esc_html__( 'Customize', 'customize-snapshots' ) ),
+				),
+				$actions
+			);
+		}
+		return $actions;
 	}
 
 	/**
