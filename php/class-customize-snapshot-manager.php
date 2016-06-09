@@ -283,6 +283,7 @@ class Customize_Snapshot_Manager {
 
 		add_filter( 'post_row_actions', array( $this, 'filter_post_row_actions' ), 10, 2 );
 		add_action( 'post_submitbox_minor_actions', array( $this, 'action_post_submitbox_minor_actions' ) );
+		add_action( 'add_meta_boxes_' . self::POST_TYPE, array( $this, 'remove_publish_metabox' ), 100 );
 	}
 
 	/**
@@ -344,6 +345,17 @@ class Customize_Snapshot_Manager {
 		add_meta_box( $id, $title, $callback, $screen, $context, $priority );
 		remove_meta_box( 'slugdiv', $screen, 'normal' );
 		add_action( 'admin_print_footer_scripts', array( $this, 'print_metabox_js' ) );
+	}
+
+	/**
+	 * Remove publish metabox for published posts, since they should be immutable once published.
+	 *
+	 * @param \WP_Post $post Post.
+	 */
+	function remove_publish_metabox( $post ) {
+		if ( 'publish' === $post->post_status ) {
+			remove_meta_box( 'submitdiv', self::POST_TYPE, 'side' );
+		}
 	}
 
 	/**
