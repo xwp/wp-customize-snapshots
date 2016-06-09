@@ -289,7 +289,7 @@ class Customize_Snapshot_Manager {
 	 */
 	function setup_metaboxes() {
 		$id = self::POST_TYPE;
-		$title = __( 'Data', 'customize-snapshot' );
+		$title = __( 'Data', 'customize-snapshots' );
 		$callback = array( $this, 'render_data_metabox' );
 		$screen = self::POST_TYPE;
 		$context = 'normal';
