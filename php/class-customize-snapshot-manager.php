@@ -76,7 +76,6 @@ class Customize_Snapshot_Manager {
 	 */
 	public function __construct( Plugin $plugin ) {
 		add_action( 'init', array( $this, 'create_post_type' ), 0 );
-		add_filter( 'post_row_actions', array( $this, 'filter_post_row_actions' ), 10, 2 );
 
 		// Bail if our conditions are not met.
 		if ( ! ( ( isset( $_REQUEST['wp_customize'] ) && 'on' === $_REQUEST['wp_customize'] ) // WPCS: input var ok.
@@ -281,6 +280,9 @@ class Customize_Snapshot_Manager {
 		);
 
 		register_post_type( self::POST_TYPE, $args );
+
+		add_filter( 'post_row_actions', array( $this, 'filter_post_row_actions' ), 10, 2 );
+		add_action( 'post_submitbox_misc_actions', array( $this, 'action_post_submitbox_misc_actions' ) );
 	}
 
 	/**
@@ -308,6 +310,25 @@ class Customize_Snapshot_Manager {
 			);
 		}
 		return $actions;
+	}
+
+	/**
+	 * Add an Open in Customizer link to publish metabox.
+	 *
+	 * @param \WP_Post $post Post.
+	 */
+	function action_post_submitbox_misc_actions( $post ) {
+		if ( self::POST_TYPE === $post->post_type && 'publish' !== $post->post_status ) {
+			$args = array(
+				'customize_snapshot_uuid' => $post->post_name,
+			);
+			$customize_url = add_query_arg( array_map( 'rawurlencode', $args ), wp_customize_url() );
+			echo sprintf(
+				'<div class="misc-pub-section"><a href="%s" class="button button-secondary">%s</a></div>',
+				esc_url( $customize_url ),
+				esc_html__( 'Open in Customizer', 'customize-snapshots' )
+			);
+		}
 	}
 
 	/**
@@ -351,18 +372,6 @@ class Customize_Snapshot_Manager {
 		$snapshot_content = static::get_post_content( $post );
 
 		echo '<h2>' . esc_html__( 'UUID:', 'customize-snapshots' ) . '<code>' . esc_html( $post->post_name ) . '</code></h2>';
-
-		if ( 'publish' !== $post->post_status ) {
-			$args = array(
-				'customize_snapshot_uuid' => $post->post_name,
-			);
-			$customize_url = add_query_arg( array_map( 'rawurlencode', $args ), wp_customize_url() );
-			echo sprintf(
-				'<p><a href="%s" class="button button-secondary">%s</a></p>',
-				esc_url( $customize_url ),
-				esc_html__( 'Open in Customizer', 'customize-snapshots' )
-			);
-		}
 
 		echo '<p><label><input id="show-unmodified-settings" type="checkbox"> ' . esc_html__( 'Show unmodified settings.', 'customize-snapshots' ) . '</label></p>';
 
