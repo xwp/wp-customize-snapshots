@@ -282,7 +282,7 @@ class Customize_Snapshot_Manager {
 		register_post_type( self::POST_TYPE, $args );
 
 		add_filter( 'post_row_actions', array( $this, 'filter_post_row_actions' ), 10, 2 );
-		add_action( 'post_submitbox_misc_actions', array( $this, 'action_post_submitbox_misc_actions' ) );
+		add_action( 'post_submitbox_minor_actions', array( $this, 'action_post_submitbox_minor_actions' ) );
 	}
 
 	/**
@@ -317,7 +317,7 @@ class Customize_Snapshot_Manager {
 	 *
 	 * @param \WP_Post $post Post.
 	 */
-	function action_post_submitbox_misc_actions( $post ) {
+	function action_post_submitbox_minor_actions( $post ) {
 		if ( self::POST_TYPE === $post->post_type && 'publish' !== $post->post_status ) {
 			$args = array(
 				'customize_snapshot_uuid' => $post->post_name,
