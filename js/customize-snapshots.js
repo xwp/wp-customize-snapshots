@@ -69,6 +69,38 @@
 			} );
 			return request;
 		} );
+
+		api.bind( 'saved', function() {
+			var url = window.location.href,
+				request,
+				updatedUrl,
+				urlParts;
+
+			// Set the button text back to "Save".
+			$( '#customize-header-actions' ).find( '#snapshot-save' ).text( component.data.i18n.saveButton );
+
+			request = wp.ajax.post( 'customize_get_snapshot_uuid', {
+				nonce: component.data.nonce,
+				wp_customize: 'on'
+			} );
+
+			// Update the UUID and scope.
+			request.done( function( response ) {
+				component.data.scope = 'dirty';
+				component.data.uuid = response.uuid;
+			} );
+
+			// Replace the history state with an updated Customizer URL that does not include the Snapshot UUID or scope.
+			urlParts = url.split( '?' );
+			if ( history.replaceState && urlParts[1] ) {
+				updatedUrl = urlParts[0] + '?' + _.filter( urlParts[1].split( '&' ), function( queryPair ) {
+					return ! /^(customize_snapshot_uuid|scope)=/.test( queryPair );
+				} ).join( '&' );
+				if ( updatedUrl !== url ) {
+					history.replaceState( {}, document.title, updatedUrl );
+				}
+			}
+		} );
 	};
 
 	/**
