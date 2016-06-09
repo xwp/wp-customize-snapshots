@@ -271,9 +271,7 @@ class Customize_Snapshot_Manager {
 			'supports' => array( 'author', 'revisions' ),
 			'capability_type' => self::POST_TYPE,
 			'capabilities' => array(
-				'create_posts'           => 'do_not_allow',
-				'edit_published_posts'   => 'do_not_allow',
-				'delete_published_posts' => 'do_not_allow',
+				'create_posts' => 'do_not_allow',
 			),
 			'rewrite' => false,
 			'show_in_customizer' => false,
