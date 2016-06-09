@@ -287,9 +287,9 @@ class Customize_Snapshot_Manager {
 	/**
 	 * Add the metabox.
 	 */
-	function setup_metaboxes( $post ) {
+	function setup_metaboxes() {
 		$id = self::POST_TYPE;
-		$title = $post->post_name;
+		$title = __( 'Data', 'customize-snapshot' );
 		$callback = array( $this, 'render_data_metabox' );
 		$screen = self::POST_TYPE;
 		$context = 'normal';
@@ -305,6 +305,8 @@ class Customize_Snapshot_Manager {
 	 */
 	function render_data_metabox( $post ) {
 		$snapshot_content = static::get_post_content( $post );
+
+		echo '<h2>' . esc_html__( 'UUID:', 'customize-snapshots' ) . '<code>' . esc_html( $post->post_name ) . '</code></h2>';
 
 		// @todo Allow non-dirty settings to be revealed: echo '<p><label><input id="show-unmodified-settings" type="checkbox"> ' . esc_html__( 'Show unmodified settings.', 'customize-snapshots' ) . '</label></p>'.
 		ksort( $snapshot_content );
