@@ -83,7 +83,7 @@ class Plugin extends Plugin_Base {
 		}
 
 		// Grant all customize snapshot caps which weren't explicitly disallowed to users who can customize.
-		if ( false !== strpos( $caps[0], Customize_Snapshot_Manager::POST_TYPE ) ) {
+		if ( isset( $caps[0] ) && false !== strpos( $caps[0], Customize_Snapshot_Manager::POST_TYPE ) ) {
 			$post_type_obj = get_post_type_object( Customize_Snapshot_Manager::POST_TYPE );
 			$primitive_caps = array_flip( (array) $post_type_obj->cap );
 			unset( $primitive_caps['do_not_allow'] );
@@ -91,6 +91,7 @@ class Plugin extends Plugin_Base {
 				$allcaps[ $granted_cap ] = current_user_can( 'customize' );
 			}
 		}
+
 		return $allcaps;
 	}
 }
