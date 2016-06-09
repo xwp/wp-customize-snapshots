@@ -372,7 +372,11 @@ class Customize_Snapshot_Manager {
 	 * Add the metabox JavaScript to toggle the unmodified settings.
 	 */
 	function print_metabox_js() {
-		echo '
+		$post = get_post();
+		if ( ! $post || self::POST_TYPE !== $post->post_type ) {
+			return;
+		}
+		?>
 		<script>
 			( function( $ ) {
 				$( "#show-unmodified-settings" ).on( "click", function() {
@@ -382,7 +386,14 @@ class Customize_Snapshot_Manager {
 					} );
 				} );
 			} )( jQuery );
-		</script>';
+		</script>
+		<?php if ( 'publish' === $post->post_status ) : ?>
+			<script>
+				jQuery( function( $ ) {
+					$( '#post_author_override' ).prop( 'disabled', true );
+				} );
+			</script>
+		<?php endif;
 	}
 
 	/**
