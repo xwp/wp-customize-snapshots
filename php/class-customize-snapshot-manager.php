@@ -257,7 +257,6 @@ class Customize_Snapshot_Manager {
 			'labels' => $labels,
 			'description' => __( 'Customize Snapshots.', 'customize-snapshots' ),
 			'public' => true,
-			'capability_type' => 'post',
 			'publicly_queryable' => false,
 			'query_var' => false,
 			'exclude_from_search' => true,
@@ -270,6 +269,12 @@ class Customize_Snapshot_Manager {
 			'delete_with_user' => false,
 			'menu_position' => null,
 			'supports' => array( 'author', 'revisions' ),
+			'capability_type' => self::POST_TYPE,
+			'capabilities' => array(
+				'create_posts'           => 'do_not_allow',
+				'edit_published_posts'   => 'do_not_allow',
+				'delete_published_posts' => 'do_not_allow',
+			),
 			'rewrite' => false,
 			'show_in_customizer' => false,
 			'menu_icon' => 'dashicons-camera',
@@ -494,9 +499,6 @@ class Customize_Snapshot_Manager {
 		if ( ! check_ajax_referer( self::AJAX_ACTION, 'nonce', false ) ) {
 			status_header( 400 );
 			wp_send_json_error( 'bad_nonce' );
-		} elseif ( ! current_user_can( 'customize' ) ) {
-			status_header( 403 );
-			wp_send_json_error( 'customize_not_allowed' );
 		} elseif ( ! isset( $_SERVER['REQUEST_METHOD'] ) || 'POST' !== $_SERVER['REQUEST_METHOD'] ) { // WPCS: input var ok.
 			status_header( 405 );
 			wp_send_json_error( 'bad_method' );
@@ -521,7 +523,7 @@ class Customize_Snapshot_Manager {
 		$post_type = get_post_type_object( self::POST_TYPE );
 		$authorized = ( $post ?
 			current_user_can( $post_type->cap->edit_post, $post->ID ) :
-			current_user_can( $post_type->cap->create_posts )
+			current_user_can( 'customize' )
 		);
 		if ( ! $authorized ) {
 			status_header( 403 );
