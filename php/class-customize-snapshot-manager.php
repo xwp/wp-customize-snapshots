@@ -284,7 +284,6 @@ class Customize_Snapshot_Manager {
 		register_post_type( self::POST_TYPE, $args );
 
 		add_filter( 'post_row_actions', array( $this, 'filter_post_row_actions' ), 10, 2 );
-		add_action( 'post_submitbox_minor_actions', array( $this, 'action_post_submitbox_minor_actions' ) );
 		add_action( 'add_meta_boxes_' . self::POST_TYPE, array( $this, 'remove_publish_metabox' ), 100 );
 		add_filter( 'wp_insert_post_data', array( $this, 'preserve_post_name_in_insert_data' ), 10, 2 );
 	}
@@ -324,25 +323,6 @@ class Customize_Snapshot_Manager {
 			);
 		}
 		return $actions;
-	}
-
-	/**
-	 * Add an Open in Customizer link to publish metabox.
-	 *
-	 * @param \WP_Post $post Post.
-	 */
-	function action_post_submitbox_minor_actions( $post ) {
-		if ( self::POST_TYPE === $post->post_type && 'publish' !== $post->post_status ) {
-			$args = array(
-				'customize_snapshot_uuid' => $post->post_name,
-			);
-			$customize_url = add_query_arg( array_map( 'rawurlencode', $args ), wp_customize_url() );
-			echo sprintf(
-				'<div class="misc-pub-section"><a href="%s" class="button button-secondary">%s</a></div>',
-				esc_url( $customize_url ),
-				esc_html__( 'Open in Customizer', 'customize-snapshots' )
-			);
-		}
 	}
 
 	/**
@@ -408,6 +388,18 @@ class Customize_Snapshot_Manager {
 		$snapshot_content = static::get_post_content( $post );
 
 		echo '<h2>' . esc_html__( 'UUID:', 'customize-snapshots' ) . '<code>' . esc_html( $post->post_name ) . '</code></h2>';
+
+		if ( 'publish' !== $post->post_status ) {
+			$args = array(
+				'customize_snapshot_uuid' => $post->post_name,
+			);
+			$customize_url = add_query_arg( array_map( 'rawurlencode', $args ), wp_customize_url() );
+			echo sprintf(
+				'<p><a href="%s" class="button button-secondary">%s</a></p>',
+				esc_url( $customize_url ),
+				esc_html__( 'Open in Customizer', 'customize-snapshots' )
+			);
+		}
 
 		echo '<p><label><input id="show-unmodified-settings" type="checkbox"> ' . esc_html__( 'Show unmodified settings.', 'customize-snapshots' ) . '</label></p>';
 
