@@ -273,6 +273,7 @@ class Customize_Snapshot_Manager {
 			'capability_type' => self::POST_TYPE,
 			'capabilities' => array(
 				'create_posts' => 'do_not_allow',
+				'publish_posts' => 'do_not_allow',
 			),
 			'rewrite' => false,
 			'show_in_customizer' => false,

@@ -234,7 +234,7 @@ class Customize_Snapshot {
 			'name' => $this->uuid,
 			'posts_per_page' => 1,
 			'post_type' => Customize_Snapshot_Manager::POST_TYPE,
-			'post_status' => array( 'draft', 'publish' ),
+			'post_status' => get_post_stati(),
 			'no_found_rows' => true,
 			'ignore_sticky_posts' => true,
 			'cache_results' => false,
