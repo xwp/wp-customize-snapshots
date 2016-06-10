@@ -499,6 +499,8 @@ class Customize_Snapshot_Manager {
 			'i18n' => array(
 				'saveButton' => __( 'Save', 'customize-snapshots' ),
 				'updateButton' => __( 'Update', 'customize-snapshots' ),
+				'submit' => __( 'Submit', 'customize-snapshots' ),
+				'submitted' => __( 'Submitted', 'customize-snapshots' ),
 				'publish' => __( 'Publish', 'customize-snapshots' ),
 				'published' => __( 'Published', 'customize-snapshots' ),
 				'permsMsg' => __( 'You do not have permission to publish changes, but you can create a snapshot by clicking the "Save Draft" button.', 'customize-snapshots' ),
@@ -623,6 +625,16 @@ class Customize_Snapshot_Manager {
 			wp_send_json_error( 'missing_preview' );
 		}
 
+		if ( isset( $_POST['status'] ) ) { // WPCS: input var ok.
+			$status = sanitize_key( $_POST['status'] );
+		} else {
+			$status = 'draft';
+		}
+		if ( ! in_array( $status, array( 'draft', 'pending' ), true ) ) {
+			status_header( 400 );
+			wp_send_json_error( 'bad_status' );
+		}
+
 		// Set the snapshot UUID.
 		$this->snapshot->set_uuid( sanitize_text_field( sanitize_key( wp_unslash( $_POST['customize_snapshot_uuid'] ) ) ) ); // WPCS: input var ok.
 		$uuid = $this->snapshot->uuid();
@@ -638,7 +650,7 @@ class Customize_Snapshot_Manager {
 		}
 
 		$this->snapshot->apply_dirty = ( 'dirty' === $_POST['scope'] ); // WPCS: input var ok.
-		$r = $this->save( 'draft' );
+		$r = $this->save( $status );
 		if ( is_wp_error( $r ) ) {
 			status_header( 500 );
 			wp_send_json_error( $r->get_error_message() );
@@ -710,7 +722,13 @@ class Customize_Snapshot_Manager {
 	public function render_templates() {
 		?>
 		<script type="text/html" id="tmpl-snapshot-save">
-			<button id="snapshot-save" class="button">
+			<button id="snapshot-save" class="button button-secondary">
+				{{ data.buttonText }}
+			</button>
+		</script>
+
+		<script type="text/html" id="tmpl-snapshot-submit">
+			<button id="snapshot-submit" class="button button-primary">
 				{{ data.buttonText }}
 			</button>
 		</script>
