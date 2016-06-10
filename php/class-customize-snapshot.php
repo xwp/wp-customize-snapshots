@@ -109,8 +109,9 @@ class Customize_Snapshot {
 		if ( $post ) {
 			// For reason why base64 encoding is used, see Customize_Snapshot::save().
 			$this->data = json_decode( $post->post_content, true );
-			if ( json_last_error() ) {
-				$this->snapshot_manager->plugin->trigger_warning( 'JSON parse error: ' . ( function_exists( 'json_last_error_msg' ) ? json_last_error_msg() : json_last_error() ) );
+			if ( json_last_error() || ! is_array( $this->data ) ) {
+				$this->snapshot_manager->plugin->trigger_warning( 'JSON parse error, expected array: ' . ( function_exists( 'json_last_error_msg' ) ? json_last_error_msg() : json_last_error() ) );
+				$this->data = array();
 			}
 
 			if ( ! empty( $this->data ) ) {
