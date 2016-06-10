@@ -286,6 +286,7 @@ class Customize_Snapshot_Manager {
 		add_filter( 'post_row_actions', array( $this, 'filter_post_row_actions' ), 10, 2 );
 		add_action( 'post_submitbox_minor_actions', array( $this, 'action_post_submitbox_minor_actions' ) );
 		add_action( 'add_meta_boxes_' . self::POST_TYPE, array( $this, 'remove_publish_metabox' ), 100 );
+		add_filter( 'wp_insert_post_data', array( $this, 'preserve_post_name_in_insert_data' ), 10, 2 );
 	}
 
 	/**
@@ -524,6 +525,26 @@ class Customize_Snapshot_Manager {
 	 */
 	public function snapshot() {
 		return $this->snapshot;
+	}
+
+	/**
+	 * Preserve the post_name when submitting a snapshot for review.
+	 *
+	 * @see wp_insert_post()
+	 * @link https://github.com/xwp/wordpress-develop/blob/831a186108983ade4d647124d4e56e09aa254704/src/wp-includes/post.php#L3134-L3137
+	 *
+	 * @param array $post_data          Post data.
+	 * @param array $original_post_data Original post data.
+	 * @return array Post data.
+	 */
+	public function preserve_post_name_in_insert_data( $post_data, $original_post_data ) {
+		if ( empty( $post_data['post_type'] ) || self::POST_TYPE !== $post_data['post_type'] ) {
+			return $post_data;
+		}
+		if ( empty( $post_data['post_name'] ) && 'pending' === $post_data['post_status'] ) {
+			$post_data['post_name'] = $original_post_data['post_name'];
+		}
+		return $post_data;
 	}
 
 	/**
