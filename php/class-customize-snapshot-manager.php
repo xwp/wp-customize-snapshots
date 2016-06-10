@@ -325,8 +325,7 @@ class Customize_Snapshot_Manager {
 				),
 				$actions
 			);
-		} else {
-			unset( $actions['trash'] );
+		} elseif ( isset( $actions['edit'] ) ) {
 			$actions['edit'] = sprintf(
 				'<a href="%s" aria-label="%s">%s</a>',
 				get_edit_post_link( $post->ID ),
