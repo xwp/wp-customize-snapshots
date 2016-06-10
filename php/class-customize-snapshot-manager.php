@@ -286,6 +286,18 @@ class Customize_Snapshot_Manager {
 		add_filter( 'post_row_actions', array( $this, 'filter_post_row_actions' ), 10, 2 );
 		add_action( 'add_meta_boxes_' . self::POST_TYPE, array( $this, 'remove_publish_metabox' ), 100 );
 		add_filter( 'wp_insert_post_data', array( $this, 'preserve_post_name_in_insert_data' ), 10, 2 );
+		add_filter( 'bulk_actions-edit-' . self::POST_TYPE, array( $this, 'filter_bulk_actions' ) );
+	}
+
+	/**
+	 * Remove edit bulk action for snapshots.
+	 *
+	 * @param array $actions Actions.
+	 * @return array Actions.
+	 */
+	function filter_bulk_actions( $actions ) {
+		unset( $actions['edit'] );
+		return $actions;
 	}
 
 	/**
@@ -300,6 +312,7 @@ class Customize_Snapshot_Manager {
 			return $actions;
 		}
 
+		unset( $actions['inline hide-if-no-js'] );
 		$post_type_obj = get_post_type_object( self::POST_TYPE );
 		if ( 'publish' !== $post->post_status && current_user_can( $post_type_obj->cap->edit_post, $post->ID ) ) {
 			$args = array(
@@ -313,7 +326,6 @@ class Customize_Snapshot_Manager {
 				$actions
 			);
 		} else {
-			unset( $actions['inline hide-if-no-js'] );
 			unset( $actions['trash'] );
 			$actions['edit'] = sprintf(
 				'<a href="%s" aria-label="%s">%s</a>',
@@ -347,9 +359,8 @@ class Customize_Snapshot_Manager {
 	 * @param \WP_Post $post Post.
 	 */
 	function remove_publish_metabox( $post ) {
-		if ( 'publish' === $post->post_status ) {
-			remove_meta_box( 'submitdiv', self::POST_TYPE, 'side' );
-		}
+		remove_meta_box( 'submitdiv', self::POST_TYPE, 'side' );
+		remove_meta_box( 'authordiv', self::POST_TYPE, 'normal' );
 	}
 
 	/**
@@ -371,13 +382,7 @@ class Customize_Snapshot_Manager {
 				} );
 			} )( jQuery );
 		</script>
-		<?php if ( 'publish' === $post->post_status ) : ?>
-			<script>
-				jQuery( function( $ ) {
-					$( '#post_author_override' ).prop( 'disabled', true );
-				} );
-			</script>
-		<?php endif;
+		<?php
 	}
 
 	/**
