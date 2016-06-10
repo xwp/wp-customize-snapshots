@@ -258,7 +258,6 @@ class Customize_Snapshot_Manager {
 			'labels' => $labels,
 			'description' => __( 'Customize Snapshots.', 'customize-snapshots' ),
 			'public' => true,
-			'capability_type' => 'post',
 			'publicly_queryable' => false,
 			'query_var' => false,
 			'exclude_from_search' => true,
@@ -270,7 +269,12 @@ class Customize_Snapshot_Manager {
 			'hierarchical' => false,
 			'delete_with_user' => false,
 			'menu_position' => null,
-			'supports' => array( 'revisions' ),
+			'supports' => array( 'author', 'revisions' ),
+			'capability_type' => self::POST_TYPE,
+			'capabilities' => array(
+				'create_posts' => 'do_not_allow',
+				'publish_posts' => 'do_not_allow',
+			),
 			'rewrite' => false,
 			'show_in_customizer' => false,
 			'menu_icon' => 'dashicons-camera',
@@ -278,6 +282,59 @@ class Customize_Snapshot_Manager {
 		);
 
 		register_post_type( self::POST_TYPE, $args );
+
+		add_filter( 'post_row_actions', array( $this, 'filter_post_row_actions' ), 10, 2 );
+		add_action( 'add_meta_boxes_' . self::POST_TYPE, array( $this, 'remove_publish_metabox' ), 100 );
+		add_filter( 'wp_insert_post_data', array( $this, 'preserve_post_name_in_insert_data' ), 10, 2 );
+		add_filter( 'bulk_actions-edit-' . self::POST_TYPE, array( $this, 'filter_bulk_actions' ) );
+	}
+
+	/**
+	 * Remove edit bulk action for snapshots.
+	 *
+	 * @param array $actions Actions.
+	 * @return array Actions.
+	 */
+	function filter_bulk_actions( $actions ) {
+		unset( $actions['edit'] );
+		return $actions;
+	}
+
+	/**
+	 * Add Customize link to quick edit links.
+	 *
+	 * @param array    $actions Actions.
+	 * @param \WP_Post $post    Post.
+	 * @return array Actions.
+	 */
+	function filter_post_row_actions( $actions, $post ) {
+		if ( self::POST_TYPE !== $post->post_type ) {
+			return $actions;
+		}
+
+		unset( $actions['inline hide-if-no-js'] );
+		$post_type_obj = get_post_type_object( self::POST_TYPE );
+		if ( 'publish' !== $post->post_status && current_user_can( $post_type_obj->cap->edit_post, $post->ID ) ) {
+			$args = array(
+				'customize_snapshot_uuid' => $post->post_name,
+			);
+			$customize_url = add_query_arg( array_map( 'rawurlencode', $args ), wp_customize_url() );
+			$actions = array_merge(
+				array(
+					'customize' => sprintf( '<a href="%s">%s</a>', esc_url( $customize_url ), esc_html__( 'Customize', 'customize-snapshots' ) ),
+				),
+				$actions
+			);
+		} elseif ( isset( $actions['edit'] ) ) {
+			$actions['edit'] = sprintf(
+				'<a href="%s" aria-label="%s">%s</a>',
+				get_edit_post_link( $post->ID ),
+				/* translators: %s: post title */
+				esc_attr( sprintf( __( 'View &#8220;%s&#8221;', 'customize-snapshots' ), get_the_title( $post->ID ) ) ),
+				__( 'View', 'customize-snapshots' )
+			);
+		}
+		return $actions;
 	}
 
 	/**
@@ -291,7 +348,38 @@ class Customize_Snapshot_Manager {
 		$context = 'normal';
 		$priority = 'high';
 		add_meta_box( $id, $title, $callback, $screen, $context, $priority );
-		remove_meta_box( 'slugdiv', $screen, 'normal' );
+		add_action( 'admin_print_footer_scripts', array( $this, 'print_metabox_js' ) );
+	}
+
+	/**
+	 * Remove publish metabox for published posts, since they should be immutable once published.
+	 */
+	function remove_publish_metabox() {
+		remove_meta_box( 'slugdiv', self::POST_TYPE, 'normal' );
+		remove_meta_box( 'submitdiv', self::POST_TYPE, 'side' );
+		remove_meta_box( 'authordiv', self::POST_TYPE, 'normal' );
+	}
+
+	/**
+	 * Add the metabox JavaScript to toggle the unmodified settings.
+	 */
+	function print_metabox_js() {
+		$post = get_post();
+		if ( ! $post || self::POST_TYPE !== $post->post_type ) {
+			return;
+		}
+		?>
+		<script>
+			( function( $ ) {
+				$( "#show-unmodified-settings" ).on( "click", function() {
+					var hidden = ! this.checked;
+					$( "#snapshot-settings li:not(.dirty)" ).each( function() {
+						$( this ).attr( "hidden", hidden );
+					} );
+				} );
+			} )( jQuery );
+		</script>
+		<?php
 	}
 
 	/**
@@ -301,19 +389,44 @@ class Customize_Snapshot_Manager {
 	 */
 	function render_data_metabox( $post ) {
 		$snapshot_content = static::get_post_content( $post );
+		$post_status_obj = get_post_status_object( $post->post_status );
 
-		echo '<h2><code>' . esc_html( $post->post_name ) . '</code></h2>';
+		echo '<p>';
+		echo esc_html__( 'UUID:', 'customize-snapshots' ) . '<code>' . esc_html( $post->post_name ) . '</code><br>';
+		echo sprintf( '%1$s %2$s', esc_html__( 'Status:', 'customize-snapshots' ), esc_html( $post_status_obj->label ) ) . '<br>';
+		echo sprintf( '%1$s %2$s %3$s', esc_html__( 'Publish Date:', 'customize-snapshots' ), esc_html( get_the_date( '', $post->ID ) ), esc_html( get_the_time( '', $post->ID ) ) ) . '<br>';
+		echo sprintf( '%1$s %2$s %3$s', esc_html__( 'Modified:', 'customize-snapshots' ), esc_html( get_the_modified_date( '' ) ), esc_html( get_the_modified_time( '' ) ) ) . '<br>';
+		echo sprintf( '%1$s %2$s', esc_html__( 'Author:', 'customize-snapshots' ), esc_html( get_the_author_meta( 'display_name', $post->post_author ) ) ) . '</p>';
+		echo '</p>';
 
-		$allowed_tags = array(
-			'details' => array( 'class' => true ),
-			'pre' => array( 'class' => true ),
-			'summary' => array(),
-		);
-		$rendered_content = sprintf( '<pre class="pre">%s</pre>', esc_html( static::encode_json( $snapshot_content ) ) );
-		echo wp_kses(
-			apply_filters( 'rendered_customize_snapshot_data', $rendered_content, $snapshot_content, $post ),
-			$allowed_tags
-		);
+		if ( 'publish' !== $post->post_status ) {
+			$args = array(
+				'customize_snapshot_uuid' => $post->post_name,
+			);
+			$customize_url = add_query_arg( array_map( 'rawurlencode', $args ), wp_customize_url() );
+			echo sprintf(
+				'<p><a href="%s" class="button button-secondary">%s</a></p>',
+				esc_url( $customize_url ),
+				esc_html__( 'Open in Customizer', 'customize-snapshots' )
+			);
+		}
+
+		echo '<p><label><input id="show-unmodified-settings" type="checkbox"> ' . esc_html__( 'Show unmodified settings.', 'customize-snapshots' ) . '</label></p>';
+
+		echo '<hr>';
+
+		ksort( $snapshot_content );
+		echo '<ul id="snapshot-settings">';
+		foreach ( $snapshot_content as $setting_id => $setting_args ) {
+			$dirty = ! empty( $setting_args['dirty'] );
+			echo '<li class="' . ( $dirty ? 'dirty' : '' ) . '" ' . ( ! $dirty ? 'hidden' : '' ) . '>';
+			echo '<details ' . ( $dirty ? 'open' : '' ) . '>';
+			echo '<summary><code>' . esc_html( $setting_id ) . '</code></summary>';
+			echo sprintf( '<pre class="pre">%s</pre>', esc_html( static::encode_json( $setting_args['value'] ) ) );
+			echo '</details>';
+			echo '</li>';
+		}
+		echo '</ul>';
 	}
 
 	/**
@@ -391,9 +504,14 @@ class Customize_Snapshot_Manager {
 			'i18n' => array(
 				'saveButton' => __( 'Save', 'customize-snapshots' ),
 				'updateButton' => __( 'Update', 'customize-snapshots' ),
+				'submit' => __( 'Submit', 'customize-snapshots' ),
+				'submitted' => __( 'Submitted', 'customize-snapshots' ),
 				'publish' => __( 'Publish', 'customize-snapshots' ),
 				'published' => __( 'Published', 'customize-snapshots' ),
-				'permsMsg' => __( 'You do not have permission to publish changes, but you can create a snapshot by clicking the "Save Draft" button.', 'customize-snapshots' ),
+				'permsMsg' => array(
+					'save' => __( 'You do not have permission to publish changes, but you can create a snapshot by clicking the "Save" button.', 'customize-snapshots' ),
+					'update' => __( 'You do not have permission to publish changes, but you can modify this snapshot by clicking the "Update" button.', 'customize-snapshots' ),
+				),
 				'errorMsg' => __( 'The snapshot could not be saved.', 'customize-snapshots' ),
 				'errorTitle' => __( 'Error', 'customize-snapshots' ),
 			),
@@ -414,6 +532,26 @@ class Customize_Snapshot_Manager {
 	 */
 	public function snapshot() {
 		return $this->snapshot;
+	}
+
+	/**
+	 * Preserve the post_name when submitting a snapshot for review.
+	 *
+	 * @see wp_insert_post()
+	 * @link https://github.com/xwp/wordpress-develop/blob/831a186108983ade4d647124d4e56e09aa254704/src/wp-includes/post.php#L3134-L3137
+	 *
+	 * @param array $post_data          Post data.
+	 * @param array $original_post_data Original post data.
+	 * @return array Post data.
+	 */
+	public function preserve_post_name_in_insert_data( $post_data, $original_post_data ) {
+		if ( empty( $post_data['post_type'] ) || self::POST_TYPE !== $post_data['post_type'] ) {
+			return $post_data;
+		}
+		if ( empty( $post_data['post_name'] ) && 'pending' === $post_data['post_status'] ) {
+			$post_data['post_name'] = $original_post_data['post_name'];
+		}
+		return $post_data;
 	}
 
 	/**
@@ -515,6 +653,16 @@ class Customize_Snapshot_Manager {
 			wp_send_json_error( 'missing_preview' );
 		}
 
+		if ( isset( $_POST['status'] ) ) { // WPCS: input var ok.
+			$status = sanitize_key( $_POST['status'] );
+		} else {
+			$status = 'draft';
+		}
+		if ( ! in_array( $status, array( 'draft', 'pending' ), true ) ) {
+			status_header( 400 );
+			wp_send_json_error( 'bad_status' );
+		}
+
 		// Set the snapshot UUID.
 		$this->snapshot->set_uuid( sanitize_text_field( sanitize_key( wp_unslash( $_POST['customize_snapshot_uuid'] ) ) ) ); // WPCS: input var ok.
 		$uuid = $this->snapshot->uuid();
@@ -522,7 +670,7 @@ class Customize_Snapshot_Manager {
 		$post_type = get_post_type_object( self::POST_TYPE );
 		$authorized = ( $post ?
 			current_user_can( $post_type->cap->edit_post, $post->ID ) :
-			current_user_can( $post_type->cap->create_posts )
+			current_user_can( 'customize' )
 		);
 		if ( ! $authorized ) {
 			status_header( 403 );
@@ -530,7 +678,7 @@ class Customize_Snapshot_Manager {
 		}
 
 		$this->snapshot->apply_dirty = ( 'dirty' === $_POST['scope'] ); // WPCS: input var ok.
-		$r = $this->save( 'draft' );
+		$r = $this->save( $status );
 		if ( is_wp_error( $r ) ) {
 			status_header( 500 );
 			wp_send_json_error( $r->get_error_message() );
@@ -602,7 +750,13 @@ class Customize_Snapshot_Manager {
 	public function render_templates() {
 		?>
 		<script type="text/html" id="tmpl-snapshot-save">
-			<button id="snapshot-save" class="button">
+			<button id="snapshot-save" class="button button-secondary">
+				{{ data.buttonText }}
+			</button>
+		</script>
+
+		<script type="text/html" id="tmpl-snapshot-submit">
+			<button id="snapshot-submit" class="button button-primary">
 				{{ data.buttonText }}
 			</button>
 		</script>

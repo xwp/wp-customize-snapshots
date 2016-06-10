@@ -274,4 +274,37 @@ class Test_Customize_Snapshot extends \WP_UnitTestCase {
 		$this->assertTrue( is_wp_error( $error ) );
 	}
 
+	/**
+	 * @see Customize_Snapshot::save()
+	 */
+	function test_save_pending() {
+		global $wp_customize;
+		add_filter( 'user_has_cap', array( $this, 'grant_customize_capability' ), 10, 3 );
+		$contributor_id = $this->factory()->user->create( array( 'role' => 'contributor' ) );
+		wp_set_current_user( $contributor_id );
+		$this->snapshot_manager->customize_manager = $wp_customize;
+		$snapshot = new Customize_Snapshot( $this->snapshot_manager, null );
+		$snapshot->set( $this->foo, 'foo', true );
+		$uuid = $snapshot->uuid();
+		$this->assertNotInstanceOf( 'WP_Error', $snapshot->save( 'pending' ) );
+		$post = get_post( $snapshot->post() );
+		$this->assertEquals( 'pending', $post->post_status );
+		$this->assertEquals( $uuid, $post->post_name );
+	}
+
+	/**
+	 * Let users who can edit posts also access the Customizer because there is something for them there.
+	 *
+	 * @see https://core.trac.wordpress.org/ticket/28605
+	 * @param array $allcaps All capabilities.
+	 * @param array $caps    Capabilities.
+	 * @param array $args    Args.
+	 * @return array All capabilities.
+	 */
+	function grant_customize_capability( $allcaps, $caps, $args ) {
+		if ( ! empty( $allcaps['edit_posts'] ) && ! empty( $args ) && 'customize' === $args[0] ) {
+			$allcaps = array_merge( $allcaps, array_fill_keys( $caps, true ) );
+		}
+		return $allcaps;
+	}
 }
