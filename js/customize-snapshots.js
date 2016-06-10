@@ -31,9 +31,9 @@
 			if ( ! api.settings.theme.active || ( component.data.theme && component.data.theme !== api.settings.theme.stylesheet ) ) {
 				return;
 			}
-			api.state.create( 'snapshot-saved', true);
+			api.state.create( 'snapshot-saved', true );
 			api.state.create( 'snapshot-submitted', true );
-			api.bind( 'change', function () {
+			api.bind( 'change', function() {
 				api.state( 'snapshot-saved' ).set( false );
 				api.state( 'snapshot-submitted' ).set( false );
 			} );
