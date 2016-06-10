@@ -90,6 +90,13 @@ class Plugin extends Plugin_Base {
 			foreach ( array_keys( $primitive_caps ) as $granted_cap ) {
 				$allcaps[ $granted_cap ] = current_user_can( 'customize' );
 			}
+
+			if ( ! current_user_can( 'edit_others_posts' ) ) {
+				$allcaps[ $post_type_obj->cap->edit_others_posts ] = false;
+			}
+			if ( ! current_user_can( 'delete_others_posts' ) ) {
+				$allcaps[ $post_type_obj->cap->delete_others_posts ] = false;
+			}
 		}
 
 		return $allcaps;

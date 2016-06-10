@@ -31,12 +31,23 @@
 			if ( ! api.settings.theme.active || ( component.data.theme && component.data.theme !== api.settings.theme.stylesheet ) ) {
 				return;
 			}
+			api.state.create( 'snapshot-saved', true);
+			api.state.create( 'snapshot-submitted', true );
+			api.bind( 'change', function () {
+				api.state( 'snapshot-saved' ).set( false );
+				api.state( 'snapshot-submitted' ).set( false );
+			} );
+
 			component.previewerQuery();
-			component.addButton();
+			component.addButtons();
 
 			$( '#snapshot-save' ).on( 'click', function( event ) {
 				event.preventDefault();
-				component.sendUpdateSnapshotRequest( event );
+				component.sendUpdateSnapshotRequest( { status: 'draft', openNewWindow: event.shiftKey } );
+			} );
+			$( '#snapshot-submit' ).on( 'click', function( event ) {
+				event.preventDefault();
+				component.sendUpdateSnapshotRequest( { status: 'pending', openNewWindow: event.shiftKey } );
 			} );
 
 			if ( component.data.isPreview ) {
@@ -144,26 +155,36 @@
 	 *
 	 * @return {void}
 	 */
-	component.addButton = function() {
+	component.addButtons = function() {
 		var header = $( '#customize-header-actions' ),
 			publishButton = header.find( '#save' ),
-			snapshotButton, data;
+			snapshotButton, submitButton, data;
 
-		if ( header.length && 0 === header.find( '#snapshot-save' ).length ) {
-			snapshotButton = wp.template( 'snapshot-save' );
-			data = {
-				buttonText: component.data.isPreview ? component.data.i18n.updateButton : component.data.i18n.saveButton
-			};
-			snapshotButton = $( $.trim( snapshotButton( data ) ) );
-			if ( ! component.data.currentUserCanPublish ) {
-				snapshotButton.attr( 'title', component.data.i18n.permsMsg );
-				snapshotButton.addClass( 'button-primary' ).removeClass( 'button-secondary' );
-			}
-			snapshotButton.insertAfter( publishButton );
+		snapshotButton = wp.template( 'snapshot-save' );
+		data = {
+			buttonText: component.data.isPreview ? component.data.i18n.updateButton : component.data.i18n.saveButton
+		};
+		snapshotButton = $( $.trim( snapshotButton( data ) ) );
+		if ( ! component.data.currentUserCanPublish ) {
+			snapshotButton.attr( 'title', component.data.i18n.permsMsg );
 		}
+		snapshotButton.prop( 'disabled', true );
+		snapshotButton.insertAfter( publishButton );
+		api.state( 'snapshot-saved' ).bind( function( saved ) {
+			snapshotButton.prop( 'disabled', saved );
+		} );
 
 		if ( ! component.data.currentUserCanPublish ) {
 			publishButton.hide();
+			submitButton = wp.template( 'snapshot-submit' );
+			submitButton = $( $.trim( submitButton( {
+				buttonText: component.data.i18n.submit
+			} ) ) );
+			submitButton.prop( 'disabled', true );
+			submitButton.insertBefore( snapshotButton );
+			api.state( 'snapshot-submitted' ).bind( function( submitted ) {
+				submitButton.prop( 'disabled', submitted );
+			} );
 		}
 
 		header.addClass( 'button-added' );
@@ -189,13 +210,23 @@
 	/**
 	 * Make the AJAX request to update/save a snapshot.
 	 *
-	 * @param {object} event jQuery Event object
+	 * @param {object} options Options.
+	 * @param {string} options.status The post status for the snapshot.
+	 * @param {boolean} options.openNewWindow Whether to open the frontend in a new window.
 	 * @return {void}
 	 */
-	component.sendUpdateSnapshotRequest = function( event ) {
+	component.sendUpdateSnapshotRequest = function( options ) {
 		var spinner = $( '#customize-header-actions .spinner' ),
 			scope = component.data.scope,
-			request, customized;
+			request, customized, args;
+
+		args = _.extend(
+			{
+				status: 'draft',
+				openNewWindow: false
+			},
+			options
+		);
 
 		spinner.addClass( 'is-active' );
 
@@ -213,6 +244,7 @@
 			snapshot_customized: JSON.stringify( customized ),
 			customize_snapshot_uuid: component.data.uuid,
 			scope: scope,
+			status: args.status,
 			preview: ( component.data.isPreview ? 'on' : 'off' )
 		} );
 
@@ -257,8 +289,13 @@
 				history.replaceState( {}, document.title, customizeUrl );
 			}
 
+			api.state( 'snapshot-saved' ).set( true );
+			if ( 'pending' === args.status ) {
+				api.state( 'snapshot-submitted' ).set( true );
+			}
+
 			// Open the preview in a new window on shift+click.
-			if ( event.shiftKey ) {
+			if ( args.openNewWindow ) {
 				window.open( url, '_blank' );
 			}
 
