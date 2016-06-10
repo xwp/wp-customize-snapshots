@@ -151,7 +151,7 @@
 	};
 
 	/**
-	 * Create the snapshot share button.
+	 * Create the snapshot buttons.
 	 *
 	 * @return {void}
 	 */
@@ -191,7 +191,7 @@
 	};
 
 	/**
-	 * Change the snapshot share button.
+	 * Change the snapshot button.
 	 *
 	 * @param {string} buttonText The button text.
 	 * @param {string} permsMsg The permissions message.
