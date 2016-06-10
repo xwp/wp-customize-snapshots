@@ -300,7 +300,8 @@ class Customize_Snapshot_Manager {
 			return $actions;
 		}
 
-		if ( 'publish' !== $post->post_status ) {
+		$post_type_obj = get_post_type_object( self::POST_TYPE );
+		if ( 'publish' !== $post->post_status && current_user_can( $post_type_obj->cap->edit_post, $post->ID ) ) {
 			$args = array(
 				'customize_snapshot_uuid' => $post->post_name,
 			);
