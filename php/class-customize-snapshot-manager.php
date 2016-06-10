@@ -508,7 +508,10 @@ class Customize_Snapshot_Manager {
 				'submitted' => __( 'Submitted', 'customize-snapshots' ),
 				'publish' => __( 'Publish', 'customize-snapshots' ),
 				'published' => __( 'Published', 'customize-snapshots' ),
-				'permsMsg' => __( 'You do not have permission to publish changes, but you can create a snapshot by clicking the "Save Draft" button.', 'customize-snapshots' ),
+				'permsMsg' => array(
+					'save' => __( 'You do not have permission to publish changes, but you can create a snapshot by clicking the "Save" button.', 'customize-snapshots' ),
+					'update' => __( 'You do not have permission to publish changes, but you can modify this snapshot by clicking the "Update" button.', 'customize-snapshots' ),
+				),
 				'errorMsg' => __( 'The snapshot could not be saved.', 'customize-snapshots' ),
 				'errorTitle' => __( 'Error', 'customize-snapshots' ),
 			),

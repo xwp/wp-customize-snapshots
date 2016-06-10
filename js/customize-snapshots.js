@@ -71,7 +71,7 @@
 					if ( 0 === $( '#' + id ).length ) {
 						$( 'body' ).append( snapshotDialogPublishError( {
 							title: component.data.i18n.publish,
-							message: component.data.i18n.permsMsg
+							message: component.data.isPreview ? component.data.i18n.permsMsg.update : component.data.i18n.permsMsg.save
 						} ) );
 					}
 
@@ -94,7 +94,7 @@
 				urlParts;
 
 			// Set the button text back to "Save".
-			$( '#customize-header-actions' ).find( '#snapshot-save' ).text( component.data.i18n.saveButton );
+			component.changeButton( component.data.i18n.saveButton, component.data.i18n.permsMsg.save );
 
 			request = wp.ajax.post( 'customize_get_snapshot_uuid', {
 				nonce: component.data.nonce,
@@ -166,7 +166,7 @@
 		};
 		snapshotButton = $( $.trim( snapshotButton( data ) ) );
 		if ( ! component.data.currentUserCanPublish ) {
-			snapshotButton.attr( 'title', component.data.i18n.permsMsg );
+			snapshotButton.attr( 'title', component.data.isPreview ? component.data.i18n.permsMsg.update : component.data.i18n.permsMsg.save );
 		}
 		snapshotButton.prop( 'disabled', true );
 		snapshotButton.insertAfter( publishButton );
@@ -188,6 +188,24 @@
 		}
 
 		header.addClass( 'button-added' );
+	};
+
+	/**
+	 * Change the snapshot share button.
+	 *
+	 * @param {string} buttonText The button text.
+	 * @param {string} permsMsg The permissions message.
+	 * @return {void}
+	 */
+	component.changeButton = function( buttonText, permsMsg ) {
+		var snapshotButton = $( '#customize-header-actions' ).find( '#snapshot-save' );
+
+		if ( snapshotButton.length ) {
+			snapshotButton.text( buttonText );
+			if ( ! component.data.currentUserCanPublish ) {
+				snapshotButton.attr( 'title', permsMsg );
+			}
+		}
 	};
 
 	/**
@@ -252,7 +270,6 @@
 			var url = api.previewer.previewUrl(),
 				regex = new RegExp( '([?&])customize_snapshot_uuid=.*?(&|$)', 'i' ),
 				separator = url.indexOf( '?' ) !== -1 ? '&' : '?',
-				header = $( '#customize-header-actions' ),
 				customizeUrl = window.location.href,
 				customizeSeparator = customizeUrl.indexOf( '?' ) !== -1 ? '&' : '?';
 
@@ -272,9 +289,7 @@
 			}
 
 			// Change the save button text to update.
-			if ( header.length && 0 !== header.find( '#snapshot-save' ).length ) {
-				header.find( '#snapshot-save' ).text( component.data.i18n.updateButton );
-			}
+			component.changeButton( component.data.i18n.updateButton, component.data.i18n.permsMsg.update );
 			component.data.isPreview = true;
 
 			spinner.removeClass( 'is-active' );
