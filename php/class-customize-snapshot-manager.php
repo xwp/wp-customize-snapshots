@@ -348,16 +348,14 @@ class Customize_Snapshot_Manager {
 		$context = 'normal';
 		$priority = 'high';
 		add_meta_box( $id, $title, $callback, $screen, $context, $priority );
-		remove_meta_box( 'slugdiv', $screen, 'normal' );
 		add_action( 'admin_print_footer_scripts', array( $this, 'print_metabox_js' ) );
 	}
 
 	/**
 	 * Remove publish metabox for published posts, since they should be immutable once published.
-	 *
-	 * @param \WP_Post $post Post.
 	 */
-	function remove_publish_metabox( $post ) {
+	function remove_publish_metabox() {
+		remove_meta_box( 'slugdiv', self::POST_TYPE, 'normal' );
 		remove_meta_box( 'submitdiv', self::POST_TYPE, 'side' );
 		remove_meta_box( 'authordiv', self::POST_TYPE, 'normal' );
 	}
@@ -391,8 +389,15 @@ class Customize_Snapshot_Manager {
 	 */
 	function render_data_metabox( $post ) {
 		$snapshot_content = static::get_post_content( $post );
+		$post_status_obj = get_post_status_object( $post->post_status );
 
-		echo '<h2>' . esc_html__( 'UUID:', 'customize-snapshots' ) . '<code>' . esc_html( $post->post_name ) . '</code></h2>';
+		echo '<p>';
+		echo esc_html__( 'UUID:', 'customize-snapshots' ) . '<code>' . esc_html( $post->post_name ) . '</code><br>';
+		echo sprintf( '%1$s %2$s', esc_html__( 'Status:', 'customize-snapshots' ), esc_html( $post_status_obj->label ) ) . '<br>';
+		echo sprintf( '%1$s %2$s %3$s', esc_html__( 'Publish Date:', 'customize-snapshots' ), esc_html( get_the_date( '', $post->ID ) ), esc_html( get_the_time( '', $post->ID ) ) ) . '<br>';
+		echo sprintf( '%1$s %2$s %3$s', esc_html__( 'Modified:', 'customize-snapshots' ), esc_html( get_the_modified_date( '' ) ), esc_html( get_the_modified_time( '' ) ) ) . '<br>';
+		echo sprintf( '%1$s %2$s', esc_html__( 'Author:', 'customize-snapshots' ), esc_html( get_the_author_meta( 'display_name', $post->post_author ) ) ) . '</p>';
+		echo '</p>';
 
 		if ( 'publish' !== $post->post_status ) {
 			$args = array(
@@ -407,6 +412,8 @@ class Customize_Snapshot_Manager {
 		}
 
 		echo '<p><label><input id="show-unmodified-settings" type="checkbox"> ' . esc_html__( 'Show unmodified settings.', 'customize-snapshots' ) . '</label></p>';
+
+		echo '<hr>';
 
 		ksort( $snapshot_content );
 		echo '<ul id="snapshot-settings">';
