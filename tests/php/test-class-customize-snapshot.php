@@ -187,17 +187,9 @@ class Test_Customize_Snapshot extends \WP_UnitTestCase {
 		$_POST['customized'] = 'on';
 		$this->wp_customize->setup_theme();
 
-		// Has no no dirty values.
-		$snapshot = new Customize_Snapshot( $this->snapshot_manager, null );
-		$snapshot->set( $this->foo, 'foo_default', false );
-		$snapshot->set( $this->bar, 'bar_default', false );
-		$this->assertEmpty( $snapshot->values() );
-		$snapshot->save();
-		$uuid = $snapshot->uuid();
-
 		// Has dirty values.
-		$snapshot = new Customize_Snapshot( $this->snapshot_manager, $uuid );
-		$snapshot->set( $this->bar, 'bar_custom', true );
+		$snapshot = new Customize_Snapshot( $this->snapshot_manager, null );
+		$snapshot->set( $this->bar, 'bar_custom' );
 		$this->assertNotEmpty( $snapshot->values() );
 	}
 
@@ -210,13 +202,12 @@ class Test_Customize_Snapshot extends \WP_UnitTestCase {
 		$this->wp_customize->setup_theme();
 
 		$snapshot = new Customize_Snapshot( $this->snapshot_manager, null );
-		$snapshot->set( $this->foo, 'foo_default', false );
-		$this->assertEmpty( $snapshot->data() );
-		$snapshot->set( $this->foo, 'foo_custom', true );
+		$snapshot->set( $this->foo, 'foo_default' );
+		$this->assertNotEmpty( $snapshot->data() );
+		$snapshot->set( $this->foo, 'foo_custom' );
 		$expected = array(
 			'foo' => array(
 				'value' => 'foo_custom',
-				'dirty' => true,
 				'sanitized' => false,
 			),
 		);
@@ -229,7 +220,7 @@ class Test_Customize_Snapshot extends \WP_UnitTestCase {
 	function test_settings() {
 		$snapshot = new Customize_Snapshot( $this->snapshot_manager, null );
 		$this->assertEmpty( $snapshot->settings() );
-		$snapshot->set( $this->foo, 'foo_default', true );
+		$snapshot->set( $this->foo, 'foo_default' );
 		$this->assertNotEmpty( $snapshot->settings() );
 	}
 
@@ -242,12 +233,12 @@ class Test_Customize_Snapshot extends \WP_UnitTestCase {
 
 		$this->wp_customize->add_setting( 'biz' );
 		$this->assertEmpty( $snapshot->get( $this->wp_customize->get_setting( 'biz' ) ) );
-		$snapshot->set( $this->foo, 'foo_default', false );
+		$snapshot->set( $this->foo, 'foo_default' );
 		$this->assertNotEmpty( $snapshot->get( $this->foo ) );
 		$this->assertNotEmpty( $snapshot->get( 'foo' ) );
 		$this->assertEquals( 'bar_default', $snapshot->get( 'bar' ) );
 		$this->assertEquals( 'default', $snapshot->get( 'bar', 'default' ) );
-		$this->assertNull(  $snapshot->get( 'baz' ) );
+		$this->assertNull( $snapshot->get( 'baz' ) );
 	}
 
 	/**
@@ -256,8 +247,8 @@ class Test_Customize_Snapshot extends \WP_UnitTestCase {
 	function test_save() {
 		$snapshot = new Customize_Snapshot( $this->snapshot_manager, null );
 
-		$snapshot->set( $this->foo, 'foo_default', true );
-		$snapshot->set( $this->bar, 'bar_default', true );
+		$snapshot->set( $this->foo, 'foo_default' );
+		$snapshot->set( $this->bar, 'bar_default' );
 
 		$this->assertFalse( $snapshot->saved() );
 		$snapshot->save();
@@ -270,7 +261,7 @@ class Test_Customize_Snapshot extends \WP_UnitTestCase {
 
 		// Update the Snapshot content
 		$snapshot = new Customize_Snapshot( $this->snapshot_manager, $snapshot->uuid() );
-		$snapshot->set( $this->bar, 'bar_custom', true );
+		$snapshot->set( $this->bar, 'bar_custom' );
 
 		$snapshot->save( 'publish' );
 		$decoded = json_decode( $snapshot->post()->post_content, true );
@@ -298,7 +289,7 @@ class Test_Customize_Snapshot extends \WP_UnitTestCase {
 		wp_set_current_user( $contributor_id );
 		$this->snapshot_manager->customize_manager = $wp_customize;
 		$snapshot = new Customize_Snapshot( $this->snapshot_manager, null );
-		$snapshot->set( $this->foo, 'foo', true );
+		$snapshot->set( $this->foo, 'foo' );
 		$uuid = $snapshot->uuid();
 		$this->assertNotInstanceOf( 'WP_Error', $snapshot->save( 'pending' ) );
 		$post = get_post( $snapshot->post() );

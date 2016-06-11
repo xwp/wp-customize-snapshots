@@ -236,7 +236,7 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 			'action' => Customize_Snapshot_Manager::AJAX_ACTION,
 			'nonce' => wp_create_nonce( Customize_Snapshot_Manager::AJAX_ACTION ),
 			'customize_snapshot_uuid' => self::UUID,
-			'snapshot_customized' => '{"header_background_color":{"value":"#ffffff","dirty":false}}',
+			'snapshot_customized' => '{"header_background_color":{"value":"#ffffff"}}',
 		);
 
 		$this->manager->capture_unsanitized_snapshot_post_data();
@@ -260,7 +260,7 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 			'action' => Customize_Snapshot_Manager::AJAX_ACTION,
 			'nonce' => wp_create_nonce( Customize_Snapshot_Manager::AJAX_ACTION ),
 			'customize_snapshot_uuid' => self::UUID,
-			'snapshot_customized' => '{"foo":{"value":"foo_default","dirty":true},"bar":{"value":"bar_default","dirty":true}}',
+			'snapshot_customized' => '{"foo":{"value":"foo_default"},"bar":{"value":"bar_default"}}',
 			'preview' => 'off',
 		);
 
@@ -289,7 +289,7 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 			'action' => Customize_Snapshot_Manager::AJAX_ACTION,
 			'nonce' => wp_create_nonce( Customize_Snapshot_Manager::AJAX_ACTION ),
 			'customize_snapshot_uuid' => self::UUID,
-			'snapshot_customized' => '{"foo":{"value":"foo_default","dirty":false},"bar":{"value":"bar_default","dirty":false}}',
+			'snapshot_customized' => '{"foo":{"value":"foo_default"},"bar":{"value":"bar_default"}}',
 			'preview' => 'on',
 		);
 
@@ -303,7 +303,7 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 		// Get the results.
 		$response = json_decode( $this->_last_response, true );
 		$this->assertSame( self::UUID, $response['data']['customize_snapshot_uuid'] );
-		$this->assertEmpty( $response['data']['customize_snapshot_settings'] );
+		$this->assertNotEmpty( $response['data']['customize_snapshot_settings'] );
 	}
 
 	/**

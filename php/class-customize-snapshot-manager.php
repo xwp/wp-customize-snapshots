@@ -567,7 +567,7 @@ class Customize_Snapshot_Manager {
 		foreach ( $this->customize_manager->settings() as $setting ) {
 			if ( $this->can_preview( $setting, $this->unsanitized_snapshot_post_data ) ) {
 				$post_data = $this->unsanitized_snapshot_post_data[ $setting->id ];
-				$this->snapshot->set( $setting, $post_data['value'], $post_data['dirty'] );
+				$this->snapshot->set( $setting, $post_data['value'] );
 			}
 		}
 
