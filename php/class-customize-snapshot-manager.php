@@ -390,9 +390,8 @@ class Customize_Snapshot_Manager {
 		ksort( $snapshot_content );
 		echo '<ul id="snapshot-settings">';
 		foreach ( $snapshot_content as $setting_id => $setting_args ) {
-			$dirty = ! empty( $setting_args['dirty'] );
-			echo '<li class="' . ( $dirty ? 'dirty' : '' ) . '" ' . ( ! $dirty ? 'hidden' : '' ) . '>';
-			echo '<details ' . ( $dirty ? 'open' : '' ) . '>';
+			echo '<li>';
+			echo '<details open>';
 			echo '<summary><code>' . esc_html( $setting_id ) . '</code></summary>';
 			echo sprintf( '<pre class="pre">%s</pre>', esc_html( static::encode_json( $setting_args['value'] ) ) );
 			echo '</details>';

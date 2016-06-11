@@ -13,8 +13,6 @@ Allow Customizer states to be drafted, and previewed with a private URL.
 
 Customize Snapshots save the state of a Customizer session so it can be shared or even publish at a future date. A snapshot can be shared with a private URL to both authenticated and non authenticated users. This means anyone can preview a snapshot's settings on the front-end without loading the Customizer, and authenticated users can load the snapshot into the Customizer and publish or amend the settings at any time.
 
-Snapshots are saved with a `scope` of `full` or `dirty`, which tells the preview how to playback the settings stored in the snapshot. A `full` snapshot will playback all the settings during preview, while the `dirty` snapshot will only playback the ones that were marked `dirty` when the snapshot was taken.
-
 Requires PHP 5.3+.
 
 **Development of this plugin is done [on GitHub](https://github.com/xwp/wp-customize-snapshots). Pull requests welcome. Please see [issues](https://github.com/xwp/wp-customize-snapshots) reported there before going to the [plugin forum](https://wordpress.org/support/plugin/customize-snapshots).**
@@ -23,6 +21,7 @@ Requires PHP 5.3+.
 
 = 0.4.0 =
 * Update the UX by removing most modal dialogs and the need to set the snapshot scope.
+* Eliminate the storage of non-dirty settings in a Snapshot, which eliminates the `scope` feature.
 * Ensure that widget actions and filters get added when previewing snapshots on the front-end.
 * Use `wp_slash()` instead of `add_magic_quotes()` when loading the snapshot post vars.
 * Update `dev-lib`.
