@@ -102,7 +102,7 @@ class Test_Plugin_Base extends \WP_UnitTestCase {
 	 */
 	public function test_add_doc_hooks_error() {
 		$mock = $this->getMockBuilder( 'CustomizeSnapshots\Plugin' )
-			->setMethods( [ 'is_wpcom_vip_prod' ] )
+			->setMethods( array( 'is_wpcom_vip_prod' ) )
 			->getMock();
 
 		$mock->method( 'is_wpcom_vip_prod' )
