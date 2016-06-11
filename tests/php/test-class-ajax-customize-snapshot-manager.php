@@ -339,4 +339,41 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 		$this->assertEquals( array( 'missing_snapshot_customized' => 'The Snapshots customized data was missing from the request.' ), $response );
 	}
 
+	/**
+	 * Nonce check for the get_snapshot_uuid method
+	 */
+	function test_ajax_get_snapshot_uuid_nonce_check() {
+		$_POST = array(
+			'action' => Customize_Snapshot_Manager::AJAX_ACTION,
+			'nonce' => 'bad-nonce-12345',
+		);
+
+		$this->make_ajax_call( 'customize_get_snapshot_uuid' );
+
+		// Get the results.
+		$response = json_decode( $this->_last_response, true );
+		$expected_results = array(
+			'success' => false,
+			'data'    => 'bad_nonce',
+		);
+
+		$this->assertSame( $expected_results, $response );
+	}
+
+	/**
+	 * Successful reponse from the update_snapshot method
+	 */
+	function test_ajax_get_snapshot_uuid_success() {
+		$_POST = array(
+			'action' => Customize_Snapshot_Manager::AJAX_ACTION,
+			'nonce' => wp_create_nonce( Customize_Snapshot_Manager::AJAX_ACTION ),
+		);
+
+		$this->make_ajax_call( 'customize_get_snapshot_uuid' );
+
+		// Get the results.
+		$response = json_decode( $this->_last_response, true );
+
+		$this->assertNotEmpty( $response['data']['uuid'] );
+	}
 }
