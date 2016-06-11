@@ -259,6 +259,49 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	}
 
 	/**
+	 * @see Customize_Snapshot_Manager::get_post_content()
+	 */
+	function test_get_post_content() {
+		wp_set_current_user( $this->user_id );
+		$this->do_customize_boot_actions( true );
+		$snapshot_json = '{"foo":{"value":"foo_value","dirty":true,"sanitized":false}}';
+		$_POST = array(
+			'nonce' => wp_create_nonce( 'save-customize_' . $this->wp_customize->get_stylesheet() ),
+			'snapshot_uuid' => self::UUID,
+			'snapshot_customized' => $snapshot_json,
+		);
+		$manager = new Customize_Snapshot_Manager( $this->plugin );
+		$manager->capture_unsanitized_snapshot_post_data();
+		$foo = $manager->customize_manager->get_setting( 'foo' );
+		$manager->snapshot()->set( $foo, 'foo_value', true );
+		$manager->snapshot()->save();
+		$post = $manager->snapshot()->post();
+		$snapshot_content = Customize_Snapshot_Manager::get_post_content( $post );
+		$this->assertEquals( json_decode( $snapshot_json, true ), $snapshot_content );
+
+		// Get the revision post.
+		$manager->snapshot()->set( $foo, 'foo_revision_value', true );
+		$manager->snapshot()->save();
+		$revisions = wp_get_post_revisions( $post->ID );
+		$revision = array_shift( $revisions );
+		$revision_content = Customize_Snapshot_Manager::get_post_content( $revision );
+		$this->assertEquals( 'foo_revision_value', $revision_content['foo']['value'] );
+	}
+
+	/**
+	 * @see Customize_Snapshot_Manager::get_post_content()
+	 */
+	function test_get_post_content_empty() {
+		$args = array(
+			'post_name' => self::UUID,
+			'post_type' => Customize_Snapshot_Manager::POST_TYPE,
+		);
+		$post = get_post( self::factory()->post->create( $args ) );
+		$snapshot_content = Customize_Snapshot_Manager::get_post_content( $post );
+		$this->assertEquals( array(), $snapshot_content );
+	}
+
+	/**
 	 * @see Customize_Snapshot_Manager::encode_json()
 	 */
 	function test_encode_json() {
