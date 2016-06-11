@@ -170,6 +170,13 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	}
 
 	/**
+	 * @see Customize_Snapshot_Manager::filter_bulk_actions()
+	 */
+	function test_filter_bulk_actions() {
+		$this->assertEquals( array(), $this->manager->filter_bulk_actions( array( 'edit' => 'link markup' ) ) );
+	}
+
+	/**
 	 * @see Customize_Snapshot_Manager::enqueue_scripts()
 	 */
 	function test_enqueue_scripts() {

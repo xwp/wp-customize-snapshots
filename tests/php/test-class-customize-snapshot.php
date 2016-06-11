@@ -190,7 +190,6 @@ class Test_Customize_Snapshot extends \WP_UnitTestCase {
 		// Has no no dirty values.
 		$snapshot = new Customize_Snapshot( $this->snapshot_manager, null );
 		$snapshot->set( $this->foo, 'foo_default', false );
-
 		$snapshot->set( $this->bar, 'bar_default', false );
 		$this->assertEmpty( $snapshot->values() );
 		$snapshot->save();
@@ -200,6 +199,28 @@ class Test_Customize_Snapshot extends \WP_UnitTestCase {
 		$snapshot = new Customize_Snapshot( $this->snapshot_manager, $uuid );
 		$snapshot->set( $this->bar, 'bar_custom', true );
 		$this->assertNotEmpty( $snapshot->values() );
+	}
+
+	/**
+	 * @see Customize_Snapshot::data()
+	 */
+	function test_data() {
+		// Trick to get `$this->wp_customize->is_theme_active()` to return true.
+		$_POST['customized'] = 'on';
+		$this->wp_customize->setup_theme();
+
+		$snapshot = new Customize_Snapshot( $this->snapshot_manager, null );
+		$snapshot->set( $this->foo, 'foo_default', false );
+		$this->assertEmpty( $snapshot->data() );
+		$snapshot->set( $this->foo, 'foo_custom', true );
+		$expected = array(
+			'foo' => array(
+				'value' => 'foo_custom',
+				'dirty' => true,
+				'sanitized' => false,
+			),
+		);
+		$this->assertEquals( $expected, $snapshot->data() );
 	}
 
 	/**

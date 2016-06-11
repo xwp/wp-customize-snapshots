@@ -207,6 +207,8 @@ class Customize_Snapshot_Manager {
 
 	/**
 	 * Redirect when preview is not allowed for the current theme.
+	 *
+	 * @codeCoverageIgnore
 	 */
 	public function maybe_force_redirect() {
 		if ( false === $this->snapshot->is_preview() && isset( $_GET['customize_snapshot_uuid'] ) ) { // WPCS: input var ok.
