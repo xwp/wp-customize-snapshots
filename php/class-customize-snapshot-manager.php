@@ -284,6 +284,7 @@ class Customize_Snapshot_Manager {
 		add_action( 'add_meta_boxes_' . self::POST_TYPE, array( $this, 'remove_publish_metabox' ), 100 );
 		add_filter( 'wp_insert_post_data', array( $this, 'preserve_post_name_in_insert_data' ), 10, 2 );
 		add_filter( 'bulk_actions-edit-' . self::POST_TYPE, array( $this, 'filter_bulk_actions' ) );
+		add_filter( 'get_the_excerpt', array( $this, 'filter_snapshot_excerpt' ), 10, 2 );
 	}
 
 	/**
@@ -295,6 +296,26 @@ class Customize_Snapshot_Manager {
 	public function filter_bulk_actions( $actions ) {
 		unset( $actions['edit'] );
 		return $actions;
+	}
+
+	/**
+	 * Include the setting IDs in the excerpt.
+	 *
+	 * @param string   $excerpt The post excerpt.
+	 * @param \WP_Post $post    Post object.
+	 * @return string Excerpt.
+	 */
+	public function filter_snapshot_excerpt( $excerpt, $post ) {
+		if ( self::POST_TYPE === $post->post_type ) {
+			$excerpt = '<ol>';
+			foreach ( static::get_post_content( $post ) as $setting_id => $setting_params ) {
+				if ( ! isset( $setting_params['dirty'] ) || true === $setting_params['dirty'] ) {
+					$excerpt .= sprintf( '<li><code>%s</code></li>', esc_attr( $setting_id ) );
+				}
+			}
+			$excerpt .= '</ol>';
+		}
+		return $excerpt;
 	}
 
 	/**

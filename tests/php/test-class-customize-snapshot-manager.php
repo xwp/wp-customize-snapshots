@@ -540,4 +540,25 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		$this->manager->preview();
 		$this->assertTrue( $foo->dirty );
 	}
+
+	/**
+	 * @see Customize_Snapshot_Manager::filter_snapshot_excerpt()
+	 */
+	public function test_excerpt() {
+		global $post;
+		wp_set_current_user( $this->user_id );
+		$this->manager->customize_manager = $this->wp_customize;
+		$this->manager->snapshot = new Customize_Snapshot( $this->manager, null );
+		$foo = $this->manager->customize_manager->get_setting( 'foo' );
+		$bar = $this->manager->customize_manager->get_setting( 'bar' );
+		$this->manager->snapshot()->set( $foo, 'foo_custom', true );
+		$this->manager->snapshot()->set( $bar, 'bar_custom', true );
+		$this->manager->snapshot()->save();
+
+		$post = $this->manager->snapshot()->post();
+		$excerpt = get_the_excerpt( $post );
+		$this->assertContains( '<ol>', $excerpt );
+		$this->assertContains( '<code>foo</code>', $excerpt );
+		$this->assertContains( '<code>bar</code>', $excerpt );
+	}
 }
