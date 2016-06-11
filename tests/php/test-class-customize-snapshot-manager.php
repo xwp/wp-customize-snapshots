@@ -259,6 +259,27 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	}
 
 	/**
+	 * @see Customize_Snapshot_Manager::encode_json()
+	 */
+	function test_encode_json() {
+		$array = array(
+			'foo' => array(
+				'value' => 'foo_value',
+				'dirty' => true,
+				'sanitized' => false,
+			),
+		);
+		$json = '{
+    "foo": {
+        "value": "foo_value",
+        "dirty": true,
+        "sanitized": false
+    }
+}';
+		$this->assertEquals( $json, Customize_Snapshot_Manager::encode_json( $array ) );
+	}
+
+	/**
 	 * @see Customize_Snapshot_Manager::enqueue_scripts()
 	 */
 	function test_enqueue_scripts() {
