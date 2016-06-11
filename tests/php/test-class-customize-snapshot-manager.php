@@ -312,14 +312,8 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 				'sanitized' => false,
 			),
 		);
-		$json = '{
-    "foo": {
-        "value": "foo_value",
-        "dirty": true,
-        "sanitized": false
-    }
-}';
-		$this->assertEquals( $json, Customize_Snapshot_Manager::encode_json( $array ) );
+		$json = '{"foo":{"value":"foo_value","dirty":true,"sanitized":false}}';
+		$this->assertEquals( $json, preg_replace( '/\s+/', '', Customize_Snapshot_Manager::encode_json( $array ) ) );
 	}
 
 	/**
