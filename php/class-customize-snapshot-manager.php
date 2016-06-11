@@ -349,6 +349,8 @@ class Customize_Snapshot_Manager {
 
 	/**
 	 * Remove publish metabox for published posts, since they should be immutable once published.
+	 *
+	 * @codeCoverageIgnore
 	 */
 	public function remove_publish_metabox() {
 		remove_meta_box( 'slugdiv', self::POST_TYPE, 'normal' );

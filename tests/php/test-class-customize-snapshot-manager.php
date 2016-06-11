@@ -74,6 +74,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		unset( $GLOBALS['wp_customize'] );
 		unset( $GLOBALS['wp_scripts'] );
 		unset( $_REQUEST['customize_snapshot_uuid'] );
+		unset( $GLOBALS['screen'] );
 		parent::tearDown();
 	}
 
@@ -247,6 +248,17 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	}
 
 	/**
+	 * @see Customize_Snapshot_Manager::setup_metaboxes()
+	 */
+	function test_setup_metaboxes() {
+		global $wp_meta_boxes;
+		$screen = Customize_Snapshot_Manager::POST_TYPE;
+		set_current_screen( $screen );
+		$this->manager->setup_metaboxes();
+		$this->assertArrayHasKey( $screen, $wp_meta_boxes[ $screen ]['normal']['high'] );
+	}
+
+	/**
 	 * @see Customize_Snapshot_Manager::enqueue_scripts()
 	 */
 	function test_enqueue_scripts() {
@@ -319,7 +331,8 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	/**
 	 * @see Customize_Snapshot_Manager::customize_menu()
 	 */
-	public function test_customize_menu_dirty() {
+	public function test_customize_menu() {
+		set_current_screen( 'front' );
 		$customize_url = admin_url( 'customize.php' ) . '?customize_snapshot_uuid=' . self::UUID . '&url=' . urlencode( esc_url( home_url( '/' ) ) );
 
 		require_once( ABSPATH . WPINC . '/class-wp-admin-bar.php' );
@@ -328,23 +341,6 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 
 		wp_set_current_user( $this->user_id );
 		$this->go_to( home_url( '?customize_snapshot_uuid=' . self::UUID  ) );
-
-		do_action_ref_array( 'admin_bar_menu', array( &$wp_admin_bar ) );
-		$this->assertEquals( $customize_url, $wp_admin_bar->get_node( 'customize' )->href );
-	}
-
-	/**
-	 * @see Customize_Snapshot_Manager::customize_menu()
-	 */
-	public function test_customize_menu_full() {
-		$customize_url = admin_url( 'customize.php' ) . '?customize_snapshot_uuid=' . self::UUID . '&url=' . urlencode( esc_url( home_url( '/' ) ) );
-
-		require_once( ABSPATH . WPINC . '/class-wp-admin-bar.php' );
-		$wp_admin_bar = new \WP_Admin_Bar;
-		$this->assertInstanceOf( 'WP_Admin_Bar', $wp_admin_bar );
-
-		wp_set_current_user( $this->user_id );
-		$this->go_to( home_url( '?customize_snapshot_uuid=' . self::UUID ) );
 
 		do_action_ref_array( 'admin_bar_menu', array( &$wp_admin_bar ) );
 		$this->assertEquals( $customize_url, $wp_admin_bar->get_node( 'customize' )->href );
