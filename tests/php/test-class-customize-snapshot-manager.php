@@ -259,6 +259,32 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	}
 
 	/**
+	 * @see Customize_Snapshot_Manager::render_data_metabox()
+	 */
+	function test_render_data_metabox() {
+		wp_set_current_user( $this->user_id );
+		$this->do_customize_boot_actions( true );
+		$snapshot_json = '{"foo":{"value":"foo_value","dirty":true,"sanitized":false}}';
+		$_POST = array(
+			'nonce' => wp_create_nonce( 'save-customize_' . $this->wp_customize->get_stylesheet() ),
+			'snapshot_uuid' => self::UUID,
+			'snapshot_customized' => $snapshot_json,
+		);
+		$manager = new Customize_Snapshot_Manager( $this->plugin );
+		$manager->capture_unsanitized_snapshot_post_data();
+		$foo = $manager->customize_manager->get_setting( 'foo' );
+		$manager->snapshot()->set( $foo, 'foo_value', true );
+		$manager->snapshot()->save();
+		$post = $manager->snapshot()->post();
+		ob_start();
+		$manager->render_data_metabox( $post );
+		$metabox = ob_get_clean();
+		$this->assertContains( $post->post_name, $metabox );
+		$this->assertContains( 'Edit in Customizer', $metabox );
+		$this->assertContains( 'foo_value', $metabox );
+	}
+
+	/**
 	 * @see Customize_Snapshot_Manager::get_post_content()
 	 */
 	function test_get_post_content() {
