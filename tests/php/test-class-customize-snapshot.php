@@ -187,34 +187,49 @@ class Test_Customize_Snapshot extends \WP_UnitTestCase {
 		$_POST['customized'] = 'on';
 		$this->wp_customize->setup_theme();
 
-		// Has no values when '$apply_dirty' is set to 'true'
-		$snapshot = new Customize_Snapshot( $this->snapshot_manager, null, true );
+		// Has no no dirty values.
+		$snapshot = new Customize_Snapshot( $this->snapshot_manager, null );
 		$snapshot->set( $this->foo, 'foo_default', false );
-
 		$snapshot->set( $this->bar, 'bar_default', false );
 		$this->assertEmpty( $snapshot->values() );
 		$snapshot->save();
 		$uuid = $snapshot->uuid();
 
-		// Has values when '$apply_dirty' is set to 'false'
-		$snapshot = new Customize_Snapshot( $this->snapshot_manager, $uuid, false );
-		$this->assertNotEmpty( $snapshot->values() );
-
-		// Has dirty values
-		$snapshot = new Customize_Snapshot( $this->snapshot_manager, $uuid, true );
+		// Has dirty values.
+		$snapshot = new Customize_Snapshot( $this->snapshot_manager, $uuid );
 		$snapshot->set( $this->bar, 'bar_custom', true );
 		$this->assertNotEmpty( $snapshot->values() );
+	}
+
+	/**
+	 * @see Customize_Snapshot::data()
+	 */
+	function test_data() {
+		// Trick to get `$this->wp_customize->is_theme_active()` to return true.
+		$_POST['customized'] = 'on';
+		$this->wp_customize->setup_theme();
+
+		$snapshot = new Customize_Snapshot( $this->snapshot_manager, null );
+		$snapshot->set( $this->foo, 'foo_default', false );
+		$this->assertEmpty( $snapshot->data() );
+		$snapshot->set( $this->foo, 'foo_custom', true );
+		$expected = array(
+			'foo' => array(
+				'value' => 'foo_custom',
+				'dirty' => true,
+				'sanitized' => false,
+			),
+		);
+		$this->assertEquals( $expected, $snapshot->data() );
 	}
 
 	/**
 	 * @see Customize_Snapshot::settings()
 	 */
 	function test_settings() {
-		$snapshot = new Customize_Snapshot( $this->snapshot_manager, null, true );
+		$snapshot = new Customize_Snapshot( $this->snapshot_manager, null );
 		$this->assertEmpty( $snapshot->settings() );
-		$snapshot->set( $this->foo, 'foo_default', false );
-
-		$snapshot->set( $this->bar, 'bar_default', false );
+		$snapshot->set( $this->foo, 'foo_default', true );
 		$this->assertNotEmpty( $snapshot->settings() );
 	}
 
@@ -241,9 +256,8 @@ class Test_Customize_Snapshot extends \WP_UnitTestCase {
 	function test_save() {
 		$snapshot = new Customize_Snapshot( $this->snapshot_manager, null );
 
-		$snapshot->set( $this->foo, 'foo_default', false );
-
-		$snapshot->set( $this->bar, 'bar_default', false );
+		$snapshot->set( $this->foo, 'foo_default', true );
+		$snapshot->set( $this->bar, 'bar_default', true );
 
 		$this->assertFalse( $snapshot->saved() );
 		$snapshot->save();

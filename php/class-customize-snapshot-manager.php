@@ -95,8 +95,6 @@ class Customize_Snapshot_Manager {
 		}
 
 		$uuid = isset( $_REQUEST['customize_snapshot_uuid'] ) ? sanitize_text_field( sanitize_key( wp_unslash( $_REQUEST['customize_snapshot_uuid'] ) ) ) : null; // WPCS: input var ok.
-		$scope = isset( $_REQUEST['scope'] ) ? sanitize_text_field( sanitize_key( wp_unslash( $_REQUEST['scope'] ) ) ) : 'dirty';  // WPCS: input var ok.
-		$apply_dirty = ( 'dirty' === $scope );
 
 		// Bootstrap the Customizer.
 		if ( empty( $GLOBALS['wp_customize'] ) || ! ( $GLOBALS['wp_customize'] instanceof \WP_Customize_Manager ) && $uuid ) {
@@ -107,7 +105,7 @@ class Customize_Snapshot_Manager {
 		}
 		$this->customize_manager = $GLOBALS['wp_customize'];
 
-		$this->snapshot = new Customize_Snapshot( $this, $uuid, $apply_dirty );
+		$this->snapshot = new Customize_Snapshot( $this, $uuid );
 
 		add_action( 'customize_controls_init', array( $this, 'set_return_url' ) );
 		add_action( 'init', array( $this, 'maybe_force_redirect' ), 0 );
@@ -182,9 +180,6 @@ class Customize_Snapshot_Manager {
 			$args = array(
 				'customize_snapshot_uuid' => $this->snapshot->uuid(),
 			);
-			if ( ! $this->snapshot->apply_dirty ) {
-				$args['scope'] = 'full';
-			}
 			$return_url = add_query_arg( array_map( 'rawurlencode', $args ), $this->customize_manager->get_return_url() );
 			$this->customize_manager->set_return_url( $return_url );
 		}
@@ -207,11 +202,13 @@ class Customize_Snapshot_Manager {
 	 * @return string
 	 */
 	public function clean_current_url() {
-		return remove_query_arg( array( 'customize_snapshot_uuid', 'scope' ), $this->current_url() );
+		return remove_query_arg( array( 'customize_snapshot_uuid' ), $this->current_url() );
 	}
 
 	/**
 	 * Redirect when preview is not allowed for the current theme.
+	 *
+	 * @codeCoverageIgnore
 	 */
 	public function maybe_force_redirect() {
 		if ( false === $this->snapshot->is_preview() && isset( $_GET['customize_snapshot_uuid'] ) ) { // WPCS: input var ok.
@@ -348,7 +345,6 @@ class Customize_Snapshot_Manager {
 		$context = 'normal';
 		$priority = 'high';
 		add_meta_box( $id, $title, $callback, $screen, $context, $priority );
-		add_action( 'admin_print_footer_scripts', array( $this, 'print_metabox_js' ) );
 	}
 
 	/**
@@ -358,28 +354,6 @@ class Customize_Snapshot_Manager {
 		remove_meta_box( 'slugdiv', self::POST_TYPE, 'normal' );
 		remove_meta_box( 'submitdiv', self::POST_TYPE, 'side' );
 		remove_meta_box( 'authordiv', self::POST_TYPE, 'normal' );
-	}
-
-	/**
-	 * Add the metabox JavaScript to toggle the unmodified settings.
-	 */
-	function print_metabox_js() {
-		$post = get_post();
-		if ( ! $post || self::POST_TYPE !== $post->post_type ) {
-			return;
-		}
-		?>
-		<script>
-			( function( $ ) {
-				$( "#show-unmodified-settings" ).on( "click", function() {
-					var hidden = ! this.checked;
-					$( "#snapshot-settings li:not(.dirty)" ).each( function() {
-						$( this ).attr( "hidden", hidden );
-					} );
-				} );
-			} )( jQuery );
-		</script>
-		<?php
 	}
 
 	/**
@@ -407,11 +381,9 @@ class Customize_Snapshot_Manager {
 			echo sprintf(
 				'<p><a href="%s" class="button button-secondary">%s</a></p>',
 				esc_url( $customize_url ),
-				esc_html__( 'Open in Customizer', 'customize-snapshots' )
+				esc_html__( 'Edit in Customizer', 'customize-snapshots' )
 			);
 		}
-
-		echo '<p><label><input id="show-unmodified-settings" type="checkbox"> ' . esc_html__( 'Show unmodified settings.', 'customize-snapshots' ) . '</label></p>';
 
 		echo '<hr>';
 
@@ -500,7 +472,6 @@ class Customize_Snapshot_Manager {
 			'isPreview' => $this->snapshot->is_preview(),
 			'currentUserCanPublish' => current_user_can( 'customize_publish' ),
 			'theme' => $snapshot_theme,
-			'scope' => ( isset( $_GET['scope'] ) ? sanitize_text_field( sanitize_key( wp_unslash( $_GET['scope'] ) ) ) : 'dirty' ), // WPCS: input var ok.
 			'i18n' => array(
 				'saveButton' => __( 'Save', 'customize-snapshots' ),
 				'updateButton' => __( 'Update', 'customize-snapshots' ),
@@ -642,9 +613,6 @@ class Customize_Snapshot_Manager {
 		} elseif ( empty( $_POST['customize_snapshot_uuid'] ) ) { // WPCS: input var ok.
 			status_header( 400 );
 			wp_send_json_error( 'invalid_customize_snapshot_uuid' );
-		} elseif ( empty( $_POST['scope'] ) ) { // WPCS: input var ok.
-			status_header( 400 );
-			wp_send_json_error( 'invalid_customize_snapshot_scope' );
 		} elseif ( empty( $this->unsanitized_snapshot_post_data ) ) {
 			status_header( 400 );
 			wp_send_json_error( 'missing_snapshot_customized' );
@@ -677,7 +645,6 @@ class Customize_Snapshot_Manager {
 			wp_send_json_error( 'unauthorized' );
 		}
 
-		$this->snapshot->apply_dirty = ( 'dirty' === $_POST['scope'] ); // WPCS: input var ok.
 		$r = $this->save( $status );
 		if ( is_wp_error( $r ) ) {
 			status_header( 500 );
@@ -719,13 +686,9 @@ class Customize_Snapshot_Manager {
 
 		$args = array();
 		$uuid = isset( $_GET['customize_snapshot_uuid'] ) ? sanitize_text_field( sanitize_key( wp_unslash( $_GET['customize_snapshot_uuid'] ) ) ) : null; // WPCS: input var ok.
-		$scope = isset( $_GET['scope'] ) ? sanitize_text_field( sanitize_key( wp_unslash( $_GET['scope'] ) ) ) : 'dirty'; // WPCS: input var ok.
 
 		if ( $uuid && $this->snapshot->is_valid_uuid( $uuid ) ) {
 			$args['customize_snapshot_uuid'] = $uuid;
-			if ( 'full' === $scope ) {
-				$args['scope'] = $scope;
-			}
 		}
 
 		$args['url'] = esc_url_raw( $this->clean_current_url() );

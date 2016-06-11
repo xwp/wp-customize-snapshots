@@ -57,14 +57,6 @@ class Customize_Snapshot {
 	public $is_preview = false;
 
 	/**
-	 * Preview dirty values only.
-	 *
-	 * @access public
-	 * @var bool
-	 */
-	public $apply_dirty;
-
-	/**
 	 * Whether kses filters on content_save_pre are added.
 	 *
 	 * @var bool
@@ -80,11 +72,9 @@ class Customize_Snapshot {
 	 *
 	 * @param Customize_Snapshot_Manager $snapshot_manager     Customize snapshot bootstrap instance.
 	 * @param string|null                $uuid                 Snapshot unique identifier.
-	 * @param bool                       $apply_dirty          Apply only dirty settings from snapshot to Customizer post data. Default is `true`.
 	 */
-	public function __construct( Customize_Snapshot_Manager $snapshot_manager, $uuid, $apply_dirty = true ) {
+	public function __construct( Customize_Snapshot_Manager $snapshot_manager, $uuid ) {
 		$this->snapshot_manager = $snapshot_manager;
-		$this->apply_dirty = $apply_dirty;
 		$this->data = array();
 
 		if ( $uuid ) {
@@ -305,17 +295,7 @@ class Customize_Snapshot {
 	 * @return array
 	 */
 	public function values() {
-		$values = $this->data;
-		$dirty = $this->apply_dirty;
-
-		// Filter when the scope is dirty.
-		if ( $dirty ) {
-			$values = array_filter( $values, function( $setting ) use ( $dirty ) {
-				return $setting['dirty'] === $dirty;
-			} );
-		}
-
-		$values = wp_list_pluck( $values, 'value' );
+		$values = wp_list_pluck( $this->data, 'value' );
 		return $values;
 	}
 
@@ -361,11 +341,13 @@ class Customize_Snapshot {
 	 * @param bool                  $dirty   Whether the setting is dirty or not.
 	 */
 	public function set( \WP_Customize_Setting $setting, $value, $dirty ) {
-		$this->data[ $setting->id ] = array(
-			'value' => $value,
-			'dirty' => $dirty,
-			'sanitized' => false,
-		);
+		if ( $dirty ) {
+			$this->data[ $setting->id ] = array(
+				'value' => $value,
+				'dirty' => $dirty,
+				'sanitized' => false,
+			);
+		}
 	}
 
 	/**

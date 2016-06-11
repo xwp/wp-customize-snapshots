@@ -101,17 +101,16 @@
 				wp_customize: 'on'
 			} );
 
-			// Update the UUID and scope.
+			// Update the UUID.
 			request.done( function( response ) {
-				component.data.scope = 'dirty';
 				component.data.uuid = response.uuid;
 			} );
 
-			// Replace the history state with an updated Customizer URL that does not include the Snapshot UUID or scope.
+			// Replace the history state with an updated Customizer URL that does not include the Snapshot UUID.
 			urlParts = url.split( '?' );
 			if ( history.replaceState && urlParts[1] ) {
 				updatedUrl = urlParts[0] + '?' + _.filter( urlParts[1].split( '&' ), function( queryPair ) {
-					return ! /^(customize_snapshot_uuid|scope)=/.test( queryPair );
+					return ! /^(customize_snapshot_uuid)=/.test( queryPair );
 				} ).join( '&' );
 				updatedUrl = updatedUrl.replace( /\?$/, '' );
 				if ( updatedUrl !== url ) {
@@ -235,7 +234,6 @@
 	 */
 	component.sendUpdateSnapshotRequest = function( options ) {
 		var spinner = $( '#customize-header-actions .spinner' ),
-			scope = component.data.scope,
 			request, customized, args;
 
 		args = _.extend(
@@ -261,7 +259,6 @@
 			wp_customize: 'on',
 			snapshot_customized: JSON.stringify( customized ),
 			customize_snapshot_uuid: component.data.uuid,
-			scope: scope,
 			status: args.status,
 			preview: ( component.data.isPreview ? 'on' : 'off' )
 		} );
@@ -284,10 +281,6 @@
 				url = url + separator + 'customize_snapshot_uuid=' + encodeURIComponent( component.data.uuid );
 			}
 
-			if ( 'full' === scope ) {
-				url += '&scope=' + encodeURIComponent( scope );
-			}
-
 			// Change the save button text to update.
 			component.changeButton( component.data.i18n.updateButton, component.data.i18n.permsMsg.update );
 			component.data.isPreview = true;
@@ -298,9 +291,6 @@
 			// Replace the history state with an updated Customizer URL that includes the Snapshot UUID.
 			if ( history.replaceState && ! customizeUrl.match( regex ) ) {
 				customizeUrl += customizeSeparator + 'customize_snapshot_uuid=' + encodeURIComponent( component.data.uuid );
-				if ( 'full' === scope ) {
-					customizeUrl += '&scope=' + encodeURIComponent( scope );
-				}
 				history.replaceState( {}, document.title, customizeUrl );
 			}
 
