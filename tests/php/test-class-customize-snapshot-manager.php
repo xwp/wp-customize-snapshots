@@ -532,6 +532,8 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	 */
 	public function test_preview() {
 		wp_set_current_user( $this->user_id );
+		$this->manager->customize_manager = $this->wp_customize;
+		$this->manager->snapshot = new Customize_Snapshot( $this->manager, null );
 		$foo = $this->manager->customize_manager->get_setting( 'foo' );
 		$this->manager->snapshot()->set( $foo, 'foo_custom', true );
 		$this->assertFalse( $foo->dirty );
