@@ -177,6 +177,76 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	}
 
 	/**
+	 * @see Customize_Snapshot_Manager::filter_post_row_actions()
+	 */
+	function test_filter_post_row_actions_return() {
+		$manager = new Customize_Snapshot_Manager( $this->plugin );
+		$actions = array( 'inline hide-if-no-js' );
+		$args = array(
+			'post_title' => 'Some Title',
+			'post_status' => 'publish',
+		);
+		$post = get_post( self::factory()->post->create( $args ) );
+		$filtered = $manager->filter_post_row_actions( $actions, $post );
+
+		$this->assertEquals( $actions, $filtered );
+	}
+
+	/**
+	 * @see Customize_Snapshot_Manager::filter_post_row_actions()
+	 */
+	function test_filter_post_row_actions_draft() {
+		wp_set_current_user( $this->user_id );
+		$this->do_customize_boot_actions( true );
+		$_POST = array(
+			'nonce' => wp_create_nonce( 'save-customize_' . $this->wp_customize->get_stylesheet() ),
+			'snapshot_uuid' => self::UUID,
+			'snapshot_customized' => '{"foo":{"value":"foo_default","dirty":true},"bar":{"value":"bar_default","dirty":true}}',
+		);
+
+		$manager = new Customize_Snapshot_Manager( $this->plugin );
+		$manager->capture_unsanitized_snapshot_post_data();
+		$foo = $manager->customize_manager->get_setting( 'foo' );
+		$manager->snapshot()->set( $foo, 'foo_custom', true );
+		$manager->snapshot()->save();
+		$actions = array(
+			'inline hide-if-no-js' => true,
+		);
+		$post = $manager->snapshot()->post();
+		$filtered = $manager->filter_post_row_actions( $actions, $post );
+		$extected = array(
+			'customize' => '<a href="http://example.org/wp-admin/customize.php?customize_snapshot_uuid=' . $post->post_name . '">Customize</a>',
+		);
+		$this->assertEquals( $extected, $filtered );
+	}
+
+	/**
+	 * @see Customize_Snapshot_Manager::filter_post_row_actions()
+	 */
+	function test_filter_post_row_actions_publish() {
+		wp_set_current_user( $this->user_id );
+		$this->do_customize_boot_actions( true );
+		$_POST = array(
+			'nonce' => wp_create_nonce( 'save-customize_' . $this->wp_customize->get_stylesheet() ),
+			'snapshot_uuid' => self::UUID,
+			'snapshot_customized' => '{"foo":{"value":"foo_default","dirty":true},"bar":{"value":"bar_default","dirty":true}}',
+		);
+		$manager = new Customize_Snapshot_Manager( $this->plugin );
+		$manager->set_snapshot_uuid();
+		$manager->save_snapshot();
+		$actions = array(
+			'inline hide-if-no-js' => true,
+			'edit' => '',
+		);
+		$post = $manager->snapshot()->post();
+		$filtered = $manager->filter_post_row_actions( $actions, $post );
+		$extected = array(
+			'edit' => '<a href="http://example.org/wp-admin/post.php?post=' . $post->ID . '&amp;action=edit" aria-label="View &#8220;' . $post->post_name . '&#8221;">View</a>',
+		);
+		$this->assertEquals( $extected, $filtered );
+	}
+
+	/**
 	 * @see Customize_Snapshot_Manager::enqueue_scripts()
 	 */
 	function test_enqueue_scripts() {

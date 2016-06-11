@@ -292,7 +292,7 @@ class Customize_Snapshot_Manager {
 	 * @param array $actions Actions.
 	 * @return array Actions.
 	 */
-	function filter_bulk_actions( $actions ) {
+	public function filter_bulk_actions( $actions ) {
 		unset( $actions['edit'] );
 		return $actions;
 	}
@@ -304,7 +304,7 @@ class Customize_Snapshot_Manager {
 	 * @param \WP_Post $post    Post.
 	 * @return array Actions.
 	 */
-	function filter_post_row_actions( $actions, $post ) {
+	public function filter_post_row_actions( $actions, $post ) {
 		if ( self::POST_TYPE !== $post->post_type ) {
 			return $actions;
 		}
@@ -337,7 +337,7 @@ class Customize_Snapshot_Manager {
 	/**
 	 * Add the metabox.
 	 */
-	function setup_metaboxes() {
+	public function setup_metaboxes() {
 		$id = self::POST_TYPE;
 		$title = __( 'Data', 'customize-snapshots' );
 		$callback = array( $this, 'render_data_metabox' );
@@ -350,7 +350,7 @@ class Customize_Snapshot_Manager {
 	/**
 	 * Remove publish metabox for published posts, since they should be immutable once published.
 	 */
-	function remove_publish_metabox() {
+	public function remove_publish_metabox() {
 		remove_meta_box( 'slugdiv', self::POST_TYPE, 'normal' );
 		remove_meta_box( 'submitdiv', self::POST_TYPE, 'side' );
 		remove_meta_box( 'authordiv', self::POST_TYPE, 'normal' );
@@ -361,7 +361,7 @@ class Customize_Snapshot_Manager {
 	 *
 	 * @param \WP_Post $post Post object.
 	 */
-	function render_data_metabox( $post ) {
+	public function render_data_metabox( $post ) {
 		$snapshot_content = static::get_post_content( $post );
 		$post_status_obj = get_post_status_object( $post->post_status );
 
@@ -408,7 +408,7 @@ class Customize_Snapshot_Manager {
 	 * @param \WP_Post $post A customize_snapshot post or a revision post.
 	 * @return array
 	 */
-	static function get_post_content( \WP_Post $post ) {
+	static public function get_post_content( \WP_Post $post ) {
 		if ( self::POST_TYPE !== $post->post_type ) {
 			$parent_post = null;
 			if ( 'revision' === $post->post_type ) {
@@ -434,7 +434,7 @@ class Customize_Snapshot_Manager {
 	 * @param array $value The snapshot value.
 	 * @return string
 	 */
-	static function encode_json( $value ) {
+	static public function encode_json( $value ) {
 		$flags = 0;
 		if ( defined( '\JSON_PRETTY_PRINT' ) ) {
 			$flags |= \JSON_PRETTY_PRINT;
