@@ -136,10 +136,11 @@
 
 			if ( component.data.isPreview ) {
 				api.each( function( value, key ) {
-					allCustomized[ key ] = {
-						'value': value(),
-						'dirty': value._dirty
-					};
+					if ( value._dirty ) {
+						allCustomized[ key ] = {
+							'value': value()
+						};
+					}
 				} );
 				retval.snapshot_customized = JSON.stringify( allCustomized );
 				retval.snapshot_uuid = component.data.uuid;
@@ -248,10 +249,11 @@
 
 		customized = {};
 		api.each( function( value, key ) {
-			customized[ key ] = {
-				'value': value(),
-				'dirty': value._dirty
-			};
+			if ( value._dirty ) {
+				customized[ key ] = {
+					'value': value()
+				};
+			}
 		} );
 
 		request = wp.ajax.post( 'customize_update_snapshot', {
