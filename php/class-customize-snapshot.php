@@ -57,13 +57,6 @@ class Customize_Snapshot {
 	public $is_preview = false;
 
 	/**
-	 * Whether kses filters on content_save_pre are added.
-	 *
-	 * @var bool
-	 */
-	protected $kses_suspended = false;
-
-	/**
 	 * Initial loader.
 	 *
 	 * @access public
@@ -396,7 +389,7 @@ class Customize_Snapshot {
 		// JSON encoded snapshot data.
 		$post_content = wp_json_encode( $this->data, $options );
 
-		$this->suspend_kses();
+		$this->snapshot_manager->suspend_kses();
 		if ( ! $this->post ) {
 			$postarr = array(
 				'post_type' => Customize_Snapshot_Manager::POST_TYPE,
@@ -424,32 +417,8 @@ class Customize_Snapshot {
 			}
 			$this->post = get_post( $r );
 		}
-		$this->restore_kses();
+		$this->snapshot_manager->restore_kses();
 
 		return null;
-	}
-
-	/**
-	 * Suspend kses which runs on content_save_pre and can corrupt JSON in post_content.
-	 *
-	 * @see \sanitize_post()
-	 */
-	function suspend_kses() {
-		if ( false !== has_filter( 'content_save_pre', 'wp_filter_post_kses' ) ) {
-			$this->kses_suspended = true;
-			kses_remove_filters();
-		}
-	}
-
-	/**
-	 * Restore kses which runs on content_save_pre and can corrupt JSON in post_content.
-	 *
-	 * @see \sanitize_post()
-	 */
-	function restore_kses() {
-		if ( $this->kses_suspended ) {
-			kses_init_filters();
-			$this->kses_suspended = false;
-		}
 	}
 }

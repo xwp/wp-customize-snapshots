@@ -68,6 +68,13 @@ class Customize_Snapshot_Manager {
 	protected $snapshot_uuid;
 
 	/**
+	 * Whether kses filters on content_save_pre are added.
+	 *
+	 * @var bool
+	 */
+	protected $kses_suspended = false;
+
+	/**
 	 * Constructor.
 	 *
 	 * @access public
@@ -230,6 +237,30 @@ class Customize_Snapshot_Manager {
 	}
 
 	/**
+	 * Suspend kses which runs on content_save_pre and can corrupt JSON in post_content.
+	 *
+	 * @see \sanitize_post()
+	 */
+	function suspend_kses() {
+		if ( false !== has_filter( 'content_save_pre', 'wp_filter_post_kses' ) ) {
+			$this->kses_suspended = true;
+			kses_remove_filters();
+		}
+	}
+
+	/**
+	 * Restore kses which runs on content_save_pre and can corrupt JSON in post_content.
+	 *
+	 * @see \sanitize_post()
+	 */
+	function restore_kses() {
+		if ( $this->kses_suspended ) {
+			kses_init_filters();
+			$this->kses_suspended = false;
+		}
+	}
+
+	/**
 	 * Create the custom post type.
 	 *
 	 * @access public
@@ -280,11 +311,73 @@ class Customize_Snapshot_Manager {
 
 		register_post_type( self::POST_TYPE, $args );
 
-		add_filter( 'post_row_actions', array( $this, 'filter_post_row_actions' ), 10, 2 );
 		add_action( 'add_meta_boxes_' . self::POST_TYPE, array( $this, 'remove_publish_metabox' ), 100 );
-		add_filter( 'wp_insert_post_data', array( $this, 'preserve_post_name_in_insert_data' ), 10, 2 );
+		add_action( 'load-revision.php', array( $this, 'suspend_kses_for_snapshot_revision_restore' ) );
 		add_filter( 'bulk_actions-edit-' . self::POST_TYPE, array( $this, 'filter_bulk_actions' ) );
 		add_filter( 'get_the_excerpt', array( $this, 'filter_snapshot_excerpt' ), 10, 2 );
+		add_filter( 'post_row_actions', array( $this, 'filter_post_row_actions' ), 10, 2 );
+		add_filter( 'wp_insert_post_data', array( $this, 'preserve_post_name_in_insert_data' ), 10, 2 );
+	}
+
+	/**
+	 * Add the metabox.
+	 */
+	public function setup_metaboxes() {
+		$id = self::POST_TYPE;
+		$title = __( 'Data', 'customize-snapshots' );
+		$callback = array( $this, 'render_data_metabox' );
+		$screen = self::POST_TYPE;
+		$context = 'normal';
+		$priority = 'high';
+		add_meta_box( $id, $title, $callback, $screen, $context, $priority );
+	}
+
+	/**
+	 * Remove publish metabox for published posts, since they should be immutable once published.
+	 *
+	 * @codeCoverageIgnore
+	 */
+	public function remove_publish_metabox() {
+		remove_meta_box( 'slugdiv', self::POST_TYPE, 'normal' );
+		remove_meta_box( 'submitdiv', self::POST_TYPE, 'side' );
+		remove_meta_box( 'authordiv', self::POST_TYPE, 'normal' );
+	}
+
+	/**
+	 * Make sure that restoring snapshot revisions doesn't involve kses corrupting the post_content.
+	 *
+	 * Ideally there would be an action like pre_wp_restore_post_revision instead
+	 * of having to hack into the load-revision.php action. But even more ideally
+	 * we should be able to disable such content_save_pre filters from even applying
+	 * for certain post types, such as those which store JSON in post_content.
+	 *
+	 * @action load-revision.php
+	 */
+	function suspend_kses_for_snapshot_revision_restore() {
+		if ( ! isset( $_GET['revision'] ) ) { // WPCS: input var ok.
+			return;
+		}
+		if ( ! isset( $_GET['action'] ) || 'restore' !== $_GET['action'] ) { // WPCS: input var ok, sanitization ok.
+			return;
+		}
+		$revision_post_id = intval( $_GET['revision'] ); // WPCS: input var ok.
+		if ( $revision_post_id <= 0 ) {
+			return;
+		}
+		$revision_post = wp_get_post_revision( $revision_post_id );
+		if ( empty( $revision_post ) ) {
+			return;
+		}
+		$post = get_post( $revision_post->post_parent );
+		if ( empty( $post ) || self::POST_TYPE !== $post->post_type ) {
+			return;
+		}
+
+		$this->suspend_kses();
+		$that = $this;
+		add_action( 'wp_restore_post_revision', function() use ( $that ) {
+			$that->restore_kses();
+		} );
 	}
 
 	/**
@@ -356,27 +449,23 @@ class Customize_Snapshot_Manager {
 	}
 
 	/**
-	 * Add the metabox.
-	 */
-	public function setup_metaboxes() {
-		$id = self::POST_TYPE;
-		$title = __( 'Data', 'customize-snapshots' );
-		$callback = array( $this, 'render_data_metabox' );
-		$screen = self::POST_TYPE;
-		$context = 'normal';
-		$priority = 'high';
-		add_meta_box( $id, $title, $callback, $screen, $context, $priority );
-	}
-
-	/**
-	 * Remove publish metabox for published posts, since they should be immutable once published.
+	 * Preserve the post_name when submitting a snapshot for review.
 	 *
-	 * @codeCoverageIgnore
+	 * @see wp_insert_post()
+	 * @link https://github.com/xwp/wordpress-develop/blob/831a186108983ade4d647124d4e56e09aa254704/src/wp-includes/post.php#L3134-L3137
+	 *
+	 * @param array $post_data          Post data.
+	 * @param array $original_post_data Original post data.
+	 * @return array Post data.
 	 */
-	public function remove_publish_metabox() {
-		remove_meta_box( 'slugdiv', self::POST_TYPE, 'normal' );
-		remove_meta_box( 'submitdiv', self::POST_TYPE, 'side' );
-		remove_meta_box( 'authordiv', self::POST_TYPE, 'normal' );
+	public function preserve_post_name_in_insert_data( $post_data, $original_post_data ) {
+		if ( empty( $post_data['post_type'] ) || self::POST_TYPE !== $post_data['post_type'] ) {
+			return $post_data;
+		}
+		if ( empty( $post_data['post_name'] ) && 'pending' === $post_data['post_status'] ) {
+			$post_data['post_name'] = $original_post_data['post_name'];
+		}
+		return $post_data;
 	}
 
 	/**
@@ -525,26 +614,6 @@ class Customize_Snapshot_Manager {
 	 */
 	public function snapshot() {
 		return $this->snapshot;
-	}
-
-	/**
-	 * Preserve the post_name when submitting a snapshot for review.
-	 *
-	 * @see wp_insert_post()
-	 * @link https://github.com/xwp/wordpress-develop/blob/831a186108983ade4d647124d4e56e09aa254704/src/wp-includes/post.php#L3134-L3137
-	 *
-	 * @param array $post_data          Post data.
-	 * @param array $original_post_data Original post data.
-	 * @return array Post data.
-	 */
-	public function preserve_post_name_in_insert_data( $post_data, $original_post_data ) {
-		if ( empty( $post_data['post_type'] ) || self::POST_TYPE !== $post_data['post_type'] ) {
-			return $post_data;
-		}
-		if ( empty( $post_data['post_name'] ) && 'pending' === $post_data['post_status'] ) {
-			$post_data['post_name'] = $original_post_data['post_name'];
-		}
-		return $post_data;
 	}
 
 	/**
