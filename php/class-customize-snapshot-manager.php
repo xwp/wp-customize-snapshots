@@ -351,7 +351,7 @@ class Customize_Snapshot_Manager {
 	 * we should be able to disable such content_save_pre filters from even applying
 	 * for certain post types, such as those which store JSON in post_content.
 	 *
-	 * @action load-revision.php
+	 * @codeCoverageIgnore
 	 */
 	function suspend_kses_for_snapshot_revision_restore() {
 		if ( ! isset( $_GET['revision'] ) ) { // WPCS: input var ok.
