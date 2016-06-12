@@ -336,18 +336,24 @@ class Customize_Snapshot {
 	/**
 	 * Store a setting's value in the snapshot's data.
 	 *
-	 * @param \WP_Customize_Setting $setting Setting.
-	 * @param mixed                 $value   Must be JSON-serializable.
-	 * @param bool                  $dirty   Whether the setting is dirty or not.
+	 * @since 0.4.0 Removed support for `$dirty` argument.
+	 *
+	 * @param \WP_Customize_Setting $setting    Setting.
+	 * @param mixed                 $value      Must be JSON-serializable.
+	 * @param bool                  $deprecated Whether the setting is dirty or not.
 	 */
-	public function set( \WP_Customize_Setting $setting, $value, $dirty ) {
-		if ( $dirty ) {
-			$this->data[ $setting->id ] = array(
-				'value' => $value,
-				'dirty' => $dirty,
-				'sanitized' => false,
-			);
+	public function set( \WP_Customize_Setting $setting, $value, $deprecated = null ) {
+		if ( ! is_null( $deprecated ) ) {
+			_doing_it_wrong( __METHOD__, 'The $dirty argument has been removed.', '0.4.0' );
+			if ( false === $deprecated ) {
+				return;
+			}
 		}
+
+		$this->data[ $setting->id ] = array(
+			'value' => $value,
+			'sanitized' => false,
+		);
 	}
 
 	/**
