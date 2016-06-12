@@ -74,7 +74,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		unset( $GLOBALS['wp_customize'] );
 		unset( $GLOBALS['wp_scripts'] );
 		unset( $_REQUEST['customize_snapshot_uuid'] );
-		unset( $_REQUEST['scope'] );
+		unset( $GLOBALS['screen'] );
 		parent::tearDown();
 	}
 
@@ -126,7 +126,6 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		$this->do_customize_boot_actions( true );
 		unset( $GLOBALS['wp_customize'] );
 		$_GET['customize_snapshot_uuid'] = self::UUID;
-		$_GET['scope'] = 'full';
 		$manager = new Customize_Snapshot_Manager( $this->plugin );
 		$this->assertInstanceOf( 'WP_Customize_Manager', $GLOBALS['wp_customize'] );
 	}
@@ -140,10 +139,8 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 			$this->assertNotContains( 'customize_snapshot_uuid', $this->manager->customize_manager->get_return_url() );
 			$this->manager->snapshot()->set_uuid( self::UUID );
 			$this->manager->snapshot()->is_preview = true;
-			$this->manager->snapshot()->apply_dirty = false;
 			$this->manager->set_return_url();
 			$this->assertContains( 'customize_snapshot_uuid', $this->manager->customize_manager->get_return_url() );
-			$this->assertContains( 'scope=full', $this->manager->customize_manager->get_return_url() );
 		}
 	}
 
@@ -151,7 +148,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	 * @see Customize_Snapshot_Manager::clean_current_url()
 	 */
 	function test_clean_current_url() {
-		$this->go_to( home_url( '?customize_snapshot_uuid=' . self::UUID . '&scope=dirty' ) );
+		$this->go_to( home_url( '?customize_snapshot_uuid=' . self::UUID ) );
 		ob_start();
 		$manager = new Customize_Snapshot_Manager( $this->plugin );
 		$this->assertContains( 'customize_snapshot_uuid', $manager->current_url() );
@@ -174,6 +171,177 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	}
 
 	/**
+	 * @see Customize_Snapshot_Manager::filter_bulk_actions()
+	 */
+	function test_filter_bulk_actions() {
+		$this->assertEquals( array(), $this->manager->filter_bulk_actions( array( 'edit' => 'link markup' ) ) );
+	}
+
+	/**
+	 * @see Customize_Snapshot_Manager::filter_post_row_actions()
+	 */
+	function test_filter_post_row_actions_return() {
+		$manager = new Customize_Snapshot_Manager( $this->plugin );
+		$actions = array( 'inline hide-if-no-js' );
+		$args = array(
+			'post_title' => 'Some Title',
+			'post_status' => 'publish',
+		);
+		$post = get_post( self::factory()->post->create( $args ) );
+		$filtered = $manager->filter_post_row_actions( $actions, $post );
+
+		$this->assertEquals( $actions, $filtered );
+	}
+
+	/**
+	 * @see Customize_Snapshot_Manager::filter_post_row_actions()
+	 */
+	function test_filter_post_row_actions_draft() {
+		wp_set_current_user( $this->user_id );
+		$this->do_customize_boot_actions( true );
+		$_POST = array(
+			'nonce' => wp_create_nonce( 'save-customize_' . $this->wp_customize->get_stylesheet() ),
+			'snapshot_uuid' => self::UUID,
+			'snapshot_customized' => '{"foo":{"value":"foo_default"},"bar":{"value":"bar_default"}}',
+		);
+
+		$manager = new Customize_Snapshot_Manager( $this->plugin );
+		$manager->capture_unsanitized_snapshot_post_data();
+		$foo = $manager->customize_manager->get_setting( 'foo' );
+		$manager->snapshot()->set( $foo, 'foo_custom' );
+		$manager->snapshot()->save();
+		$actions = array(
+			'inline hide-if-no-js' => true,
+		);
+		$post = $manager->snapshot()->post();
+		$filtered = $manager->filter_post_row_actions( $actions, $post );
+		$extected = array(
+			'customize' => '<a href="http://example.org/wp-admin/customize.php?customize_snapshot_uuid=' . $post->post_name . '">Customize</a>',
+		);
+		$this->assertEquals( $extected, $filtered );
+	}
+
+	/**
+	 * @see Customize_Snapshot_Manager::filter_post_row_actions()
+	 */
+	function test_filter_post_row_actions_publish() {
+		wp_set_current_user( $this->user_id );
+		$this->do_customize_boot_actions( true );
+		$_POST = array(
+			'nonce' => wp_create_nonce( 'save-customize_' . $this->wp_customize->get_stylesheet() ),
+			'snapshot_uuid' => self::UUID,
+			'snapshot_customized' => '{"foo":{"value":"foo_default"},"bar":{"value":"bar_default"}}',
+		);
+		$manager = new Customize_Snapshot_Manager( $this->plugin );
+		$manager->set_snapshot_uuid();
+		$manager->save_snapshot();
+		$actions = array(
+			'inline hide-if-no-js' => true,
+			'edit' => '',
+		);
+		$post = $manager->snapshot()->post();
+		$filtered = $manager->filter_post_row_actions( $actions, $post );
+		$extected = array(
+			'edit' => '<a href="http://example.org/wp-admin/post.php?post=' . $post->ID . '&amp;action=edit" aria-label="View &#8220;' . $post->post_name . '&#8221;">View</a>',
+		);
+		$this->assertEquals( $extected, $filtered );
+	}
+
+	/**
+	 * @see Customize_Snapshot_Manager::setup_metaboxes()
+	 */
+	function test_setup_metaboxes() {
+		global $wp_meta_boxes;
+		$screen = Customize_Snapshot_Manager::POST_TYPE;
+		set_current_screen( $screen );
+		$this->manager->setup_metaboxes();
+		$this->assertArrayHasKey( $screen, $wp_meta_boxes[ $screen ]['normal']['high'] );
+	}
+
+	/**
+	 * @see Customize_Snapshot_Manager::render_data_metabox()
+	 */
+	function test_render_data_metabox() {
+		wp_set_current_user( $this->user_id );
+		$this->do_customize_boot_actions( true );
+		$snapshot_json = '{"foo":{"value":"foo_value","sanitized":false}}';
+		$_POST = array(
+			'nonce' => wp_create_nonce( 'save-customize_' . $this->wp_customize->get_stylesheet() ),
+			'snapshot_uuid' => self::UUID,
+			'snapshot_customized' => $snapshot_json,
+		);
+		$manager = new Customize_Snapshot_Manager( $this->plugin );
+		$manager->capture_unsanitized_snapshot_post_data();
+		$foo = $manager->customize_manager->get_setting( 'foo' );
+		$manager->snapshot()->set( $foo, 'foo_value' );
+		$manager->snapshot()->save();
+		$post = $manager->snapshot()->post();
+		ob_start();
+		$manager->render_data_metabox( $post );
+		$metabox = ob_get_clean();
+		$this->assertContains( $post->post_name, $metabox );
+		$this->assertContains( 'Edit in Customizer', $metabox );
+		$this->assertContains( 'foo_value', $metabox );
+	}
+
+	/**
+	 * @see Customize_Snapshot_Manager::get_post_content()
+	 */
+	function test_get_post_content() {
+		wp_set_current_user( $this->user_id );
+		$this->do_customize_boot_actions( true );
+		$snapshot_json = '{"foo":{"value":"foo_value","sanitized":false}}';
+		$_POST = array(
+			'nonce' => wp_create_nonce( 'save-customize_' . $this->wp_customize->get_stylesheet() ),
+			'snapshot_uuid' => self::UUID,
+			'snapshot_customized' => $snapshot_json,
+		);
+		$manager = new Customize_Snapshot_Manager( $this->plugin );
+		$manager->capture_unsanitized_snapshot_post_data();
+		$foo = $manager->customize_manager->get_setting( 'foo' );
+		$manager->snapshot()->set( $foo, 'foo_value' );
+		$manager->snapshot()->save();
+		$post = $manager->snapshot()->post();
+		$snapshot_content = Customize_Snapshot_Manager::get_post_content( $post );
+		$this->assertEquals( json_decode( $snapshot_json, true ), $snapshot_content );
+
+		// Get the revision post.
+		$manager->snapshot()->set( $foo, 'foo_revision_value' );
+		$manager->snapshot()->save();
+		$revisions = wp_get_post_revisions( $post->ID );
+		$revision = array_shift( $revisions );
+		$revision_content = Customize_Snapshot_Manager::get_post_content( $revision );
+		$this->assertEquals( 'foo_revision_value', $revision_content['foo']['value'] );
+	}
+
+	/**
+	 * @see Customize_Snapshot_Manager::get_post_content()
+	 */
+	function test_get_post_content_empty() {
+		$args = array(
+			'post_name' => self::UUID,
+			'post_type' => Customize_Snapshot_Manager::POST_TYPE,
+		);
+		$post = get_post( self::factory()->post->create( $args ) );
+		$snapshot_content = Customize_Snapshot_Manager::get_post_content( $post );
+		$this->assertEquals( array(), $snapshot_content );
+	}
+
+	/**
+	 * @see Customize_Snapshot_Manager::encode_json()
+	 */
+	function test_encode_json() {
+		$array = array(
+			'foo' => array(
+				'value' => 'foo_value',
+				'sanitized' => false,
+			),
+		);
+		$json = '{"foo":{"value":"foo_value","sanitized":false}}';
+		$this->assertEquals( $json, preg_replace( '/\s+/', '', Customize_Snapshot_Manager::encode_json( $array ) ) );
+	}
+
+	/**
 	 * @see Customize_Snapshot_Manager::enqueue_scripts()
 	 */
 	function test_enqueue_scripts() {
@@ -184,7 +352,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		$_POST = array(
 			'nonce' => wp_create_nonce( 'save-customize_' . $this->wp_customize->get_stylesheet() ),
 			'snapshot_uuid' => self::UUID,
-			'snapshot_customized' => '{"foo":{"value":"foo_default","dirty":false},"bar":{"value":"bar_default","dirty":false}}',
+			'snapshot_customized' => '{"foo":{"value":"foo_default"},"bar":{"value":"bar_default"}}',
 		);
 		$manager = new Customize_Snapshot_Manager( $this->plugin );
 		$manager->set_snapshot_uuid();
@@ -218,7 +386,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		$_POST = array(
 			'nonce' => wp_create_nonce( 'save-customize_' . $this->wp_customize->get_stylesheet() ),
 			'snapshot_uuid' => self::UUID,
-			'snapshot_customized' => '{"baz":{"value":"","dirty":true}}',
+			'snapshot_customized' => '{"baz":{"value":""}}',
 		);
 		$manager = new Customize_Snapshot_Manager( $this->plugin );
 		$manager->save();
@@ -234,7 +402,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		$_POST = array(
 			'nonce' => wp_create_nonce( 'save-customize_' . $this->wp_customize->get_stylesheet() ),
 			'snapshot_uuid' => self::UUID,
-			'snapshot_customized' => '{"foo":{"value":"foo_default","dirty":false},"bar":{"value":"bar_default","dirty":false}}',
+			'snapshot_customized' => '{"foo":{"value":"foo_default"},"bar":{"value":"bar_default"}}',
 		);
 		$manager = new Customize_Snapshot_Manager( $this->plugin );
 		$manager->set_snapshot_uuid();
@@ -246,7 +414,8 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	/**
 	 * @see Customize_Snapshot_Manager::customize_menu()
 	 */
-	public function test_customize_menu_dirty() {
+	public function test_customize_menu() {
+		set_current_screen( 'front' );
 		$customize_url = admin_url( 'customize.php' ) . '?customize_snapshot_uuid=' . self::UUID . '&url=' . urlencode( esc_url( home_url( '/' ) ) );
 
 		require_once( ABSPATH . WPINC . '/class-wp-admin-bar.php' );
@@ -255,23 +424,6 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 
 		wp_set_current_user( $this->user_id );
 		$this->go_to( home_url( '?customize_snapshot_uuid=' . self::UUID  ) );
-
-		do_action_ref_array( 'admin_bar_menu', array( &$wp_admin_bar ) );
-		$this->assertEquals( $customize_url, $wp_admin_bar->get_node( 'customize' )->href );
-	}
-
-	/**
-	 * @see Customize_Snapshot_Manager::customize_menu()
-	 */
-	public function test_customize_menu_full() {
-		$customize_url = admin_url( 'customize.php' ) . '?customize_snapshot_uuid=' . self::UUID . '&scope=full&url=' . urlencode( esc_url( home_url( '/' ) ) );
-
-		require_once( ABSPATH . WPINC . '/class-wp-admin-bar.php' );
-		$wp_admin_bar = new \WP_Admin_Bar;
-		$this->assertInstanceOf( 'WP_Admin_Bar', $wp_admin_bar );
-
-		wp_set_current_user( $this->user_id );
-		$this->go_to( home_url( '?customize_snapshot_uuid=' . self::UUID . '&scope=full' ) );
 
 		do_action_ref_array( 'admin_bar_menu', array( &$wp_admin_bar ) );
 		$this->assertEquals( $customize_url, $wp_admin_bar->get_node( 'customize' )->href );
@@ -312,7 +464,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		$_POST = wp_slash( array(
 			'nonce' => wp_create_nonce( 'save-customize_' . $this->wp_customize->get_stylesheet() ),
 			'snapshot_uuid' => self::UUID,
-			'snapshot_customized' => '{"foo":{"value":"foo_custom","dirty":true},"bar":{"value":"bar_default","dirty":false}}',
+			'snapshot_customized' => '{"foo":{"value":"foo_custom"},"bar":{"value":"bar_default"}}',
 		) );
 		$this->do_customize_boot_actions( true );
 		$foo = $this->wp_customize->get_setting( 'foo' );
@@ -350,7 +502,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		$_POST = array(
 			'nonce' => wp_create_nonce( 'save-customize_' . $this->wp_customize->get_stylesheet() ),
 			'snapshot_uuid' => self::UUID,
-			'snapshot_customized' => '{"bar":{"value":"bar_default","dirty":false}}',
+			'snapshot_customized' => '{"bar":{"value":"bar_default"}}',
 		);
 		$manager = new Customize_Snapshot_Manager( $this->plugin );
 		$manager->save_snapshot();
@@ -367,7 +519,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	public function test_set_post_values() {
 		wp_set_current_user( $this->user_id );
 		$foo = $this->manager->customize_manager->get_setting( 'foo' );
-		$this->manager->snapshot()->set( $foo, 'foo_custom', true );
+		$this->manager->snapshot()->set( $foo, 'foo_custom' );
 		$this->manager->snapshot()->save();
 		$this->manager->snapshot()->is_preview = true;
 		$this->manager->set_post_values();
@@ -379,12 +531,35 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	 */
 	public function test_preview() {
 		wp_set_current_user( $this->user_id );
+		$this->manager->customize_manager = $this->wp_customize;
+		$this->manager->snapshot = new Customize_Snapshot( $this->manager, null );
 		$foo = $this->manager->customize_manager->get_setting( 'foo' );
-		$this->manager->snapshot()->set( $foo, 'foo_custom', true );
+		$this->manager->snapshot()->set( $foo, 'foo_custom' );
 		$this->assertFalse( $foo->dirty );
 		$this->manager->snapshot()->save();
 		$this->manager->snapshot()->is_preview = true;
 		$this->manager->preview();
 		$this->assertTrue( $foo->dirty );
+	}
+
+	/**
+	 * @see Customize_Snapshot_Manager::filter_snapshot_excerpt()
+	 */
+	public function test_excerpt() {
+		global $post;
+		wp_set_current_user( $this->user_id );
+		$this->manager->customize_manager = $this->wp_customize;
+		$this->manager->snapshot = new Customize_Snapshot( $this->manager, null );
+		$foo = $this->manager->customize_manager->get_setting( 'foo' );
+		$bar = $this->manager->customize_manager->get_setting( 'bar' );
+		$this->manager->snapshot()->set( $foo, 'foo_custom' );
+		$this->manager->snapshot()->set( $bar, 'bar_custom' );
+		$this->manager->snapshot()->save();
+
+		$post = $this->manager->snapshot()->post();
+		$excerpt = get_the_excerpt( $post );
+		$this->assertContains( '<ol>', $excerpt );
+		$this->assertContains( '<code>foo</code>', $excerpt );
+		$this->assertContains( '<code>bar</code>', $excerpt );
 	}
 }

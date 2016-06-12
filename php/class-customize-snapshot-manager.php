@@ -68,6 +68,13 @@ class Customize_Snapshot_Manager {
 	protected $snapshot_uuid;
 
 	/**
+	 * Whether kses filters on content_save_pre are added.
+	 *
+	 * @var bool
+	 */
+	protected $kses_suspended = false;
+
+	/**
 	 * Constructor.
 	 *
 	 * @access public
@@ -75,6 +82,8 @@ class Customize_Snapshot_Manager {
 	 * @param Plugin $plugin Plugin instance.
 	 */
 	public function __construct( Plugin $plugin ) {
+		add_action( 'init', array( $this, 'create_post_type' ), 0 );
+
 		// Bail if our conditions are not met.
 		if ( ! ( ( isset( $_REQUEST['wp_customize'] ) && 'on' === $_REQUEST['wp_customize'] ) // WPCS: input var ok.
 			|| ( is_admin() && isset( $_SERVER['PHP_SELF'] ) && 'customize.php' === basename( $_SERVER['PHP_SELF'] ) ) // WPCS: input var ok; sanitization ok.
@@ -93,8 +102,6 @@ class Customize_Snapshot_Manager {
 		}
 
 		$uuid = isset( $_REQUEST['customize_snapshot_uuid'] ) ? sanitize_text_field( sanitize_key( wp_unslash( $_REQUEST['customize_snapshot_uuid'] ) ) ) : null; // WPCS: input var ok.
-		$scope = isset( $_REQUEST['scope'] ) ? sanitize_text_field( sanitize_key( wp_unslash( $_REQUEST['scope'] ) ) ) : 'dirty';  // WPCS: input var ok.
-		$apply_dirty = ( 'dirty' === $scope );
 
 		// Bootstrap the Customizer.
 		if ( empty( $GLOBALS['wp_customize'] ) || ! ( $GLOBALS['wp_customize'] instanceof \WP_Customize_Manager ) && $uuid ) {
@@ -105,14 +112,14 @@ class Customize_Snapshot_Manager {
 		}
 		$this->customize_manager = $GLOBALS['wp_customize'];
 
-		$this->snapshot = new Customize_Snapshot( $this, $uuid, $apply_dirty );
+		$this->snapshot = new Customize_Snapshot( $this, $uuid );
 
 		add_action( 'customize_controls_init', array( $this, 'set_return_url' ) );
 		add_action( 'init', array( $this, 'maybe_force_redirect' ), 0 );
-		add_action( 'init', array( $this, 'create_post_type' ), 0 );
 		add_action( 'customize_controls_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
 		add_action( 'wp_ajax_customize_save', array( $this, 'set_snapshot_uuid' ), 0 );
 		add_action( 'wp_ajax_' . self::AJAX_ACTION, array( $this, 'update_snapshot' ) );
+		add_action( 'wp_ajax_customize_get_snapshot_uuid', array( $this, 'get_snapshot_uuid' ) );
 		add_action( 'customize_save_after', array( $this, 'save_snapshot' ) );
 		add_action( 'admin_bar_menu', array( $this, 'customize_menu' ), 41 );
 		add_action( 'customize_controls_print_footer_scripts', array( $this, 'render_templates' ) );
@@ -180,9 +187,6 @@ class Customize_Snapshot_Manager {
 			$args = array(
 				'customize_snapshot_uuid' => $this->snapshot->uuid(),
 			);
-			if ( ! $this->snapshot->apply_dirty ) {
-				$args['scope'] = 'full';
-			}
 			$return_url = add_query_arg( array_map( 'rawurlencode', $args ), $this->customize_manager->get_return_url() );
 			$this->customize_manager->set_return_url( $return_url );
 		}
@@ -205,11 +209,13 @@ class Customize_Snapshot_Manager {
 	 * @return string
 	 */
 	public function clean_current_url() {
-		return remove_query_arg( array( 'customize_snapshot_uuid', 'scope' ), $this->current_url() );
+		return remove_query_arg( array( 'customize_snapshot_uuid' ), $this->current_url() );
 	}
 
 	/**
 	 * Redirect when preview is not allowed for the current theme.
+	 *
+	 * @codeCoverageIgnore
 	 */
 	public function maybe_force_redirect() {
 		if ( false === $this->snapshot->is_preview() && isset( $_GET['customize_snapshot_uuid'] ) ) { // WPCS: input var ok.
@@ -231,26 +237,324 @@ class Customize_Snapshot_Manager {
 	}
 
 	/**
+	 * Suspend kses which runs on content_save_pre and can corrupt JSON in post_content.
+	 *
+	 * @see \sanitize_post()
+	 */
+	function suspend_kses() {
+		if ( false !== has_filter( 'content_save_pre', 'wp_filter_post_kses' ) ) {
+			$this->kses_suspended = true;
+			kses_remove_filters();
+		}
+	}
+
+	/**
+	 * Restore kses which runs on content_save_pre and can corrupt JSON in post_content.
+	 *
+	 * @see \sanitize_post()
+	 */
+	function restore_kses() {
+		if ( $this->kses_suspended ) {
+			kses_init_filters();
+			$this->kses_suspended = false;
+		}
+	}
+
+	/**
 	 * Create the custom post type.
 	 *
 	 * @access public
 	 */
 	public function create_post_type() {
+		$labels = array(
+			'name'               => _x( 'Snapshots', 'post type general name', 'customize-snapshots' ),
+			'singular_name'      => _x( 'Snapshot', 'post type singular name', 'customize-snapshots' ),
+			'menu_name'          => _x( 'Snapshots', 'admin menu', 'customize-snapshots' ),
+			'name_admin_bar'     => _x( 'Snapshot', 'add new on admin bar', 'customize-snapshots' ),
+			'add_new'            => _x( 'Add New', 'Customize Snapshot', 'customize-snapshots' ),
+			'add_new_item'       => __( 'Add New Snapshot', 'customize-snapshots' ),
+			'new_item'           => __( 'New Snapshot', 'customize-snapshots' ),
+			'edit_item'          => __( 'Inspect Snapshot', 'customize-snapshots' ),
+			'view_item'          => __( 'View Snapshot', 'customize-snapshots' ),
+			'all_items'          => __( 'All Snapshots', 'customize-snapshots' ),
+			'search_items'       => __( 'Search Snapshots', 'customize-snapshots' ),
+			'not_found'          => __( 'No snapshots found.', 'customize-snapshots' ),
+			'not_found_in_trash' => __( 'No snapshots found in Trash.', 'customize-snapshots' ),
+		);
+
 		$args = array(
-			'labels' => array(
-				'name' => __( 'Customize Snapshots', 'customize-snapshots' ),
-				'singular_name' => __( 'Customize Snapshot', 'customize-snapshots' ),
-			),
-			'public' => false,
-			'capability_type' => 'post',
+			'labels' => $labels,
+			'description' => __( 'Customize Snapshots.', 'customize-snapshots' ),
+			'public' => true,
+			'publicly_queryable' => false,
+			'query_var' => false,
+			'exclude_from_search' => true,
+			'show_ui' => true,
+			'show_in_nav_menus' => false,
+			'show_in_menu' => true,
+			'show_in_admin_bar' => false,
 			'map_meta_cap' => true,
 			'hierarchical' => false,
-			'rewrite' => false,
 			'delete_with_user' => false,
-			'supports' => array( 'title', 'author', 'revisions' ),
+			'menu_position' => null,
+			'supports' => array( 'author', 'revisions' ),
+			'capability_type' => self::POST_TYPE,
+			'capabilities' => array(
+				'create_posts' => 'do_not_allow',
+				'publish_posts' => 'do_not_allow',
+			),
+			'rewrite' => false,
+			'show_in_customizer' => false,
+			'menu_icon' => 'dashicons-camera',
+			'register_meta_box_cb' => array( $this, 'setup_metaboxes' ),
 		);
 
 		register_post_type( self::POST_TYPE, $args );
+
+		add_action( 'add_meta_boxes_' . self::POST_TYPE, array( $this, 'remove_publish_metabox' ), 100 );
+		add_action( 'load-revision.php', array( $this, 'suspend_kses_for_snapshot_revision_restore' ) );
+		add_filter( 'bulk_actions-edit-' . self::POST_TYPE, array( $this, 'filter_bulk_actions' ) );
+		add_filter( 'get_the_excerpt', array( $this, 'filter_snapshot_excerpt' ), 10, 2 );
+		add_filter( 'post_row_actions', array( $this, 'filter_post_row_actions' ), 10, 2 );
+		add_filter( 'wp_insert_post_data', array( $this, 'preserve_post_name_in_insert_data' ), 10, 2 );
+	}
+
+	/**
+	 * Add the metabox.
+	 */
+	public function setup_metaboxes() {
+		$id = self::POST_TYPE;
+		$title = __( 'Data', 'customize-snapshots' );
+		$callback = array( $this, 'render_data_metabox' );
+		$screen = self::POST_TYPE;
+		$context = 'normal';
+		$priority = 'high';
+		add_meta_box( $id, $title, $callback, $screen, $context, $priority );
+	}
+
+	/**
+	 * Remove publish metabox for published posts, since they should be immutable once published.
+	 *
+	 * @codeCoverageIgnore
+	 */
+	public function remove_publish_metabox() {
+		remove_meta_box( 'slugdiv', self::POST_TYPE, 'normal' );
+		remove_meta_box( 'submitdiv', self::POST_TYPE, 'side' );
+		remove_meta_box( 'authordiv', self::POST_TYPE, 'normal' );
+	}
+
+	/**
+	 * Make sure that restoring snapshot revisions doesn't involve kses corrupting the post_content.
+	 *
+	 * Ideally there would be an action like pre_wp_restore_post_revision instead
+	 * of having to hack into the load-revision.php action. But even more ideally
+	 * we should be able to disable such content_save_pre filters from even applying
+	 * for certain post types, such as those which store JSON in post_content.
+	 *
+	 * @codeCoverageIgnore
+	 */
+	function suspend_kses_for_snapshot_revision_restore() {
+		if ( ! isset( $_GET['revision'] ) ) { // WPCS: input var ok.
+			return;
+		}
+		if ( ! isset( $_GET['action'] ) || 'restore' !== $_GET['action'] ) { // WPCS: input var ok, sanitization ok.
+			return;
+		}
+		$revision_post_id = intval( $_GET['revision'] ); // WPCS: input var ok.
+		if ( $revision_post_id <= 0 ) {
+			return;
+		}
+		$revision_post = wp_get_post_revision( $revision_post_id );
+		if ( empty( $revision_post ) ) {
+			return;
+		}
+		$post = get_post( $revision_post->post_parent );
+		if ( empty( $post ) || self::POST_TYPE !== $post->post_type ) {
+			return;
+		}
+
+		$this->suspend_kses();
+		$that = $this;
+		add_action( 'wp_restore_post_revision', function() use ( $that ) {
+			$that->restore_kses();
+		} );
+	}
+
+	/**
+	 * Remove edit bulk action for snapshots.
+	 *
+	 * @param array $actions Actions.
+	 * @return array Actions.
+	 */
+	public function filter_bulk_actions( $actions ) {
+		unset( $actions['edit'] );
+		return $actions;
+	}
+
+	/**
+	 * Include the setting IDs in the excerpt.
+	 *
+	 * @param string   $excerpt The post excerpt.
+	 * @param \WP_Post $post    Post object.
+	 * @return string Excerpt.
+	 */
+	public function filter_snapshot_excerpt( $excerpt, $post ) {
+		if ( self::POST_TYPE === $post->post_type ) {
+			$excerpt = '<ol>';
+			foreach ( static::get_post_content( $post ) as $setting_id => $setting_params ) {
+				if ( ! isset( $setting_params['dirty'] ) || true === $setting_params['dirty'] ) {
+					$excerpt .= sprintf( '<li><code>%s</code></li>', esc_attr( $setting_id ) );
+				}
+			}
+			$excerpt .= '</ol>';
+		}
+		return $excerpt;
+	}
+
+	/**
+	 * Add Customize link to quick edit links.
+	 *
+	 * @param array    $actions Actions.
+	 * @param \WP_Post $post    Post.
+	 * @return array Actions.
+	 */
+	public function filter_post_row_actions( $actions, $post ) {
+		if ( self::POST_TYPE !== $post->post_type ) {
+			return $actions;
+		}
+
+		unset( $actions['inline hide-if-no-js'] );
+		$post_type_obj = get_post_type_object( self::POST_TYPE );
+		if ( 'publish' !== $post->post_status && current_user_can( $post_type_obj->cap->edit_post, $post->ID ) ) {
+			$args = array(
+				'customize_snapshot_uuid' => $post->post_name,
+			);
+			$customize_url = add_query_arg( array_map( 'rawurlencode', $args ), wp_customize_url() );
+			$actions = array_merge(
+				array(
+					'customize' => sprintf( '<a href="%s">%s</a>', esc_url( $customize_url ), esc_html__( 'Customize', 'customize-snapshots' ) ),
+				),
+				$actions
+			);
+		} elseif ( isset( $actions['edit'] ) ) {
+			$actions['edit'] = sprintf(
+				'<a href="%s" aria-label="%s">%s</a>',
+				get_edit_post_link( $post->ID ),
+				/* translators: %s: post title */
+				esc_attr( sprintf( __( 'View &#8220;%s&#8221;', 'customize-snapshots' ), get_the_title( $post->ID ) ) ),
+				__( 'View', 'customize-snapshots' )
+			);
+		}
+		return $actions;
+	}
+
+	/**
+	 * Preserve the post_name when submitting a snapshot for review.
+	 *
+	 * @see wp_insert_post()
+	 * @link https://github.com/xwp/wordpress-develop/blob/831a186108983ade4d647124d4e56e09aa254704/src/wp-includes/post.php#L3134-L3137
+	 *
+	 * @param array $post_data          Post data.
+	 * @param array $original_post_data Original post data.
+	 * @return array Post data.
+	 */
+	public function preserve_post_name_in_insert_data( $post_data, $original_post_data ) {
+		if ( empty( $post_data['post_type'] ) || self::POST_TYPE !== $post_data['post_type'] ) {
+			return $post_data;
+		}
+		if ( empty( $post_data['post_name'] ) && 'pending' === $post_data['post_status'] ) {
+			$post_data['post_name'] = $original_post_data['post_name'];
+		}
+		return $post_data;
+	}
+
+	/**
+	 * Render the metabox.
+	 *
+	 * @param \WP_Post $post Post object.
+	 */
+	public function render_data_metabox( $post ) {
+		$snapshot_content = static::get_post_content( $post );
+		$post_status_obj = get_post_status_object( $post->post_status );
+
+		echo '<p>';
+		echo esc_html__( 'UUID:', 'customize-snapshots' ) . ' <code>' . esc_html( $post->post_name ) . '</code><br>';
+		echo sprintf( '%1$s %2$s', esc_html__( 'Status:', 'customize-snapshots' ), esc_html( $post_status_obj->label ) ) . '<br>';
+		echo sprintf( '%1$s %2$s %3$s', esc_html__( 'Publish Date:', 'customize-snapshots' ), esc_html( get_the_date( '', $post->ID ) ), esc_html( get_the_time( '', $post->ID ) ) ) . '<br>';
+		echo sprintf( '%1$s %2$s %3$s', esc_html__( 'Modified:', 'customize-snapshots' ), esc_html( get_the_modified_date( '' ) ), esc_html( get_the_modified_time( '' ) ) ) . '<br>';
+		echo sprintf( '%1$s %2$s', esc_html__( 'Author:', 'customize-snapshots' ), esc_html( get_the_author_meta( 'display_name', $post->post_author ) ) ) . '</p>';
+		echo '</p>';
+
+		if ( 'publish' !== $post->post_status ) {
+			$args = array(
+				'customize_snapshot_uuid' => $post->post_name,
+			);
+			$customize_url = add_query_arg( array_map( 'rawurlencode', $args ), wp_customize_url() );
+			echo sprintf(
+				'<p><a href="%s" class="button button-secondary">%s</a></p>',
+				esc_url( $customize_url ),
+				esc_html__( 'Edit in Customizer', 'customize-snapshots' )
+			);
+		}
+
+		echo '<hr>';
+
+		ksort( $snapshot_content );
+		echo '<ul id="snapshot-settings">';
+		foreach ( $snapshot_content as $setting_id => $setting_args ) {
+			echo '<li>';
+			echo '<details open>';
+			echo '<summary><code>' . esc_html( $setting_id ) . '</code></summary>';
+			echo sprintf( '<pre class="pre">%s</pre>', esc_html( static::encode_json( $setting_args['value'] ) ) );
+			echo '</details>';
+			echo '</li>';
+		}
+		echo '</ul>';
+	}
+
+	/**
+	 * Get the snapshot array out of the post_content.
+	 *
+	 * A post revision for a customize_snapshot may also be supplied.
+	 *
+	 * @param \WP_Post $post A customize_snapshot post or a revision post.
+	 * @return array
+	 */
+	static public function get_post_content( \WP_Post $post ) {
+		if ( self::POST_TYPE !== $post->post_type ) {
+			$parent_post = null;
+			if ( 'revision' === $post->post_type ) {
+				$parent_post = get_post( $post->post_parent );
+			}
+			if ( ! $parent_post || self::POST_TYPE !== $parent_post->post_type ) {
+				return array();
+			}
+		}
+
+		// Snapshot is stored as JSON in post_content.
+		$snapshot = json_decode( $post->post_content, true );
+		if ( is_array( $snapshot ) ) {
+			return $snapshot;
+		}
+
+		return array();
+	}
+
+	/**
+	 * Encode JSON with pretty formatting.
+	 *
+	 * @param array $value The snapshot value.
+	 * @return string
+	 */
+	static public function encode_json( $value ) {
+		$flags = 0;
+		if ( defined( '\JSON_PRETTY_PRINT' ) ) {
+			$flags |= \JSON_PRETTY_PRINT;
+		}
+		if ( defined( '\JSON_UNESCAPED_SLASHES' ) ) {
+			$flags |= \JSON_UNESCAPED_SLASHES;
+		}
+		return wp_json_encode( $value, $flags );
 	}
 
 	/**
@@ -279,13 +583,17 @@ class Customize_Snapshot_Manager {
 			'isPreview' => $this->snapshot->is_preview(),
 			'currentUserCanPublish' => current_user_can( 'customize_publish' ),
 			'theme' => $snapshot_theme,
-			'scope' => ( isset( $_GET['scope'] ) ? sanitize_text_field( sanitize_key( wp_unslash( $_GET['scope'] ) ) ) : 'dirty' ), // WPCS: input var ok.
 			'i18n' => array(
 				'saveButton' => __( 'Save', 'customize-snapshots' ),
 				'updateButton' => __( 'Update', 'customize-snapshots' ),
+				'submit' => __( 'Submit', 'customize-snapshots' ),
+				'submitted' => __( 'Submitted', 'customize-snapshots' ),
 				'publish' => __( 'Publish', 'customize-snapshots' ),
 				'published' => __( 'Published', 'customize-snapshots' ),
-				'permsMsg' => __( 'You do not have permission to publish changes, but you can create a snapshot by clicking the "Save Draft" button.', 'customize-snapshots' ),
+				'permsMsg' => array(
+					'save' => __( 'You do not have permission to publish changes, but you can create a snapshot by clicking the "Save" button.', 'customize-snapshots' ),
+					'update' => __( 'You do not have permission to publish changes, but you can modify this snapshot by clicking the "Update" button.', 'customize-snapshots' ),
+				),
 				'errorMsg' => __( 'The snapshot could not be saved.', 'customize-snapshots' ),
 				'errorTitle' => __( 'Error', 'customize-snapshots' ),
 			),
@@ -328,7 +636,7 @@ class Customize_Snapshot_Manager {
 		foreach ( $this->customize_manager->settings() as $setting ) {
 			if ( $this->can_preview( $setting, $this->unsanitized_snapshot_post_data ) ) {
 				$post_data = $this->unsanitized_snapshot_post_data[ $setting->id ];
-				$this->snapshot->set( $setting, $post_data['value'], $post_data['dirty'] );
+				$this->snapshot->set( $setting, $post_data['value'] );
 			}
 		}
 
@@ -396,15 +704,22 @@ class Customize_Snapshot_Manager {
 		} elseif ( empty( $_POST['customize_snapshot_uuid'] ) ) { // WPCS: input var ok.
 			status_header( 400 );
 			wp_send_json_error( 'invalid_customize_snapshot_uuid' );
-		} elseif ( empty( $_POST['scope'] ) ) { // WPCS: input var ok.
-			status_header( 400 );
-			wp_send_json_error( 'invalid_customize_snapshot_scope' );
 		} elseif ( empty( $this->unsanitized_snapshot_post_data ) ) {
 			status_header( 400 );
 			wp_send_json_error( 'missing_snapshot_customized' );
 		} elseif ( empty( $_POST['preview'] ) ) { // WPCS: input var ok.
 			status_header( 400 );
 			wp_send_json_error( 'missing_preview' );
+		}
+
+		if ( isset( $_POST['status'] ) ) { // WPCS: input var ok.
+			$status = sanitize_key( $_POST['status'] );
+		} else {
+			$status = 'draft';
+		}
+		if ( ! in_array( $status, array( 'draft', 'pending' ), true ) ) {
+			status_header( 400 );
+			wp_send_json_error( 'bad_status' );
 		}
 
 		// Set the snapshot UUID.
@@ -414,15 +729,14 @@ class Customize_Snapshot_Manager {
 		$post_type = get_post_type_object( self::POST_TYPE );
 		$authorized = ( $post ?
 			current_user_can( $post_type->cap->edit_post, $post->ID ) :
-			current_user_can( $post_type->cap->create_posts )
+			current_user_can( 'customize' )
 		);
 		if ( ! $authorized ) {
 			status_header( 403 );
 			wp_send_json_error( 'unauthorized' );
 		}
 
-		$this->snapshot->apply_dirty = ( 'dirty' === $_POST['scope'] ); // WPCS: input var ok.
-		$r = $this->save( 'draft' );
+		$r = $this->save( $status );
 		if ( is_wp_error( $r ) ) {
 			status_header( 500 );
 			wp_send_json_error( $r->get_error_message() );
@@ -434,6 +748,20 @@ class Customize_Snapshot_Manager {
 		);
 
 		wp_send_json_success( $response );
+	}
+
+	/**
+	 * Generate a snapshot UUID via AJAX.
+	 */
+	public function get_snapshot_uuid() {
+		if ( ! check_ajax_referer( self::AJAX_ACTION, 'nonce', false ) ) {
+			status_header( 400 );
+			wp_send_json_error( 'bad_nonce' );
+		}
+
+		wp_send_json_success( array(
+			'uuid' => $this->snapshot->generate_uuid(),
+		) );
 	}
 
 	/**
@@ -449,13 +777,9 @@ class Customize_Snapshot_Manager {
 
 		$args = array();
 		$uuid = isset( $_GET['customize_snapshot_uuid'] ) ? sanitize_text_field( sanitize_key( wp_unslash( $_GET['customize_snapshot_uuid'] ) ) ) : null; // WPCS: input var ok.
-		$scope = isset( $_GET['scope'] ) ? sanitize_text_field( sanitize_key( wp_unslash( $_GET['scope'] ) ) ) : 'dirty'; // WPCS: input var ok.
 
 		if ( $uuid && $this->snapshot->is_valid_uuid( $uuid ) ) {
 			$args['customize_snapshot_uuid'] = $uuid;
-			if ( 'full' === $scope ) {
-				$args['scope'] = $scope;
-			}
 		}
 
 		$args['url'] = esc_url_raw( $this->clean_current_url() );
@@ -480,7 +804,13 @@ class Customize_Snapshot_Manager {
 	public function render_templates() {
 		?>
 		<script type="text/html" id="tmpl-snapshot-save">
-			<button id="snapshot-save" class="button">
+			<button id="snapshot-save" class="button button-secondary">
+				{{ data.buttonText }}
+			</button>
+		</script>
+
+		<script type="text/html" id="tmpl-snapshot-submit">
+			<button id="snapshot-submit" class="button button-primary">
 				{{ data.buttonText }}
 			</button>
 		</script>

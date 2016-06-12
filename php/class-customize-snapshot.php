@@ -57,14 +57,6 @@ class Customize_Snapshot {
 	public $is_preview = false;
 
 	/**
-	 * Preview dirty values only.
-	 *
-	 * @access public
-	 * @var bool
-	 */
-	public $apply_dirty;
-
-	/**
 	 * Initial loader.
 	 *
 	 * @access public
@@ -73,11 +65,9 @@ class Customize_Snapshot {
 	 *
 	 * @param Customize_Snapshot_Manager $snapshot_manager     Customize snapshot bootstrap instance.
 	 * @param string|null                $uuid                 Snapshot unique identifier.
-	 * @param bool                       $apply_dirty          Apply only dirty settings from snapshot to Customizer post data. Default is `true`.
 	 */
-	public function __construct( Customize_Snapshot_Manager $snapshot_manager, $uuid, $apply_dirty = true ) {
+	public function __construct( Customize_Snapshot_Manager $snapshot_manager, $uuid ) {
 		$this->snapshot_manager = $snapshot_manager;
-		$this->apply_dirty = $apply_dirty;
 		$this->data = array();
 
 		if ( $uuid ) {
@@ -101,9 +91,10 @@ class Customize_Snapshot {
 
 		if ( $post ) {
 			// For reason why base64 encoding is used, see Customize_Snapshot::save().
-			$this->data = json_decode( $post->post_content_filtered, true );
-			if ( json_last_error() ) {
-				$this->snapshot_manager->plugin->trigger_warning( 'JSON parse error: ' . ( function_exists( 'json_last_error_msg' ) ? json_last_error_msg() : json_last_error() ) );
+			$this->data = json_decode( $post->post_content, true );
+			if ( json_last_error() || ! is_array( $this->data ) ) {
+				$this->snapshot_manager->plugin->trigger_warning( 'JSON parse error, expected array: ' . ( function_exists( 'json_last_error_msg' ) ? json_last_error_msg() : json_last_error() ) );
+				$this->data = array();
 			}
 
 			if ( ! empty( $this->data ) ) {
@@ -227,7 +218,7 @@ class Customize_Snapshot {
 			'name' => $this->uuid,
 			'posts_per_page' => 1,
 			'post_type' => Customize_Snapshot_Manager::POST_TYPE,
-			'post_status' => array( 'draft', 'publish' ),
+			'post_status' => get_post_stati(),
 			'no_found_rows' => true,
 			'ignore_sticky_posts' => true,
 			'cache_results' => false,
@@ -297,17 +288,7 @@ class Customize_Snapshot {
 	 * @return array
 	 */
 	public function values() {
-		$values = $this->data;
-		$dirty = $this->apply_dirty;
-
-		// Filter when the scope is dirty.
-		if ( $dirty ) {
-			$values = array_filter( $values, function( $setting ) use ( $dirty ) {
-				return $setting['dirty'] === $dirty;
-			} );
-		}
-
-		$values = wp_list_pluck( $values, 'value' );
+		$values = wp_list_pluck( $this->data, 'value' );
 		return $values;
 	}
 
@@ -348,14 +329,22 @@ class Customize_Snapshot {
 	/**
 	 * Store a setting's value in the snapshot's data.
 	 *
-	 * @param \WP_Customize_Setting $setting Setting.
-	 * @param mixed                 $value   Must be JSON-serializable.
-	 * @param bool                  $dirty   Whether the setting is dirty or not.
+	 * @since 0.4.0 Removed support for `$dirty` argument.
+	 *
+	 * @param \WP_Customize_Setting $setting    Setting.
+	 * @param mixed                 $value      Must be JSON-serializable.
+	 * @param bool                  $deprecated Whether the setting is dirty or not.
 	 */
-	public function set( \WP_Customize_Setting $setting, $value, $dirty ) {
+	public function set( \WP_Customize_Setting $setting, $value, $deprecated = null ) {
+		if ( ! is_null( $deprecated ) ) {
+			_doing_it_wrong( __METHOD__, 'The $dirty argument has been removed.', '0.4.0' );
+			if ( false === $deprecated ) {
+				return;
+			}
+		}
+
 		$this->data[ $setting->id ] = array(
 			'value' => $value,
-			'dirty' => $dirty,
 			'sanitized' => false,
 		);
 	}
@@ -390,7 +379,7 @@ class Customize_Snapshot {
 		}
 
 		/**
-		 * Filter the snapshot's data before it's saved to 'post_content_filtered'.
+		 * Filter the snapshot's data before it's saved to 'post_content'.
 		 *
 		 * @param array $data Customizer settings and values.
 		 * @return array
@@ -400,6 +389,7 @@ class Customize_Snapshot {
 		// JSON encoded snapshot data.
 		$post_content = wp_json_encode( $this->data, $options );
 
+		$this->snapshot_manager->suspend_kses();
 		if ( ! $this->post ) {
 			$postarr = array(
 				'post_type' => Customize_Snapshot_Manager::POST_TYPE,
@@ -407,7 +397,7 @@ class Customize_Snapshot {
 				'post_title' => $this->uuid,
 				'post_status' => $status,
 				'post_author' => get_current_user_id(),
-				'post_content_filtered' => $post_content,
+				'post_content' => $post_content,
 			);
 			$r = wp_insert_post( wp_slash( $postarr ), true );
 			if ( is_wp_error( $r ) ) {
@@ -419,7 +409,7 @@ class Customize_Snapshot {
 			$postarr = array(
 				'ID' => $this->post->ID,
 				'post_status' => $status,
-				'post_content_filtered' => wp_slash( $post_content ),
+				'post_content' => wp_slash( $post_content ),
 			);
 			$r = wp_update_post( $postarr, true );
 			if ( is_wp_error( $r ) ) {
@@ -427,6 +417,7 @@ class Customize_Snapshot {
 			}
 			$this->post = get_post( $r );
 		}
+		$this->snapshot_manager->restore_kses();
 
 		return null;
 	}
