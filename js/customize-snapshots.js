@@ -288,7 +288,6 @@
 			component.data.isPreview = true;
 
 			spinner.removeClass( 'is-active' );
-			component.resetSavedStateQuietly();
 
 			// Replace the history state with an updated Customizer URL that includes the Snapshot UUID.
 			if ( history.replaceState && ! customizeUrl.match( regex ) ) {
@@ -300,6 +299,7 @@
 			if ( 'pending' === args.status ) {
 				api.state( 'snapshot-submitted' ).set( true );
 			}
+			component.resetSavedStateQuietly();
 
 			// Open the preview in a new window on shift+click.
 			if ( args.openNewWindow ) {
