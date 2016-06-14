@@ -124,6 +124,8 @@ class Customize_Snapshot_Manager {
 		add_action( 'admin_bar_menu', array( $this, 'customize_menu' ), 41 );
 		add_action( 'customize_controls_print_footer_scripts', array( $this, 'render_templates' ) );
 
+		add_filter( 'theme_mod_nav_menu_locations', array( $this, 'filter_theme_mod_nav_menu_locations' ) );
+
 		/*
 		 * Add WP_Customize_Widget component hooks which were short-circuited in 4.5 (r36611 for #35895).
 		 * See https://core.trac.wordpress.org/ticket/35895
@@ -378,6 +380,25 @@ class Customize_Snapshot_Manager {
 		add_action( 'wp_restore_post_revision', function() use ( $that ) {
 			$that->restore_kses();
 		} );
+	}
+
+	/**
+	 * Filter for displaying the Snapshot menu location values.
+	 *
+	 * @param array $menu_locations Default menu locations.
+	 * @return array Modified menu locations.
+	 */
+	public function filter_theme_mod_nav_menu_locations( $menu_locations ) {
+		if( isset( $_GET['customize_snapshot_uuid'] ) ) {
+			$mods = $this->snapshot->values();
+			$locations = get_registered_nav_menus();
+			foreach( $locations as $location => $name ) {
+				if( isset( $mods['nav_menu_locations[' . $location . ']'] ) ) {
+					$menu_locations[$location] = $mods['nav_menu_locations[' . $location . ']'];
+				}
+			}
+		}
+		return $menu_locations;
 	}
 
 	/**
