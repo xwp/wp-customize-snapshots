@@ -123,7 +123,7 @@ class Customize_Snapshot_Manager {
 		add_action( 'customize_save_after', array( $this, 'save_snapshot' ) );
 		add_action( 'admin_bar_menu', array( $this, 'customize_menu' ), 41 );
 		add_action( 'customize_controls_print_footer_scripts', array( $this, 'render_templates' ) );
-		
+
 		add_filter( 'theme_mod_nav_menu_locations', array( $this, 'filter_theme_mod_nav_menu_locations' ) );
 		add_filter( 'wp_get_nav_menus', array( $this, 'filter_wp_get_nav_menus' ) );
 		add_filter( 'wp_get_nav_menu_items', array( $this, 'filter_wp_get_nav_menu_items' ), 10, 3 );
@@ -384,39 +384,50 @@ class Customize_Snapshot_Manager {
 			$that->restore_kses();
 		} );
 	}
-	
+
+	/**
+	 * Filter menus to load the unpublished menus from the snapshot-
+	 *
+	 * @param array $menus Array of menus.
+	 * @return array Modified array of menus.
+	 */
 	public function filter_wp_get_nav_menus( $menus ) {
-		if( isset( $_GET['customize_snapshot_uuid'] ) ) {
+		if ( isset( $_GET['customize_snapshot_uuid'] ) ) {
 			$values = $this->snapshot->values();
-			if( !class_exists( 'WP_Term' ) ) {
-				require_once( ABSPATH . 'wp-includes/class-wp-term.php' );
-			}
-			$class = 'WP_Term';
-			foreach( $values as $key => $value ) {
-				if( false !== strpos( $key, 'nav_menu[' ) ) {
-					if( preg_match( '/\[([^\]]*)\]/', $key, $match ) ) {
+			foreach ( $values as $key => $value ) {
+				if ( false !== strpos( $key, 'nav_menu[' ) ) {
+					if ( preg_match( '/\[([^\]]*)\]/', $key, $match ) ) {
 						$menu_id = $match[1];
-						$menu = new $class((object)$values['nav_menu[' . $menu_id . ']']);
+						$menu = new \WP_Term( (object) $values[ 'nav_menu[' . $menu_id . ']' ] );
 						$menu->term_id = $menu->term_taxonomy_id = $menu_id;
 						$menus[] = $menu;
 					}
 				}
-			}	
+			}
 		}
 		return $menus;
 	}
-	
+
+	/**
+	 * Filter the wp_get_nav_menu_items() result to supply the menu items from snapshot.
+	 *
+	 * @see wp_get_nav_menu_items()
+	 *
+	 * @param array  $items An array of menu item post objects.
+	 * @param object $menu  The menu object.
+	 * @param array  $args  An array of arguments used to retrieve menu item objects.
+	 * @return array Array of menu items.
+	 */
 	function filter_wp_get_nav_menu_items( $items, $menu, $args ) {
-		if( $menu->term_id < 0 ) {
+		if ( $menu->term_id < 0 ) {
 			$values = $this->snapshot->values();
-			$class = 'WP_Post';
-			foreach( $values as $key => $value ) {
-				if( false !== strpos( $key, 'nav_menu_item' ) ) {
-					if( $value['nav_menu_term_id'] == $menu->term_id ) {
-						if( preg_match( '/\[([^\]]*)\]/', $key, $match ) ) {
+			foreach ( $values as $key => $value ) {
+				if ( false !== strpos( $key, 'nav_menu_item' ) ) {
+					if ( $value['nav_menu_term_id'] === $menu->term_id ) {
+						if ( preg_match( '/\[([^\]]*)\]/', $key, $match ) ) {
 							$item_id = $match[1];
 							$value['ID'] = $item_id;
-							$items[] = new $class( (object) $value );
+							$items[] = new \WP_Post( (object) $value );
 						}
 					}
 				}
@@ -424,35 +435,44 @@ class Customize_Snapshot_Manager {
 		}
 		return $items;
 	}
-	
+
+	/**
+	 * Filter the wp_get_nav_menu_object() result to supply the menu object from snapshot.
+	 *
+	 * @see wp_get_nav_menu_object()
+	 *
+	 * @param object|null $menu_obj Object returned by wp_get_nav_menu_object().
+	 * @param string      $menu_id  ID of the nav_menu term. Requests by slug or name will be ignored.
+	 * @return object|null New menu object or null.
+	 */
 	function filter_wp_get_nav_menu_object( $menu_obj, $menu_id ) {
-		//If the menu ID is negative, it's a non-published menu
-		if( false === $menu_obj && $menu_id < 0 ) {
+		if ( false === $menu_obj && $menu_id < 0 ) {
 			$values = $this->snapshot->values();
-			if( isset( $values['nav_menu[' . $menu_id . ']'] ) ) {
-				$menu_obj = (object)array(
-						'term_id'          => $menu_id,
-						'term_taxonomy_id' => $menu_id,
-						'taxonomy' => 'nav_menu',
-						'name' => $values['nav_menu[' . $menu_id . ']']['name'],
+			if ( isset( $values[ 'nav_menu[' . $menu_id . ']' ] ) ) {
+				$menu_obj = (object) array(
+					'term_id' => $menu_id,
+					'term_taxonomy_id' => $menu_id,
+					'taxonomy' => 'nav_menu',
+					'name' => $values[ 'nav_menu[' . $menu_id . ']' ]['name'],
 				);
 			}
 		}
 		return $menu_obj;
 	}
-	
+
 	/**
 	 * Filter for displaying the Snapshot menu location values.
-	 * 
+	 *
 	 * @param array $menu_locations Default menu locations.
+	 * @return array Modified menu locations.
 	 */
 	public function filter_theme_mod_nav_menu_locations( $menu_locations ) {
-		if( isset( $_GET['customize_snapshot_uuid'] ) ) {
+		if ( isset( $_GET['customize_snapshot_uuid'] ) ) {
 			$mods = $this->snapshot->values();
 			$locations = get_registered_nav_menus();
-			foreach( $locations as $location => $name ) {
-				if( isset( $mods['nav_menu_locations[' . $location . ']'] ) ) {
-					$menu_locations[$location] = $mods['nav_menu_locations[' . $location . ']'];
+			foreach ( $locations as $location => $name ) {
+				if ( isset( $mods[ 'nav_menu_locations[' . $location . ']' ] ) ) {
+					$menu_locations[ $location ] = $mods[ 'nav_menu_locations[' . $location . ']' ];
 				}
 			}
 		}
