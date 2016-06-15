@@ -28,9 +28,6 @@
 		window._wpCustomizeControlsL10n.saved = component.data.i18n.published;
 
 		api.bind( 'ready', function() {
-			if ( ! api.settings.theme.active || ( component.data.theme && component.data.theme !== api.settings.theme.stylesheet ) ) {
-				return;
-			}
 			api.state.create( 'snapshot-saved', true );
 			api.state.create( 'snapshot-submitted', true );
 			api.bind( 'change', function() {
@@ -96,7 +93,7 @@
 			// Set the button text back to "Save".
 			component.changeButton( component.data.i18n.saveButton, component.data.i18n.permsMsg.save );
 
-			request = wp.ajax.post( 'customize_get_snapshot_uuid', {
+			request = wp.ajax.post( 'customize_generate_snapshot_uuid', {
 				nonce: component.data.nonce,
 				wp_customize: 'on'
 			} );
@@ -129,23 +126,10 @@
 		var originalQuery = api.previewer.query;
 
 		api.previewer.query = function() {
-			var allCustomized = {},
-				retval;
-
-			retval = originalQuery.apply( this, arguments );
-
+			var retval = originalQuery.apply( this, arguments );
 			if ( component.data.isPreview ) {
-				api.each( function( value, key ) {
-					if ( value._dirty ) {
-						allCustomized[ key ] = {
-							'value': value()
-						};
-					}
-				} );
-				retval.snapshot_customized = JSON.stringify( allCustomized );
 				retval.snapshot_uuid = component.data.uuid;
 			}
-
 			return retval;
 		};
 	};
@@ -235,7 +219,7 @@
 	 */
 	component.sendUpdateSnapshotRequest = function( options ) {
 		var spinner = $( '#customize-header-actions .spinner' ),
-			request, customized, args;
+			request, data, args;
 
 		args = _.extend(
 			{
@@ -247,35 +231,23 @@
 
 		spinner.addClass( 'is-active' );
 
-		customized = {};
-		api.each( function( value, key ) {
-			if ( value._dirty ) {
-				customized[ key ] = {
-					'value': value()
-				};
+		data = _.extend(
+			{},
+			api.previewer.query(),
+			{
+				nonce: component.data.nonce,
+				customize_snapshot_uuid: component.data.uuid,
+				status: args.status
 			}
-		} );
+		);
+		request = wp.ajax.post( 'customize_update_snapshot', data );
 
-		request = wp.ajax.post( 'customize_update_snapshot', {
-			nonce: component.data.nonce,
-			wp_customize: 'on',
-			snapshot_customized: JSON.stringify( customized ),
-			customize_snapshot_uuid: component.data.uuid,
-			status: args.status,
-			preview: ( component.data.isPreview ? 'on' : 'off' )
-		} );
-
-		request.done( function( response ) {
+		request.done( function() {
 			var url = api.previewer.previewUrl(),
 				regex = new RegExp( '([?&])customize_snapshot_uuid=.*?(&|$)', 'i' ),
 				separator = url.indexOf( '?' ) !== -1 ? '&' : '?',
 				customizeUrl = window.location.href,
 				customizeSeparator = customizeUrl.indexOf( '?' ) !== -1 ? '&' : '?';
-
-			// Set the UUID.
-			if ( ! component.data.uuid ) {
-				component.data.uuid = response.customize_snapshot_uuid;
-			}
 
 			if ( url.match( regex ) ) {
 				url = url.replace( regex, '$1customize_snapshot_uuid=' + encodeURIComponent( component.data.uuid ) + '$2' );
