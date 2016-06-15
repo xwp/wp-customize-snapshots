@@ -423,7 +423,7 @@ class Customize_Snapshot_Manager {
 			$values = $this->snapshot->values();
 			foreach ( $values as $key => $value ) {
 				if ( false !== strpos( $key, 'nav_menu_item' ) ) {
-					if ( $value['nav_menu_term_id'] === $menu->term_id ) {
+					if ( isset( $value['nav_menu_term_id'] ) && $value['nav_menu_term_id'] === $menu->term_id ) {
 						if ( preg_match( '/\[([^\]]*)\]/', $key, $match ) ) {
 							$item_id = $match[1];
 							$value['ID'] = $item_id;
