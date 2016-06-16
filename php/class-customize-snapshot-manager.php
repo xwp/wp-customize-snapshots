@@ -398,8 +398,8 @@ class Customize_Snapshot_Manager {
 	 * @param \WP_Post $post    Post object.
 	 * @return string Excerpt.
 	 */
-	public function filter_snapshot_excerpt( $excerpt, $post ) {
-		if ( self::POST_TYPE === $post->post_type ) {
+	public function filter_snapshot_excerpt( $excerpt, \WP_Post $post = null ) {
+		if ( $post instanceof \WP_Post && self::POST_TYPE === $post->post_type ) {
 			$excerpt = '<ol>';
 			foreach ( static::get_post_content( $post ) as $setting_id => $setting_params ) {
 				if ( ! isset( $setting_params['dirty'] ) || true === $setting_params['dirty'] ) {
