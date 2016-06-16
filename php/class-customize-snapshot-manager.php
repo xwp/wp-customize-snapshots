@@ -765,11 +765,44 @@ class Customize_Snapshot_Manager {
 	}
 
 	/**
-	 * Replaces the "Customize" link in the Toolbar.
+	 * Toolbar modifications for Customize Snapshot
 	 *
 	 * @param \WP_Admin_Bar $wp_admin_bar WP_Admin_Bar instance.
 	 */
 	public function customize_menu( $wp_admin_bar ) {
+
+		$this->replace_customize_link( $wp_admin_bar );
+		$this->add_post_edit_screen_link( $wp_admin_bar );
+
+		add_action( 'wp_before_admin_bar_render', 'wp_customize_support_script' );
+	}
+
+	/**
+	 * Adds a "Snapshot in Dashboard" link to the Toolbar when in Snapshot mode.
+	 *
+	 * @param \WP_Admin_Bar $wp_admin_bar WP_Admin_Bar instance.
+	 */
+	public function add_post_edit_screen_link( $wp_admin_bar ) {
+		$uuid = isset( $_GET['customize_snapshot_uuid'] ) ? sanitize_text_field( sanitize_key( wp_unslash( $_GET['customize_snapshot_uuid'] ) ) ) : null; // WPCS: input var ok.
+
+		if ( $uuid && $this->snapshot->is_valid_uuid( $uuid ) ) {
+			$wp_admin_bar->add_menu(
+				array(
+						'id'     => 'snapshot-edit-link',
+						'title'  => __( 'Snapshot in Dashboard', 'customize-snapshots' ),
+						'href'   => get_edit_post_link( $this->snapshot->post()->ID ),
+				)
+			);
+		}
+	}
+
+	/**
+	 * Replaces the "Customize" link in the Toolbar.
+	 *
+	 * @param \WP_Admin_Bar $wp_admin_bar WP_Admin_Bar instance.
+	 */
+	public function replace_customize_link( $wp_admin_bar ) {
+
 		// Don't show for users who can't access the customizer or when in the admin.
 		if ( ! current_user_can( 'customize' ) || is_admin() ) {
 			return;
@@ -795,7 +828,6 @@ class Customize_Snapshot_Manager {
 				),
 			)
 		);
-		add_action( 'wp_before_admin_bar_render', 'wp_customize_support_script' );
 	}
 
 	/**
@@ -803,6 +835,7 @@ class Customize_Snapshot_Manager {
 	 */
 	public function render_templates() {
 		?>
+
 		<script type="text/html" id="tmpl-snapshot-save">
 			<button id="snapshot-save" class="button button-secondary">
 				{{ data.buttonText }}
