@@ -129,6 +129,9 @@ class Customize_Snapshot_Manager {
 		add_filter( 'wp_get_nav_menu_items', array( $this, 'filter_wp_get_nav_menu_items' ), 10, 3 );
 		add_filter( 'wp_get_nav_menu_object', array( $this, 'filter_wp_get_nav_menu_object' ), 10, 2 );
 
+		// Needs priority 12 since it has to happen after the default nav menus are registered.
+		add_action( 'customize_register', array( $this, 'customize_register_unpublished_menu_sections' ), 12 );
+
 		/*
 		 * Add WP_Customize_Widget component hooks which were short-circuited in 4.5 (r36611 for #35895).
 		 * See https://core.trac.wordpress.org/ticket/35895
@@ -383,6 +386,25 @@ class Customize_Snapshot_Manager {
 		add_action( 'wp_restore_post_revision', function() use ( $that ) {
 			$that->restore_kses();
 		} );
+	}
+
+	/**
+	 * Action to register unpublished menu sections with a custom menu section class.
+	 */
+	public function customize_register_unpublished_menu_sections() {
+		$menus = wp_get_nav_menus();
+		foreach ( $menus as $menu ) {
+			if ( $menu->term_id < 0 ) {
+				// Create a section for each menu.
+				$section_id = 'nav_menu[' . $menu->term_id . ']';
+				$this->customize_manager->remove_section( $section_id );
+				$this->customize_manager->add_section( new Customize_Snapshot_Nav_Menu_Section( $this->customize_manager, $section_id, array(
+					'title'     => html_entity_decode( $menu->name, ENT_QUOTES, get_bloginfo( 'charset' ) ),
+					'priority'  => 10,
+					'panel'     => 'nav_menus',
+				) ) );
+			}
+		}
 	}
 
 	/**
