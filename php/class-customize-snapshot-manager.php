@@ -88,6 +88,7 @@ class Customize_Snapshot_Manager {
 		add_action( 'customize_save', array( $this, 'check_customize_publish_authorization' ), 10, 0 );
 		add_action( 'customize_save_after', array( $this, 'publish_snapshot_with_customize_save_after' ) );
 		add_filter( 'customize_refresh_nonces', array( $this, 'filter_customize_refresh_nonces' ) );
+		add_action( 'wp_ajax_customize_generate_snapshot_uuid', array( $this, 'handle_generate_snapshot_uuid_request' ) );
 
 		if ( isset( $_REQUEST['customize_snapshot_uuid'] ) ) { // WPCS: input var ok.
 			$uuid = sanitize_key( wp_unslash( $_REQUEST['customize_snapshot_uuid'] ) ); // WPCS: input var ok.
@@ -101,7 +102,6 @@ class Customize_Snapshot_Manager {
 
 			add_action( 'init', array( $this, 'show_theme_switch_error' ) );
 			add_action( 'wp_ajax_' . self::AJAX_ACTION, array( $this, 'handle_update_snapshot_request' ) );
-			add_action( 'wp_ajax_customize_generate_snapshot_uuid', array( $this, 'handle_generate_snapshot_uuid_request' ) );
 
 			$this->snapshot = new Customize_Snapshot( $this, $this->current_snapshot_uuid );
 
