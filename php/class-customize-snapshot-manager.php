@@ -87,6 +87,7 @@ class Customize_Snapshot_Manager {
 		add_action( 'customize_controls_print_footer_scripts', array( $this, 'render_templates' ) );
 		add_action( 'customize_save', array( $this, 'check_customize_publish_authorization' ), 10, 0 );
 		add_action( 'customize_save_after', array( $this, 'publish_snapshot_with_customize_save_after' ) );
+		add_filter( 'customize_refresh_nonces', array( $this, 'filter_customize_refresh_nonces' ) );
 
 		if ( isset( $_REQUEST['customize_snapshot_uuid'] ) ) { // WPCS: input var ok.
 			$uuid = sanitize_key( wp_unslash( $_REQUEST['customize_snapshot_uuid'] ) ); // WPCS: input var ok.
@@ -401,7 +402,6 @@ class Customize_Snapshot_Manager {
 
 		// Script data array.
 		$exports = apply_filters( 'customize-snapshots-export-data', array(
-			'nonce' => wp_create_nonce( self::AJAX_ACTION ),
 			'action' => self::AJAX_ACTION,
 			'uuid' => $this->snapshot ? $this->snapshot->uuid() : static::generate_uuid(),
 			'currentUserCanPublish' => current_user_can( 'customize_publish' ),
@@ -427,6 +427,17 @@ class Customize_Snapshot_Manager {
 			'data',
 			sprintf( 'var _customizeSnapshots = %s;', wp_json_encode( $exports ) )
 		);
+	}
+
+	/**
+	 * Include the snapshot nonce in the Customizer nonces.
+	 *
+	 * @param array $nonces Nonces.
+	 * @return array Nonces.
+	 */
+	public function filter_customize_refresh_nonces( $nonces ) {
+		$nonces['snapshot'] = wp_create_nonce( self::AJAX_ACTION );
+		return $nonces;
 	}
 
 	/**

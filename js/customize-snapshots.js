@@ -94,7 +94,7 @@
 			component.changeButton( component.data.i18n.saveButton, component.data.i18n.permsMsg.save );
 
 			request = wp.ajax.post( 'customize_generate_snapshot_uuid', {
-				nonce: component.data.nonce,
+				nonce: api.settings.nonce.snapshot,
 				wp_customize: 'on'
 			} );
 
@@ -235,7 +235,7 @@
 			{},
 			api.previewer.query(),
 			{
-				nonce: component.data.nonce,
+				nonce: api.settings.nonce.snapshot,
 				customize_snapshot_uuid: component.data.uuid,
 				status: args.status
 			}
