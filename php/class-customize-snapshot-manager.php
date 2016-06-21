@@ -450,40 +450,6 @@ class Customize_Snapshot_Manager {
 	}
 
 	/**
-	 * Prepare snapshot data for saving.
-	 *
-	 * @todo NOOO
-	 *
-	 * @return array
-	 */
-	public function prepare_snapshot_data() {
-		$data = array();
-
-		$unsanitized_post_values = $this->customize_manager->unsanitized_post_values();
-		$new_setting_ids = array_diff( array_keys( $unsanitized_post_values ), array_keys( $this->customize_manager->settings() ) );
-		$added_settings = $this->customize_manager->add_dynamic_settings( $new_setting_ids );
-		if ( ! empty( $new_setting_ids ) && 0 === count( $added_settings ) ) {
-			$this->plugin->trigger_warning( 'Unable to snapshot settings for: ' . join( ', ', $new_setting_ids ) );
-		}
-
-		$sanitized_values = array();
-		foreach ( $unsanitized_post_values as $setting_id => $unsanitized_post_value ) {
-			$setting = $this->customize_manager->get_setting( $setting_id );
-			if ( $setting ) {
-				$sanitized_values[ $setting_id ] = $setting->sanitize( $unsanitized_post_value );
-			}
-		}
-		$data['sanitized_setting_values'] = $sanitized_values;
-
-		if ( method_exists( $this->customize_manager, 'validate_setting_values' ) ) {
-			$data['setting_validities'] = $this->customize_manager->validate_setting_values( $sanitized_values );
-			$data['invalid_setting_count'] = count( array_filter( $data['setting_validities'], 'is_wp_error' ) );
-		}
-
-		return $data;
-	}
-
-	/**
 	 * Publish the snapshot snapshots via AJAX.
 	 *
 	 * Fires at `customize_save_after` to update and publish the snapshot.
