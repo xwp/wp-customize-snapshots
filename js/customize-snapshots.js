@@ -84,24 +84,18 @@
 			return request;
 		} );
 
-		api.bind( 'saved', function() {
+		api.bind( 'saved', function( response ) {
 			var url = window.location.href,
-				request,
 				updatedUrl,
 				urlParts;
 
 			// Set the button text back to "Save".
 			component.changeButton( component.data.i18n.saveButton, component.data.i18n.permsMsg.save );
 
-			request = wp.ajax.post( 'customize_generate_snapshot_uuid', {
-				nonce: api.settings.nonce.snapshot,
-				wp_customize: 'on'
-			} );
-
 			// Update the UUID.
-			request.done( function( response ) {
-				component.data.uuid = response.uuid;
-			} );
+			if ( response.new_customize_snapshot_uuid ) {
+				component.data.uuid = response.new_customize_snapshot_uuid;
+			}
 
 			// Replace the history state with an updated Customizer URL that does not include the Snapshot UUID.
 			urlParts = url.split( '?' );
@@ -128,7 +122,7 @@
 		api.previewer.query = function() {
 			var retval = originalQuery.apply( this, arguments );
 			if ( component.data.isPreview ) {
-				retval.snapshot_uuid = component.data.uuid;
+				retval.customize_snapshot_uuid = component.data.uuid;
 			}
 			return retval;
 		};

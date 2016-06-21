@@ -88,7 +88,6 @@ class Customize_Snapshot_Manager {
 		add_action( 'customize_save', array( $this, 'check_customize_publish_authorization' ), 10, 0 );
 		add_action( 'customize_save_after', array( $this, 'publish_snapshot_with_customize_save_after' ) );
 		add_filter( 'customize_refresh_nonces', array( $this, 'filter_customize_refresh_nonces' ) );
-		add_action( 'wp_ajax_customize_generate_snapshot_uuid', array( $this, 'handle_generate_snapshot_uuid_request' ) );
 
 		if ( isset( $_REQUEST['customize_snapshot_uuid'] ) ) { // WPCS: input var ok.
 			$uuid = sanitize_key( wp_unslash( $_REQUEST['customize_snapshot_uuid'] ) ); // WPCS: input var ok.
@@ -460,6 +459,12 @@ class Customize_Snapshot_Manager {
 			$r = $this->snapshot->save( array(
 				'status' => 'publish',
 			) );
+
+			add_filter( 'customize_save_response', function( $data ) {
+				$data['new_customize_snapshot_uuid'] = static::generate_uuid();
+				return $data;
+			} );
+
 			if ( is_wp_error( $r ) ) {
 				add_filter( 'customize_save_response', function( $response ) use ( $r ) {
 					$response[ $r->get_error_code() ] = $r->get_error_message();
@@ -572,20 +577,6 @@ class Customize_Snapshot_Manager {
 	 */
 	static public function is_valid_uuid( $uuid ) {
 		return 0 !== preg_match( '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/', $uuid );
-	}
-
-	/**
-	 * Generate a snapshot UUID via AJAX.
-	 */
-	public function handle_generate_snapshot_uuid_request() {
-		if ( ! check_ajax_referer( self::AJAX_ACTION, 'nonce', false ) ) {
-			status_header( 400 );
-			wp_send_json_error( 'bad_nonce' );
-		}
-
-		wp_send_json_success( array(
-			'uuid' => static::generate_uuid(),
-		) );
 	}
 
 	/**
