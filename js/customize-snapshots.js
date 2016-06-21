@@ -1,4 +1,4 @@
-/* global jQuery, _customizeSnapshots, JSON */
+/* global jQuery, _customizeSnapshots */
 /* eslint-disable no-extra-parens */
 
 ( function( api, $ ) {
