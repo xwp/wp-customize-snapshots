@@ -223,8 +223,6 @@
 			options
 		);
 
-		spinner.addClass( 'is-active' );
-
 		data = _.extend(
 			{},
 			api.previewer.query(),
@@ -235,6 +233,19 @@
 			}
 		);
 		request = wp.ajax.post( 'customize_update_snapshot', data );
+
+		spinner.addClass( 'is-active' );
+		request.always( function( response ) {
+			spinner.removeClass( 'is-active' );
+
+			// @todo Remove privateness from _handleSettingValidities in Core.
+			if ( api._handleSettingValidities && response.setting_validities ) {
+				api._handleSettingValidities( {
+					settingValidities: response.setting_validities,
+					focusInvalidControl: true
+				} );
+			}
+		} );
 
 		request.done( function() {
 			var url = api.previewer.previewUrl(),
@@ -252,8 +263,6 @@
 			// Change the save button text to update.
 			component.changeButton( component.data.i18n.updateButton, component.data.i18n.permsMsg.update );
 			component.data.isPreview = true;
-
-			spinner.removeClass( 'is-active' );
 
 			// Replace the history state with an updated Customizer URL that includes the Snapshot UUID.
 			if ( history.replaceState && ! customizeUrl.match( regex ) ) {
@@ -280,9 +289,13 @@
 			} );
 		} );
 
-		request.fail( function() {
+		request.fail( function( response ) {
 			var id = 'snapshot-dialog-error',
 				snapshotDialogShareError = wp.template( id );
+
+			if ( response.error && 'invalid_values' === response.error.code ) {
+				return;
+			}
 
 			// Insert the snapshot dialog error template.
 			if ( 0 === $( '#' + id ).length ) {
@@ -297,8 +310,6 @@
 				autoOpen: true,
 				modal: true
 			} );
-
-			spinner.removeClass( 'is-active' );
 		} );
 	};
 
