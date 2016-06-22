@@ -132,26 +132,8 @@ class Customize_Snapshot {
 	 * @return string|null
 	 */
 	public function status() {
-		return $this->post_id ? get_post_status( $this->post_id ) : null;
-	}
-
-	/**
-	 * Store a setting's value in the snapshot's data.
-	 *
-	 * @since 0.4.0 Removed support for `$dirty` argument.
-	 *
-	 * @param \WP_Customize_Setting $setting    Setting.
-	 * @param mixed                 $value      Must be JSON-serializable.
-	 * @param bool                  $deprecated Whether the setting is dirty or not.
-	 */
-	public function old__set( \WP_Customize_Setting $setting, $value, $deprecated = null ) {
-		if ( ! is_null( $deprecated ) ) {
-			_doing_it_wrong( __METHOD__, 'The $dirty argument has been removed.', '0.4.0' );
-			if ( false === $deprecated ) {
-				return;
-			}
-		}
-		$this->data[ $setting->id ] = $value;
+		$post = $this->post();
+		return $post ? get_post_status( $post->ID ) : null;
 	}
 
 	/**
