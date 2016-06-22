@@ -99,7 +99,6 @@ class Customize_Snapshot_Manager {
 		if ( $this->current_snapshot_uuid ) {
 			$this->ensure_customize_manager();
 
-			add_action( 'init', array( $this, 'show_theme_switch_error' ) );
 			add_action( 'wp_ajax_' . self::AJAX_ACTION, array( $this, 'handle_update_snapshot_request' ) );
 
 			$this->snapshot = new Customize_Snapshot( $this, $this->current_snapshot_uuid );
@@ -296,7 +295,7 @@ class Customize_Snapshot_Manager {
 	 * If the Customizer was loaded with a snapshot UUID, let the return URL include this snapshot.
 	 */
 	public function add_snapshot_uuid_to_return_url() {
-		if ( ! $this->current_snapshot_uuid || ! $this->customize_manager->is_theme_active() ) {
+		if ( ! $this->current_snapshot_uuid || ! $this->customize_manager->is_theme_active() || false !== strpos( $this->customize_manager->get_return_url(), '/wp-admin/' ) ) {
 			return;
 		}
 		$args = array(
