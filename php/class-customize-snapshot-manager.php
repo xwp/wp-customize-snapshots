@@ -60,6 +60,14 @@ class Customize_Snapshot_Manager {
 	public $current_snapshot_uuid;
 
 	/**
+	 * The originally active theme.
+	 *
+	 * @access public
+	 * @var string
+	 */
+	public $original_stylesheet;
+
+	/**
 	 * Constructor.
 	 *
 	 * @access public
@@ -68,6 +76,7 @@ class Customize_Snapshot_Manager {
 	 */
 	public function __construct( Plugin $plugin ) {
 		$this->plugin = $plugin;
+		$this->original_stylesheet = get_stylesheet();
 	}
 
 	/**
@@ -166,7 +175,17 @@ class Customize_Snapshot_Manager {
 		}
 	}
 
-
+	/**
+	 * Is previewing another theme.
+	 *
+	 * @return bool Whether theme is active.
+	 */
+	public function is_theme_active() {
+		if ( empty( $this->customize_manager ) ) {
+			return true;
+		}
+		return $this->customize_manager->get_stylesheet() === $this->original_stylesheet;
+	}
 
 	/**
 	 * Determine whether the current snapshot can be previewed.
@@ -295,14 +314,20 @@ class Customize_Snapshot_Manager {
 	 * If the Customizer was loaded with a snapshot UUID, let the return URL include this snapshot.
 	 */
 	public function add_snapshot_uuid_to_return_url() {
-		if ( ! $this->current_snapshot_uuid || ! $this->customize_manager->is_theme_active() || false !== strpos( $this->customize_manager->get_return_url(), '/wp-admin/' ) ) {
-			return;
-		}
-		$args = array(
-			'customize_snapshot_uuid' => $this->current_snapshot_uuid,
+		$should_add_snapshot_uuid = (
+			$this->current_snapshot_uuid
+			&&
+			$this->is_theme_active()
+			&&
+			false === strpos( $this->customize_manager->get_return_url(), '/wp-admin/' )
 		);
-		$return_url = add_query_arg( array_map( 'rawurlencode', $args ), $this->customize_manager->get_return_url() );
-		$this->customize_manager->set_return_url( $return_url );
+		if ( $should_add_snapshot_uuid ) {
+			$args = array(
+				'customize_snapshot_uuid' => $this->current_snapshot_uuid,
+			);
+			$return_url = add_query_arg( array_map( 'rawurlencode', $args ), $this->customize_manager->get_return_url() );
+			$this->customize_manager->set_return_url( $return_url );
+		}
 	}
 
 	/**
@@ -336,7 +361,7 @@ class Customize_Snapshot_Manager {
 	public function get_theme_switch_error( Customize_Snapshot $snapshot ) {
 
 		// Loading a snapshot into the context of a theme switch is not supported.
-		if ( ! $this->customize_manager->is_theme_active() ) {
+		if ( ! $this->is_theme_active() ) {
 			return new \WP_Error( 'snapshot_theme_switch', __( 'Snapshot cannot be previewed when previewing a theme switch.', 'customize-snapshots' ) );
 		}
 
@@ -388,10 +413,9 @@ class Customize_Snapshot_Manager {
 	 * @global \WP_Customize_Manager $wp_customize
 	 */
 	public function enqueue_scripts() {
-		global $wp_customize;
 
 		// Prevent loading the Snapshot interface if the theme is not active.
-		if ( ! $wp_customize->is_theme_active() ) {
+		if ( ! $this->is_theme_active() ) {
 			return;
 		}
 
