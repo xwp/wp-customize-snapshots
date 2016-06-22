@@ -150,6 +150,8 @@ class Customize_Snapshot_Manager {
 			$wp_customize = new \WP_Customize_Manager(); // WPCS: override ok.
 		}
 
+		$this->customize_manager = $wp_customize;
+
 		/*
 		 * Disable routine which fails because \WP_Customize_Manager::setup_theme() is
 		 * never called in a frontend preview context, whereby the original_stylesheet
@@ -163,8 +165,6 @@ class Customize_Snapshot_Manager {
 		if ( ! is_admin() ) {
 			remove_action( 'wp_loaded', array( $this->customize_manager->widgets, 'override_sidebars_widgets_for_theme_switch' ) );
 		}
-
-		$this->customize_manager = $wp_customize;
 	}
 
 
