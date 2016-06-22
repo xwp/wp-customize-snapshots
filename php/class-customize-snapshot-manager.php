@@ -452,27 +452,43 @@ class Customize_Snapshot_Manager {
 	 * Publish the snapshot snapshots via AJAX.
 	 *
 	 * Fires at `customize_save_after` to update and publish the snapshot.
+	 *
+	 * @return bool Whether the snapshot was saved successfully.
 	 */
 	public function publish_snapshot_with_customize_save_after() {
+		$that = $this;
+
 		if ( $this->snapshot && current_user_can( 'customize_publish' ) ) {
-			$this->snapshot->set( $this->customize_manager->unsanitized_post_values() );
-			$r = $this->snapshot->save( array(
-				'status' => 'publish',
-			) );
-
-			add_filter( 'customize_save_response', function( $data ) {
-				$data['new_customize_snapshot_uuid'] = static::generate_uuid();
-				return $data;
-			} );
-
-			if ( is_wp_error( $r ) ) {
-				add_filter( 'customize_save_response', function( $response ) use ( $r ) {
-					$response[ $r->get_error_code() ] = $r->get_error_message();
+			$result = $this->snapshot->set( $this->customize_manager->unsanitized_post_values() );
+			if ( $result['error'] ) {
+				add_filter( 'customize_save_response', function( $response ) use ( $result, $that ) {
+					$response['snapshot_errors'] = $that->prepare_errors_for_response( $result['error'] );
 					return $response;
 				} );
 				return false;
 			}
+
+			$r = $this->snapshot->save( array(
+				'status' => 'publish',
+			) );
+
+			if ( is_wp_error( $r ) ) {
+				add_filter( 'customize_save_response', function( $response ) use ( $r, $that ) {
+					$response['snapshot_errors'] = $that->prepare_errors_for_response( $r );
+					return $response;
+				} );
+				return false;
+			} else {
+
+				// Send the new UUID to the client for the next snapshot.
+				add_filter( 'customize_save_response', function( $data ) {
+					$data['new_customize_snapshot_uuid'] = static::generate_uuid();
+					return $data;
+				} );
+			}
+			return true;
 		}
+		return false;
 	}
 
 	/**
@@ -519,7 +535,7 @@ class Customize_Snapshot_Manager {
 		}
 
 		$data = array(
-			'error' => null,
+			'errors' => null,
 		);
 		$r = $this->snapshot->set( $this->customize_manager->unsanitized_post_values() );
 		if ( method_exists( $this->customize_manager, 'prepare_setting_validity_for_js' ) ) {
@@ -529,12 +545,8 @@ class Customize_Snapshot_Manager {
 			);
 		}
 
-		if ( $r['error'] ) {
-			$data['error'] = array(
-				'code' => $r['error']->get_error_code(),
-				'message' => $r['error']->get_error_message(),
-				'data' => $r['error']->get_error_data(),
-			);
+		if ( $r['errors'] ) {
+			$data['errors'] = $this->prepare_errors_for_response( $r['errors'] );
 			wp_send_json_error( $data );
 		}
 
@@ -542,15 +554,28 @@ class Customize_Snapshot_Manager {
 			'status' => $status,
 		) );
 		if ( is_wp_error( $r ) ) {
-			$data['error'] = array(
-				'code' => $r->get_error_code(),
-				'message' => $r->get_error_message(),
-				'data' => $r->get_error_data(),
-			);
+			$data['errors'] = $this->prepare_errors_for_response( $r );
 			wp_send_json_error( $data );
 		}
 
 		wp_send_json_success( $data );
+	}
+
+	/**
+	 * Prepare a WP_Error for sending to JS.
+	 *
+	 * @param \WP_Error $error Error.
+	 * @return array
+	 */
+	public function prepare_errors_for_response( \WP_Error $error ) {
+		$exported_errors = array();
+		foreach ( $error->errors as $code => $messages ) {
+			$exported_errors[ $code ] = array(
+				'message' => join( ' ', $messages ),
+				'data' => $error->get_error_data( $code ),
+			);
+		}
+		return $exported_errors;
 	}
 
 	/**

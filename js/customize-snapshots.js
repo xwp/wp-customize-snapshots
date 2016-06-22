@@ -291,17 +291,18 @@
 
 		request.fail( function( response ) {
 			var id = 'snapshot-dialog-error',
-				snapshotDialogShareError = wp.template( id );
+				snapshotDialogShareError = wp.template( id ),
+				messages = component.data.i18n.errorMsg;
 
-			if ( response.error && 'invalid_values' === response.error.code ) {
-				return;
+			if ( response.errors ) {
+				messages += ' ' + _.pluck( response.errors, 'message' ).join( ' ' );
 			}
 
 			// Insert the snapshot dialog error template.
 			if ( 0 === $( '#' + id ).length ) {
 				$( 'body' ).append( snapshotDialogShareError( {
 					title: component.data.i18n.errorTitle,
-					message: component.data.i18n.errorMsg
+					message: messages
 				} ) );
 			}
 

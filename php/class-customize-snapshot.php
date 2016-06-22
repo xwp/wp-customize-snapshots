@@ -117,7 +117,9 @@ class Customize_Snapshot {
 	 */
 	public function settings() {
 		$settings = array();
-		foreach ( array_keys( $this->data ) as $setting_id ) {
+		$setting_ids = array_keys( $this->data );
+		$this->snapshot_manager->customize_manager->add_dynamic_settings( $setting_ids );
+		foreach ( $setting_ids as $setting_id ) {
 			$setting = $this->snapshot_manager->customize_manager->get_setting( $setting_id );
 			if ( $setting ) {
 				$settings[] = $setting;
@@ -149,8 +151,9 @@ class Customize_Snapshot {
 	 * }
 	 */
 	public function set( array $unsanitized_post_values ) {
+		$error = new \WP_Error();
 		$result = array(
-			'error' => null,
+			'errors' => null,
 			'sanitized' => array(),
 			'validities' => array(),
 		);
@@ -159,18 +162,30 @@ class Customize_Snapshot {
 		$customize_manager->add_dynamic_settings( array_keys( $unsanitized_post_values ) );
 
 		$unrecognized_setting_ids = array();
+		$unauthorized_setting_ids = array();
 		foreach ( $unsanitized_post_values as $setting_id => $unsanitized_post_value ) {
 			$setting = $customize_manager->get_setting( $setting_id );
 			if ( $setting ) {
-				$result['sanitized'][ $setting_id ] = $setting->sanitize( $unsanitized_post_value );
+				if ( ! current_user_can( $setting->capability ) ) {
+					$unauthorized_setting_ids[] = $setting_id;
+				} else {
+					$result['sanitized'][ $setting_id ] = $setting->sanitize( $unsanitized_post_value );
+				}
 			} else {
 				$unrecognized_setting_ids[] = $setting_id;
 			}
 		}
+		if ( ! empty( $unauthorized_setting_ids ) ) {
+			$error->add(
+				'unauthorized_settings',
+				sprintf( __( 'Unauthorized settings: %s', 'customize-snapshots' ), join( ',', $unauthorized_setting_ids ) ),
+				array( 'setting_ids' => $unauthorized_setting_ids )
+			);
+		}
 		if ( ! empty( $unrecognized_setting_ids ) ) {
-			$result['error'] = new \WP_Error(
+			$error->add(
 				'unrecognized_settings',
-				sprintf( __( 'Unrecognized settings: %s' ), join( ',', $unrecognized_setting_ids ) ),
+				sprintf( __( 'Unrecognized settings: %s', 'customize-snapshots' ), join( ',', $unrecognized_setting_ids ) ),
 				array( 'setting_ids' => $unrecognized_setting_ids )
 			);
 		}
@@ -194,16 +209,16 @@ class Customize_Snapshot {
 			return is_wp_error( $validity );
 		} ) );
 
-		if ( 0 === count( $invalid_setting_ids ) ) {
-			$this->data = array_merge( $this->data, $result['sanitized'] );
-		} else {
+		if ( 0 !== count( $invalid_setting_ids ) ) {
 			$code = 'invalid_values';
 			$message = __( 'Invalid values' );
-			if ( $result['error'] ) {
-				$result['error']->add( $code, $message, compact( 'invalid_setting_ids' ) );
-			} else {
-				$result['error'] = new \WP_Error( $code, $message, compact( 'invalid_setting_ids' ) );
-			}
+			$error->add( $code, $message, compact( 'invalid_setting_ids' ) );
+		}
+
+		if ( ! empty( $error->errors ) ) {
+			$result['errors'] = $error;
+		} else {
+			$this->data = array_merge( $this->data, $result['sanitized'] );
 		}
 
 		return $result;
