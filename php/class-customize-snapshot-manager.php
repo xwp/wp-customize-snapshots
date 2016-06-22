@@ -441,6 +441,7 @@ class Customize_Snapshot_Manager {
 				'errorMsg' => __( 'The snapshot could not be saved.', 'customize-snapshots' ),
 				'errorTitle' => __( 'Error', 'customize-snapshots' ),
 			),
+			'snapshotExists' => ( $this->snapshot && $this->snapshot->saved() ),
 		) );
 
 		// Export data to JS.
