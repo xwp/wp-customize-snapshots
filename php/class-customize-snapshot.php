@@ -211,7 +211,7 @@ class Customize_Snapshot {
 
 		if ( 0 !== count( $invalid_setting_ids ) ) {
 			$code = 'invalid_values';
-			$message = __( 'Invalid values' );
+			$message = __( 'Invalid values', 'customize-snapshots' );
 			$error->add( $code, $message, compact( 'invalid_setting_ids' ) );
 		}
 
