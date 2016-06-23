@@ -387,15 +387,32 @@ class Post_Type {
 
 		// Snapshot is stored as JSON in post_content.
 		$data = json_decode( $post->post_content, true );
+		if ( json_last_error() || ! is_array( $data ) ) {
+			$this->snapshot_manager->plugin->trigger_warning( 'JSON parse error, expected array: ' . ( function_exists( 'json_last_error_msg' ) ? json_last_error_msg() : json_last_error() ) );
+		}
 		if ( ! is_array( $data ) ) {
 			return array();
 		}
 
-		$version = get_post_meta( $post->ID, '_snapshot_version', true );
-
 		// Update data structure value.
+		$version = get_post_meta( $post->ID, '_snapshot_version', true );
 		if ( empty( $version ) || version_compare( $version, '0.5.0', '<' ) ) {
-			$data = wp_list_pluck( $data, 'value' );
+			$migrated_data = array();
+			foreach ( $data as $setting_id => $setting_params ) {
+				if ( ! is_array( $setting_params ) || ! array_key_exists( 'value', $setting_params ) ) {
+					$migrated_data = null;
+					break;
+				}
+				if ( ! isset( $setting_params['dirty'] ) || ! empty( $setting_params['dirty'] ) ) {
+					$migrated_data[ $setting_id ] = $setting_params['value'];
+				}
+			}
+
+			if ( is_null( $migrated_data ) ) {
+				$data = array();
+			} else {
+				$data = $migrated_data;
+			}
 		}
 
 		return $data;

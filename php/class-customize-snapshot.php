@@ -68,11 +68,7 @@ class Customize_Snapshot {
 		$this->uuid = $uuid;
 		$post = $this->post();
 		if ( $post ) {
-			$this->data = json_decode( $post->post_content, true );
-			if ( json_last_error() || ! is_array( $this->data ) ) {
-				$this->snapshot_manager->plugin->trigger_warning( 'JSON parse error, expected array: ' . ( function_exists( 'json_last_error_msg' ) ? json_last_error_msg() : json_last_error() ) );
-				$this->data = array();
-			}
+			$this->data = $this->snapshot_manager->post_type->get_post_content( $post );
 		}
 	}
 
