@@ -141,7 +141,7 @@ class Customize_Snapshot {
 	/**
 	 * Prepare snapshot data for saving.
 	 *
-	 * @param array $unsanitized_post_values Unsanitized post values.
+	 * @param array $unsanitized_values Unsanitized post values.
 	 * @return array {
 	 *     Result.
 	 *
@@ -150,7 +150,7 @@ class Customize_Snapshot {
 	 *     @type array          $validities Setting validities.
 	 * }
 	 */
-	public function set( array $unsanitized_post_values ) {
+	public function set( array $unsanitized_values ) {
 		$error = new \WP_Error();
 		$result = array(
 			'errors' => null,
@@ -159,17 +159,17 @@ class Customize_Snapshot {
 		);
 
 		$customize_manager = $this->snapshot_manager->customize_manager;
-		$customize_manager->add_dynamic_settings( array_keys( $unsanitized_post_values ) );
+		$customize_manager->add_dynamic_settings( array_keys( $unsanitized_values ) );
 
 		$unrecognized_setting_ids = array();
 		$unauthorized_setting_ids = array();
-		foreach ( $unsanitized_post_values as $setting_id => $unsanitized_post_value ) {
+		foreach ( $unsanitized_values as $setting_id => $unsanitized_value ) {
 			$setting = $customize_manager->get_setting( $setting_id );
 			if ( $setting ) {
 				if ( ! current_user_can( $setting->capability ) ) {
 					$unauthorized_setting_ids[] = $setting_id;
 				} else {
-					$result['sanitized'][ $setting_id ] = $setting->sanitize( $unsanitized_post_value );
+					$result['sanitized'][ $setting_id ] = $setting->sanitize( $unsanitized_value );
 				}
 			} else {
 				$unrecognized_setting_ids[] = $setting_id;
@@ -191,7 +191,7 @@ class Customize_Snapshot {
 		}
 
 		if ( method_exists( $customize_manager, 'validate_setting_values' ) ) {
-			$result['validities'] = $customize_manager->validate_setting_values( $result['sanitized'] );
+			$result['validities'] = $customize_manager->validate_setting_values( $unsanitized_values );
 		} else {
 			$result['validities'] = array_map(
 				function( $sanitized ) {
@@ -218,7 +218,24 @@ class Customize_Snapshot {
 		if ( ! empty( $error->errors ) ) {
 			$result['errors'] = $error;
 		} else {
-			$this->data = array_merge( $this->data, $result['sanitized'] );
+			/*
+			 * Note that somewhat unintuitively the unsanitized post values
+			 * ($unsanitized_values) are stored as opposed to storing the
+			 * sanitized ones ($result['sanitized']). It is still safe to do this
+			 * because they have passed sanitization and validation here. The
+			 * reason why we need to store the raw unsanitized values is so that
+			 * the values can be re-populated into the post values for running
+			 * through the sanitize, validate, and ultimately update logic.
+			 * Once a value has gone through the sanitize logic, it may not be
+			 * suitable for populating into a post value, especially widget
+			 * instances which get exported with a JS value that has the instance
+			 * data encoded, serialized, and hashed to prevent mutation. A
+			 * sanitize filter for a widget instance will convert an encoded
+			 * instance value into a regular instance array, and if this regular
+			 * instance array is placed back into a post value, it will get
+			 * rejected by the sanitize logic for not being an encoded value.
+			 */
+			$this->data = array_merge( $this->data, $unsanitized_values );
 		}
 
 		return $result;
