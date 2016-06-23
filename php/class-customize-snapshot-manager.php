@@ -40,6 +40,8 @@ class Customize_Snapshot_Manager {
 	/**
 	 * Customize_Snapshot instance.
 	 *
+	 * @todo Rename `Customize_Snapshot` to just `Snapshot`.
+	 *
 	 * @var Customize_Snapshot
 	 */
 	public $snapshot;

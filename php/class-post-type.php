@@ -386,12 +386,19 @@ class Post_Type {
 		}
 
 		// Snapshot is stored as JSON in post_content.
-		$snapshot = json_decode( $post->post_content, true );
-		if ( is_array( $snapshot ) ) {
-			return $snapshot;
+		$data = json_decode( $post->post_content, true );
+		if ( ! is_array( $data ) ) {
+			return array();
 		}
 
-		return array();
+		$version = get_post_meta( $post->ID, '_snapshot_version', true );
+
+		// Update data structure value.
+		if ( empty( $version ) || version_compare( $version, '0.5.0', '<' ) ) {
+			$data = wp_list_pluck( $data, 'value' );
+		}
+
+		return $data;
 	}
 
 
@@ -436,8 +443,11 @@ class Post_Type {
 		}
 		$this->restore_kses();
 
-		if ( ! is_wp_error( $r ) && ! empty( $args['theme'] ) ) {
-			update_post_meta( $r, '_snapshot_theme', $args['theme'] );
+		if ( ! is_wp_error( $r ) ) {
+			if ( ! empty( $args['theme'] ) ) {
+				update_post_meta( $r, '_snapshot_theme', $args['theme'] );
+			}
+			update_post_meta( $r, '_snapshot_version', $this->snapshot_manager->plugin->version );
 		}
 
 		return $r;

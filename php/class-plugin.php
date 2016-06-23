@@ -15,9 +15,31 @@ class Plugin extends Plugin_Base {
 	/**
 	 * Snapshot manager instance.
 	 *
+	 * @todo Rename this to just `$manager` and let the class be `Manager`.
+	 *
 	 * @var Customize_Snapshot_Manager
 	 */
 	public $customize_snapshot_manager;
+
+	/**
+	 * Version.
+	 *
+	 * @var string
+	 */
+	public $version;
+
+	/**
+	 * Plugin constructor.
+	 */
+	public function __construct() {
+
+		// Parse plugin version.
+		if ( preg_match( '/Version:\s*(\S+)/', file_get_contents( dirname( __FILE__ ) . '/../customize-snapshots.php' ), $matches ) ) {
+			$this->version = $matches[1];
+		}
+
+		parent::__construct();
+	}
 
 	/**
 	 * Initiate the plugin resources.
