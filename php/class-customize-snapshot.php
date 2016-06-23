@@ -241,12 +241,31 @@ class Customize_Snapshot {
 	 */
 	public function save( array $args ) {
 
+		$back_compat_data = array_map(
+			function( $value ) {
+				return compact( 'value' );
+			},
+			$this->data
+		);
+
+		/**
+		 * Filter the snapshot's data before it's saved to 'post_content'. (Deprecated)
+		 *
+		 * This is deprecated in favor of `customize_snapshot_save_data`.
+		 *
+		 * @deprecated
+		 * @param array $data Customizer settings and values.
+		 */
+		$back_compat_data = apply_filters( 'customize_snapshot_save', $back_compat_data );
+		$data = wp_list_pluck( $back_compat_data, 'value' );
+
 		/**
 		 * Filter the snapshot's data before it's saved to 'post_content'.
 		 *
-		 * @param array $data Customizer settings and values.
+		 * @param array $data Customizer values.
 		 */
-		$this->data = apply_filters( 'customize_snapshot_save', $this->data );
+		$data = apply_filters( 'customize_snapshot_save_data', $data );
+		$this->data = $data;
 
 		$result = $this->snapshot_manager->post_type->save( array_merge(
 			$args,
