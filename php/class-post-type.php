@@ -103,8 +103,6 @@ class Post_Type {
 
 		add_action( 'add_meta_boxes_' . static::SLUG, array( $this, 'remove_publish_metabox' ), 100 );
 		add_action( 'load-revision.php', array( $this, 'suspend_kses_for_snapshot_revision_restore' ) );
-		add_action( '_wp_put_post_revision', array( $this, 'store_version_with_snapshot_revision' ) );
-		add_action( 'wp_restore_post_revision', array( $this, 'restore_version_from_restored_snapshot_revision' ), 10, 2 );
 		add_filter( 'bulk_actions-edit-' . static::SLUG, array( $this, 'filter_bulk_actions' ) );
 		add_filter( 'get_the_excerpt', array( $this, 'filter_snapshot_excerpt' ), 10, 2 );
 		add_filter( 'post_row_actions', array( $this, 'filter_post_row_actions' ), 10, 2 );
@@ -195,43 +193,6 @@ class Post_Type {
 		add_action( 'wp_restore_post_revision', function() use ( $that ) {
 			$that->restore_kses();
 		} );
-	}
-
-	/**
-	 * Store the version number for each post revision post that is made.
-	 *
-	 * @param int $revision_id Post revision ID.
-	 */
-	function store_version_with_snapshot_revision( $revision_id ) {
-		$post = get_post( $revision_id );
-		$parent_post = get_post( $post->post_parent );
-		if ( ! $parent_post || static::SLUG !== $parent_post->post_type ) {
-			return;
-		}
-
-		if ( ! get_metadata( 'post', $revision_id, '_snapshot_version', true ) ) {
-			update_metadata( 'post', $revision_id, '_snapshot_version', $this->snapshot_manager->plugin->version );
-		}
-	}
-
-	/**
-	 * Restore version postmeta with restored snapshot revision.
-	 *
-	 * @param int $post_id            Post ID.
-	 * @param int $source_revision_id Revision ID.
-	 */
-	function restore_version_from_restored_snapshot_revision( $post_id, $source_revision_id ) {
-		$post = get_post( $post_id );
-		if ( empty( $post ) || static::SLUG !== $post->post_type ) {
-			return;
-		}
-
-		$version = get_metadata( 'post', $source_revision_id, '_snapshot_version', true );
-		if ( $version ) {
-			update_metadata( 'post', $post_id, '_snapshot_version', $version );
-		} else {
-			delete_metadata( 'post', $post_id, '_snapshot_version' );
-		}
 	}
 
 	/**
@@ -434,7 +395,7 @@ class Post_Type {
 		}
 
 		// Update data structure value.
-		$version = get_metadata( 'post', $post->ID, '_snapshot_version', true );
+		$version = get_post_meta( $post->ID, '_snapshot_version', true );
 		if ( empty( $version ) || version_compare( $version, '0.5.0', '<' ) ) {
 			$migrated_data = array();
 			foreach ( $data as $setting_id => $setting_params ) {
@@ -500,11 +461,10 @@ class Post_Type {
 		$this->restore_kses();
 
 		if ( ! is_wp_error( $r ) ) {
-			$post_id = $r;
 			if ( ! empty( $args['theme'] ) ) {
-				update_post_meta( $post_id, '_snapshot_theme', $args['theme'] );
+				update_post_meta( $r, '_snapshot_theme', $args['theme'] );
 			}
-			update_metadata( 'post', $post_id, '_snapshot_version', $this->snapshot_manager->plugin->version );
+			update_post_meta( $r, '_snapshot_version', $this->snapshot_manager->plugin->version );
 		}
 
 		return $r;
