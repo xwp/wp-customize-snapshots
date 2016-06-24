@@ -228,7 +228,7 @@ class Customize_Snapshot_Manager {
 	public function import_snapshot_data() {
 
 		// @todo $snapshot_values = array_merge( $this->customize_manager->unsanitized_post_values(), $this->snapshot->data() ); ?
-		$snapshot_values = $this->snapshot->data();
+		$snapshot_values = wp_list_pluck( $this->snapshot->data(), 'value' );
 
 		// Populate input vars for back-compat.
 		$_POST['customized'] = wp_slash( wp_json_encode( $snapshot_values ) );

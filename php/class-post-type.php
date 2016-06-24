@@ -394,27 +394,6 @@ class Post_Type {
 			return array();
 		}
 
-		// Update data structure value.
-		$version = get_post_meta( $post->ID, '_snapshot_version', true );
-		if ( empty( $version ) || version_compare( $version, '0.5.0', '<' ) ) {
-			$migrated_data = array();
-			foreach ( $data as $setting_id => $setting_params ) {
-				if ( ! is_array( $setting_params ) || ! array_key_exists( 'value', $setting_params ) ) {
-					$migrated_data = null;
-					break;
-				}
-				if ( ! isset( $setting_params['dirty'] ) || ! empty( $setting_params['dirty'] ) ) {
-					$migrated_data[ $setting_id ] = $setting_params['value'];
-				}
-			}
-
-			if ( is_null( $migrated_data ) ) {
-				$data = array();
-			} else {
-				$data = $migrated_data;
-			}
-		}
-
 		return $data;
 	}
 

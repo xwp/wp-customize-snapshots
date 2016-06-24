@@ -231,7 +231,12 @@ class Customize_Snapshot {
 			 * instance array is placed back into a post value, it will get
 			 * rejected by the sanitize logic for not being an encoded value.
 			 */
-			$this->data = array_merge( $this->data, $unsanitized_values );
+			foreach ( $unsanitized_values as $setting_id => $unsanitized_value ) {
+				if ( ! isset( $this->data[ $setting_id ] ) ) {
+					$this->data[ $setting_id ] = array();
+				}
+				$this->data[ $setting_id ]['value'] = $unsanitized_value;
+			}
 		}
 
 		return $result;
@@ -254,31 +259,13 @@ class Customize_Snapshot {
 	 */
 	public function save( array $args ) {
 
-		$back_compat_data = array_map(
-			function( $value ) {
-				return compact( 'value' );
-			},
-			$this->data
-		);
-
-		/**
-		 * Filter the snapshot's data before it's saved to 'post_content'. (Deprecated)
-		 *
-		 * This is deprecated in favor of `customize_snapshot_save_data`.
-		 *
-		 * @deprecated
-		 * @param array $data Customizer settings and values.
-		 */
-		$back_compat_data = apply_filters( 'customize_snapshot_save', $back_compat_data );
-		$data = wp_list_pluck( $back_compat_data, 'value' );
-
 		/**
 		 * Filter the snapshot's data before it's saved to 'post_content'.
 		 *
-		 * @param array $data Customizer values.
+		 * @param array $data Customizer snapshot data, with setting IDs mapped to an array
+		 *                    containing a `value` array item and potentially other metadata.
 		 */
-		$data = apply_filters( 'customize_snapshot_save_data', $data );
-		$this->data = $data;
+		$this->data = apply_filters( 'customize_snapshot_save', $this->data );
 
 		$result = $this->snapshot_manager->post_type->save( array_merge(
 			$args,
