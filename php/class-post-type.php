@@ -316,11 +316,38 @@ class Post_Type {
 
 		ksort( $snapshot_content );
 		echo '<ul id="snapshot-settings">';
-		foreach ( $snapshot_content as $setting_id => $setting_value ) {
+		foreach ( $snapshot_content as $setting_id => $setting_params ) {
+			if ( ! isset( $setting_params['value'] ) ) {
+				continue;
+			}
+			$value = $setting_params['value'];
+
 			echo '<li>';
 			echo '<details open>';
 			echo '<summary><code>' . esc_html( $setting_id ) . '</code></summary>';
-			echo sprintf( '<pre class="pre">%s</pre>', esc_html( Customize_Snapshot_Manager::encode_json( $setting_value ) ) );
+			if ( is_string( $value ) || is_numeric( $value ) ) {
+				$preview = '<p>' . esc_html( $value ) . '</p>';
+			} elseif ( is_bool( $value ) ) {
+				$preview = '<p>' . wp_json_encode( $value ) . '</p>';
+			} else {
+				$preview = sprintf( '<pre class="pre">%s</pre>', esc_html( Customize_Snapshot_Manager::encode_json( $value ) ) );
+			}
+
+			/**
+			 * Filters the previewed value for a snapshot.
+			 *
+			 * @param string $preview HTML markup.
+			 * @param array  $context {
+			 *     Context.
+			 *
+			 *     @type mixed $value          Value being previewed.
+			 *     @type array $setting_params Setting args, including value.
+			 *     @type \WP_Post $post        Snapshot post.
+			 * }
+			 */
+			$preview = apply_filters( 'customize_snapshot_value_preview', $preview, compact( 'value', 'setting_params', 'post' ) );
+
+			echo $preview; // WPCS: xss ok.
 			echo '</details>';
 			echo '</li>';
 		}
