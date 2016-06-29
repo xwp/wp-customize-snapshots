@@ -16,6 +16,12 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	const UUID = '65aee1ff-af47-47df-9e14-9c69b3017cd3';
 
 	/**
+	 * Typical Snapshot menu ID.
+	 * @type string
+	 */
+	const MENU_ID = '-1757032258044647400';
+
+	/**
 	 * @var \WP_Customize_Manager
 	 */
 	protected $wp_customize;
@@ -49,6 +55,8 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 
 		$this->wp_customize->add_setting( 'foo', array( 'default' => 'foo_default' ) );
 		$this->wp_customize->add_setting( 'bar', array( 'default' => 'bar_default' ) );
+		$this->wp_customize->add_setting( 'nav_menu_locations[foobar]', array( 'default' => '' ) );
+		$this->wp_customize->add_setting( 'nav_menu['. self::MENU_ID . ']', array( 'default' => array() ) );
 
 		$this->manager = new Customize_Snapshot_Manager( $this->plugin );
 		$this->user_id = $this->factory->user->create( array( 'role' => 'administrator' ) );
@@ -173,6 +181,74 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		// Test some defaults
 		$this->assertFalse( is_post_type_hierarchical( Customize_Snapshot_Manager::POST_TYPE ) );
 		$this->assertEquals( array(), get_object_taxonomies( Customize_Snapshot_Manager::POST_TYPE ) );
+	}
+
+	/**
+	 * @see Customize_Snapshot_Manager::filter_theme_mod_nav_menu_locations()
+	 */
+	function test_filter_theme_mod_nav_menu_locations() {
+		wp_set_current_user( $this->user_id );
+		$_POST = wp_slash( array(
+			'nonce' => wp_create_nonce( 'save-customize_' . $this->wp_customize->get_stylesheet() ),
+			'snapshot_uuid' => self::UUID,
+			'snapshot_customized' => '{"nav_menu_locations[foobar]":{"value":"' . self::MENU_ID . '"}}',
+		) );
+		add_action( 'after_setup_theme', function() {
+			register_nav_menu( 'foobar', 'Custom Menu' );
+		} );
+		$this->do_customize_boot_actions( true );
+
+		$manager = new Customize_Snapshot_Manager( $this->plugin );
+		$manager->set_snapshot_uuid();
+		$manager->save_snapshot();
+		$manager->snapshot()->is_preview = true;
+
+		$menu_locations = $manager->filter_theme_mod_nav_menu_locations( array( 'foobar' => '' ) );
+		$this->assertEquals( self::MENU_ID, $menu_locations['foobar'] );
+	}
+
+	/**
+	 * @see Customize_Snapshot_Manager::filter_wp_get_nav_menus()
+	 */
+	function test_filter_wp_get_nav_menus() {
+
+		$_POST = wp_slash( array(
+			'nonce' => wp_create_nonce( 'save-customize_' . $this->wp_customize->get_stylesheet() ),
+			'snapshot_uuid' => self::UUID,
+			'snapshot_customized' => '{"nav_menu[' . self::MENU_ID . ']":{"value":{}}}',
+		) );
+
+		wp_set_current_user( $this->user_id );
+		$this->do_customize_boot_actions( true );
+
+		$manager = new Customize_Snapshot_Manager( $this->plugin );
+		$manager->set_snapshot_uuid();
+		$manager->save_snapshot();
+		$manager->snapshot()->is_preview = true;
+
+		$menus = array();
+		$menus[] = $this->manager->get_nav_menu_object( self::MENU_ID, array() );
+		$this->assertEquals( array_values( $menus ), $manager->filter_wp_get_nav_menus( array() ) );
+	}
+
+	function test_filter_wp_get_nav_menu_items() {
+
+	}
+
+	function test_filter_wp_get_nav_menu_object() {
+
+	}
+
+	function test_get_nav_menu_object() {
+
+	}
+
+	function test_value_as_wp_post_nav_menu_item() {
+
+	}
+
+	function test_customize_register_nav_menus() {
+
 	}
 
 	/**
