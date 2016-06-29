@@ -161,8 +161,13 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	 * @see Customize_Snapshot_Manager::create_post_type()
 	 */
 	function test_create_post_type() {
+		global $wp_version;
 		$pobj = get_post_type_object( Customize_Snapshot_Manager::POST_TYPE );
-		$this->assertInstanceOf( 'stdClass', $pobj );
+		if ( version_compare( $wp_version, '4.6-alpha', '>=' ) && is_multisite() ) {
+			$this->assertInstanceOf( 'WP_Post_Type', $pobj );
+		} else {
+			$this->assertInstanceOf( 'stdClass', $pobj );
+		}
 		$this->assertEquals( Customize_Snapshot_Manager::POST_TYPE, $pobj->name );
 
 		// Test some defaults

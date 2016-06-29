@@ -12,16 +12,13 @@ namespace CustomizeSnapshots;
  *
  * Custom section only needed in JS.
  *
- * @since 4.3.0
- *
- * @see WP_Customize_Section
+ * @see \WP_Customize_Section
  */
 class Customize_Snapshot_Nav_Menu_Section extends \WP_Customize_Section {
 
 	/**
 	 * Control type.
 	 *
-	 * @since 4.3.0
 	 * @access public
 	 * @var string
 	 */
@@ -30,17 +27,13 @@ class Customize_Snapshot_Nav_Menu_Section extends \WP_Customize_Section {
 	/**
 	 * Get section parameters for JS.
 	 *
-	 * @since 4.3.0
 	 * @access public
 	 * @return array Exported parameters.
 	 */
 	public function json() {
 		$exported = parent::json();
-		if ( preg_match( '/\[([^\]]*)\]/', $this->id, $match ) ) {
-			$exported['menu_id'] = intval( $match[1] );
-		} else {
-			$exported['menu_id'] = intval( preg_replace( '/^nav_menu\[(\d+)\]/', '$1', $this->id ) );
-		}
+		$exported['menu_id'] = intval( preg_replace( '/^nav_menu\[(-?\d+)\]/', '$1', $this->id ) );
+
 		return $exported;
 	}
 }
