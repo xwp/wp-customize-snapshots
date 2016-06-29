@@ -231,11 +231,67 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		$this->assertEquals( array_values( $menus ), $manager->filter_wp_get_nav_menus( array() ) );
 	}
 
+	/**
+	 * @see Customize_Snapshot_Manager::filter_wp_get_nav_menu_items()
+	 */
 	function test_filter_wp_get_nav_menu_items() {
+
+		$this->wp_customize->add_setting( 'nav_menu_item[' . self::MENU_ID . ']');
+
+		$_POST = wp_slash( array(
+			'nonce' => wp_create_nonce( 'save-customize_' . $this->wp_customize->get_stylesheet() ),
+			'snapshot_uuid' => self::UUID,
+			'snapshot_customized' => '{"nav_menu_item[' . self::MENU_ID . ']":{"value":{"nav_menu_term_id":"' .
+				self::MENU_ID . '","status":"publish","position":"1","title":"","post_id":"' . self::MENU_ID . '"}}}',
+		) );
+
+		wp_set_current_user( $this->user_id );
+		$this->do_customize_boot_actions( true );
+
+		$manager = new Customize_Snapshot_Manager( $this->plugin );
+		$manager->set_snapshot_uuid();
+		$manager->save_snapshot();
+		$manager->snapshot()->is_preview = true;
+
+		$menu_items = array();
+		$menu_items[] = $this->manager->value_as_wp_post_nav_menu_item(
+			(object) array(
+				'post_id' => self::MENU_ID,
+				'nav_menu_term_id' => self::MENU_ID,
+				'status' => 'publish',
+				'position' => 1,
+				'title' => '',
+			)
+		);
+
+		$menu_object = $this->manager->get_nav_menu_object( self::MENU_ID, array() );
+
+		$this->assertEquals( array_values( $menu_items ), $manager->filter_wp_get_nav_menu_items( array(), $menu_object, array() ) );
 
 	}
 
+	/**
+	 * @see Customize_Snapshot_Manager::filter_wp_get_nav_menu_object()
+	 */
 	function test_filter_wp_get_nav_menu_object() {
+
+		$_POST = wp_slash( array(
+			'nonce' => wp_create_nonce( 'save-customize_' . $this->wp_customize->get_stylesheet() ),
+			'snapshot_uuid' => self::UUID,
+			'snapshot_customized' => '{"nav_menu[' . self::MENU_ID . ']":{"value":{"name":"Custom Menu"}}}',
+		) );
+
+		wp_set_current_user( $this->user_id );
+		$this->do_customize_boot_actions( true );
+
+		$manager = new Customize_Snapshot_Manager( $this->plugin );
+		$manager->set_snapshot_uuid();
+		$manager->save_snapshot();
+		$manager->snapshot()->is_preview = true;
+
+		$menu_object = $this->manager->get_nav_menu_object( self::MENU_ID, array( 'name' => 'Custom Menu' ) );
+
+		$this->assertEquals( $menu_object, $manager->filter_wp_get_nav_menu_object( false, self::MENU_ID ) );
 
 	}
 
