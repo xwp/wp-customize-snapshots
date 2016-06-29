@@ -292,19 +292,48 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		$menu_object = $this->manager->get_nav_menu_object( self::MENU_ID, array( 'name' => 'Custom Menu' ) );
 
 		$this->assertEquals( $menu_object, $manager->filter_wp_get_nav_menu_object( false, self::MENU_ID ) );
-
 	}
 
+	/**
+	 * @see Customize_Snapshot_Manager::get_nav_menu_object()
+	 */
 	function test_get_nav_menu_object() {
 
+		$values = array(
+			'name' => 'Custom Menu',
+			'term_id' => self::MENU_ID,
+			'taxonomy' => 'nav_menu',
+			'slug' => 'custom-menu',
+		);
+		$menu_obj = new \WP_Term( (object) array_merge( $values, array( 'term_taxonomy_id' => self::MENU_ID ) ) );
+
+		$this->assertEquals( $menu_obj, $this->manager->get_nav_menu_object( self::MENU_ID, $values ) );
 	}
 
+	/**
+	 * @see Customize_Snapshot_Manager::value_as_wp_post_nav_menu_item()
+	 */
 	function test_value_as_wp_post_nav_menu_item() {
+		$menu_item_values = array(
+			'ID' => self::MENU_ID,
+			'menu_order' => 1,
+			'post_type' => 'nav_menu_item',
+			'post_id' => self::MENU_ID,
+			'title' => '',
+			'db_id' => self::MENU_ID,
+			'type_label' => 'Custom Link',
+			'attr_title' => '',
+			'description' => '',
+		);
+		$post = new \WP_Post( (object) $menu_item_values );
 
-	}
-
-	function test_customize_register_nav_menus() {
-
+		$this->assertEquals( $post, $this->manager->value_as_wp_post_nav_menu_item( (object) array(
+			'post_id' => self::MENU_ID,
+			'nav_menu_term_id' => self::MENU_ID,
+			'status' => 'publish',
+			'position' => 1,
+			'title' => '',
+		) ) );
 	}
 
 	/**
