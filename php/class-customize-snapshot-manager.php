@@ -537,6 +537,7 @@ class Customize_Snapshot_Manager {
 	/**
 	 * Get the value emulated into a WP_Post and set up as a nav_menu_item.
 	 *
+	 * @param object $item Snapshot nav menu item.
 	 * @return WP_Post With wp_setup_nav_menu_item() applied.
 	 */
 	public function value_as_wp_post_nav_menu_item( $item ) {
@@ -577,7 +578,7 @@ class Customize_Snapshot_Manager {
 					$post->type_label = $post->object;
 				}
 			} else {
-				$post->type_label = __( 'Custom Link' );
+				$post->type_label = __( 'Custom Link', 'customize-snapshots' );
 			}
 		}
 
