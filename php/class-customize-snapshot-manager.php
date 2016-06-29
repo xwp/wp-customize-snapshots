@@ -480,13 +480,11 @@ class Customize_Snapshot_Manager {
 			}
 		}
 
-		if ( $menu->term_id < 0 ) {
-			foreach ( $values as $setting_id => $item ) {
-				if ( preg_match( \WP_Customize_Nav_Menu_Item_Setting::ID_PATTERN, $setting_id, $matches ) ) {
-					if ( (int) $menu->term_id === (int) $item['nav_menu_term_id'] ) {
-						$item['post_id'] = intval( $matches['id'] );
-						$items[] = $this->value_as_wp_post_nav_menu_item( (object) $item );
-					}
+		foreach ( $values as $setting_id => $item ) {
+			if ( preg_match( \WP_Customize_Nav_Menu_Item_Setting::ID_PATTERN, $setting_id, $matches ) ) {
+				if ( (int) $menu->term_id === (int) $item['nav_menu_term_id'] ) {
+					$item['post_id'] = intval( $matches['id'] );
+					$items[] = $this->value_as_wp_post_nav_menu_item( (object) $item );
 				}
 			}
 		}
@@ -595,7 +593,7 @@ class Customize_Snapshot_Manager {
 	}
 
 	/**
-	 * Register nav menus and items found in a Snapshot.
+	 * Register nav menus found in a Snapshot.
 	 */
 	public function customize_register_nav_menus() {
 		if ( false === $this->snapshot->is_preview() ) {
