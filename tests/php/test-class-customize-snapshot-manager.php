@@ -337,6 +337,30 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	}
 
 	/**
+	 * @see Customize_Snapshot_Manager::customize_register_nav_menus()
+	 */
+	function test_customize_register_nav_menus() {
+		$_POST = wp_slash( array(
+			'nonce' => wp_create_nonce( 'save-customize_' . $this->wp_customize->get_stylesheet() ),
+			'snapshot_uuid' => self::UUID,
+			'snapshot_customized' => '{"nav_menu[' . self::MENU_ID . ']":{"value":{}}}',
+		) );
+
+		wp_set_current_user( $this->user_id );
+		$this->do_customize_boot_actions( true );
+
+		$manager = new Customize_Snapshot_Manager( $this->plugin );
+		$manager->set_snapshot_uuid();
+		$manager->save_snapshot();
+		$manager->snapshot()->is_preview = true;
+
+		$manager->customize_register_nav_menus();
+
+		$this->assertTrue( is_a( $this->wp_customize->get_section( 'nav_menu[' . self::MENU_ID . ']' ), 'CustomizeSnapshots\Customize_Snapshot_Nav_Menu_Section' ) );
+
+	}
+
+	/**
 	 * @see Customize_Snapshot_Manager::filter_bulk_actions()
 	 */
 	function test_filter_bulk_actions() {
