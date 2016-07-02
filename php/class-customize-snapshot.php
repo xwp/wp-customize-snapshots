@@ -157,35 +157,28 @@ class Customize_Snapshot {
 		$customize_manager = $this->snapshot_manager->customize_manager;
 		$customize_manager->add_dynamic_settings( array_keys( $unsanitized_values ) );
 
+		// Check for recognized settings and authorized settings.
 		$unrecognized_setting_ids = array();
 		$unauthorized_setting_ids = array();
 		foreach ( $unsanitized_values as $setting_id => $unsanitized_value ) {
 			$setting = $customize_manager->get_setting( $setting_id );
-			if ( $setting ) {
-				if ( ! current_user_can( $setting->capability ) ) {
-					$unauthorized_setting_ids[] = $setting_id;
-				} else {
-					$result['sanitized'][ $setting_id ] = $setting->sanitize( $unsanitized_value );
-				}
-			} else {
+			if ( ! $setting ) {
 				$unrecognized_setting_ids[] = $setting_id;
+			} elseif ( ! current_user_can( $setting->capability ) ) {
+				$unauthorized_setting_ids[] = $setting_id;
 			}
 		}
-		if ( ! empty( $unauthorized_setting_ids ) ) {
-			$error->add(
-				'unauthorized_settings',
-				sprintf( __( 'Unauthorized settings: %s', 'customize-snapshots' ), join( ',', $unauthorized_setting_ids ) ),
-				array( 'setting_ids' => $unauthorized_setting_ids )
-			);
-		}
-		if ( ! empty( $unrecognized_setting_ids ) ) {
-			$error->add(
-				'unrecognized_settings',
-				sprintf( __( 'Unrecognized settings: %s', 'customize-snapshots' ), join( ',', $unrecognized_setting_ids ) ),
-				array( 'setting_ids' => $unrecognized_setting_ids )
-			);
-		}
 
+		// Remove values that are unrecognized or unauthorized.
+		$unsanitized_values = wp_array_slice_assoc(
+			$unsanitized_values,
+			array_diff(
+				array_keys( $unsanitized_values ),
+				array_merge( $unrecognized_setting_ids, $unauthorized_setting_ids )
+			)
+		);
+
+		// Validate.
 		if ( method_exists( $customize_manager, 'validate_setting_values' ) ) {
 			$result['validities'] = $customize_manager->validate_setting_values( $unsanitized_values );
 		} else {
@@ -200,11 +193,35 @@ class Customize_Snapshot {
 				$result['sanitized']
 			);
 		}
-
 		$invalid_setting_ids = array_keys( array_filter( $result['validities'], function( $validity ) {
 			return is_wp_error( $validity );
 		} ) );
 
+		// Sanitize.
+		foreach ( $unsanitized_values as $setting_id => $unsanitized_value ) {
+			$setting = $customize_manager->get_setting( $setting_id );
+			if ( $setting ) {
+				$result['sanitized'][ $setting_id ] = $setting->sanitize( $unsanitized_value );
+			} else {
+				$unrecognized_setting_ids[] = $setting_id;
+			}
+		}
+
+		// Add errors.
+		if ( ! empty( $unauthorized_setting_ids ) ) {
+			$error->add(
+				'unauthorized_settings',
+				sprintf( __( 'Unauthorized settings: %s', 'customize-snapshots' ), join( ',', $unauthorized_setting_ids ) ),
+				array( 'setting_ids' => $unauthorized_setting_ids )
+			);
+		}
+		if ( ! empty( $unrecognized_setting_ids ) ) {
+			$error->add(
+				'unrecognized_settings',
+				sprintf( __( 'Unrecognized settings: %s', 'customize-snapshots' ), join( ',', $unrecognized_setting_ids ) ),
+				array( 'setting_ids' => $unrecognized_setting_ids )
+			);
+		}
 		if ( 0 !== count( $invalid_setting_ids ) ) {
 			$code = 'invalid_values';
 			$message = __( 'Invalid values', 'customize-snapshots' );
