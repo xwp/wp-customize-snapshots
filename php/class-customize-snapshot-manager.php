@@ -398,8 +398,8 @@ class Customize_Snapshot_Manager {
 	 * @param \WP_Post $post    Post object.
 	 * @return string Excerpt.
 	 */
-	public function filter_snapshot_excerpt( $excerpt, $post ) {
-		if ( self::POST_TYPE === $post->post_type ) {
+	public function filter_snapshot_excerpt( $excerpt, \WP_Post $post = null ) {
+		if ( $post instanceof \WP_Post && self::POST_TYPE === $post->post_type ) {
 			$excerpt = '<ol>';
 			foreach ( static::get_post_content( $post ) as $setting_id => $setting_params ) {
 				if ( ! isset( $setting_params['dirty'] ) || true === $setting_params['dirty'] ) {
@@ -780,11 +780,44 @@ class Customize_Snapshot_Manager {
 	}
 
 	/**
-	 * Replaces the "Customize" link in the Toolbar.
+	 * Toolbar modifications for Customize Snapshot
 	 *
 	 * @param \WP_Admin_Bar $wp_admin_bar WP_Admin_Bar instance.
 	 */
 	public function customize_menu( $wp_admin_bar ) {
+
+		$this->replace_customize_link( $wp_admin_bar );
+		$this->add_post_edit_screen_link( $wp_admin_bar );
+
+		add_action( 'wp_before_admin_bar_render', 'wp_customize_support_script' );
+	}
+
+	/**
+	 * Adds a "Snapshot in Dashboard" link to the Toolbar when in Snapshot mode.
+	 *
+	 * @param \WP_Admin_Bar $wp_admin_bar WP_Admin_Bar instance.
+	 */
+	public function add_post_edit_screen_link( $wp_admin_bar ) {
+		$snapshot_post = $this->snapshot->post();
+		if ( ! $snapshot_post ) {
+			return;
+		}
+
+		$wp_admin_bar->add_node( array(
+			'parent' => 'customize',
+			'id' => 'snapshot-view-link',
+			'title' => __( 'View Snapshot', 'customize-snapshots' ),
+			'href' => get_edit_post_link( $snapshot_post->ID ),
+		) );
+	}
+
+	/**
+	 * Replaces the "Customize" link in the Toolbar.
+	 *
+	 * @param \WP_Admin_Bar $wp_admin_bar WP_Admin_Bar instance.
+	 */
+	public function replace_customize_link( $wp_admin_bar ) {
+
 		// Don't show for users who can't access the customizer or when in the admin.
 		if ( ! current_user_can( 'customize' ) || is_admin() ) {
 			return;
@@ -810,7 +843,6 @@ class Customize_Snapshot_Manager {
 				),
 			)
 		);
-		add_action( 'wp_before_admin_bar_render', 'wp_customize_support_script' );
 	}
 
 	/**
