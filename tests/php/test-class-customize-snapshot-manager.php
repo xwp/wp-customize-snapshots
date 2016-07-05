@@ -166,19 +166,16 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	}
 
 	/**
+	 * Test Customize_Snapshot_Manager::create_post_type().
+	 *
 	 * @see Customize_Snapshot_Manager::create_post_type()
 	 */
 	function test_create_post_type() {
-		global $wp_version;
 		$pobj = get_post_type_object( Customize_Snapshot_Manager::POST_TYPE );
-		if ( version_compare( $wp_version, '4.6-alpha', '>=' ) && is_multisite() ) {
-			$this->assertInstanceOf( 'WP_Post_Type', $pobj );
-		} else {
-			$this->assertInstanceOf( 'stdClass', $pobj );
-		}
+		$this->assertNotNull( $pobj );
 		$this->assertEquals( Customize_Snapshot_Manager::POST_TYPE, $pobj->name );
 
-		// Test some defaults
+		// Test some defaults.
 		$this->assertFalse( is_post_type_hierarchical( Customize_Snapshot_Manager::POST_TYPE ) );
 		$this->assertEquals( array(), get_object_taxonomies( Customize_Snapshot_Manager::POST_TYPE ) );
 	}
