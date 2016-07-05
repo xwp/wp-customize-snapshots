@@ -835,7 +835,6 @@ class Customize_Snapshot_Manager {
 	 */
 	public function render_templates() {
 		?>
-
 		<script type="text/html" id="tmpl-snapshot-save">
 			<button id="snapshot-save" class="button button-secondary">
 				{{ data.buttonText }}
