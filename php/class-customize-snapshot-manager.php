@@ -783,17 +783,17 @@ class Customize_Snapshot_Manager {
 	 * @param \WP_Admin_Bar $wp_admin_bar WP_Admin_Bar instance.
 	 */
 	public function add_post_edit_screen_link( $wp_admin_bar ) {
-		$uuid = isset( $_GET['customize_snapshot_uuid'] ) ? sanitize_text_field( sanitize_key( wp_unslash( $_GET['customize_snapshot_uuid'] ) ) ) : null; // WPCS: input var ok.
-
-		if ( $uuid && $this->snapshot->is_valid_uuid( $uuid ) ) {
-			$wp_admin_bar->add_menu(
-				array(
-						'id'     => 'snapshot-edit-link',
-						'title'  => __( 'Snapshot in Dashboard', 'customize-snapshots' ),
-						'href'   => get_edit_post_link( $this->snapshot->post()->ID ),
-				)
-			);
+		$snapshot_post = $this->snapshot->post();
+		if ( ! $snapshot_post ) {
+			return;
 		}
+
+		$wp_admin_bar->add_node( array(
+			'parent' => 'customize',
+			'id' => 'snapshot-view-link',
+			'title' => __( 'View Snapshot', 'customize-snapshots' ),
+			'href' => get_edit_post_link( $snapshot_post->ID ),
+		) );
 	}
 
 	/**
