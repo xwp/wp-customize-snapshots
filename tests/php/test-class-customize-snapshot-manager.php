@@ -11,6 +11,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 
 	/**
 	 * A valid UUID.
+	 *
 	 * @type string
 	 */
 	const UUID = '65aee1ff-af47-47df-9e14-9c69b3017cd3';
@@ -219,6 +220,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		$filtered = $manager->filter_post_row_actions( $actions, $post );
 		$extected = array(
 			'customize' => '<a href="http://example.org/wp-admin/customize.php?customize_snapshot_uuid=' . $post->post_name . '">Customize</a>',
+			'front-view' => '<a href="http://example.org?customize_snapshot_uuid=' . $post->post_name . '">Preview Snapshot</a>',
 		);
 		$this->assertEquals( $extected, $filtered );
 	}
@@ -283,6 +285,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		$metabox = ob_get_clean();
 		$this->assertContains( $post->post_name, $metabox );
 		$this->assertContains( 'Edit in Customizer', $metabox );
+		$this->assertContains( 'Preview Snapshot', $metabox );
 		$this->assertContains( 'foo_value', $metabox );
 	}
 
@@ -430,7 +433,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		do_action_ref_array( 'admin_bar_menu', array( &$wp_admin_bar ) );
 		$this->assertEquals( $customize_url, $wp_admin_bar->get_node( 'customize' )->href );
 	}
-	
+
 	/**
 	 * @see Customize_Snapshot_Manager::customize_menu()
 	 */
