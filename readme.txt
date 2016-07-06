@@ -1,6 +1,6 @@
 === Customize Snapshots ===
 Contributors: westonruter, valendesigns, xwp, newscorpau
-Requires at least: 4.5
+Requires at least: 4.6-beta2
 Tested up to: trunk
 Stable tag: 0.4.0
 License: GPLv2 or later

@@ -164,9 +164,9 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	 * @see Customize_Snapshot_Manager::create_post_type()
 	 */
 	function test_create_post_type() {
-		$pobj = get_post_type_object( Customize_Snapshot_Manager::POST_TYPE );
-		$this->assertNotNull( $pobj );
-		$this->assertEquals( Customize_Snapshot_Manager::POST_TYPE, $pobj->name );
+		$post_type_object = get_post_type_object( Customize_Snapshot_Manager::POST_TYPE );
+		$this->assertNotNull( $post_type_object );
+		$this->assertEquals( Customize_Snapshot_Manager::POST_TYPE, $post_type_object->name );
 
 		// Test some defaults.
 		$this->assertFalse( is_post_type_hierarchical( Customize_Snapshot_Manager::POST_TYPE ) );

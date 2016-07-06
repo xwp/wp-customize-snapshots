@@ -155,8 +155,46 @@ class Customize_Snapshot_Manager {
 			}
 		}
 
+		/*
+		 * Add WP_Customize_Nav_Menu component hooks which were short-circuited in 4.5 (r36611 for #35895).
+		 * See https://core.trac.wordpress.org/ticket/35895
+		 */
+		if ( isset( $this->customize_manager->nav_menus ) && ! current_user_can( 'edit_theme_options' ) ) {
+			$hooks = array(
+				'customize_register' => array(
+					'callback' => array( $this->customize_manager->nav_menus, 'customize_register' ),
+					'priority' => 11,
+				),
+				'customize_dynamic_setting_args' => array(
+					'callback' => array( $this->customize_manager->nav_menus, 'filter_dynamic_setting_args' ),
+					'priority' => 10,
+				),
+				'customize_dynamic_setting_class' => array(
+					'callback' => array( $this->customize_manager->nav_menus, 'filter_dynamic_setting_class' ),
+					'priority' => 10,
+				),
+				'wp_nav_menu_args' => array(
+					'callback' => array( $this->customize_manager->nav_menus, 'filter_wp_nav_menu_args' ),
+					'priority' => 1000,
+				),
+				'wp_nav_menu' => array(
+					'callback' => array( $this->customize_manager->nav_menus, 'filter_wp_nav_menu' ),
+					'priority' => 10,
+				),
+			);
+			foreach ( $hooks as $hook_name => $hook_args ) {
+				// Note that add_action()/has_action() are just aliases for add_filter()/has_filter().
+				if ( ! has_filter( $hook_name, $hook_args['callback'] ) ) {
+					add_filter( $hook_name, $hook_args['callback'], $hook_args['priority'], PHP_INT_MAX );
+				}
+			}
+		}
+
 		// Preview a Snapshot.
 		add_action( 'after_setup_theme', array( $this, 'set_post_values' ), 1 );
+		if ( isset( $this->customize_manager->nav_menus ) ) {
+			add_action( 'customize_register', array( $this, 'preview_early_nav_menus_in_customizer' ), 9 );
+		}
 		add_action( 'wp_loaded', array( $this, 'preview' ) );
 
 		/*
@@ -931,6 +969,35 @@ class Customize_Snapshot_Manager {
 						$setting->dirty = true;
 					}
 				}
+			}
+		}
+	}
+
+	/**
+	 * Preview nav menu settings early so that the sections and controls for snapshot values will be added properly.
+	 *
+	 * This must happen at `customize_register` priority prior to 11 which is when `WP_Customize_Nav_Menus::customize_register()` runs.
+	 * This is only relevant when accessing the Customizer app (customize.php), as this is where sections/controls matter.
+	 *
+	 * @see \WP_Customize_Nav_Menus::customize_register()
+	 */
+	public function preview_early_nav_menus_in_customizer() {
+		if ( ! is_admin() ) {
+			return;
+		}
+
+		$this->customize_manager->add_dynamic_settings( array_keys( $this->snapshot()->data() ) );
+		foreach ( $this->snapshot->settings() as $setting ) {
+			$is_nav_menu_setting = (
+				$setting instanceof \WP_Customize_Nav_Menu_Setting
+				||
+				$setting instanceof \WP_Customize_Nav_Menu_Item_Setting
+				||
+				preg_match( '/^nav_menu_locations\[/', $setting->id )
+			);
+			if ( $is_nav_menu_setting ) {
+				$setting->preview();
+				$setting->dirty = true;
 			}
 		}
 	}
