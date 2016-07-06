@@ -16,12 +16,6 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	const UUID = '65aee1ff-af47-47df-9e14-9c69b3017cd3';
 
 	/**
-	 * Typical Snapshot menu ID.
-	 * @type string
-	 */
-	const NAV_MENU_ITEM_ID = '-1757032258044647400';
-
-	/**
 	 * @var \WP_Customize_Manager
 	 */
 	protected $wp_customize;
@@ -55,8 +49,6 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 
 		$this->wp_customize->add_setting( 'foo', array( 'default' => 'foo_default' ) );
 		$this->wp_customize->add_setting( 'bar', array( 'default' => 'bar_default' ) );
-		$this->wp_customize->add_setting( 'nav_menu_locations[foobar]', array( 'default' => '' ) );
-		$this->wp_customize->add_setting( 'nav_menu['. self::NAV_MENU_ITEM_ID . ']', array( 'default' => array() ) );
 
 		$this->manager = new Customize_Snapshot_Manager( $this->plugin );
 		$this->user_id = $this->factory->user->create( array( 'role' => 'administrator' ) );
