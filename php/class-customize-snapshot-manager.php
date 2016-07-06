@@ -192,6 +192,9 @@ class Customize_Snapshot_Manager {
 
 		// Preview a Snapshot.
 		add_action( 'after_setup_theme', array( $this, 'set_post_values' ), 1 );
+		if ( isset( $this->customize_manager->nav_menus ) ) {
+			add_action( 'customize_register', array( $this, 'preview_early_nav_menus_in_customizer' ), 9 );
+		}
 		add_action( 'wp_loaded', array( $this, 'preview' ) );
 
 		/*
@@ -949,6 +952,35 @@ class Customize_Snapshot_Manager {
 						$setting->dirty = true;
 					}
 				}
+			}
+		}
+	}
+
+	/**
+	 * Preview nav menu settings early so that the sections and controls for snapshot values will be added properly.
+	 *
+	 * This must happen at `customize_register` priority prior to 11 which is when `WP_Customize_Nav_Menus::customize_register()` runs.
+	 * This is only relevant when accessing the Customizer app (customize.php), as this is where sections/controls matter.
+	 *
+	 * @see \WP_Customize_Nav_Menus::customize_register()
+	 */
+	public function preview_early_nav_menus_in_customizer() {
+		if ( ! is_admin() ) {
+			return;
+		}
+
+		$this->customize_manager->add_dynamic_settings( array_keys( $this->snapshot()->data() ) );
+		foreach ( $this->snapshot->settings() as $setting ) {
+			$is_nav_menu_setting = (
+				$setting instanceof \WP_Customize_Nav_Menu_Setting
+				||
+				$setting instanceof \WP_Customize_Nav_Menu_Item_Setting
+				||
+				preg_match( '/^nav_menu_locations\[/', $setting->id )
+			);
+			if ( $is_nav_menu_setting ) {
+				$setting->preview();
+				$setting->dirty = true;
 			}
 		}
 	}
