@@ -251,6 +251,14 @@ class Post_Type {
 				),
 				$actions
 			);
+
+			$frontend_view_url = add_query_arg( array_map( 'rawurlencode', $args ), home_url() );
+			$actions = array_merge(
+				array(
+					'front-view' => sprintf( '<a href="%s">%s</a>', esc_url( $frontend_view_url ), esc_html__( 'Preview Snapshot', 'customize-snapshots' ) ),
+				),
+				$actions
+			);
 		} elseif ( isset( $actions['edit'] ) ) {
 			$actions['edit'] = sprintf(
 				'<a href="%s" aria-label="%s">%s</a>',
@@ -301,15 +309,24 @@ class Post_Type {
 		echo '</p>';
 
 		if ( 'publish' !== $post->post_status ) {
+			echo '<p>';
 			$args = array(
 				'customize_snapshot_uuid' => $post->post_name,
 			);
 			$customize_url = add_query_arg( array_map( 'rawurlencode', $args ), wp_customize_url() );
 			echo sprintf(
-				'<p><a href="%s" class="button button-secondary">%s</a></p>',
+				'<a href="%s" class="button button-secondary">%s</a> ',
 				esc_url( $customize_url ),
 				esc_html__( 'Edit in Customizer', 'customize-snapshots' )
 			);
+
+			$frontend_view_url = add_query_arg( array_map( 'rawurlencode', $args ), home_url() );
+			echo sprintf(
+				'<a href="%s" class="button button-secondary">%s</a>',
+				esc_url( $frontend_view_url ),
+				esc_html__( 'Preview Snapshot', 'customize-snapshots' )
+			);
+			echo '</p>';
 		}
 
 		echo '<hr>';

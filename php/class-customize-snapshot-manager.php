@@ -91,7 +91,6 @@ class Customize_Snapshot_Manager {
 		add_action( 'init', array( $this->post_type, 'register' ) );
 
 		add_action( 'template_redirect', array( $this, 'show_theme_switch_error' ) );
-		add_action( 'admin_bar_menu', array( $this, 'update_customize_admin_bar_link' ), 41 );
 
 		add_action( 'customize_controls_init', array( $this, 'add_snapshot_uuid_to_return_url' ) );
 		add_action( 'customize_controls_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
@@ -99,6 +98,7 @@ class Customize_Snapshot_Manager {
 		add_action( 'customize_save', array( $this, 'check_customize_publish_authorization' ), 10, 0 );
 		add_action( 'customize_save_after', array( $this, 'publish_snapshot_with_customize_save_after' ) );
 		add_filter( 'customize_refresh_nonces', array( $this, 'filter_customize_refresh_nonces' ) );
+		add_action( 'admin_bar_menu', array( $this, 'customize_menu' ), 41 );
 
 		if ( isset( $_REQUEST['customize_snapshot_uuid'] ) ) { // WPCS: input var ok.
 			$uuid = sanitize_key( wp_unslash( $_REQUEST['customize_snapshot_uuid'] ) ); // WPCS: input var ok.
@@ -117,6 +117,7 @@ class Customize_Snapshot_Manager {
 			if ( true === $this->should_import_and_preview_snapshot( $this->snapshot ) ) {
 
 				$this->add_widget_setting_preview_filters();
+				$this->add_nav_menu_setting_preview_filters();
 
 				/*
 				 * Populate post values.
@@ -161,20 +162,6 @@ class Customize_Snapshot_Manager {
 		}
 
 		$this->customize_manager = $wp_customize;
-
-		/*
-		 * Disable routine which fails because \WP_Customize_Manager::setup_theme() is
-		 * never called in a frontend preview context, whereby the original_stylesheet
-		 * is never set and so \WP_Customize_Manager::is_theme_active() will thus
-		 * always return true because get_stylesheet() !== null.
-		 *
-		 * The action being removed is responsible for adding an option_sidebar_widgets
-		 * filter \WP_Customize_Widgets::filter_option_sidebars_widgets_for_theme_switch()
-		 * which causes the sidebars_widgets to be overridden with a global variable.
-		 */
-		if ( ! is_admin() ) {
-			remove_action( 'wp_loaded', array( $this->customize_manager->widgets, 'override_sidebars_widgets_for_theme_switch' ) );
-		}
 	}
 
 	/**
@@ -295,6 +282,88 @@ class Customize_Snapshot_Manager {
 				if ( ! has_filter( $hook_name, $hook_args['callback'] ) ) {
 					add_filter( $hook_name, $hook_args['callback'], $hook_args['priority'], PHP_INT_MAX );
 				}
+			}
+		}
+
+		/*
+		 * Disable routine which fails because \WP_Customize_Manager::setup_theme() is
+		 * never called in a frontend preview context, whereby the original_stylesheet
+		 * is never set and so \WP_Customize_Manager::is_theme_active() will thus
+		 * always return true because get_stylesheet() !== null.
+		 *
+		 * The action being removed is responsible for adding an option_sidebar_widgets
+		 * filter \WP_Customize_Widgets::filter_option_sidebars_widgets_for_theme_switch()
+		 * which causes the sidebars_widgets to be overridden with a global variable.
+		 */
+		if ( ! is_admin() ) {
+			remove_action( 'wp_loaded', array( $this->customize_manager->widgets, 'override_sidebars_widgets_for_theme_switch' ) );
+		}
+	}
+
+	/**
+	 * Add filters for previewing nav menus on the frontend.
+	 */
+	public function add_nav_menu_setting_preview_filters() {
+		if ( isset( $this->customize_manager->nav_menus ) && ! current_user_can( 'edit_theme_options' ) ) {
+			$hooks = array(
+				'customize_register' => array(
+					'callback' => array( $this->customize_manager->nav_menus, 'customize_register' ),
+					'priority' => 11,
+				),
+				'customize_dynamic_setting_args' => array(
+					'callback' => array( $this->customize_manager->nav_menus, 'filter_dynamic_setting_args' ),
+					'priority' => 10,
+				),
+				'customize_dynamic_setting_class' => array(
+					'callback' => array( $this->customize_manager->nav_menus, 'filter_dynamic_setting_class' ),
+					'priority' => 10,
+				),
+				'wp_nav_menu_args' => array(
+					'callback' => array( $this->customize_manager->nav_menus, 'filter_wp_nav_menu_args' ),
+					'priority' => 1000,
+				),
+				'wp_nav_menu' => array(
+					'callback' => array( $this->customize_manager->nav_menus, 'filter_wp_nav_menu' ),
+					'priority' => 10,
+				),
+			);
+			foreach ( $hooks as $hook_name => $hook_args ) {
+				// Note that add_action()/has_action() are just aliases for add_filter()/has_filter().
+				if ( ! has_filter( $hook_name, $hook_args['callback'] ) ) {
+					add_filter( $hook_name, $hook_args['callback'], $hook_args['priority'], PHP_INT_MAX );
+				}
+			}
+		}
+
+		if ( isset( $this->customize_manager->nav_menus ) ) {
+			add_action( 'customize_register', array( $this, 'preview_early_nav_menus_in_customizer' ), 9 );
+		}
+	}
+
+	/**
+	 * Preview nav menu settings early so that the sections and controls for snapshot values will be added properly.
+	 *
+	 * This must happen at `customize_register` priority prior to 11 which is when `WP_Customize_Nav_Menus::customize_register()` runs.
+	 * This is only relevant when accessing the Customizer app (customize.php), as this is where sections/controls matter.
+	 *
+	 * @see \WP_Customize_Nav_Menus::customize_register()
+	 */
+	public function preview_early_nav_menus_in_customizer() {
+		if ( ! is_admin() ) {
+			return;
+		}
+		$this->customize_manager->add_dynamic_settings( array_keys( $this->snapshot()->data() ) );
+		foreach ( $this->snapshot->settings() as $setting ) {
+			$is_nav_menu_setting = (
+				$setting instanceof \WP_Customize_Nav_Menu_Setting
+				||
+				$setting instanceof \WP_Customize_Nav_Menu_Item_Setting
+				||
+				preg_match( '/^nav_menu_locations\[/', $setting->id )
+			);
+			if ( $is_nav_menu_setting ) {
+				$setting->preview();
+				$setting->dirty = true;
 			}
 		}
 	}
@@ -631,11 +700,43 @@ class Customize_Snapshot_Manager {
 	}
 
 	/**
+	 * Toolbar modifications for Customize Snapshot
+	 *
+	 * @param \WP_Admin_Bar $wp_admin_bar WP_Admin_Bar instance.
+	 */
+	public function customize_menu( $wp_admin_bar ) {
+		$this->replace_customize_link( $wp_admin_bar );
+		$this->add_post_edit_screen_link( $wp_admin_bar );
+		add_action( 'wp_before_admin_bar_render', 'wp_customize_support_script' );
+	}
+
+	/**
+	 * Adds a "Snapshot in Dashboard" link to the Toolbar when in Snapshot mode.
+	 *
+	 * @param \WP_Admin_Bar $wp_admin_bar WP_Admin_Bar instance.
+	 */
+	public function add_post_edit_screen_link( $wp_admin_bar ) {
+		if ( ! $this->snapshot ) {
+			return;
+		}
+		$post = $this->snapshot->post();
+		if ( ! $post ) {
+			return;
+		}
+		$wp_admin_bar->add_node( array(
+			'parent' => 'customize',
+			'id' => 'snapshot-view-link',
+			'title' => __( 'Inspect Snapshot', 'customize-snapshots' ),
+			'href' => get_edit_post_link( $post->ID ),
+		) );
+	}
+
+	/**
 	 * Replaces the "Customize" link in the Toolbar.
 	 *
 	 * @param \WP_Admin_Bar $wp_admin_bar WP_Admin_Bar instance.
 	 */
-	public function update_customize_admin_bar_link( $wp_admin_bar ) {
+	public function replace_customize_link( $wp_admin_bar ) {
 		// Don't show for users who can't access the customizer or when in the admin.
 		if ( ! current_user_can( 'customize' ) || is_admin() ) {
 			return;
