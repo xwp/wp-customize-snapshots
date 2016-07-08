@@ -57,6 +57,8 @@
 				api.state( 'saved' ).set( false );
 				component.resetSavedStateQuietly();
 			}
+
+			api.trigger( 'snapshots-ready', component );
 		} );
 
 		api.bind( 'save', function( request ) {
