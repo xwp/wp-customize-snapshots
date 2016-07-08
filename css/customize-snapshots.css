@@ -1,3 +1,15 @@
+#snapshot-preview-link {
+	float: right;
+	margin-top: 13px;
+	margin-right: 4px;
+	color: #656a6f;
+}
+
+#snapshot-preview-link:hover,
+#snapshot-preview-link:focus,
+#snapshot-preview-link:active {
+	color: #191e23;
+}
 #snapshot-save {
 	float: right;
 	margin-top: 9px;

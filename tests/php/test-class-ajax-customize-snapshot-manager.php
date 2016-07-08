@@ -236,7 +236,7 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 			'action' => Customize_Snapshot_Manager::AJAX_ACTION,
 			'nonce' => wp_create_nonce( Customize_Snapshot_Manager::AJAX_ACTION ),
 			'customize_snapshot_uuid' => self::UUID,
-			'snapshot_customized' => '{"header_background_color":{"value":"#ffffff"}}',
+			'customized' => '{"header_background_color":"#ffffff"}',
 		);
 
 		$this->manager->capture_unsanitized_snapshot_post_data();
@@ -260,7 +260,7 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 			'action' => Customize_Snapshot_Manager::AJAX_ACTION,
 			'nonce' => wp_create_nonce( Customize_Snapshot_Manager::AJAX_ACTION ),
 			'customize_snapshot_uuid' => self::UUID,
-			'snapshot_customized' => '{"foo":{"value":"foo_default"},"bar":{"value":"bar_default"}}',
+			'customized' => '{"foo":"foo_default","bar":"bar_default"}',
 			'preview' => 'off',
 		);
 
@@ -289,7 +289,7 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 			'action' => Customize_Snapshot_Manager::AJAX_ACTION,
 			'nonce' => wp_create_nonce( Customize_Snapshot_Manager::AJAX_ACTION ),
 			'customize_snapshot_uuid' => self::UUID,
-			'snapshot_customized' => '{"foo":{"value":"foo_default"},"bar":{"value":"bar_default"}}',
+			'customized' => '{"foo":"foo_default","bar":"bar_default"}',
 			'preview' => 'on',
 		);
 
@@ -332,7 +332,7 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 	 */
 	function test_ajax_save_snapshot_post_data_check() {
 		$_POST = array(
-			'snapshot_uuid' => self::UUID,
+			'customize_snapshot_uuid' => self::UUID,
 		);
 		$this->make_save_snapshot_ajax_call();
 		$response = apply_filters( 'customize_save_response', array(), $this->wp_customize );

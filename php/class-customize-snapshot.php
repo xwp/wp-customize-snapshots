@@ -41,20 +41,12 @@ class Customize_Snapshot {
 	protected $data = array();
 
 	/**
-	 * Post object for the current snapshot.
+	 * Post id for the current snapshot.
 	 *
 	 * @access protected
 	 * @var \WP_Post|null
 	 */
-	protected $post = null;
-
-	/**
-	 * Snapshot preview.
-	 *
-	 * @access public
-	 * @var bool
-	 */
-	public $is_preview = false;
+	protected $post_id = null;
 
 	/**
 	 * Initial loader.
@@ -64,102 +56,20 @@ class Customize_Snapshot {
 	 * @throws Exception If the UUID is invalid.
 	 *
 	 * @param Customize_Snapshot_Manager $snapshot_manager     Customize snapshot bootstrap instance.
-	 * @param string|null                $uuid                 Snapshot unique identifier.
+	 * @param string                     $uuid                 Snapshot unique identifier.
 	 */
 	public function __construct( Customize_Snapshot_Manager $snapshot_manager, $uuid ) {
 		$this->snapshot_manager = $snapshot_manager;
 		$this->data = array();
 
-		if ( $uuid ) {
-			if ( self::is_valid_uuid( $uuid ) ) {
-				$this->uuid = $uuid;
-				$this->is_preview = true;
-			} else {
-				throw new Exception( __( 'You\'ve entered an invalid snapshot UUID.', 'customize-snapshots' ) );
-			}
-		} else {
-			$this->uuid = self::generate_uuid();
+		if ( ! Customize_Snapshot_Manager::is_valid_uuid( $uuid ) ) {
+			throw new Exception( __( 'You\'ve entered an invalid snapshot UUID.', 'customize-snapshots' ) );
 		}
-
+		$this->uuid = $uuid;
 		$post = $this->post();
-
-		// Don't preview other themes.
-		if ( ( ! $this->snapshot_manager->customize_manager->is_theme_active() && is_admin() ) || ( $this->is_preview && $post && get_post_meta( $post->ID, '_snapshot_theme', true ) !== $this->snapshot_manager->customize_manager->get_stylesheet() ) ) {
-			$this->is_preview = false;
-			return;
-		}
-
 		if ( $post ) {
-			// For reason why base64 encoding is used, see Customize_Snapshot::save().
-			$this->data = json_decode( $post->post_content, true );
-			if ( json_last_error() || ! is_array( $this->data ) ) {
-				$this->snapshot_manager->plugin->trigger_warning( 'JSON parse error, expected array: ' . ( function_exists( 'json_last_error_msg' ) ? json_last_error_msg() : json_last_error() ) );
-				$this->data = array();
-			}
-
-			if ( ! empty( $this->data ) ) {
-
-				// For back-compat.
-				if ( ! did_action( 'setup_theme' ) ) {
-					/*
-					 * Note we have to defer until setup_theme since the transaction
-					 * can be set beforehand, and wp_magic_quotes() would not have
-					 * been called yet, resulting in a $_POST['customized'] that is
-					 * double-escaped. Note that this happens at priority 1, which
-					 * is immediately after Customize_Snapshot_Manager::store_customized_post_data
-					 * which happens at setup_theme priority 0, so that the initial
-					 * POST data can be preserved.
-					 */
-					add_action( 'setup_theme', array( $this, 'populate_customized_post_var' ), 1 );
-				} else {
-					$this->populate_customized_post_var();
-				}
-			}
+			$this->data = $this->snapshot_manager->post_type->get_post_content( $post );
 		}
-	}
-
-	/**
-	 * Populate $_POST['customized'] wth the snapshot's data for back-compat.
-	 *
-	 * Plugins used to have to dynamically register settings by inspecting the
-	 * $_POST['customized'] var and manually re-parse and inspect to see if it
-	 * contains settings that wouldn't be registered otherwise. This ensures
-	 * that these plugins will continue to work.
-	 *
-	 * Note that this can't be called prior to the setup_theme action or else
-	 * magic quotes may end up getting added twice.
-	 */
-	public function populate_customized_post_var() {
-		$_POST['customized'] = wp_slash( wp_json_encode( $this->values() ) );
-		// @codingStandardsIgnoreStart
-		$_REQUEST['customized'] = $_POST['customized'];
-		// @codingStandardsIgnoreEnd
-	}
-
-	/**
-	 * Generate a snapshot uuid.
-	 *
-	 * @return string
-	 */
-	static public function generate_uuid() {
-		return sprintf( '%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
-			mt_rand( 0, 0xffff ), mt_rand( 0, 0xffff ),
-			mt_rand( 0, 0xffff ),
-			mt_rand( 0, 0x0fff ) | 0x4000,
-			mt_rand( 0, 0x3fff ) | 0x8000,
-			mt_rand( 0, 0xffff ), mt_rand( 0, 0xffff ), mt_rand( 0, 0xffff )
-		);
-	}
-
-	/**
-	 * Determine whether the supplied UUID is in the right format.
-	 *
-	 * @param string $uuid Snapshot UUID.
-	 *
-	 * @return bool
-	 */
-	static public function is_valid_uuid( $uuid ) {
-		return 0 !== preg_match( '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/', $uuid );
 	}
 
 	/**
@@ -172,124 +82,19 @@ class Customize_Snapshot {
 	}
 
 	/**
-	 * Set the snapshot uuid and regenerate the post object.
-	 *
-	 * @param string $uuid Snapshot UUID.
-	 */
-	public function set_uuid( $uuid ) {
-		if ( self::is_valid_uuid( $uuid ) ) {
-			$this->uuid = $uuid;
-			self::post( true );
-		}
-	}
-
-	/**
-	 * Reset the snapshot uuid.
-	 *
-	 * @return string
-	 */
-	public function reset_uuid() {
-		$this->uuid = self::generate_uuid();
-		return $this->uuid;
-	}
-
-	/**
-	 * Check for Snapshot preview.
-	 *
-	 * @return bool
-	 */
-	public function is_preview() {
-		return $this->is_preview;
-	}
-
-	/**
 	 * Get the snapshot post associated with the provided UUID, or null if it does not exist.
 	 *
-	 * @param bool $refresh Whether or not to refresh the post object.
-	 * @return \WP_Post|null
+	 * @return \WP_Post|null Post or null.
 	 */
-	public function post( $refresh = false ) {
-		if ( ! $refresh && $this->post ) {
-			return $this->post;
+	public function post() {
+		if ( ! $this->post_id ) {
+			$this->post_id = $this->snapshot_manager->post_type->find_post( $this->uuid );
 		}
-
-		add_action( 'pre_get_posts', array( $this, '_override_wp_query_is_single' ) );
-		$query = new \WP_Query( array(
-			'name' => $this->uuid,
-			'posts_per_page' => 1,
-			'post_type' => Customize_Snapshot_Manager::POST_TYPE,
-			'post_status' => get_post_stati(),
-			'no_found_rows' => true,
-			'ignore_sticky_posts' => true,
-			'cache_results' => false,
-		) );
-		$posts = $query->posts;
-		remove_action( 'pre_get_posts', array( $this, '_override_wp_query_is_single' ) );
-
-		if ( empty( $posts ) ) {
-			$this->post = null;
+		if ( $this->post_id ) {
+			return get_post( $this->post_id );
 		} else {
-			$this->post = array_shift( $posts );
+			return null;
 		}
-
-		return $this->post;
-	}
-
-	/**
-	 * This is needed to ensure that draft posts can be queried by name.
-	 *
-	 * @param \WP_Query $query WP Query.
-	 */
-	public function _override_wp_query_is_single( $query ) {
-		$query->is_single = false;
-	}
-
-	/**
-	 * Get the value for a setting in the snapshot.
-	 *
-	 * @param \WP_Customize_Setting|string $setting Setting.
-	 * @param mixed                        $default Return value if the snapshot lacks a value for the given setting.
-	 * @return mixed
-	 */
-	public function get( $setting, $default = null ) {
-		if ( is_string( $setting ) ) {
-			$setting_obj = $this->snapshot_manager->customize_manager->get_setting( $setting );
-			if ( $setting_obj ) {
-				$setting_id = $setting_obj->id;
-				$setting = $setting_obj;
-			} else {
-				$setting_id = $setting;
-				$setting = null;
-			}
-			unset( $setting_obj );
-		} else {
-			$setting_id = $setting->id;
-		}
-
-		if ( ! isset( $this->data[ $setting_id ] ) ) {
-			if ( is_null( $default ) && isset( $setting->default ) ) {
-				return $setting->default;
-			}
-
-			return $default;
-		}
-
-		$value = $this->data[ $setting_id ];
-
-		// @todo is not empty, then return the unslashed sanitized value? e.g. if ( $setting ) { $value = $setting->sanitize( wp_slash( $value ) ); } ?
-		unset( $setting );
-
-		return $value;
-	}
-
-	/**
-	 * Return all settings' values in the snapshot.
-	 *
-	 * @return array
-	 */
-	public function values() {
-		$values = wp_list_pluck( $this->data, 'value' );
-		return $values;
 	}
 
 	/**
@@ -308,7 +113,9 @@ class Customize_Snapshot {
 	 */
 	public function settings() {
 		$settings = array();
-		foreach ( array_keys( $this->data ) as $setting_id ) {
+		$setting_ids = array_keys( $this->data );
+		$this->snapshot_manager->customize_manager->add_dynamic_settings( $setting_ids );
+		foreach ( $setting_ids as $setting_id ) {
 			$setting = $this->snapshot_manager->customize_manager->get_setting( $setting_id );
 			if ( $setting ) {
 				$settings[] = $setting;
@@ -323,30 +130,133 @@ class Customize_Snapshot {
 	 * @return string|null
 	 */
 	public function status() {
-		return $this->post ? get_post_status( $this->post->ID ) : null;
+		$post = $this->post();
+		return $post ? get_post_status( $post->ID ) : null;
 	}
 
 	/**
-	 * Store a setting's value in the snapshot's data.
+	 * Prepare snapshot data for saving.
 	 *
-	 * @since 0.4.0 Removed support for `$dirty` argument.
+	 * @param array $unsanitized_values Unsanitized post values.
+	 * @return array {
+	 *     Result.
 	 *
-	 * @param \WP_Customize_Setting $setting    Setting.
-	 * @param mixed                 $value      Must be JSON-serializable.
-	 * @param bool                  $deprecated Whether the setting is dirty or not.
+	 *     @type null|\WP_Error $error      Error object if error.
+	 *     @type array          $sanitized  Sanitized values.
+	 *     @type array          $validities Setting validities.
+	 * }
 	 */
-	public function set( \WP_Customize_Setting $setting, $value, $deprecated = null ) {
-		if ( ! is_null( $deprecated ) ) {
-			_doing_it_wrong( __METHOD__, 'The $dirty argument has been removed.', '0.4.0' );
-			if ( false === $deprecated ) {
-				return;
+	public function set( array $unsanitized_values ) {
+		$error = new \WP_Error();
+		$result = array(
+			'errors' => null,
+			'sanitized' => array(),
+			'validities' => array(),
+		);
+
+		$customize_manager = $this->snapshot_manager->customize_manager;
+		$customize_manager->add_dynamic_settings( array_keys( $unsanitized_values ) );
+
+		// Check for recognized settings and authorized settings.
+		$unrecognized_setting_ids = array();
+		$unauthorized_setting_ids = array();
+		foreach ( $unsanitized_values as $setting_id => $unsanitized_value ) {
+			$setting = $customize_manager->get_setting( $setting_id );
+			if ( ! $setting ) {
+				$unrecognized_setting_ids[] = $setting_id;
+			} elseif ( ! current_user_can( $setting->capability ) ) {
+				$unauthorized_setting_ids[] = $setting_id;
 			}
 		}
 
-		$this->data[ $setting->id ] = array(
-			'value' => $value,
-			'sanitized' => false,
+		// Remove values that are unrecognized or unauthorized.
+		$unsanitized_values = wp_array_slice_assoc(
+			$unsanitized_values,
+			array_diff(
+				array_keys( $unsanitized_values ),
+				array_merge( $unrecognized_setting_ids, $unauthorized_setting_ids )
+			)
 		);
+
+		// Validate.
+		if ( method_exists( $customize_manager, 'validate_setting_values' ) ) {
+			$result['validities'] = $customize_manager->validate_setting_values( $unsanitized_values );
+		} else {
+			$result['validities'] = array_map(
+				function( $sanitized ) {
+					if ( is_null( $sanitized ) ) {
+						return new \WP_Error( 'invalid_value', __( 'Invalid value', 'customize-snapshots' ) );
+					} else {
+						return true;
+					}
+				},
+				$result['sanitized']
+			);
+		}
+		$invalid_setting_ids = array_keys( array_filter( $result['validities'], function( $validity ) {
+			return is_wp_error( $validity );
+		} ) );
+
+		// Sanitize.
+		foreach ( $unsanitized_values as $setting_id => $unsanitized_value ) {
+			$setting = $customize_manager->get_setting( $setting_id );
+			if ( $setting ) {
+				$result['sanitized'][ $setting_id ] = $setting->sanitize( $unsanitized_value );
+			} else {
+				$unrecognized_setting_ids[] = $setting_id;
+			}
+		}
+
+		// Add errors.
+		if ( ! empty( $unauthorized_setting_ids ) ) {
+			$error->add(
+				'unauthorized_settings',
+				sprintf( __( 'Unauthorized settings: %s', 'customize-snapshots' ), join( ',', $unauthorized_setting_ids ) ),
+				array( 'setting_ids' => $unauthorized_setting_ids )
+			);
+		}
+		if ( ! empty( $unrecognized_setting_ids ) ) {
+			$error->add(
+				'unrecognized_settings',
+				sprintf( __( 'Unrecognized settings: %s', 'customize-snapshots' ), join( ',', $unrecognized_setting_ids ) ),
+				array( 'setting_ids' => $unrecognized_setting_ids )
+			);
+		}
+		if ( 0 !== count( $invalid_setting_ids ) ) {
+			$code = 'invalid_values';
+			$message = __( 'Invalid values', 'customize-snapshots' );
+			$error->add( $code, $message, compact( 'invalid_setting_ids' ) );
+		}
+
+		if ( ! empty( $error->errors ) ) {
+			$result['errors'] = $error;
+		} else {
+			/*
+			 * Note that somewhat unintuitively the unsanitized post values
+			 * ($unsanitized_values) are stored as opposed to storing the
+			 * sanitized ones ($result['sanitized']). It is still safe to do this
+			 * because they have passed sanitization and validation here. The
+			 * reason why we need to store the raw unsanitized values is so that
+			 * the values can be re-populated into the post values for running
+			 * through the sanitize, validate, and ultimately update logic.
+			 * Once a value has gone through the sanitize logic, it may not be
+			 * suitable for populating into a post value, especially widget
+			 * instances which get exported with a JS value that has the instance
+			 * data encoded, serialized, and hashed to prevent mutation. A
+			 * sanitize filter for a widget instance will convert an encoded
+			 * instance value into a regular instance array, and if this regular
+			 * instance array is placed back into a post value, it will get
+			 * rejected by the sanitize logic for not being an encoded value.
+			 */
+			foreach ( $unsanitized_values as $setting_id => $unsanitized_value ) {
+				if ( ! isset( $this->data[ $setting_id ] ) ) {
+					$this->data[ $setting_id ] = array();
+				}
+				$this->data[ $setting_id ]['value'] = $unsanitized_value;
+			}
+		}
+
+		return $result;
 	}
 
 	/**
@@ -355,70 +265,38 @@ class Customize_Snapshot {
 	 * @return bool
 	 */
 	public function saved() {
-		return ! empty( $this->post );
+		return ! is_null( $this->post() );
 	}
 
 	/**
 	 * Persist the data in the snapshot post content.
 	 *
-	 * @param string $status Post status.
-	 *
-	 * @return null|\WP_Error
+	 * @param array $args Args.
+	 * @return true|\WP_Error
 	 */
-	public function save( $status = 'draft' ) {
-		if ( ! current_user_can( 'customize' ) ) {
-			return new \WP_Error( 'customize_not_allowed', __( 'You are not authorized to save Snapshots.', 'customize-snapshots' ) );
-		}
-
-		$options = 0;
-		if ( defined( 'JSON_UNESCAPED_SLASHES' ) ) {
-			$options |= JSON_UNESCAPED_SLASHES;
-		}
-		if ( defined( 'JSON_PRETTY_PRINT' ) ) {
-			$options |= JSON_PRETTY_PRINT;
-		}
+	public function save( array $args ) {
 
 		/**
 		 * Filter the snapshot's data before it's saved to 'post_content'.
 		 *
-		 * @param array $data Customizer settings and values.
-		 * @return array
+		 * @param array $data Customizer snapshot data, with setting IDs mapped to an array
+		 *                    containing a `value` array item and potentially other metadata.
 		 */
 		$this->data = apply_filters( 'customize_snapshot_save', $this->data );
 
-		// JSON encoded snapshot data.
-		$post_content = wp_json_encode( $this->data, $options );
+		$result = $this->snapshot_manager->post_type->save( array_merge(
+			$args,
+			array(
+				'uuid' => $this->uuid,
+				'data' => $this->data,
+				'theme' => $this->snapshot_manager->customize_manager->get_stylesheet(),
+			)
+		) );
 
-		$this->snapshot_manager->suspend_kses();
-		if ( ! $this->post ) {
-			$postarr = array(
-				'post_type' => Customize_Snapshot_Manager::POST_TYPE,
-				'post_name' => $this->uuid,
-				'post_title' => $this->uuid,
-				'post_status' => $status,
-				'post_author' => get_current_user_id(),
-				'post_content' => $post_content,
-			);
-			$r = wp_insert_post( wp_slash( $postarr ), true );
-			if ( is_wp_error( $r ) ) {
-				return $r;
-			}
-			$this->post = get_post( $r );
-			update_post_meta( $this->post->ID, '_snapshot_theme', $this->snapshot_manager->customize_manager->get_stylesheet() );
-		} else {
-			$postarr = array(
-				'ID' => $this->post->ID,
-				'post_status' => $status,
-				'post_content' => wp_slash( $post_content ),
-			);
-			$r = wp_update_post( $postarr, true );
-			if ( is_wp_error( $r ) ) {
-				return $r;
-			}
-			$this->post = get_post( $r );
+		if ( ! is_wp_error( $result ) ) {
+			$this->post_id = $result;
 		}
-		$this->snapshot_manager->restore_kses();
 
-		return null;
+		return $result;
 	}
 }
