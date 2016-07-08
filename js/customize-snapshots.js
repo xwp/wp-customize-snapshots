@@ -32,7 +32,7 @@
 				return;
 			}
 			api.state.create( 'snapshot-saved', true );
-			api.state.create( 'snapshot-previewed', Boolean( component.data.isPreview ) );
+			api.state.create( 'snapshot-exists', Boolean( component.data.isPreview ) );
 			api.state.create( 'snapshot-submitted', true );
 			api.bind( 'change', function() {
 				api.state( 'snapshot-saved' ).set( false );
@@ -53,7 +53,7 @@
 				component.sendUpdateSnapshotRequest( { status: 'pending' } );
 			} );
 
-			if ( api.state( 'snapshot-previewed' ).get() ) {
+			if ( api.state( 'snapshot-exists' ).get() ) {
 				api.state( 'saved' ).set( false );
 				component.resetSavedStateQuietly();
 			}
@@ -76,7 +76,7 @@
 					if ( 0 === $( '#' + id ).length ) {
 						$( 'body' ).append( snapshotDialogPublishError( {
 							title: component.data.i18n.publish,
-							message: api.state( 'snapshot-previewed' ).get() ? component.data.i18n.permsMsg.update : component.data.i18n.permsMsg.save
+							message: api.state( 'snapshot-exists' ).get() ? component.data.i18n.permsMsg.update : component.data.i18n.permsMsg.save
 						} ) );
 					}
 
@@ -100,7 +100,7 @@
 
 			// Set the button text back to "Save".
 			component.changeButton( component.data.i18n.saveButton, component.data.i18n.permsMsg.save );
-			api.state( 'snapshot-previewed' ).set( false );
+			api.state( 'snapshot-exists' ).set( false );
 
 			request = wp.ajax.post( 'customize_get_snapshot_uuid', {
 				nonce: component.data.nonce,
@@ -141,7 +141,7 @@
 
 			retval = originalQuery.apply( this, arguments );
 
-			if ( api.state( 'snapshot-previewed' ).get() ) {
+			if ( api.state( 'snapshot-exists' ).get() ) {
 				api.each( function( value, key ) {
 					if ( value._dirty ) {
 						allCustomized[ key ] = {
@@ -185,11 +185,11 @@
 		// Save/update button.
 		snapshotButton = wp.template( 'snapshot-save' );
 		data = {
-			buttonText: api.state( 'snapshot-previewed' ).get() ? component.data.i18n.updateButton : component.data.i18n.saveButton
+			buttonText: api.state( 'snapshot-exists' ).get() ? component.data.i18n.updateButton : component.data.i18n.saveButton
 		};
 		snapshotButton = $( $.trim( snapshotButton( data ) ) );
 		if ( ! component.data.currentUserCanPublish ) {
-			snapshotButton.attr( 'title', api.state( 'snapshot-previewed' ).get() ? component.data.i18n.permsMsg.update : component.data.i18n.permsMsg.save );
+			snapshotButton.attr( 'title', api.state( 'snapshot-exists' ).get() ? component.data.i18n.permsMsg.update : component.data.i18n.permsMsg.save );
 		}
 		snapshotButton.prop( 'disabled', true );
 		snapshotButton.insertAfter( publishButton );
@@ -199,7 +199,7 @@
 		component.previewLink.toggle( api.state( 'snapshot-saved' ).get() );
 		component.previewLink.attr( 'target', component.data.uuid );
 		setPreviewLinkHref = _.debounce( function() {
-			if ( api.state( 'snapshot-previewed' ).get() ) {
+			if ( api.state( 'snapshot-exists' ).get() ) {
 				component.previewLink.attr( 'href', component.getSnapshotFrontendPreviewUrl() );
 			} else {
 				component.previewLink.attr( 'href', component.frontendPreviewUrl.get() );
@@ -302,7 +302,7 @@
 			snapshot_customized: JSON.stringify( customized ),
 			customize_snapshot_uuid: component.data.uuid,
 			status: args.status,
-			preview: ( api.state( 'snapshot-previewed' ).get() ? 'on' : 'off' )
+			preview: ( api.state( 'snapshot-exists' ).get() ? 'on' : 'off' )
 		} );
 
 		request.done( function( response ) {
@@ -326,7 +326,7 @@
 
 			// Change the save button text to update.
 			component.changeButton( component.data.i18n.updateButton, component.data.i18n.permsMsg.update );
-			api.state( 'snapshot-previewed' ).set( true );
+			api.state( 'snapshot-exists' ).set( true );
 
 			spinner.removeClass( 'is-active' );
 
