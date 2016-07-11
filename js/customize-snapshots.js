@@ -198,7 +198,6 @@
 			}
 		} );
 
-
 		// Preview link.
 		component.previewLink = $( $.trim( wp.template( 'snapshot-preview-link' )() ) );
 		component.previewLink.toggle( api.state( 'snapshot-saved' ).get() );
@@ -334,22 +333,43 @@
 		request.fail( function( response ) {
 			var id = 'snapshot-dialog-error',
 				snapshotDialogShareError = wp.template( id ),
-				messages = component.data.i18n.errorMsg;
+				messages = component.data.i18n.errorMsg,
+				invalidityCount = 0,
+				dialogElement;
+
+			if ( response.setting_validities ) {
+				invalidityCount = _.size( response.setting_validities, function( validity ) {
+					return true !== validity;
+				} );
+			}
+
+			/*
+			 * Short-circuit if there are setting validation errors, since the error messages
+			 * will be displayed with the controls themselves. Eventually, once we have
+			 * a global notification area in the Customizer, we can eliminate this
+			 * short-circuit and instead display the messages in there.
+			 * See https://core.trac.wordpress.org/ticket/35210
+			 */
+			if ( invalidityCount > 0 ) {
+				return;
+			}
 
 			if ( response.errors ) {
 				messages += ' ' + _.pluck( response.errors, 'message' ).join( ' ' );
 			}
 
 			// Insert the snapshot dialog error template.
-			if ( 0 === $( '#' + id ).length ) {
-				$( 'body' ).append( snapshotDialogShareError( {
+			dialogElement = $( '#' + id );
+			if ( ! dialogElement.length ) {
+				dialogElement = $( snapshotDialogShareError( {
 					title: component.data.i18n.errorTitle,
 					message: messages
 				} ) );
+				$( 'body' ).append( dialogElement );
 			}
 
 			// Open the dialog.
-			$( '#' + id ).dialog( {
+			dialogElement.dialog( {
 				autoOpen: true,
 				modal: true
 			} );
