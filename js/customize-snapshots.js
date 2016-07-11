@@ -32,28 +32,33 @@
 				return;
 			}
 			api.state.create( 'snapshot-saved', true );
+			api.state.create( 'snapshot-exists', Boolean( component.data.isPreview ) );
 			api.state.create( 'snapshot-submitted', true );
 			api.bind( 'change', function() {
 				api.state( 'snapshot-saved' ).set( false );
 				api.state( 'snapshot-submitted' ).set( false );
 			} );
+			component.frontendPreviewUrl = new api.Value( api.previewer.previewUrl.get() );
+			component.frontendPreviewUrl.link( api.previewer.previewUrl );
 
 			component.previewerQuery();
 			component.addButtons();
 
 			$( '#snapshot-save' ).on( 'click', function( event ) {
 				event.preventDefault();
-				component.sendUpdateSnapshotRequest( { status: 'draft', openNewWindow: event.shiftKey } );
+				component.sendUpdateSnapshotRequest( { status: 'draft' } );
 			} );
 			$( '#snapshot-submit' ).on( 'click', function( event ) {
 				event.preventDefault();
-				component.sendUpdateSnapshotRequest( { status: 'pending', openNewWindow: event.shiftKey } );
+				component.sendUpdateSnapshotRequest( { status: 'pending' } );
 			} );
 
-			if ( component.data.isPreview ) {
+			if ( api.state( 'snapshot-exists' ).get() ) {
 				api.state( 'saved' ).set( false );
 				component.resetSavedStateQuietly();
 			}
+
+			api.trigger( 'snapshots-ready', component );
 		} );
 
 		api.bind( 'save', function( request ) {
@@ -71,7 +76,7 @@
 					if ( 0 === $( '#' + id ).length ) {
 						$( 'body' ).append( snapshotDialogPublishError( {
 							title: component.data.i18n.publish,
-							message: component.data.isPreview ? component.data.i18n.permsMsg.update : component.data.i18n.permsMsg.save
+							message: api.state( 'snapshot-exists' ).get() ? component.data.i18n.permsMsg.update : component.data.i18n.permsMsg.save
 						} ) );
 					}
 
@@ -95,6 +100,7 @@
 
 			// Set the button text back to "Save".
 			component.changeButton( component.data.i18n.saveButton, component.data.i18n.permsMsg.save );
+			api.state( 'snapshot-exists' ).set( false );
 
 			request = wp.ajax.post( 'customize_get_snapshot_uuid', {
 				nonce: component.data.nonce,
@@ -104,6 +110,7 @@
 			// Update the UUID.
 			request.done( function( response ) {
 				component.data.uuid = response.uuid;
+				component.previewLink.attr( 'target', component.data.uuid );
 			} );
 
 			// Replace the history state with an updated Customizer URL that does not include the Snapshot UUID.
@@ -134,7 +141,7 @@
 
 			retval = originalQuery.apply( this, arguments );
 
-			if ( component.data.isPreview ) {
+			if ( api.state( 'snapshot-exists' ).get() ) {
 				api.each( function( value, key ) {
 					if ( value._dirty ) {
 						allCustomized[ key ] = {
@@ -151,6 +158,21 @@
 	};
 
 	/**
+	 * Get the preview URL with the snapshot UUID attached.
+	 *
+	 * @returns {string} URL.
+	 */
+	component.getSnapshotFrontendPreviewUrl = function getSnapshotFrontendPreviewUrl() {
+		var a = document.createElement( 'a' );
+		a.href = component.frontendPreviewUrl.get();
+		if ( a.search ) {
+			a.search += '&';
+		}
+		a.search += 'customize_snapshot_uuid=' + component.data.uuid;
+		return a.href;
+	};
+
+	/**
 	 * Create the snapshot buttons.
 	 *
 	 * @return {void}
@@ -158,22 +180,42 @@
 	component.addButtons = function() {
 		var header = $( '#customize-header-actions' ),
 			publishButton = header.find( '#save' ),
-			snapshotButton, submitButton, data;
+			snapshotButton, submitButton, data, setPreviewLinkHref;
 
+		// Save/update button.
 		snapshotButton = wp.template( 'snapshot-save' );
 		data = {
-			buttonText: component.data.isPreview ? component.data.i18n.updateButton : component.data.i18n.saveButton
+			buttonText: api.state( 'snapshot-exists' ).get() ? component.data.i18n.updateButton : component.data.i18n.saveButton
 		};
 		snapshotButton = $( $.trim( snapshotButton( data ) ) );
 		if ( ! component.data.currentUserCanPublish ) {
-			snapshotButton.attr( 'title', component.data.isPreview ? component.data.i18n.permsMsg.update : component.data.i18n.permsMsg.save );
+			snapshotButton.attr( 'title', api.state( 'snapshot-exists' ).get() ? component.data.i18n.permsMsg.update : component.data.i18n.permsMsg.save );
 		}
 		snapshotButton.prop( 'disabled', true );
 		snapshotButton.insertAfter( publishButton );
+
+		// Preview link.
+		component.previewLink = $( $.trim( wp.template( 'snapshot-preview-link' )() ) );
+		component.previewLink.toggle( api.state( 'snapshot-saved' ).get() );
+		component.previewLink.attr( 'target', component.data.uuid );
+		setPreviewLinkHref = _.debounce( function() {
+			if ( api.state( 'snapshot-exists' ).get() ) {
+				component.previewLink.attr( 'href', component.getSnapshotFrontendPreviewUrl() );
+			} else {
+				component.previewLink.attr( 'href', component.frontendPreviewUrl.get() );
+			}
+		} );
+		component.frontendPreviewUrl.bind( setPreviewLinkHref );
+		setPreviewLinkHref();
+		api.state.bind( 'change', setPreviewLinkHref );
+		api.bind( 'saved', setPreviewLinkHref );
+		snapshotButton.after( component.previewLink );
 		api.state( 'snapshot-saved' ).bind( function( saved ) {
 			snapshotButton.prop( 'disabled', saved );
+			component.previewLink.toggle( saved );
 		} );
 
+		// Submit for review button.
 		if ( ! component.data.currentUserCanPublish ) {
 			publishButton.hide();
 			submitButton = wp.template( 'snapshot-submit' );
@@ -230,7 +272,6 @@
 	 *
 	 * @param {object} options Options.
 	 * @param {string} options.status The post status for the snapshot.
-	 * @param {boolean} options.openNewWindow Whether to open the frontend in a new window.
 	 * @return {void}
 	 */
 	component.sendUpdateSnapshotRequest = function( options ) {
@@ -239,8 +280,7 @@
 
 		args = _.extend(
 			{
-				status: 'draft',
-				openNewWindow: false
+				status: 'draft'
 			},
 			options
 		);
@@ -262,7 +302,7 @@
 			snapshot_customized: JSON.stringify( customized ),
 			customize_snapshot_uuid: component.data.uuid,
 			status: args.status,
-			preview: ( component.data.isPreview ? 'on' : 'off' )
+			preview: ( api.state( 'snapshot-exists' ).get() ? 'on' : 'off' )
 		} );
 
 		request.done( function( response ) {
@@ -275,6 +315,7 @@
 			// Set the UUID.
 			if ( ! component.data.uuid ) {
 				component.data.uuid = response.customize_snapshot_uuid;
+				component.previewLink.attr( 'target', component.data.uuid );
 			}
 
 			if ( url.match( regex ) ) {
@@ -285,7 +326,7 @@
 
 			// Change the save button text to update.
 			component.changeButton( component.data.i18n.updateButton, component.data.i18n.permsMsg.update );
-			component.data.isPreview = true;
+			api.state( 'snapshot-exists' ).set( true );
 
 			spinner.removeClass( 'is-active' );
 
@@ -300,11 +341,6 @@
 				api.state( 'snapshot-submitted' ).set( true );
 			}
 			component.resetSavedStateQuietly();
-
-			// Open the preview in a new window on shift+click.
-			if ( args.openNewWindow ) {
-				window.open( url, '_blank' );
-			}
 
 			// Trigger an event for plugins to use.
 			api.trigger( 'customize-snapshots-update', {
