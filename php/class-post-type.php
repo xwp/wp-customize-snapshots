@@ -365,12 +365,13 @@ class Post_Type {
 			 * @param array  $context {
 			 *     Context.
 			 *
-			 *     @type mixed $value          Value being previewed.
-			 *     @type array $setting_params Setting args, including value.
-			 *     @type \WP_Post $post        Snapshot post.
+			 *     @type mixed    $value          Value being previewed.
+			 *     @type string   $setting_id     Setting args, including value.
+			 *     @type array    $setting_params Setting args, including value.
+			 *     @type \WP_Post $post           Snapshot post.
 			 * }
 			 */
-			$preview = apply_filters( 'customize_snapshot_value_preview', $preview, compact( 'value', 'setting_params', 'post' ) );
+			$preview = apply_filters( 'customize_snapshot_value_preview', $preview, compact( 'value', 'setting_id', 'setting_params', 'post' ) );
 
 			echo $preview; // WPCS: xss ok.
 			echo '</details>';
