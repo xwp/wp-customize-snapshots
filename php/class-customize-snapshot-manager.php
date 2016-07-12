@@ -555,7 +555,7 @@ class Customize_Snapshot_Manager {
 
 		if ( $this->snapshot && current_user_can( 'customize_publish' ) ) {
 			$result = $this->snapshot->set( $this->customize_manager->unsanitized_post_values() );
-			if ( $result['error'] ) {
+			if ( ! empty( $result['error'] ) ) {
 				add_filter( 'customize_save_response', function( $response ) use ( $result, $that ) {
 					$response['snapshot_errors'] = $that->prepare_errors_for_response( $result['error'] );
 					return $response;
@@ -760,7 +760,6 @@ class Customize_Snapshot_Manager {
 				),
 			)
 		);
-		add_action( 'wp_before_admin_bar_render', 'wp_customize_support_script' );
 	}
 
 	/**
