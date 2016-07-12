@@ -425,7 +425,7 @@ class Post_Type {
 	 * A post revision for a customize_snapshot may also be supplied.
 	 *
 	 * @param \WP_Post $post A customize_snapshot post or a revision post.
-	 * @return array
+	 * @return array|null Array of data or null if bad post supplied.
 	 */
 	public function get_post_content( \WP_Post $post ) {
 		if ( static::SLUG !== $post->post_type ) {
@@ -434,7 +434,7 @@ class Post_Type {
 				$parent_post = get_post( $post->post_parent );
 			}
 			if ( ! $parent_post || static::SLUG !== $parent_post->post_type ) {
-				return array();
+				return null;
 			}
 		}
 
@@ -449,7 +449,6 @@ class Post_Type {
 
 		return $data;
 	}
-
 
 	/**
 	 * Persist the data in the snapshot post content.
@@ -466,12 +465,24 @@ class Post_Type {
 			return new \WP_Error( 'missing_data' );
 		}
 
+		foreach ( $args['data'] as $setting_id => $setting_params ) {
+			if ( ! array_key_exists( 'value', $setting_params ) ) {
+				return new \WP_Error( 'missing_value_param' );
+			}
+		}
+
 		$post_arr = array(
 			'post_name' => $args['uuid'],
 			'post_title' => $args['uuid'],
 			'post_type' => static::SLUG,
 			'post_content' => Customize_Snapshot_Manager::encode_json( $args['data'] ),
+			'meta_input' => array(
+				'_snapshot_version' => $this->snapshot_manager->plugin->version,
+			),
 		);
+		if ( ! empty( $args['theme'] ) ) {
+			$post_arr['meta_input']['_snapshot_theme'] = $args['theme'];
+		}
 		if ( ! empty( $args['status'] ) ) {
 			if ( ! get_post_status_object( $args['status'] ) ) {
 				return new \WP_Error( 'bad_status' );
@@ -491,13 +502,6 @@ class Post_Type {
 			$r = wp_insert_post( wp_slash( $post_arr ), true );
 		}
 		$this->restore_kses();
-
-		if ( ! is_wp_error( $r ) ) {
-			if ( ! empty( $args['theme'] ) ) {
-				update_post_meta( $r, '_snapshot_theme', $args['theme'] );
-			}
-			update_post_meta( $r, '_snapshot_version', $this->snapshot_manager->plugin->version );
-		}
 
 		return $r;
 	}
