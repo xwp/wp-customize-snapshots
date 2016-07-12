@@ -412,6 +412,7 @@ class Post_Type {
 	 * This is needed to ensure that draft posts can be queried by name.
 	 *
 	 * @todo This can probably be removed, since we're explicitly requesting all statuses.
+	 * @codeCoverageIgnore
 	 *
 	 * @param \WP_Query $query WP Query.
 	 */
