@@ -238,9 +238,12 @@ class Post_Type {
 			return $actions;
 		}
 
+		$snapshot_theme = get_post_meta( $post->ID, '_snapshot_theme', true );
+		$is_snapshot_theme_mismatch = ! empty( $snapshot_theme ) && get_stylesheet() !== $snapshot_theme;
+
 		unset( $actions['inline hide-if-no-js'] );
 		$post_type_obj = get_post_type_object( static::SLUG );
-		if ( 'publish' !== $post->post_status && current_user_can( $post_type_obj->cap->edit_post, $post->ID ) ) {
+		if ( 'publish' !== $post->post_status && current_user_can( $post_type_obj->cap->edit_post, $post->ID ) && ! $is_snapshot_theme_mismatch ) {
 			$args = array(
 				'customize_snapshot_uuid' => $post->post_name,
 			);
@@ -308,7 +311,12 @@ class Post_Type {
 		echo sprintf( '%1$s %2$s', esc_html__( 'Author:', 'customize-snapshots' ), esc_html( get_the_author_meta( 'display_name', $post->post_author ) ) ) . '</p>';
 		echo '</p>';
 
-		if ( 'publish' !== $post->post_status ) {
+		$snapshot_theme = get_post_meta( $post->ID, '_snapshot_theme', true );
+		if ( ! empty( $snapshot_theme ) && get_stylesheet() !== $snapshot_theme ) {
+			echo '<p>';
+			echo sprintf( esc_html__( 'This snapshot was made when a different theme was active (%1$s), so currently it cannot be edited.', 'customize-snapshots' ), esc_html( $snapshot_theme ) );
+			echo '</p>';
+		} elseif ( 'publish' !== $post->post_status ) {
 			echo '<p>';
 			$args = array(
 				'customize_snapshot_uuid' => $post->post_name,
