@@ -238,9 +238,12 @@ class Post_Type {
 			return $actions;
 		}
 
+		$snapshot_theme = get_post_meta( $post->ID, '_snapshot_theme', true );
+		$is_snapshot_theme_mismatch = ! empty( $snapshot_theme ) && get_stylesheet() !== $snapshot_theme;
+
 		unset( $actions['inline hide-if-no-js'] );
 		$post_type_obj = get_post_type_object( static::SLUG );
-		if ( 'publish' !== $post->post_status && current_user_can( $post_type_obj->cap->edit_post, $post->ID ) ) {
+		if ( 'publish' !== $post->post_status && current_user_can( $post_type_obj->cap->edit_post, $post->ID ) && ! $is_snapshot_theme_mismatch ) {
 			$args = array(
 				'customize_snapshot_uuid' => $post->post_name,
 			);
@@ -308,7 +311,12 @@ class Post_Type {
 		echo sprintf( '%1$s %2$s', esc_html__( 'Author:', 'customize-snapshots' ), esc_html( get_the_author_meta( 'display_name', $post->post_author ) ) ) . '</p>';
 		echo '</p>';
 
-		if ( 'publish' !== $post->post_status ) {
+		$snapshot_theme = get_post_meta( $post->ID, '_snapshot_theme', true );
+		if ( ! empty( $snapshot_theme ) && get_stylesheet() !== $snapshot_theme ) {
+			echo '<p>';
+			echo sprintf( esc_html__( 'This snapshot was made when a different theme was active (%1$s), so currently it cannot be edited.', 'customize-snapshots' ), esc_html( $snapshot_theme ) );
+			echo '</p>';
+		} elseif ( 'publish' !== $post->post_status ) {
 			echo '<p>';
 			$args = array(
 				'customize_snapshot_uuid' => $post->post_name,
@@ -357,12 +365,13 @@ class Post_Type {
 			 * @param array  $context {
 			 *     Context.
 			 *
-			 *     @type mixed $value          Value being previewed.
-			 *     @type array $setting_params Setting args, including value.
-			 *     @type \WP_Post $post        Snapshot post.
+			 *     @type mixed    $value          Value being previewed.
+			 *     @type string   $setting_id     Setting args, including value.
+			 *     @type array    $setting_params Setting args, including value.
+			 *     @type \WP_Post $post           Snapshot post.
 			 * }
 			 */
-			$preview = apply_filters( 'customize_snapshot_value_preview', $preview, compact( 'value', 'setting_params', 'post' ) );
+			$preview = apply_filters( 'customize_snapshot_value_preview', $preview, compact( 'value', 'setting_id', 'setting_params', 'post' ) );
 
 			echo $preview; // WPCS: xss ok.
 			echo '</details>';
@@ -403,6 +412,7 @@ class Post_Type {
 	 * This is needed to ensure that draft posts can be queried by name.
 	 *
 	 * @todo This can probably be removed, since we're explicitly requesting all statuses.
+	 * @codeCoverageIgnore
 	 *
 	 * @param \WP_Query $query WP Query.
 	 */
@@ -416,7 +426,7 @@ class Post_Type {
 	 * A post revision for a customize_snapshot may also be supplied.
 	 *
 	 * @param \WP_Post $post A customize_snapshot post or a revision post.
-	 * @return array
+	 * @return array|null Array of data or null if bad post supplied.
 	 */
 	public function get_post_content( \WP_Post $post ) {
 		if ( static::SLUG !== $post->post_type ) {
@@ -425,7 +435,7 @@ class Post_Type {
 				$parent_post = get_post( $post->post_parent );
 			}
 			if ( ! $parent_post || static::SLUG !== $parent_post->post_type ) {
-				return array();
+				return null;
 			}
 		}
 
@@ -440,7 +450,6 @@ class Post_Type {
 
 		return $data;
 	}
-
 
 	/**
 	 * Persist the data in the snapshot post content.
@@ -457,12 +466,24 @@ class Post_Type {
 			return new \WP_Error( 'missing_data' );
 		}
 
+		foreach ( $args['data'] as $setting_id => $setting_params ) {
+			if ( ! array_key_exists( 'value', $setting_params ) ) {
+				return new \WP_Error( 'missing_value_param' );
+			}
+		}
+
 		$post_arr = array(
 			'post_name' => $args['uuid'],
 			'post_title' => $args['uuid'],
 			'post_type' => static::SLUG,
 			'post_content' => Customize_Snapshot_Manager::encode_json( $args['data'] ),
+			'meta_input' => array(
+				'_snapshot_version' => $this->snapshot_manager->plugin->version,
+			),
 		);
+		if ( ! empty( $args['theme'] ) ) {
+			$post_arr['meta_input']['_snapshot_theme'] = $args['theme'];
+		}
 		if ( ! empty( $args['status'] ) ) {
 			if ( ! get_post_status_object( $args['status'] ) ) {
 				return new \WP_Error( 'bad_status' );
@@ -482,13 +503,6 @@ class Post_Type {
 			$r = wp_insert_post( wp_slash( $post_arr ), true );
 		}
 		$this->restore_kses();
-
-		if ( ! is_wp_error( $r ) ) {
-			if ( ! empty( $args['theme'] ) ) {
-				update_post_meta( $r, '_snapshot_theme', $args['theme'] );
-			}
-			update_post_meta( $r, '_snapshot_version', $this->snapshot_manager->plugin->version );
-		}
 
 		return $r;
 	}

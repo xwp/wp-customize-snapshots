@@ -555,9 +555,9 @@ class Customize_Snapshot_Manager {
 
 		if ( $this->snapshot && current_user_can( 'customize_publish' ) ) {
 			$result = $this->snapshot->set( $this->customize_manager->unsanitized_post_values() );
-			if ( ! empty( $result['error'] ) ) {
+			if ( ! empty( $result['errors'] ) ) {
 				add_filter( 'customize_save_response', function( $response ) use ( $result, $that ) {
-					$response['snapshot_errors'] = $that->prepare_errors_for_response( $result['error'] );
+					$response['snapshot_errors'] = $that->prepare_errors_for_response( $result['errors'] );
 					return $response;
 				} );
 				return false;
