@@ -214,7 +214,8 @@ class Post_Type {
 	 * @return string Excerpt.
 	 */
 	public function filter_snapshot_excerpt( $excerpt, $post = null ) {
-		if ( $post instanceof \WP_Post && static::SLUG === $post->post_type ) {
+		$post = get_post( $post );
+		if ( static::SLUG === $post->post_type ) {
 			$excerpt = '<ol>';
 			foreach ( $this->get_post_content( $post ) as $setting_id => $setting_params ) {
 				if ( ! isset( $setting_params['dirty'] ) || true === $setting_params['dirty'] ) {
