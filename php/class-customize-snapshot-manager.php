@@ -496,7 +496,7 @@ class Customize_Snapshot_Manager {
 		// Script data array.
 		$exports = apply_filters( 'customize-snapshots-export-data', array(
 			'action' => self::AJAX_ACTION,
-			'uuid' => $this->snapshot ? $this->snapshot->uuid() : static::generate_uuid(),
+			'uuid' => $this->snapshot ? $this->snapshot->uuid() : self::generate_uuid(),
 			'currentUserCanPublish' => current_user_can( 'customize_publish' ),
 			'i18n' => array(
 				'saveButton' => __( 'Save', 'customize-snapshots' ),
@@ -577,7 +577,7 @@ class Customize_Snapshot_Manager {
 
 				// Send the new UUID to the client for the next snapshot.
 				add_filter( 'customize_save_response', function( $data ) {
-					$data['new_customize_snapshot_uuid'] = static::generate_uuid();
+					$data['new_customize_snapshot_uuid'] = self::generate_uuid();
 					return $data;
 				} );
 			}
