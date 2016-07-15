@@ -137,6 +137,9 @@ class Customize_Snapshot {
 	/**
 	 * Prepare snapshot data for saving.
 	 *
+	 * @todo This should switch back from taking an array of unsanitized values to taking a single id and value so that additional params can be set too?
+	 * @see WP_Customize_Manager::set_post_value()
+	 *
 	 * @param array $unsanitized_values Unsanitized post values.
 	 * @return array {
 	 *     Result.
@@ -182,6 +185,7 @@ class Customize_Snapshot {
 		if ( method_exists( $customize_manager, 'validate_setting_values' ) ) {
 			$result['validities'] = $customize_manager->validate_setting_values( $unsanitized_values );
 		} else {
+			// @codeCoverageIgnoreStart
 			$result['validities'] = array_map(
 				function( $sanitized ) {
 					if ( is_null( $sanitized ) ) {
@@ -192,6 +196,7 @@ class Customize_Snapshot {
 				},
 				$result['sanitized']
 			);
+			// @codeCoverageIgnoreEnd
 		}
 		$invalid_setting_ids = array_keys( array_filter( $result['validities'], function( $validity ) {
 			return is_wp_error( $validity );

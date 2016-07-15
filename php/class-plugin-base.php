@@ -195,6 +195,7 @@ abstract class Plugin_Base {
 	/**
 	 * Call trigger_error() if not on VIP production.
 	 *
+	 * @codeCoverageIgnore
 	 * @param string $message Warning message.
 	 * @param int    $code    Warning code.
 	 */
