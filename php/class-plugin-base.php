@@ -185,6 +185,7 @@ abstract class Plugin_Base {
 	/**
 	 * Return whether we're on WordPress.com VIP production.
 	 *
+	 * @codeCoverageIgnore
 	 * @return bool
 	 */
 	public function is_wpcom_vip_prod() {
