@@ -9,6 +9,7 @@ namespace CustomizeSnapshots;
 
 /**
  * Tests for Plugin_Base.
+ *
  * @group plugin
  */
 class Test_Plugin_Base extends \WP_UnitTestCase {
@@ -124,6 +125,9 @@ class Test_Plugin_Base extends \WP_UnitTestCase {
 	}
 }
 
+/**
+ * Class Test_Doc_hooks
+ */
 class Test_Doc_hooks {
 
 	/**
@@ -139,8 +143,11 @@ class Test_Doc_hooks {
 	 * Load this on the the_content filter hook.
 	 *
 	 * @filter the_content
+	 *
+	 * @param string $content Content.
+	 * @return string Content.
 	 */
 	public function the_content_filter( $content ) {
-		// Do something.
+		return $content;
 	}
 }

@@ -1,4 +1,9 @@
 <?php
+/**
+ * Test Customize_Snapshot.
+ *
+ * @package CustomizeSnapshots
+ */
 
 namespace CustomizeSnapshots;
 
@@ -10,22 +15,26 @@ namespace CustomizeSnapshots;
 class Test_Customize_Snapshot extends \WP_UnitTestCase {
 
 	/**
+	 * Plugin.
+	 *
 	 * @var Plugin
 	 */
 	public $plugin;
 
 	/**
 	 * A valid UUID.
+	 *
 	 * @type string
 	 */
 	const UUID = '65aee1ff-af47-47df-9e14-9c69b3017cd3';
 
 	/**
 	 * Post type.
+	 *
 	 * @type string
 	 */
 	const POST_TYPE = 'customize_snapshot';
-	
+
 	/**
 	 * Instance of WP_Customize_Manager which is reset for each test.
 	 *
@@ -34,28 +43,34 @@ class Test_Customize_Snapshot extends \WP_UnitTestCase {
 	protected $wp_customize;
 
 	/**
+	 * Snapshot manager.
+	 *
 	 * @var Customize_Snapshot_Manager
 	 */
 	protected $snapshot_manager;
 
 	/**
+	 * Foo setting
+	 *
 	 * @var \WP_Customize_Setting
 	 */
 	protected $foo;
 
 	/**
+	 * Bar setting.
+	 *
 	 * @var \WP_Customize_Setting
 	 */
 	protected $bar;
 
 	/**
-	 * Boostrap the customizer.
+	 * Bootstrap the customizer.
 	 */
 	public static function setUpBeforeClass() {
 		$args = array(
 			'labels' => array(
-				'name' => __( 'Customize Snapshots' ),
-				'singular_name' => __( 'Customize Snapshot' ),
+				'name' => __( 'Customize Snapshots', 'customize-snapshots' ),
+				'singular_name' => __( 'Customize Snapshot', 'customize-snapshots' ),
 			),
 			'public' => false,
 			'capability_type' => 'post',
@@ -68,24 +83,33 @@ class Test_Customize_Snapshot extends \WP_UnitTestCase {
 		register_post_type( self::POST_TYPE, $args );
 	}
 
+	/**
+	 * Tear down after class.
+	 */
 	public static function tearDownAfterClass() {
 		_unregister_post_type( self::POST_TYPE );
 	}
-	
+
+	/**
+	 * Set up.
+	 */
 	function setUp() {
 		parent::setUp();
 		$this->plugin = get_plugin_instance();
 		require_once( ABSPATH . WPINC . '/class-wp-customize-manager.php' );
-		$GLOBALS['wp_customize'] = new \WP_Customize_Manager();
+		$GLOBALS['wp_customize'] = new \WP_Customize_Manager(); // WPCS: override ok.
 		$this->snapshot_manager = new Customize_Snapshot_Manager( $this->plugin );
 		$this->wp_customize = $GLOBALS['wp_customize'];
-		wp_set_current_user( $this->factory->user->create( array( 'role' => 'administrator' ) ) );
+		wp_set_current_user( $this->factory()->user->create( array( 'role' => 'administrator' ) ) );
 		$this->wp_customize->add_setting( 'foo', array( 'default' => 'foo_default' ) );
 		$this->wp_customize->add_setting( 'bar', array( 'default' => 'bar_default' ) );
 		$this->foo = $this->wp_customize->get_setting( 'foo' );
 		$this->bar = $this->wp_customize->get_setting( 'bar' );
 	}
 
+	/**
+	 * Tear down.
+	 */
 	function tearDown() {
 		$this->wp_customize = null;
 		unset( $GLOBALS['wp_customize'] );
@@ -94,6 +118,8 @@ class Test_Customize_Snapshot extends \WP_UnitTestCase {
 	}
 
 	/**
+	 * Test UUID.
+	 *
 	 * @see Customize_Snapshot::uuid()
 	 */
 	function test_uuid() {
@@ -104,6 +130,8 @@ class Test_Customize_Snapshot extends \WP_UnitTestCase {
 	}
 
 	/**
+	 * Test bad UUID.
+	 *
 	 * @see Customize_Snapshot::uuid()
 	 */
 	function test_uuid_throws_exception() {
@@ -113,11 +141,12 @@ class Test_Customize_Snapshot extends \WP_UnitTestCase {
 			$this->assertContains( 'You\'ve entered an invalid snapshot UUID.', $e->getMessage() );
 			return;
 		}
-
 		$this->fail( 'An expected exception has not been raised.' );
 	}
 
 	/**
+	 * Test data.
+	 *
 	 * @see Customize_Snapshot::data()
 	 */
 	function test_data() {
@@ -137,6 +166,8 @@ class Test_Customize_Snapshot extends \WP_UnitTestCase {
 	}
 
 	/**
+	 * Test snapshot settings.
+	 *
 	 * @see Customize_Snapshot::settings()
 	 */
 	function test_settings() {

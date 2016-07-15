@@ -1,10 +1,20 @@
 <?php
+/**
+ * Test Plugin.
+ *
+ * @package CustomizeSnapshots
+ */
 
 namespace CustomizeSnapshots;
 
+/**
+ * Class Test_Plugin
+ */
 class Test_Plugin extends \WP_UnitTestCase {
 
 	/**
+	 * Test constructor.
+	 *
 	 * @see Plugin::__construct()
 	 */
 	function test_construct() {
@@ -13,6 +23,8 @@ class Test_Plugin extends \WP_UnitTestCase {
 	}
 
 	/**
+	 * Test init.
+	 *
 	 * @see Plugin::init()
 	 */
 	function test_init() {
@@ -24,6 +36,8 @@ class Test_Plugin extends \WP_UnitTestCase {
 	}
 
 	/**
+	 * Test filtering user_has_cap.
+	 *
 	 * @see Plugin::filter_user_has_cap()
 	 */
 	function test_filter_user_has_cap() {
