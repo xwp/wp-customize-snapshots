@@ -154,7 +154,7 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 		$response = json_decode( $this->_last_response, true );
 
 		$this->assertTrue( $response['success'] );
-		if ( method_exists( $this->plugin->customize_snapshot_manager->customize_manager, 'prepare_setting_validity_for_js' ) ) {
+		if ( method_exists( 'WP_Customize_Manager', 'prepare_setting_validity_for_js' ) ) {
 			$this->assertArrayHasKey( 'setting_validities', $response['data'] );
 			$this->assertArrayHasKey( 'anyonecanedit', $response['data']['setting_validities'] );
 			$this->assertTrue( $response['data']['setting_validities']['anyonecanedit'] );
@@ -282,7 +282,7 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 	 * }
 	 */
 	function data_update_snapshot_cap_check() {
-		return array(
+		$data = array(
 			array(
 				'subscriber',
 				array(
@@ -311,19 +311,26 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 					'data'    => 'customize_not_allowed',
 				),
 			),
+		);
+
+		$success_data = array(
+			'administrator',
 			array(
-				'administrator',
-				array(
-					'success' => true,
-					'data' => array(
-						'errors' => null,
-						'setting_validities' => array(
-							'anyonecanedit' => true,
-						),
+				'success' => true,
+				'data' => array(
+					'errors' => null,
+					'setting_validities' => array(
+						'anyonecanedit' => true,
 					),
 				),
 			),
 		);
+		if ( ! method_exists( 'WP_Customize_Manager', 'prepare_setting_validity_for_js' ) ) {
+			unset( $success_data['data']['setting_validities'] );
+		}
+		$data[] = $success_data;
+
+		return $data;
 	}
 
 	/**
