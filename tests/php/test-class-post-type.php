@@ -407,7 +407,7 @@ class Test_Post_type extends \WP_UnitTestCase {
 	 *
 	 * @see Post_Type::save()
 	 */
-	public function save() {
+	public function test_save() {
 		$post_type = new Post_Type( $this->plugin->customize_snapshot_manager );
 		$post_type->register();
 
@@ -420,27 +420,17 @@ class Test_Post_type extends \WP_UnitTestCase {
 		$this->assertInstanceOf( 'WP_Error', $r );
 		$this->assertEquals( 'missing_valid_uuid', $r->get_error_code() );
 
-		// Error: missing_data.
-		$r = $post_type->save( array( 'uuid' => self::UUID ) );
-		$this->assertInstanceOf( 'WP_Error', $r );
-		$this->assertEquals( 'missing_data', $r->get_error_code() );
-
 		$r = $post_type->save( array( 'uuid' => self::UUID, 'data' => 'bad' ) );
 		$this->assertInstanceOf( 'WP_Error', $r );
 		$this->assertEquals( 'missing_data', $r->get_error_code() );
 
-		// Error: missing_value_param.
+		// Error: bad_setting_params.
 		$r = $post_type->save( array( 'uuid' => self::UUID, 'data' => array( 'foo' => 'bar' ) ) );
 		$this->assertInstanceOf( 'WP_Error', $r );
-		$this->assertEquals( 'missing_value_param', $r->get_error_code() );
+		$this->assertEquals( 'bad_setting_params', $r->get_error_code() );
 
 		// Error: missing_value_param.
-		$r = $post_type->save( array( 'uuid' => self::UUID, 'data' => array( 'foo' => 'bar' ) ) );
-		$this->assertInstanceOf( 'WP_Error', $r );
-		$this->assertEquals( 'missing_value_param', $r->get_error_code() );
-
-		// Error: missing_value_param.
-		$r = $post_type->save( array( 'uuid' => self::UUID, 'data' => array( 'foo' => 'bar' ) ) );
+		$r = $post_type->save( array( 'uuid' => self::UUID, 'data' => array( 'foo' => array( 'bar' => 'quux' ) ) ) );
 		$this->assertInstanceOf( 'WP_Error', $r );
 		$this->assertEquals( 'missing_value_param', $r->get_error_code() );
 
@@ -457,17 +447,24 @@ class Test_Post_type extends \WP_UnitTestCase {
 		$this->assertInstanceOf( 'WP_Error', $r );
 		$this->assertEquals( 'bad_status', $r->get_error_code() );
 
-		// Success.
+		// Success without data.
+		$r = $post_type->save( array( 'uuid' => self::UUID ) );
+		$this->assertInternalType( 'int', $r );
+		$this->assertEquals( array(), $post_type->get_post_content( get_post( $r ) ) );
+		wp_delete_post( $r, true );
+
+		// Success with data.
 		$r = $post_type->save( array(
 			'uuid' => self::UUID,
 			'data' => $data,
 			'status' => 'publish',
+			'theme' => get_stylesheet(),
 		) );
 		$this->assertInternalType( 'int', $r );
 		$this->assertEquals( $data, $post_type->get_post_content( get_post( $r ) ) );
 
-		$this->assertEquals( get_stylesheet(), get_post_meta( $r, '_snapshot_theme' ), true );
-		$this->assertEquals( $this->plugin->version, get_post_meta( $r, '_snapshot_version' ), true );
+		$this->assertEquals( get_stylesheet(), get_post_meta( $r, '_snapshot_theme', true ) );
+		$this->assertEquals( $this->plugin->version, get_post_meta( $r, '_snapshot_version', true ) );
 	}
 
 	/**

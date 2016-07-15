@@ -463,25 +463,40 @@ class Post_Type {
 		if ( empty( $args['uuid'] ) || ! Customize_Snapshot_Manager::is_valid_uuid( $args['uuid'] ) ) {
 			return new \WP_Error( 'missing_valid_uuid' );
 		}
-		if ( ! isset( $args['data'] ) || ! is_array( $args['data'] ) ) {
-			return new \WP_Error( 'missing_data' );
-		}
-
-		foreach ( $args['data'] as $setting_id => $setting_params ) {
-			if ( ! array_key_exists( 'value', $setting_params ) ) {
-				return new \WP_Error( 'missing_value_param' );
-			}
-		}
 
 		$post_arr = array(
 			'post_name' => $args['uuid'],
 			'post_title' => $args['uuid'],
 			'post_type' => static::SLUG,
-			'post_content' => Customize_Snapshot_Manager::encode_json( $args['data'] ),
 			'meta_input' => array(
 				'_snapshot_version' => $this->snapshot_manager->plugin->version,
 			),
 		);
+
+		$post_id = $this->find_post( $args['uuid'] );
+		$is_update = ! empty( $post_id );
+
+		if ( $post_id ) {
+			$post_arr['ID'] = $post_id;
+		}
+
+		if ( isset( $args['data'] ) ) {
+			if ( ! is_array( $args['data'] ) ) {
+				return new \WP_Error( 'missing_data' );
+			}
+			foreach ( $args['data'] as $setting_id => $setting_params ) {
+				if ( ! is_array( $setting_params ) ) {
+					return new \WP_Error( 'bad_setting_params' );
+				}
+				if ( ! array_key_exists( 'value', $setting_params ) ) {
+					return new \WP_Error( 'missing_value_param' );
+				}
+			}
+			$post_arr['post_content'] = Customize_Snapshot_Manager::encode_json( $args['data'] );
+		} elseif ( ! $is_update ) {
+			$post_arr['post_content'] = Customize_Snapshot_Manager::encode_json( array() );
+		}
+
 		if ( ! empty( $args['theme'] ) ) {
 			$post_arr['meta_input']['_snapshot_theme'] = $args['theme'];
 		}
@@ -492,13 +507,8 @@ class Post_Type {
 			$post_arr['post_status'] = $args['status'];
 		}
 
-		$post_id = $this->find_post( $args['uuid'] );
-		if ( $post_id ) {
-			$post_arr['ID'] = $post_id;
-		}
-
 		$this->suspend_kses();
-		if ( $post_id ) {
+		if ( $is_update ) {
 			$r = wp_update_post( wp_slash( $post_arr ), true );
 		} else {
 			$r = wp_insert_post( wp_slash( $post_arr ), true );
