@@ -41,13 +41,20 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 	protected $manager;
 
 	/**
+	 * Set up before class.
+	 */
+	public static function setUpBeforeClass() {
+		parent::setUpBeforeClass();
+		require_once ABSPATH . WPINC . '/class-wp-customize-manager.php';
+	}
+
+	/**
 	 * Set up the test fixture.
 	 */
 	public function setUp() {
 		parent::setUp();
 
 		$this->plugin = new Plugin();
-		require_once ABSPATH . WPINC . '/class-wp-customize-manager.php';
 		$this->set_input_vars();
 		$this->plugin->init();
 	}
@@ -325,8 +332,10 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 				),
 			),
 		);
+
+		require_once ABSPATH . WPINC . '/class-wp-customize-manager.php';
 		if ( ! method_exists( 'WP_Customize_Manager', 'prepare_setting_validity_for_js' ) ) {
-			unset( $success_data['data']['setting_validities'] );
+			$success_data[1]['data'] = array( 'errors' => null );
 		}
 		$data[] = $success_data;
 
