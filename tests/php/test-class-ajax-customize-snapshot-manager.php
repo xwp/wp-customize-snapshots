@@ -154,9 +154,11 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 		$response = json_decode( $this->_last_response, true );
 
 		$this->assertTrue( $response['success'] );
-		$this->assertArrayHasKey( 'setting_validities', $response['data'] );
-		$this->assertArrayHasKey( 'anyonecanedit', $response['data']['setting_validities'] );
-		$this->assertTrue( $response['data']['setting_validities']['anyonecanedit'] );
+		if ( method_exists( $this->plugin->customize_snapshot_manager->customize_manager, 'prepare_setting_validity_for_js' ) ) {
+			$this->assertArrayHasKey( 'setting_validities', $response['data'] );
+			$this->assertArrayHasKey( 'anyonecanedit', $response['data']['setting_validities'] );
+			$this->assertTrue( $response['data']['setting_validities']['anyonecanedit'] );
+		}
 		$this->assertArrayHasKey( 'new_customize_snapshot_uuid', $response['data'] );
 		$this->assertTrue( Customize_Snapshot_Manager::is_valid_uuid( $response['data']['new_customize_snapshot_uuid'] ) );
 
