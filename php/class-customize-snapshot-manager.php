@@ -574,10 +574,10 @@ class Customize_Snapshot_Manager {
 				} );
 				return false;
 			} else {
-
 				// Send the new UUID to the client for the next snapshot.
-				add_filter( 'customize_save_response', function( $data ) {
-					$data['new_customize_snapshot_uuid'] = self::generate_uuid();
+				$class = __CLASS__; // For PHP 5.3.
+				add_filter( 'customize_save_response', function( $data ) use ( $class ) {
+					$data['new_customize_snapshot_uuid'] = $class::generate_uuid();
 					return $data;
 				} );
 			}
