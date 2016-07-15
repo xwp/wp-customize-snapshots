@@ -137,10 +137,10 @@ class Customize_Snapshot {
 	/**
 	 * Prepare snapshot data for saving.
 	 *
-	 * @todo This should switch back from taking an array of unsanitized values to taking a single id and value so that additional params can be set too?
 	 * @see WP_Customize_Manager::set_post_value()
+	 * @throws Exception When $settings_data is not an array of arrays.
 	 *
-	 * @param array $unsanitized_values Unsanitized post values.
+	 * @param array $settings_data Settings data, mapping setting IDs to arrays containing `value` and optionally additional params.
 	 * @return array {
 	 *     Result.
 	 *
@@ -149,7 +149,7 @@ class Customize_Snapshot {
 	 *     @type array          $validities Setting validities.
 	 * }
 	 */
-	public function set( array $unsanitized_values ) {
+	public function set( array $settings_data ) {
 		$error = new \WP_Error();
 		$result = array(
 			'errors' => null,
@@ -157,18 +157,25 @@ class Customize_Snapshot {
 			'validities' => array(),
 		);
 
+		$setting_ids = array_keys( $settings_data );
 		$customize_manager = $this->snapshot_manager->customize_manager;
-		$customize_manager->add_dynamic_settings( array_keys( $unsanitized_values ) );
+		$customize_manager->add_dynamic_settings( $setting_ids );
 
 		// Check for recognized settings and authorized settings.
+		$unsanitized_values = array();
 		$unrecognized_setting_ids = array();
 		$unauthorized_setting_ids = array();
-		foreach ( $unsanitized_values as $setting_id => $unsanitized_value ) {
+		foreach ( $settings_data as $setting_id => $setting_params ) {
+			if ( ! is_array( $setting_params ) ) {
+				throw new Exception( '$setting_params not an array' );
+			}
 			$setting = $customize_manager->get_setting( $setting_id );
 			if ( ! $setting ) {
 				$unrecognized_setting_ids[] = $setting_id;
 			} elseif ( ! current_user_can( $setting->capability ) ) {
 				$unauthorized_setting_ids[] = $setting_id;
+			} elseif ( array_key_exists( 'value', $setting_params ) ) {
+				$unsanitized_values[ $setting_id ] = $setting_params['value'];
 			}
 		}
 
@@ -253,11 +260,14 @@ class Customize_Snapshot {
 			 * instance array is placed back into a post value, it will get
 			 * rejected by the sanitize logic for not being an encoded value.
 			 */
-			foreach ( $unsanitized_values as $setting_id => $unsanitized_value ) {
+			foreach ( $settings_data as $setting_id => $setting_params ) {
 				if ( ! isset( $this->data[ $setting_id ] ) ) {
 					$this->data[ $setting_id ] = array();
 				}
-				$this->data[ $setting_id ]['value'] = $unsanitized_value;
+				if ( ! array_key_exists( 'value', $setting_params ) ) {
+					$setting_params['value'] = null;
+				}
+				$this->data[ $setting_id ] = array_merge( $this->data[ $setting_id ], $setting_params );
 			}
 		}
 

@@ -554,7 +554,13 @@ class Customize_Snapshot_Manager {
 		$that = $this;
 
 		if ( $this->snapshot && current_user_can( 'customize_publish' ) ) {
-			$result = $this->snapshot->set( $this->customize_manager->unsanitized_post_values() );
+			$settings_data = array_map(
+				function( $value ) {
+					return compact( 'value' );
+				},
+				$this->customize_manager->unsanitized_post_values()
+			);
+			$result = $this->snapshot->set( $settings_data );
 			if ( ! empty( $result['errors'] ) ) {
 				add_filter( 'customize_save_response', function( $response ) use ( $result, $that ) {
 					$response['snapshot_errors'] = $that->prepare_errors_for_response( $result['errors'] );
@@ -632,7 +638,13 @@ class Customize_Snapshot_Manager {
 		$data = array(
 			'errors' => null,
 		);
-		$r = $this->snapshot->set( $this->customize_manager->unsanitized_post_values() );
+		$settings_data = array_map(
+			function( $value ) {
+				return compact( 'value' );
+			},
+			$this->customize_manager->unsanitized_post_values()
+		);
+		$r = $this->snapshot->set( $settings_data );
 		if ( method_exists( $this->customize_manager, 'prepare_setting_validity_for_js' ) ) {
 			$data['setting_validities'] = array_map(
 				array( $this->customize_manager, 'prepare_setting_validity_for_js' ),

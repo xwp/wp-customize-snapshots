@@ -171,9 +171,9 @@ class Test_Customize_Snapshot extends \WP_UnitTestCase {
 		$manager = new Customize_Snapshot_Manager( $this->plugin );
 		$manager->init();
 
-		$manager->snapshot()->set( array( 'foo' => 'foo_default' ) );
+		$manager->snapshot()->set( array( 'foo' => array( 'value' => 'foo_default' ) ) );
 		$this->assertNotEmpty( $manager->snapshot()->data() );
-		$manager->snapshot()->set( array( 'foo' => 'foo_custom' ) );
+		$manager->snapshot()->set( array( 'foo' => array( 'value' => 'foo_custom' ) ) );
 		$expected = array(
 			'foo' => array(
 				'value' => 'foo_custom',
@@ -193,7 +193,7 @@ class Test_Customize_Snapshot extends \WP_UnitTestCase {
 		$manager->init();
 
 		$this->assertEmpty( $manager->snapshot()->settings() );
-		$manager->snapshot()->set( array( 'foo' => 'foo_default' ) );
+		$manager->snapshot()->set( array( 'foo' => array( 'value' => 'foo_default' ) ) );
 		$this->assertNotEmpty( $manager->snapshot()->settings() );
 	}
 
@@ -238,9 +238,9 @@ class Test_Customize_Snapshot extends \WP_UnitTestCase {
 
 		$snapshot = new Customize_Snapshot( $manager, self::UUID );
 		$result = $snapshot->set( array(
-			'foo' => 'ok',
-			'bar' => 'unauthorized',
-			'baz' => 'unrecognized',
+			'foo' => array( 'value' => 'ok' ),
+			'bar' => array( 'value' => 'unauthorized' ),
+			'baz' => array( 'value' => 'unrecognized' ),
 		) );
 
 		$this->assertArrayHasKey( 'errors', $result );
@@ -261,10 +261,35 @@ class Test_Customize_Snapshot extends \WP_UnitTestCase {
 
 		$this->assertEmpty( $snapshot->data() );
 
-		$result = $snapshot->set( array( 'foo' => 'ok' ) );
+		// Success with populated value.
+		$result = $snapshot->set( array( 'foo' => array( 'value' => 'ok' ) ) );
 		$this->assertNull( $result['errors'] );
 		$resultant_data = $snapshot->data();
 		$this->assertEquals( 'ok', $resultant_data['foo']['value'] );
+	}
+
+	/**
+	 * Test set with varying setting params.
+	 *
+	 * @see Customize_Snapshot::set()
+	 */
+	function test_set_with_varying_setting_params() {
+		$manager = new Customize_Snapshot_Manager( $this->plugin );
+		$manager->init();
+		$snapshot = new Customize_Snapshot( $manager, self::UUID );
+
+		$result = $snapshot->set( array( 'foo' => array( 'value' => 'ok' ) ) );
+		$this->assertNull( $result['errors'] );
+		$resultant_data = $snapshot->data();
+		$this->assertEquals( 'ok', $resultant_data['foo']['value'] );
+
+		// Check setting a param without a value, ensuring that foo still remains but snapshot is amended.
+		$result = $snapshot->set( array( 'bar' => array( 'extra' => 'ok' ) ) );
+		$this->assertNull( $result['errors'] );
+		$resultant_data = $snapshot->data();
+		$this->assertEquals( 'ok', $resultant_data['foo']['value'] );
+		$this->assertArrayHasKey( 'extra', $resultant_data['bar'] );
+		$this->assertNull( $resultant_data['bar']['value'] );
 	}
 
 	/**
