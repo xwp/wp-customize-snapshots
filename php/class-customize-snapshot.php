@@ -201,7 +201,7 @@ class Customize_Snapshot {
 						return true;
 					}
 				},
-				$result['sanitized']
+				$unsanitized_values
 			);
 			// @codeCoverageIgnoreEnd
 		}

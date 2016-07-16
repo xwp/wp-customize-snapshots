@@ -253,6 +253,7 @@ class Customize_Snapshot_Manager {
 	 */
 	public function preview_snapshot_settings() {
 
+		// Short-circuit because if customize_preview_init happened, then all settings have been previewed.
 		if ( did_action( 'customize_preview_init' ) ) {
 			return;
 		}
