@@ -193,7 +193,11 @@ class Customize_Snapshot_Manager {
 			return false;
 		}
 
-		// Prevent clobbering existing values (or previewing non-snapshotted values on frontend).
+		/*
+		 * Prevent clobbering existing values (or previewing non-snapshotted values on frontend).
+		 * Note that wp.customize.Snapshots.extendPreviewerQuery() will extend the
+		 * previewer data to include the current snapshot UUID.
+		 */
 		if ( count( $this->customize_manager->unsanitized_post_values() ) > 0 ) {
 			return false;
 		}
@@ -211,11 +215,24 @@ class Customize_Snapshot_Manager {
 	 *
 	 * Note that this can't be called prior to the setup_theme action or else
 	 * magic quotes may end up getting added twice.
+	 *
+	 * @see Customize_Snapshot_Manager::should_import_and_preview_snapshot()
 	 */
 	public function import_snapshot_data() {
-
-		// @todo $snapshot_values = array_merge( $this->customize_manager->unsanitized_post_values(), $this->snapshot->data() ); ?
-		$snapshot_values = wp_list_pluck( $this->snapshot->data(), 'value' );
+		/*
+		 * We don't merge the snapshot data with any existing existing unsanitized
+		 * post values since should_import_and_preview_snapshot returns false if
+		 * there is any existing data in the Customizer state. This is to prevent
+		 * clobbering existing values (or previewing non-snapshotted values on frontend).
+		 * Note that wp.customize.Snapshots.extendPreviewerQuery() will extend the
+		 * previewer data to include the current snapshot UUID.
+		 */
+		$snapshot_values = array_filter(
+			wp_list_pluck( $this->snapshot->data(), 'value' ),
+			function( $value ) {
+				return ! is_null( $value );
+			}
+		);
 
 		// Populate input vars for back-compat.
 		$_POST['customized'] = wp_slash( wp_json_encode( $snapshot_values ) );
