@@ -560,7 +560,10 @@ class Post_Type {
 			require_once( ABSPATH . WPINC . '/class-wp-customize-manager.php' );
 			$this->snapshot_manager->customize_manager = new \WP_Customize_Manager();
 		}
-		$snapshot_content = $this->get_post_content( $post );
+		$snapshot_content = json_decode( $post->post_content, true );
+		if ( json_last_error() || ! is_array( $snapshot_content ) ) {
+			return;
+		}
 		$snapshot_values = array_filter(
 			wp_list_pluck( $snapshot_content, 'value' ),
 			function( $value ) {
