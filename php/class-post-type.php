@@ -91,7 +91,6 @@ class Post_Type {
 			'capability_type' => static::SLUG,
 			'capabilities' => array(
 				'create_posts' => 'do_not_allow',
-				'publish_posts' => 'do_not_allow',
 			),
 			'rewrite' => false,
 			'show_in_customizer' => false,
@@ -108,6 +107,7 @@ class Post_Type {
 		add_filter( 'post_row_actions', array( $this, 'filter_post_row_actions' ), 10, 2 );
 		add_filter( 'wp_insert_post_data', array( $this, 'preserve_post_name_in_insert_data' ), 10, 2 );
 		add_filter( 'user_has_cap', array( $this, 'filter_user_has_cap' ), 10, 2 );
+		add_action( 'publish_' . static::SLUG, array( $this, 'publish_snapshot' ), 10, 2 );
 	}
 
 	/**
@@ -154,7 +154,6 @@ class Post_Type {
 	 */
 	public function remove_publish_metabox() {
 		remove_meta_box( 'slugdiv', static::SLUG, 'normal' );
-		remove_meta_box( 'submitdiv', static::SLUG, 'side' );
 		remove_meta_box( 'authordiv', static::SLUG, 'normal' );
 	}
 
@@ -548,5 +547,35 @@ class Post_Type {
 		}
 
 		return $allcaps;
+	}
+
+	/**
+	 * Publish snapshot changes when snapshot post is being published.
+	 *
+	 * @param int      $post_id Post id.
+	 * @param \WP_Post $post Post object.
+	 */
+	public function publish_snapshot( $post_id, $post ) {
+		if ( ! is_a( $this->snapshot_manager->customize_manager, '\WP_Customize_Manager' ) ) {
+			require_once( ABSPATH . WPINC . '/class-wp-customize-manager.php' );
+			$this->snapshot_manager->customize_manager = new \WP_Customize_Manager();
+		}
+		$snapshot_content = $this->get_post_content( $post );
+		$snapshot_values = array_filter(
+			wp_list_pluck( $snapshot_content, 'value' ),
+			function( $value ) {
+				return ! is_null( $value );
+			}
+		);
+
+		/** This action is documented in wp-includes/class-wp-customize-manager.php */
+		do_action( 'customize_save', $this->snapshot_manager->customize_manager );
+
+		foreach ( $snapshot_values as $setting_id => $setting_params ) {
+			$this->snapshot_manager->customize_manager->set_post_value( $setting_id, $setting_params );
+			$this->snapshot_manager->customize_manager->add_setting( $setting_id, $setting_params );
+			$setting = $this->snapshot_manager->customize_manager->get_setting( $setting_id );
+			$setting->save();
+		}
 	}
 }
