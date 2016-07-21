@@ -154,6 +154,10 @@ class Post_Type {
 	 */
 	public function remove_publish_metabox() {
 		remove_meta_box( 'slugdiv', static::SLUG, 'normal' );
+		$snapshot_theme = get_post_meta( get_the_ID(), '_snapshot_theme', true );
+		if ( ! empty( $snapshot_theme ) && get_stylesheet() !== $snapshot_theme ) {
+			remove_meta_box( 'submitdiv', static::SLUG, 'side' );
+		}
 		remove_meta_box( 'authordiv', static::SLUG, 'normal' );
 	}
 
@@ -556,14 +560,19 @@ class Post_Type {
 	 * @param \WP_Post $post Post object.
 	 */
 	public function publish_snapshot( $post_id, $post ) {
+		if ( did_action( 'customize_save' ) ) {
+			// Short circuit because customize_save ajax call is changing status.
+			return;
+		}
 		if ( ! is_a( $this->snapshot_manager->customize_manager, '\WP_Customize_Manager' ) ) {
 			require_once( ABSPATH . WPINC . '/class-wp-customize-manager.php' );
 			$this->snapshot_manager->customize_manager = new \WP_Customize_Manager();
 		}
-		$snapshot_content = json_decode( $post->post_content, true );
-		if ( json_last_error() || ! is_array( $snapshot_content ) ) {
-			return;
+		if ( ! did_action( 'customize_register' ) ) {
+			/** This action is documented in wp-includes/class-wp-customize-manager.php */
+			do_action( 'customize_register', $this->snapshot_manager->customize_manager );
 		}
+		$snapshot_content = $this->get_post_content( $post );
 		$snapshot_values = array_filter(
 			wp_list_pluck( $snapshot_content, 'value' ),
 			function( $value ) {
@@ -571,14 +580,33 @@ class Post_Type {
 			}
 		);
 
-		/** This action is documented in wp-includes/class-wp-customize-manager.php */
-		do_action( 'customize_save', $this->snapshot_manager->customize_manager );
+		if ( method_exists( $this->snapshot_manager->customize_manager, 'validate_setting_values' ) ) {
+			/** This action is documented in wp-includes/class-wp-customize-manager.php */
+			do_action( 'customize_save_validation_before', $this->snapshot_manager->customize_manager );
+		}
+
+		$setting_objs = $this->snapshot_manager->customize_manager->add_dynamic_settings( array_keys( $snapshot_values ) );
 
 		foreach ( $snapshot_values as $setting_id => $setting_params ) {
 			$this->snapshot_manager->customize_manager->set_post_value( $setting_id, $setting_params );
-			$this->snapshot_manager->customize_manager->add_setting( $setting_id, $setting_params );
-			$setting = $this->snapshot_manager->customize_manager->get_setting( $setting_id );
-			$setting->save();
 		}
+
+		$filtered_setting_objs = array_filter( $setting_objs, function( $setting_obj ) {
+			return is_a( $setting_obj, '\WP_Customize_Setting' );
+		} );
+
+		foreach ( $filtered_setting_objs as $setting_obj ) {
+			$setting_obj->capability = 'exist';
+		}
+
+		/** This action is documented in wp-includes/class-wp-customize-manager.php */
+		do_action( 'customize_save', $this->snapshot_manager->customize_manager );
+
+		foreach ( $filtered_setting_objs as $setting_obj ) {
+			$setting_obj->save();
+		}
+
+		/** This action is documented in wp-includes/class-wp-customize-manager.php */
+		do_action( 'customize_save_after', $this->snapshot_manager->customize_manager );
 	}
 }

@@ -92,7 +92,7 @@ class Test_Post_type extends \WP_UnitTestCase {
 		$post_type = new Post_Type( $this->plugin->customize_snapshot_manager );
 		$post_type->register();
 
-		$post_id = $this->factory()->post->create( array( 'post_type' => Post_Type::SLUG ) );
+		$post_id = $this->factory()->post->create( array( 'post_type' => Post_Type::SLUG, 'post_status' => 'draft' ) );
 
 		$wp_meta_boxes = array(); // WPCS: global override ok.
 		$metabox_id = Post_Type::SLUG;
