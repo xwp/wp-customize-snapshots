@@ -564,11 +564,33 @@ class Post_Type {
 			// Short circuit because customize_save ajax call is changing status.
 			return;
 		}
+		$snapshot_theme = get_post_meta( get_the_ID(), '_snapshot_theme', true );
+		if ( ! empty( $snapshot_theme ) && get_stylesheet() !== $snapshot_theme ) {
+			// Theme mismatch.
+			if ( defined( 'DOING_CRON' ) && DOING_CRON ) {
+				wp_update_post( array(
+					'ID' => $post->ID,
+					'post_status' => 'pending',
+				) );
+			}
+		}
+
 		if ( ! is_a( $this->snapshot_manager->customize_manager, '\WP_Customize_Manager' ) ) {
 			require_once( ABSPATH . WPINC . '/class-wp-customize-manager.php' );
 			$this->snapshot_manager->customize_manager = new \WP_Customize_Manager();
 		}
 		if ( ! did_action( 'customize_register' ) ) {
+			/*
+			 * When running from CLI or Cron, we have to remove the action because
+			 * it will get added with a default priority of 10, after themes and plugins
+			 * have already done add_action( 'customize_register' ), resulting in them
+			 * being called first at the priority 10. So we manually call the
+			 * prerequisite function WP_Customize_Manager::register_controls() and
+			 * remove it from being called when the customize_register action fires.
+			 */
+			remove_action( 'customize_register', array( $this->snapshot_manager->customize_manager, 'register_controls' ) );
+			$this->snapshot_manager->customize_manager->register_controls();
+
 			/** This action is documented in wp-includes/class-wp-customize-manager.php */
 			do_action( 'customize_register', $this->snapshot_manager->customize_manager );
 		}
@@ -585,22 +607,28 @@ class Post_Type {
 			do_action( 'customize_save_validation_before', $this->snapshot_manager->customize_manager );
 		}
 
-		$setting_objs = $this->snapshot_manager->customize_manager->add_dynamic_settings( array_keys( $snapshot_values ) );
-
+		$this->snapshot_manager->customize_manager->add_dynamic_settings( array_keys( $snapshot_values ) );
+		$setting_objs = array();
 		foreach ( $snapshot_values as $setting_id => $setting_params ) {
 			$this->snapshot_manager->customize_manager->set_post_value( $setting_id, $setting_params );
+			$setting_objs[] = $this->snapshot_manager->customize_manager->get_setting( $setting_id );
 		}
 
 		$filtered_setting_objs = array_filter( $setting_objs, function( $setting_obj ) {
 			return is_a( $setting_obj, '\WP_Customize_Setting' );
 		} );
+		if ( empty( $filtered_setting_objs ) ) {
+			return;
+		}
 
 		foreach ( $filtered_setting_objs as $setting_obj ) {
 			$setting_obj->capability = 'exist';
 		}
 
+		remove_action( 'customize_save', array( $this->snapshot_manager, 'check_customize_publish_authorization' ), 10 );
 		/** This action is documented in wp-includes/class-wp-customize-manager.php */
 		do_action( 'customize_save', $this->snapshot_manager->customize_manager );
+		add_action( 'customize_save', array( $this, 'check_customize_publish_authorization' ), 10, 0 );
 
 		foreach ( $filtered_setting_objs as $setting_obj ) {
 			$setting_obj->save();

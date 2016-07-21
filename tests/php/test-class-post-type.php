@@ -488,4 +488,32 @@ class Test_Post_type extends \WP_UnitTestCase {
 		wp_set_current_user( $admin_id );
 		$this->assertTrue( current_user_can( 'edit_post', $post_id ) );
 	}
+
+	/**
+	 * Snapshot publish.
+	 *
+	 * @see Post_Type::publish_snapshot()
+	 */
+	function test_publish_snapshot() {
+		$admin_user_id = $this->factory()->user->create( array( 'role' => 'administrator' ) );
+		wp_set_current_user( $admin_user_id );
+		$post_type = new Post_Type( $this->plugin->customize_snapshot_manager );
+		$post_type->register();
+		$tag_line = 'Snapshot blog';
+
+		$post_id = $this->factory()->post->create( array(
+			'post_name' => self::UUID,
+			'post_title' => self::UUID,
+			'uuid' => self::UUID,
+			'post_content' => wp_json_encode( array( 'blogdescription' => array( 'value' => $tag_line ) ) ),
+			'post_status' => 'draft',
+			'post_type' => Post_Type::SLUG,
+		) );
+
+		wp_update_post( array(
+			'ID' => $post_id,
+			'post_status' => 'publish',
+		) );
+		$this->assertEquals( $tag_line, get_bloginfo( 'description' ) );
+	}
 }
