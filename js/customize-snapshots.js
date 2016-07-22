@@ -99,6 +99,9 @@
 				component.data.uuid = response.new_customize_snapshot_uuid;
 				component.previewLink.attr( 'target', component.data.uuid );
 			}
+			if ( response.edit_link ) {
+				component.data.editLink = response.edit_link;
+			}
 
 			api.state( 'snapshot-exists' ).set( false );
 
@@ -156,7 +159,8 @@
 	component.addButtons = function() {
 		var header = $( '#customize-header-actions' ),
 			publishButton = header.find( '#save' ),
-			snapshotButton, submitButton, data, setPreviewLinkHref;
+			snapshotEditLinkTemplate = wp.template( 'snapshot-edit-link' ),
+			snapshotButton, submitButton, data, setPreviewLinkHref, snapshotEditLinkEl;
 
 		// Save/update button.
 		snapshotButton = wp.template( 'snapshot-save' );
@@ -169,13 +173,25 @@
 		}
 		snapshotButton.prop( 'disabled', true );
 		snapshotButton.insertAfter( publishButton );
+
+		snapshotEditLinkEl = $( $.trim( snapshotEditLinkTemplate( component.data ) ) );
+		snapshotEditLinkEl.insertAfter( snapshotButton );
+		if ( ! component.data.editLink ) {
+			snapshotEditLinkEl.hide();
+		}
+
 		api.state( 'snapshot-saved' ).bind( function( saved ) {
 			snapshotButton.prop( 'disabled', saved );
+			if ( saved ) {
+				snapshotEditLinkEl.attr( 'href', component.data.editLink );
+				snapshotEditLinkEl.show();
+			}
 		} );
 
 		api.state( 'saved' ).bind( function( saved ) {
 			if ( saved ) {
 				snapshotButton.prop( 'disabled', true );
+				snapshotEditLinkEl.hide();
 			}
 		} );
 		api.bind( 'change', function() {
@@ -187,9 +203,14 @@
 			if ( exists ) {
 				buttonText = component.data.i18n.updateButton;
 				permsMsg = component.data.i18n.permsMsg.update;
+				if ( component.data.editLink ) {
+					snapshotEditLinkEl.attr( 'href', component.data.editLink );
+					snapshotEditLinkEl.show();
+				}
 			} else {
 				buttonText = component.data.i18n.saveButton;
 				permsMsg = component.data.i18n.permsMsg.save;
+				snapshotEditLinkEl.hide();
 			}
 
 			snapshotButton.text( buttonText );
@@ -284,6 +305,9 @@
 		spinner.addClass( 'is-active' );
 		request.always( function( response ) {
 			spinner.removeClass( 'is-active' );
+			if ( response.edit_link ) {
+				component.data.editLink = response.edit_link;
+			}
 
 			// @todo Remove privateness from _handleSettingValidities in Core.
 			if ( api._handleSettingValidities && response.setting_validities ) {

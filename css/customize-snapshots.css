@@ -1,8 +1,11 @@
-#snapshot-preview-link {
+#snapshot-preview-link, #snapshot-edit-link {
 	float: right;
 	margin-top: 13px;
 	margin-right: 4px;
 	color: #656a6f;
+}
+#snapshot-edit-link{
+	display: block;
 }
 
 #snapshot-preview-link:hover,

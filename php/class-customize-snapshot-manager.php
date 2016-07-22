@@ -515,6 +515,7 @@ class Customize_Snapshot_Manager {
 		$exports = apply_filters( 'customize-snapshots-export-data', array(
 			'action' => self::AJAX_ACTION,
 			'uuid' => $this->snapshot ? $this->snapshot->uuid() : self::generate_uuid(),
+			'editLink' => $this->snapshot ? get_edit_post_link( $this->snapshot->post() ) : '',
 			'currentUserCanPublish' => current_user_can( 'customize_publish' ),
 			'i18n' => array(
 				'saveButton' => __( 'Save', 'customize-snapshots' ),
@@ -678,6 +679,12 @@ class Customize_Snapshot_Manager {
 		$r = $this->snapshot->save( array(
 			'status' => $status,
 		) );
+
+		$post = $this->snapshot->post();
+		if ( $post ) {
+			$data['edit_link'] = get_edit_post_link( $post, '' );
+		}
+
 		if ( is_wp_error( $r ) ) {
 			$data['errors'] = $this->prepare_errors_for_response( $r );
 			wp_send_json_error( $data );
@@ -801,6 +808,10 @@ class Customize_Snapshot_Manager {
 			<a href="#" target="frontend-preview" id="snapshot-preview-link" class="dashicons dashicons-welcome-view-site" title="<?php esc_attr_e( 'View on frontend', 'customize-snapshots' ) ?>">
 				<span class="screen-reader-text"><?php esc_html_e( 'View on frontend', 'customize-snapshots' ) ?></span>
 			</a>
+		</script>
+
+		<script type="text/html" id="tmpl-snapshot-edit-link">
+			<a href="{{{ data.editLink }}}" id="snapshot-edit-link" class="dashicons dashicons-calendar-alt" title="<?php esc_attr_e( 'Edit Snapshot','customize-snapshots' ); ?>"></a>
 		</script>
 
 		<script type="text/html" id="tmpl-snapshot-save">
