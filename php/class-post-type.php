@@ -574,11 +574,8 @@ class Post_Type {
 				) );
 			}
 		}
+		$this->snapshot_manager->ensure_customize_manager();
 
-		if ( ! is_a( $this->snapshot_manager->customize_manager, '\WP_Customize_Manager' ) ) {
-			require_once( ABSPATH . WPINC . '/class-wp-customize-manager.php' );
-			$this->snapshot_manager->customize_manager = new \WP_Customize_Manager();
-		}
 		if ( ! did_action( 'customize_register' ) ) {
 			/*
 			 * When running from CLI or Cron, we have to remove the action because
