@@ -612,20 +612,28 @@ class Post_Type {
 		}
 
 		$filtered_setting_objs = array_filter( $setting_objs, function( $setting_obj ) {
-			return is_a( $setting_obj, '\WP_Customize_Setting' );
+			return $setting_obj instanceof \WP_Customize_Setting;
 		} );
 		if ( empty( $filtered_setting_objs ) ) {
 			return;
 		}
 
+		$existing_caps = wp_list_pluck( $filtered_setting_objs, 'capability' );
 		foreach ( $filtered_setting_objs as $setting_obj ) {
 			$setting_obj->capability = 'exist';
 		}
 
-		remove_action( 'customize_save', array( $this->snapshot_manager, 'check_customize_publish_authorization' ), 10 );
+		$action = 'customize_save';
+		$callback = array( $this->snapshot_manager, 'check_customize_publish_authorization' );
+		$priority = has_action( $action, $callback );
+		if ( false !== $priority ) {
+			remove_action( $action, $callback, $priority );
+		}
 		/** This action is documented in wp-includes/class-wp-customize-manager.php */
 		do_action( 'customize_save', $this->snapshot_manager->customize_manager );
-		add_action( 'customize_save', array( $this, 'check_customize_publish_authorization' ), 10, 0 );
+		if ( false !== $priority ) {
+			add_action( $action, $callback, $priority );
+		}
 
 		foreach ( $filtered_setting_objs as $setting_obj ) {
 			$setting_obj->save();
@@ -633,5 +641,9 @@ class Post_Type {
 
 		/** This action is documented in wp-includes/class-wp-customize-manager.php */
 		do_action( 'customize_save_after', $this->snapshot_manager->customize_manager );
+
+		foreach ( $existing_caps as $i => $existing_cap ) {
+			$filtered_setting_objs[ $i ]->capability = $existing_cap;
+		}
 	}
 }
