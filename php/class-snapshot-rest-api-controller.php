@@ -10,7 +10,7 @@ namespace CustomizeSnapshots;
 /**
  * REST API Controller Class
  *
- * @todo Add support for editing.
+ * @todo Add support for editing. Make sure Post_Type::save() is used.
  * @todo Add support for PATCH requests.
  * @todo Allow use of UUID instead of ID in routes.
  * @todo Disallow edits to slug.
@@ -101,7 +101,7 @@ class Snapshot_REST_API_Controller extends \WP_REST_Posts_Controller {
 	 */
 	protected function check_initial_access_permission() {
 		if ( ! current_user_can( 'customize' ) ) {
-			return new \WP_Error( 'rest_customize_unauthorized', __( 'Sorry, Customizer snapshots require proper authentication.', 'customize-snapshots' ), array( 'status' => rest_authorization_required_code() ) );
+			return new \WP_Error( 'rest_customize_unauthorized', __( 'Sorry, Customizer snapshots require proper authentication (the customize capability).', 'customize-snapshots' ), array( 'status' => rest_authorization_required_code() ) );
 		}
 		return true;
 	}
@@ -159,33 +159,6 @@ class Snapshot_REST_API_Controller extends \WP_REST_Posts_Controller {
 		$response = parent::prepare_item_for_response( $post, $request );
 		$response->data['content'] = $this->snapshot_post_type->get_post_content( $post );
 		return $response;
-	}
-
-	/**
-	 * Prepare a single post for create or update.
-	 *
-	 * @todo This will be irrelevant when create_item and update_item are implemented, as they can use Post_Type::save() directly.
-	 *
-	 * @param \WP_REST_Request $request Request object.
-	 * @return \WP_Error|\stdClass $prepared_post Post object.
-	 */
-	protected function prepare_item_for_database( $request ) {
-		$prepared_post = parent::prepare_item_for_database( $request );
-		if ( ! is_wp_error( $prepared_post ) && is_array( $request['content'] ) ) {
-			$prepared_post->post_content = wp_json_encode( $request['content'] );
-		}
-		return $prepared_post;
-	}
-
-	/**
-	 * Create one item from the collection.
-	 *
-	 * @param \WP_REST_Request $request Full data about the request.
-	 * @return \WP_Error|\WP_REST_Response
-	 */
-	public function create_item( $request ) {
-		unset( $request );
-		return new \WP_Error( 'invalid-method', sprintf( __( "Method '%s' not yet implemented.", 'customize-snapshots' ), __METHOD__ ), array( 'status' => 405 ) );
 	}
 
 	/**
