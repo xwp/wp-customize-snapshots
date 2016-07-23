@@ -121,7 +121,7 @@ class Post_Type {
 	public function filter_post_type_link( $url, $post ) {
 		if ( self::SLUG === $post->post_type ) {
 			$url = add_query_arg(
-				array( 'customzie_snapshot_uuid' => $post->post_name ),
+				array( 'customize_snapshot_uuid' => $post->post_name ),
 				home_url( '/' )
 			);
 		}
