@@ -489,6 +489,25 @@ class Test_Post_type extends \WP_UnitTestCase {
 
 		$this->assertEquals( get_stylesheet(), get_post_meta( $r, '_snapshot_theme', true ) );
 		$this->assertEquals( $this->plugin->version, get_post_meta( $r, '_snapshot_version', true ) );
+
+		// Success with author supplied.
+		$user_id = $this->factory()->user->create( array( 'role' => 'administrator' ) );
+		$post_id = $post_type->save( array(
+			'uuid' => self::UUID,
+			'data' => $data,
+			'status' => 'publish',
+			'author' => $user_id,
+		) );
+		$this->assertEquals( $user_id, get_post( $post_id )->post_author );
+
+		// Success with future date.
+		$post_id = $post_type->save( array(
+			'uuid' => self::UUID,
+			'data' => $data,
+			'status' => 'publish',
+			'date_gmt' => gmdate( 'Y-m-d H:i:s', time() + 24 * 3600 ),
+		) );
+		$this->assertEquals( 'future', get_post_status( $post_id ) );
 	}
 
 	/**

@@ -531,6 +531,12 @@ class Post_Type {
 			}
 			$post_arr['post_status'] = $args['status'];
 		}
+		if ( ! empty( $args['author'] ) ) {
+			$post_arr['post_author'] = $args['author'];
+		}
+		if ( ! empty( $args['date_gmt'] ) ) {
+			$post_arr['post_date_gmt'] = $args['date_gmt'];
+		}
 
 		$this->suspend_kses();
 		if ( $is_update ) {
