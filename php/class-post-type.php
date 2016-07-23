@@ -274,10 +274,13 @@ class Post_Type {
 				$actions
 			);
 
-			$frontend_view_url = add_query_arg( array_map( 'rawurlencode', $args ), home_url() );
 			$actions = array_merge(
 				array(
-					'front-view' => sprintf( '<a href="%s">%s</a>', esc_url( $frontend_view_url ), esc_html__( 'Preview Snapshot', 'customize-snapshots' ) ),
+					'front-view' => sprintf(
+						'<a href="%s">%s</a>',
+						esc_url( get_permalink( $post->ID ) ),
+						esc_html__( 'Preview Snapshot', 'customize-snapshots' )
+					),
 				),
 				$actions
 			);
