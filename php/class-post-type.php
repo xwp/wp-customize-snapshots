@@ -94,7 +94,11 @@ class Post_Type {
 				'publish_posts' => 'do_not_allow',
 			),
 			'rewrite' => false,
-			'show_in_customizer' => false,
+			'show_in_customizer' => false, // Prevent inception.
+			'show_in_rest' => true,
+			'rest_base' => 'customize_snapshots',
+			'rest_controller_class' => __NAMESPACE__ . '\\Snapshot_REST_API_Controller',
+			'customize_snapshot_post_type_obj' => $this,
 			'menu_icon' => 'dashicons-camera',
 			'register_meta_box_cb' => array( $this, 'setup_metaboxes' ),
 		);
