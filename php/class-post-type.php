@@ -354,7 +354,7 @@ class Post_Type {
 		ksort( $snapshot_content );
 		echo '<ul id="snapshot-settings">';
 		foreach ( $snapshot_content as $setting_id => $setting_params ) {
-			if ( ! isset( $setting_params['value'] ) && ! isset( $setting_params['save_error'] ) ) {
+			if ( ! isset( $setting_params['value'] ) && ! isset( $setting_params['publish_error'] ) ) {
 				continue;
 			}
 			$value = isset( $setting_params['value'] ) ? $setting_params['value'] : '';
@@ -363,10 +363,10 @@ class Post_Type {
 			echo '<summary><code>' . esc_html( $setting_id ) . '</code>';
 
 			// Show error message when there was a publishing error.
-			if ( isset( $setting_params['save_error'] ) ) {
+			if ( isset( $setting_params['publish_error'] ) ) {
 				echo '<span class="error-message">';
 				echo '<b>' . esc_html__( 'Publish error:', 'customize-snapshots' ) . '</b> ';
-				switch ( $setting_params['save_error'] ) {
+				switch ( $setting_params['publish_error'] ) {
 					case 'null_value':
 						esc_html_e( 'Missing value.', 'customize-snapshots' );
 						break;
@@ -374,7 +374,7 @@ class Post_Type {
 						esc_html_e( 'Unrecognized setting.', 'customize-snapshots' );
 						break;
 					default:
-						echo '<code>' . esc_html( $setting_params['save_error'] ) . '</code>';
+						echo '<code>' . esc_html( $setting_params['publish_error'] ) . '</code>';
 				}
 				echo '</span>';
 			}
@@ -638,16 +638,16 @@ class Post_Type {
 						$setting_params = array();
 					}
 				}
-				$setting_params['save_error'] = 'null_value';
+				$setting_params['publish_error'] = 'null_value';
 				$have_error = true;
 			}
 			$this->snapshot_manager->customize_manager->set_post_value( $setting_id, $setting_params['value'] );
 			$setting_obj = $this->snapshot_manager->customize_manager->get_setting( $setting_id );
 			if ( $setting_obj instanceof \WP_Customize_Setting ) {
 				$setting_objs[] = $setting_obj;
-			} elseif ( ! isset( $setting_params['save_error'] ) ) {
+			} elseif ( ! isset( $setting_params['publish_error'] ) ) {
 				// Invalid setting save error.
-				$setting_params['save_error'] = 'setting_object_not_found';
+				$setting_params['publish_error'] = 'setting_object_not_found';
 				$have_error = true;
 			}
 		}

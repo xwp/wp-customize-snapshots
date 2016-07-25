@@ -394,7 +394,7 @@ class Test_Post_type extends \WP_UnitTestCase {
 		$data = array(
 			'foo' => array(
 				'value' => 'bar',
-				'save_error' => 'setting_object_not_found',
+				'publish_error' => 'setting_object_not_found',
 			),
 		);
 		$post_id = $post_type->save( array(
@@ -459,7 +459,7 @@ class Test_Post_type extends \WP_UnitTestCase {
 		$this->assertEquals( 'missing_value_param', $r->get_error_code() );
 
 		$data = array(
-			'foo' => array( 'value' => 'bar', 'save_error' => 'setting_object_not_found' ),
+			'foo' => array( 'value' => 'bar', 'publish_error' => 'setting_object_not_found' ),
 		);
 
 		// Error: bad_status.
@@ -534,11 +534,11 @@ class Test_Post_type extends \WP_UnitTestCase {
 			'blogdescription' => array( 'value' => $tag_line ),
 			'foo' => array(
 				'value' => 'bar',
-				'save_error' => 'setting_object_not_found',
+				'publish_error' => 'setting_object_not_found',
 			),
 			'baz' => array(
 				'value' => null,
-				'save_error' => 'null_value',
+				'publish_error' => 'null_value',
 			),
 		);
 
@@ -562,9 +562,9 @@ class Test_Post_type extends \WP_UnitTestCase {
 		) );
 		wp_update_post( array( 'ID' => $post_id, 'post_status' => 'publish' ) );
 		unset( $validate_data['blogdescription'] );
-		$post = get_post( $post_id );
-		$content = $post_type->get_post_content( $post );
-		$this->assertEquals( 'pending', $post->post_status );
+		$snapshot_post = get_post( $post_id );
+		$content = $post_type->get_post_content( $snapshot_post );
+		$this->assertEquals( 'pending', $snapshot_post->post_status );
 		$this->assertEquals( $validate_data, $content );
 	}
 }
