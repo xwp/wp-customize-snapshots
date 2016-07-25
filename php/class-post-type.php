@@ -699,7 +699,7 @@ class Post_Type {
 	 * @return mixed
 	 */
 	public function display_post_states( $status, $post ) {
-		if ( static::SLUG !== $post->post_type || 'pending' !== $post->post_status ) {
+		if ( static::SLUG !== $post->post_type ) {
 			return $status;
 		}
 		$maybe_error = get_post_meta( $post->ID, 'snapshot_error_on_publish', true );
