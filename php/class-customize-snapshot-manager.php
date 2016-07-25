@@ -820,7 +820,7 @@ class Customize_Snapshot_Manager {
 		</script>
 
 		<script type="text/html" id="tmpl-snapshot-edit-link">
-			<a href="{{{ data.editLink }}}" id="snapshot-edit-link" class="dashicons dashicons-calendar-alt" title="<?php esc_attr_e( 'Edit Snapshot','customize-snapshots' ); ?>"></a>
+			<a href="{{ data.editLink }}" id="snapshot-edit-link" class="dashicons dashicons-calendar-alt" title="<?php esc_attr_e( 'Edit Snapshot','customize-snapshots' ); ?>"></a>
 		</script>
 
 		<script type="text/html" id="tmpl-snapshot-save">
