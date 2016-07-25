@@ -108,6 +108,7 @@ class Post_Type {
 		add_filter( 'wp_insert_post_data', array( $this, 'preserve_post_name_in_insert_data' ), 10, 2 );
 		add_filter( 'user_has_cap', array( $this, 'filter_user_has_cap' ), 10, 2 );
 		add_action( 'publish_' . static::SLUG, array( $this, 'publish_snapshot' ), 10, 2 );
+		add_filter( 'display_post_states', array( $this, 'display_post_states' ), 10, 2 );
 	}
 
 	/**
@@ -346,14 +347,20 @@ class Post_Type {
 		ksort( $snapshot_content );
 		echo '<ul id="snapshot-settings">';
 		foreach ( $snapshot_content as $setting_id => $setting_params ) {
-			if ( ! isset( $setting_params['value'] ) ) {
+			if ( ! isset( $setting_params['value'] ) && ! isset( $setting_params['save_error'] ) ) {
 				continue;
 			}
-			$value = $setting_params['value'];
-
+			$value = isset( $setting_params['value'] ) ? $setting_params['value'] : '';
 			echo '<li>';
 			echo '<details open>';
-			echo '<summary><code>' . esc_html( $setting_id ) . '</code></summary>';
+			echo '<summary><code>' . esc_html( $setting_id ) . '</code>';
+			if ( isset( $setting_params['save_error'] ) ) {
+				echo '<span class="attention">';
+				echo '<b>' . __( 'Error:', 'customize-snapshots' ) . ' </b>';
+				echo '<code>' . esc_html( $setting_params['save_error'] ) . '</code>';
+				echo '</span>';
+			}
+			echo '</summary>';
 			if ( is_string( $value ) || is_numeric( $value ) ) {
 				$preview = '<p>' . esc_html( $value ) . '</p>';
 			} elseif ( is_bool( $value ) ) {
@@ -592,34 +599,65 @@ class Post_Type {
 			do_action( 'customize_register', $this->snapshot_manager->customize_manager );
 		}
 		$snapshot_content = $this->get_post_content( $post );
-		$snapshot_values = array_filter(
-			wp_list_pluck( $snapshot_content, 'value' ),
-			function( $value ) {
-				return ! is_null( $value );
-			}
-		);
 
 		if ( method_exists( $this->snapshot_manager->customize_manager, 'validate_setting_values' ) ) {
 			/** This action is documented in wp-includes/class-wp-customize-manager.php */
 			do_action( 'customize_save_validation_before', $this->snapshot_manager->customize_manager );
 		}
 
-		$this->snapshot_manager->customize_manager->add_dynamic_settings( array_keys( $snapshot_values ) );
+		$this->snapshot_manager->customize_manager->add_dynamic_settings( array_keys( $snapshot_content ) );
 		$setting_objs = array();
-		foreach ( $snapshot_values as $setting_id => $setting_params ) {
-			$this->snapshot_manager->customize_manager->set_post_value( $setting_id, $setting_params );
-			$setting_objs[] = $this->snapshot_manager->customize_manager->get_setting( $setting_id );
+		$have_error = false;
+		foreach ( $snapshot_content as $setting_id => &$setting_params ) {
+			if ( ! isset( $setting_params['value'] ) || is_null( $setting_params['value'] ) ) {
+				// Null setting save error.
+				$setting_params['save_error'] = 'null_value';
+				$have_error = true;
+			}
+			$this->snapshot_manager->customize_manager->set_post_value( $setting_id, $setting_params['value'] );
+			$setting_obj = $this->snapshot_manager->customize_manager->get_setting( $setting_id );
+			if ( $setting_obj instanceof \WP_Customize_Setting ) {
+				$setting_objs[] = $setting_obj;
+			} elseif ( ! isset( $setting_params['save_error'] ) ) {
+				// Invalid setting save error.
+				$setting_params['save_error'] = 'setting_object_not_found';
+				$have_error = true;
+			}
 		}
-
-		$filtered_setting_objs = array_filter( $setting_objs, function( $setting_obj ) {
-			return $setting_obj instanceof \WP_Customize_Setting;
-		} );
-		if ( empty( $filtered_setting_objs ) ) {
+		if ( empty( $setting_objs ) ) {
+			$update_setting_args = array(
+				'ID' => $post->ID,
+				'post_status' => 'pending',
+			);
+			if ( true === $have_error ) {
+				$update_setting_args['post_content'] = Customize_Snapshot_Manager::encode_json( $snapshot_content );
+			}
+			wp_update_post( $update_setting_args );
+			update_post_meta( $post_id, 'snapshot_error_on_publish', 1 );
 			return;
 		}
 
-		$existing_caps = wp_list_pluck( $filtered_setting_objs, 'capability' );
-		foreach ( $filtered_setting_objs as $setting_obj ) {
+		if ( true === $have_error ) {
+			$action = 'publish_' . static::SLUG;
+			$callback = array( $this, 'publish_snapshot' );
+			$priority = has_action( $action, $callback );
+			if ( false !== $priority ) {
+				remove_action( $action, $callback, $priority );
+			}
+			wp_update_post( array(
+				'ID' => $post->ID,
+				'post_content' => Customize_Snapshot_Manager::encode_json( $snapshot_content ),
+			) );
+			if ( false !== $priority ) {
+				add_action( $action, $callback, $priority );
+			}
+		} else {
+			// Remove any previous error on setting.
+			delete_post_meta( $post_id, 'snapshot_error_on_publish' );
+		}
+
+		$existing_caps = wp_list_pluck( $setting_objs, 'capability' );
+		foreach ( $setting_objs as $setting_obj ) {
 			$setting_obj->capability = 'exist';
 		}
 
@@ -635,7 +673,7 @@ class Post_Type {
 			add_action( $action, $callback, $priority );
 		}
 
-		foreach ( $filtered_setting_objs as $setting_obj ) {
+		foreach ( $setting_objs as $setting_obj ) {
 			$setting_obj->save();
 		}
 
@@ -643,7 +681,26 @@ class Post_Type {
 		do_action( 'customize_save_after', $this->snapshot_manager->customize_manager );
 
 		foreach ( $existing_caps as $i => $existing_cap ) {
-			$filtered_setting_objs[ $i ]->capability = $existing_cap;
+			$setting_objs[ $i ]->capability = $existing_cap;
 		}
+	}
+
+	/**
+	 * Display snapshot save error on post list table.
+	 *
+	 * @param array    $status Display status.
+	 * @param \WP_Post $post Post object.
+	 *
+	 * @return mixed
+	 */
+	public function display_post_states( $status, $post ) {
+		if ( static::SLUG !== $post->post_type || 'pending' !== $post->post_status ) {
+			return $status;
+		}
+		$maybe_error = get_post_meta( $post->ID, 'snapshot_error_on_publish', true );
+		if ( $maybe_error ) {
+			$status['snapshot_error'] = __( 'Error on publish', 'customize-snapshots' );
+		}
+		return $status;
 	}
 }
