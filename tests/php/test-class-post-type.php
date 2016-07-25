@@ -542,16 +542,29 @@ class Test_Post_type extends \WP_UnitTestCase {
 			),
 		);
 
+		// Test 1.
 		$post_id = $post_type->save( array(
 			'uuid' => self::UUID,
 			'data' => $data,
 			'status' => 'draft',
 		) );
-
 		wp_update_post( array( 'ID' => $post_id, 'post_status' => 'publish' ) );
-
 		$content = $post_type->get_post_content( get_post( $post_id ) );
-		$this->assertEquals( $content, $validate_data );
+		$this->assertEquals( $validate_data, $content );
 		$this->assertEquals( $tag_line, get_bloginfo( 'description' ) );
+
+		// Test 2.
+		unset( $data['blogdescription'] );
+		$post_id = $post_type->save( array(
+			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
+			'data' => $data,
+			'status' => 'draft',
+		) );
+		wp_update_post( array( 'ID' => $post_id, 'post_status' => 'publish' ) );
+		unset( $validate_data['blogdescription'] );
+		$post = get_post( $post_id );
+		$content = $post_type->get_post_content( $post );
+		$this->assertEquals( 'pending', $post->post_status );
+		$this->assertEquals( $validate_data, $content );
 	}
 }

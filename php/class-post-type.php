@@ -39,6 +39,12 @@ class Post_Type {
 	protected $kses_suspended = false;
 
 	/**
+	 * Surpress hook call
+	 *
+	 * @var bool
+	 */
+	static protected $suppress_publish_hook = false;
+	/**
 	 * Constructor.
 	 *
 	 * @access public
@@ -567,7 +573,7 @@ class Post_Type {
 	 * @param \WP_Post $post Post object.
 	 */
 	public function publish_snapshot( $post_id, $post ) {
-		if ( did_action( 'customize_save' ) ) {
+		if ( did_action( 'customize_save' ) || static::$suppress_publish_hook ) {
 			// Short circuit because customize_save ajax call is changing status.
 			return;
 		}
@@ -645,19 +651,12 @@ class Post_Type {
 		}
 
 		if ( true === $have_error ) {
-			$action = 'publish_' . static::SLUG;
-			$callback = array( $this, 'publish_snapshot' );
-			$priority = has_action( $action, $callback );
-			if ( false !== $priority ) {
-				remove_action( $action, $callback, $priority );
-			}
+			static::$suppress_publish_hook = true;
 			wp_update_post( array(
 				'ID' => $post->ID,
 				'post_content' => Customize_Snapshot_Manager::encode_json( $snapshot_content ),
 			) );
-			if ( false !== $priority ) {
-				add_action( $action, $callback, $priority, 2 );
-			}
+			static::$suppress_publish_hook = false;
 		} else {
 			// Remove any previous error on setting.
 			delete_post_meta( $post_id, 'snapshot_error_on_publish' );
@@ -674,8 +673,7 @@ class Post_Type {
 		if ( false !== $priority ) {
 			remove_action( $action, $callback, $priority );
 		}
-		/** This action is documented in wp-includes/class-wp-customize-manager.php */
-		do_action( 'customize_save', $this->snapshot_manager->customize_manager );
+		$this->snapshot_manager->customize_manager->doing_ajax( 'customize_save' );
 		if ( false !== $priority ) {
 			add_action( $action, $callback, $priority, 0 );
 		}
