@@ -361,13 +361,26 @@ class Post_Type {
 			echo '<li>';
 			echo '<details open>';
 			echo '<summary><code>' . esc_html( $setting_id ) . '</code>';
+
+			// Show error message when there was a publishing error.
 			if ( isset( $setting_params['save_error'] ) ) {
-				echo '<span class="attention">';
-				echo '<b>' . __( 'Error:', 'customize-snapshots' ) . ' </b>';
-				echo '<code>' . esc_html( $setting_params['save_error'] ) . '</code>';
+				echo '<span class="error-message">';
+				echo '<b>' . esc_html__( 'Publish error:', 'customize-snapshots' ) . '</b> ';
+				switch ( $setting_params['save_error'] ) {
+					case 'null_value':
+						esc_html_e( 'Missing value.', 'customize-snapshots' );
+						break;
+					case 'setting_object_not_found':
+						esc_html_e( 'Unrecognized setting.', 'customize-snapshots' );
+						break;
+					default:
+						echo '<code>' . esc_html( $setting_params['save_error'] ) . '</code>';
+				}
 				echo '</span>';
 			}
+
 			echo '</summary>';
+
 			if ( is_string( $value ) || is_numeric( $value ) ) {
 				$preview = '<p>' . esc_html( $value ) . '</p>';
 			} elseif ( is_bool( $value ) ) {
