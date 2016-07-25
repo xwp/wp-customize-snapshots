@@ -656,7 +656,7 @@ class Post_Type {
 				'post_content' => Customize_Snapshot_Manager::encode_json( $snapshot_content ),
 			) );
 			if ( false !== $priority ) {
-				add_action( $action, $callback, $priority );
+				add_action( $action, $callback, $priority, 2 );
 			}
 		} else {
 			// Remove any previous error on setting.
@@ -677,7 +677,7 @@ class Post_Type {
 		/** This action is documented in wp-includes/class-wp-customize-manager.php */
 		do_action( 'customize_save', $this->snapshot_manager->customize_manager );
 		if ( false !== $priority ) {
-			add_action( $action, $callback, $priority );
+			add_action( $action, $callback, $priority, 0 );
 		}
 
 		foreach ( $setting_objs as $setting_obj ) {
