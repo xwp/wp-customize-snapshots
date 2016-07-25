@@ -571,7 +571,7 @@ class Post_Type {
 			// Short circuit because customize_save ajax call is changing status.
 			return;
 		}
-		$snapshot_theme = get_post_meta( get_the_ID(), '_snapshot_theme', true );
+		$snapshot_theme = get_post_meta( $post_id, '_snapshot_theme', true );
 		if ( ! empty( $snapshot_theme ) && get_stylesheet() !== $snapshot_theme ) {
 			// Theme mismatch.
 			if ( defined( 'DOING_CRON' ) && DOING_CRON ) {
@@ -611,6 +611,13 @@ class Post_Type {
 		foreach ( $snapshot_content as $setting_id => &$setting_params ) {
 			if ( ! isset( $setting_params['value'] ) || is_null( $setting_params['value'] ) ) {
 				// Null setting save error.
+				if ( ! is_array( $setting_params ) ) {
+					if ( ! empty( $setting_params ) ) {
+						$setting_params = array( 'value' => $setting_params );
+					} else {
+						$setting_params = array();
+					}
+				}
 				$setting_params['save_error'] = 'null_value';
 				$have_error = true;
 			}
