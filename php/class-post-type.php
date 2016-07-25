@@ -43,7 +43,8 @@ class Post_Type {
 	 *
 	 * @var bool
 	 */
-	static protected $suppress_publish_hook = false;
+	protected $suppress_publish_hook = false;
+
 	/**
 	 * Constructor.
 	 *
@@ -573,7 +574,7 @@ class Post_Type {
 	 * @param \WP_Post $post Post object.
 	 */
 	public function publish_snapshot( $post_id, $post ) {
-		if ( did_action( 'customize_save' ) || static::$suppress_publish_hook ) {
+		if ( did_action( 'customize_save' ) || $this->suppress_publish_hook ) {
 			// Short circuit because customize_save ajax call is changing status.
 			return;
 		}
@@ -651,12 +652,12 @@ class Post_Type {
 		}
 
 		if ( true === $have_error ) {
-			static::$suppress_publish_hook = true;
+			$this->suppress_publish_hook = true;
 			wp_update_post( array(
 				'ID' => $post->ID,
 				'post_content' => Customize_Snapshot_Manager::encode_json( $snapshot_content ),
 			) );
-			static::$suppress_publish_hook = false;
+			$this->suppress_publish_hook = false;
 		} else {
 			// Remove any previous error on setting.
 			delete_post_meta( $post_id, 'snapshot_error_on_publish' );
