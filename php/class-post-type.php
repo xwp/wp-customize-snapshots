@@ -381,7 +381,10 @@ class Post_Type {
 
 			echo '</summary>';
 
-			if ( is_string( $value ) || is_numeric( $value ) ) {
+
+			if ( '' === $value ) {
+				$preview = '<p><em>' . esc_html__( '(Empty string)', 'customize-snapshots' ) . '</em></p>';
+			} elseif ( is_string( $value ) || is_numeric( $value ) ) {
 				$preview = '<p>' . esc_html( $value ) . '</p>';
 			} elseif ( is_bool( $value ) ) {
 				$preview = '<p>' . wp_json_encode( $value ) . '</p>';
