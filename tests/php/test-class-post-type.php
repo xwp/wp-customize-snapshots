@@ -27,12 +27,28 @@ class Test_Post_type extends \WP_UnitTestCase {
 	const UUID = '65aee1ff-af47-47df-9e14-9c69b3017cd3';
 
 	/**
+	 * Store tag line restore after all test-case finish.
+	 *
+	 * @var string
+	 */
+	public $blog_tag_line;
+
+	/**
 	 * Set up.
 	 */
 	function setUp() {
 		parent::setUp();
+		$this->blog_tag_line = get_bloginfo( 'description' );
 		$this->plugin = get_plugin_instance();
 		unregister_post_type( Post_Type::SLUG );
+	}
+
+	/**
+	 *
+	 */
+	function tearDown() {
+		update_option( 'blogdescription', $this->blog_tag_line );
+		parent::tearDown();
 	}
 
 	/**
@@ -148,8 +164,7 @@ class Test_Post_type extends \WP_UnitTestCase {
 		$post_type = new Post_Type( $this->plugin->customize_snapshot_manager );
 		$post_type->register();
 		$data = array(
-			'foo' => array( 'value' => 1 ),
-			'bar' => array( 'value' => 2 ),
+			'blogdescription' => array( 'value' => 'Another Snapshot Test' ),
 		);
 
 		// Bad post type.
@@ -263,6 +278,12 @@ class Test_Post_type extends \WP_UnitTestCase {
 			$this->assertContains( $setting_args['value'], $metabox_content );
 		}
 
+		$data = array(
+			'blogdescription' => array(
+				'value' => 'Just Another Customize Snapshot Test',
+			),
+		);
+
 		$post_type->save( array(
 			'uuid' => self::UUID,
 			'data' => $data,
@@ -371,6 +392,7 @@ class Test_Post_type extends \WP_UnitTestCase {
 		$data = array(
 			'foo' => array(
 				'value' => 'bar',
+				'save_error' => 'setting_object_not_found',
 			),
 		);
 		$post_id = $post_type->save( array(
@@ -435,7 +457,7 @@ class Test_Post_type extends \WP_UnitTestCase {
 		$this->assertEquals( 'missing_value_param', $r->get_error_code() );
 
 		$data = array(
-			'foo' => array( 'value' => 'bar' ),
+			'foo' => array( 'value' => 'bar', 'save_error' => 'setting_object_not_found' ),
 		);
 
 		// Error: bad_status.
