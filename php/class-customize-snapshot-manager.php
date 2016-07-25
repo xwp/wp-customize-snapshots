@@ -572,7 +572,16 @@ class Customize_Snapshot_Manager {
 	public function publish_snapshot_with_customize_save_after() {
 		$that = $this;
 
+		if ( $this->customize_manager && $this->customize_manager->doing_ajax( 'customize_save' ) ) {
+			return;
+		}
+
 		if ( $this->snapshot && current_user_can( 'customize_publish' ) ) {
+
+			if ( $this->snapshot->post() && 'publish' === $this->snapshot->post()->post_status ) {
+				return;
+			}
+
 			$settings_data = array_map(
 				function( $value ) {
 					return compact( 'value' );
