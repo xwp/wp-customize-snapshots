@@ -108,6 +108,8 @@ class Post_Type {
 		add_filter( 'user_has_cap', array( $this, 'filter_user_has_cap' ), 10, 2 );
 		add_filter( 'display_post_states', array( $this, 'display_post_states' ), 10, 2 );
 		add_action( 'admin_notices', array( $this, 'show_publish_error_admin_notice' ) );
+		add_action( 'post_submitbox_minor_actions', array( $this, 'hide_disabled_publishing_actions' ) );
+		add_action( 'admin_print_scripts-revision.php', array( $this, 'disable_revision_ui_for_published_posts' ) );
 	}
 
 	/**
@@ -601,6 +603,42 @@ class Post_Type {
 		<div class="notice notice-error is-dismissible">
 			<p><?php esc_html_e( 'Failed to publish snapshot due to an error with saving one of its settings. This may be due to a theme or plugin having been changed since the snapshot was created. See below.', 'customize-snapshots' ) ?></p>
 		</div>
+		<?php
+	}
+
+	/**
+	 * Disable the revision revert UI for published posts.
+	 */
+	public function disable_revision_ui_for_published_posts() {
+		if ( 'publish' !== get_post_status() ) {
+			return;
+		}
+		?>
+		<style>
+			.restore-revision.button {
+				display: none;
+			}
+		</style>
+		<?php
+	}
+
+	/**
+	 * Hide publishing actions that are no longer relevant when a snapshot is published.
+	 *
+	 * @param \WP_Post $post Current post.
+	 */
+	public function hide_disabled_publishing_actions( $post ) {
+		if ( 'publish' !== $post->post_status ) {
+			return;
+		}
+		?>
+		<style>
+			#misc-publishing-actions .misc-pub-post-status,
+			#misc-publishing-actions .misc-pub-visibility,
+			#misc-publishing-actions .misc-pub-curtime {
+				display: none;
+			}
+		</style>
 		<?php
 	}
 }
