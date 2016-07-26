@@ -64,12 +64,12 @@ class Test_Post_type extends \WP_UnitTestCase {
 
 		$this->assertEquals( 100, has_action( 'add_meta_boxes_' . Post_Type::SLUG, array( $post_type, 'remove_publish_metabox' ) ) );
 		$this->assertEquals( 10, has_action( 'load-revision.php', array( $post_type, 'suspend_kses_for_snapshot_revision_restore' ) ) );
-		$this->assertEquals( 10, has_filter( 'bulk_actions-edit-' . Post_Type::SLUG, array( $post_type, 'filter_bulk_actions' ) ) );
 		$this->assertEquals( 10, has_filter( 'get_the_excerpt', array( $post_type, 'filter_snapshot_excerpt' ) ) );
 		$this->assertEquals( 10, has_filter( 'post_row_actions', array( $post_type, 'filter_post_row_actions' ) ) );
 		$this->assertEquals( 10, has_filter( 'wp_insert_post_data', array( $post_type, 'preserve_post_name_in_insert_data' ) ) );
 		$this->assertEquals( 10, has_filter( 'user_has_cap', array( $post_type, 'filter_user_has_cap' ) ) );
-		$this->assertEquals( 10, has_action( 'publish_' . Post_Type::SLUG, array( $post_type, 'publish_snapshot' ) ) );
+		$this->assertEquals( 10, has_action( 'transition_post_status', array( $post_type->snapshot_manager, 'save_settings_with_publish_snapshot' ) ) );
+		$this->assertEquals( 10, has_filter( 'wp_insert_post_data', array( $post_type->snapshot_manager, 'prepare_snapshot_post_content_for_publish' ) ) );
 		$this->assertEquals( 10, has_action( 'display_post_states', array( $post_type, 'display_post_states' ) ) );
 	}
 
@@ -117,16 +117,6 @@ class Test_Post_type extends \WP_UnitTestCase {
 		$this->assertFalse( ! empty( $wp_meta_boxes[ Post_Type::SLUG ]['normal']['high'][ $metabox_id ] ) );
 		do_action( 'add_meta_boxes_' . Post_Type::SLUG, $post_id );
 		$this->assertTrue( ! empty( $wp_meta_boxes[ Post_Type::SLUG ]['normal']['high'][ $metabox_id ] ) );
-	}
-
-	/**
-	 * Test remove edit bulk action for snapshots.
-	 *
-	 * @see Post_Type::filter_bulk_actions()
-	 */
-	public function test_filter_bulk_actions() {
-		$post_type = new Post_Type( $this->plugin->customize_snapshot_manager );
-		$this->assertArrayNotHasKey( 'edit', $post_type->filter_bulk_actions( array( 'edit' => 1 ) ) );
 	}
 
 	/**

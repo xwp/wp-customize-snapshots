@@ -39,13 +39,6 @@ class Post_Type {
 	protected $kses_suspended = false;
 
 	/**
-	 * Surpress hook call
-	 *
-	 * @var bool
-	 */
-	protected $suppress_publish_hook = false;
-
-	/**
 	 * Constructor.
 	 *
 	 * @access public
@@ -109,12 +102,10 @@ class Post_Type {
 
 		add_action( 'add_meta_boxes_' . static::SLUG, array( $this, 'remove_publish_metabox' ), 100 );
 		add_action( 'load-revision.php', array( $this, 'suspend_kses_for_snapshot_revision_restore' ) );
-		add_filter( 'bulk_actions-edit-' . static::SLUG, array( $this, 'filter_bulk_actions' ) );
 		add_filter( 'get_the_excerpt', array( $this, 'filter_snapshot_excerpt' ), 10, 2 );
 		add_filter( 'post_row_actions', array( $this, 'filter_post_row_actions' ), 10, 2 );
 		add_filter( 'wp_insert_post_data', array( $this, 'preserve_post_name_in_insert_data' ), 10, 2 );
 		add_filter( 'user_has_cap', array( $this, 'filter_user_has_cap' ), 10, 2 );
-		add_action( 'publish_' . static::SLUG, array( $this, 'publish_snapshot' ), 10, 2 );
 		add_filter( 'display_post_states', array( $this, 'display_post_states' ), 10, 2 );
 		add_action( 'admin_notices', array( $this, 'show_publish_error_admin_notice' ) );
 	}
@@ -163,11 +154,6 @@ class Post_Type {
 	 */
 	public function remove_publish_metabox() {
 		remove_meta_box( 'slugdiv', static::SLUG, 'normal' );
-		$snapshot_theme = get_post_meta( get_the_ID(), '_snapshot_theme', true );
-		if ( ! empty( $snapshot_theme ) && get_stylesheet() !== $snapshot_theme ) {
-			remove_meta_box( 'submitdiv', static::SLUG, 'side' );
-		}
-		remove_meta_box( 'authordiv', static::SLUG, 'normal' );
 	}
 
 	/**
@@ -208,17 +194,6 @@ class Post_Type {
 	}
 
 	/**
-	 * Remove edit bulk action for snapshots.
-	 *
-	 * @param array $actions Actions.
-	 * @return array Actions.
-	 */
-	public function filter_bulk_actions( $actions ) {
-		unset( $actions['edit'] );
-		return $actions;
-	}
-
-	/**
 	 * Include the setting IDs in the excerpt.
 	 *
 	 * @param string   $excerpt The post excerpt.
@@ -251,12 +226,8 @@ class Post_Type {
 			return $actions;
 		}
 
-		$snapshot_theme = get_post_meta( $post->ID, '_snapshot_theme', true );
-		$is_snapshot_theme_mismatch = ! empty( $snapshot_theme ) && get_stylesheet() !== $snapshot_theme;
-
-		unset( $actions['inline hide-if-no-js'] );
 		$post_type_obj = get_post_type_object( static::SLUG );
-		if ( 'publish' !== $post->post_status && current_user_can( $post_type_obj->cap->edit_post, $post->ID ) && ! $is_snapshot_theme_mismatch ) {
+		if ( 'publish' !== $post->post_status && current_user_can( $post_type_obj->cap->edit_post, $post->ID ) ) {
 			$args = array(
 				'customize_snapshot_uuid' => $post->post_name,
 			);
@@ -275,14 +246,18 @@ class Post_Type {
 				),
 				$actions
 			);
-		} elseif ( isset( $actions['edit'] ) ) {
-			$actions['edit'] = sprintf(
-				'<a href="%s" aria-label="%s">%s</a>',
-				get_edit_post_link( $post->ID ),
-				/* translators: %s: post title */
-				esc_attr( sprintf( __( 'View &#8220;%s&#8221;', 'customize-snapshots' ), get_the_title( $post->ID ) ) ),
-				__( 'View', 'customize-snapshots' )
-			);
+		} else {
+			unset( $actions['inline hide-if-no-js'] );
+
+			if ( isset( $actions['edit'] ) ) {
+				$actions['edit'] = sprintf(
+					'<a href="%s" aria-label="%s">%s</a>',
+					get_edit_post_link( $post->ID ),
+					/* translators: %s: post title */
+					esc_attr( sprintf( __( 'View &#8220;%s&#8221;', 'customize-snapshots' ), get_the_title( $post->ID ) ) ),
+					__( 'View', 'customize-snapshots' )
+				);
+			}
 		}
 		return $actions;
 	}
@@ -314,14 +289,10 @@ class Post_Type {
 	 */
 	public function render_data_metabox( $post ) {
 		$snapshot_content = $this->get_post_content( $post );
-		$post_status_obj = get_post_status_object( $post->post_status );
 
 		echo '<p>';
 		echo esc_html__( 'UUID:', 'customize-snapshots' ) . ' <code>' . esc_html( $post->post_name ) . '</code><br>';
-		echo sprintf( '%1$s %2$s', esc_html__( 'Status:', 'customize-snapshots' ), esc_html( $post_status_obj->label ) ) . '<br>';
-		echo sprintf( '%1$s %2$s %3$s', esc_html__( 'Publish Date:', 'customize-snapshots' ), esc_html( get_the_date( '', $post->ID ) ), esc_html( get_the_time( '', $post->ID ) ) ) . '<br>';
 		echo sprintf( '%1$s %2$s %3$s', esc_html__( 'Modified:', 'customize-snapshots' ), esc_html( get_the_modified_date( '' ) ), esc_html( get_the_modified_time( '' ) ) ) . '<br>';
-		echo sprintf( '%1$s %2$s', esc_html__( 'Author:', 'customize-snapshots' ), esc_html( get_the_author_meta( 'display_name', $post->post_author ) ) ) . '</p>';
 		echo '</p>';
 
 		$snapshot_theme = get_post_meta( $post->ID, '_snapshot_theme', true );
@@ -361,7 +332,7 @@ class Post_Type {
 			$value = isset( $setting_params['value'] ) ? $setting_params['value'] : '';
 			echo '<li>';
 			echo '<details open>';
-			echo '<summary><code>' . esc_html( $setting_id ) . '</code>';
+			echo '<summary><code>' . esc_html( $setting_id ) . '</code> ';
 
 			// Show error message when there was a publishing error.
 			if ( isset( $setting_params['publish_error'] ) ) {
@@ -371,8 +342,11 @@ class Post_Type {
 					case 'null_value':
 						esc_html_e( 'Missing value.', 'customize-snapshots' );
 						break;
-					case 'setting_object_not_found':
+					case 'unrecognized_setting':
 						esc_html_e( 'Unrecognized setting.', 'customize-snapshots' );
+						break;
+					case 'invalid_value':
+						esc_html_e( 'Invalid value.', 'customize-snapshots' );
 						break;
 					default:
 						echo '<code>' . esc_html( $setting_params['publish_error'] ) . '</code>';
@@ -494,6 +468,7 @@ class Post_Type {
 	 */
 	public function save( array $args ) {
 
+		// @todo Add support for $args['post_id'].
 		if ( empty( $args['uuid'] ) || ! Customize_Snapshot_Manager::is_valid_uuid( $args['uuid'] ) ) {
 			return new \WP_Error( 'missing_valid_uuid' );
 		}
@@ -506,6 +481,12 @@ class Post_Type {
 				'_snapshot_version' => $this->snapshot_manager->plugin->version,
 			),
 		);
+		if ( ! empty( $args['status'] ) ) {
+			if ( ! get_post_status_object( $args['status'] ) ) {
+				return new \WP_Error( 'bad_status' );
+			}
+			$post_arr['post_status'] = $args['status'];
+		}
 
 		$post_id = $this->find_post( $args['uuid'] );
 		$is_update = ! empty( $post_id );
@@ -518,13 +499,15 @@ class Post_Type {
 			if ( ! is_array( $args['data'] ) ) {
 				return new \WP_Error( 'missing_data' );
 			}
-			foreach ( $args['data'] as $setting_id => $setting_params ) {
+			foreach ( $args['data'] as $setting_id => &$setting_params ) {
 				if ( ! is_array( $setting_params ) ) {
 					return new \WP_Error( 'bad_setting_params' );
 				}
 				if ( ! array_key_exists( 'value', $setting_params ) ) {
 					return new \WP_Error( 'missing_value_param' );
 				}
+
+				// @todo if 'publish' === $args['status'] then strip out all publish_error setting params. Or do this in a wp_insert_post_data filter.
 			}
 			$post_arr['post_content'] = Customize_Snapshot_Manager::encode_json( $args['data'] );
 		} elseif ( ! $is_update ) {
@@ -533,12 +516,6 @@ class Post_Type {
 
 		if ( ! empty( $args['theme'] ) ) {
 			$post_arr['meta_input']['_snapshot_theme'] = $args['theme'];
-		}
-		if ( ! empty( $args['status'] ) ) {
-			if ( ! get_post_status_object( $args['status'] ) ) {
-				return new \WP_Error( 'bad_status' );
-			}
-			$post_arr['post_status'] = $args['status'];
 		}
 
 		$this->suspend_kses();
@@ -582,130 +559,6 @@ class Post_Type {
 		}
 
 		return $allcaps;
-	}
-
-	/**
-	 * Publish snapshot changes when snapshot post is being published.
-	 *
-	 * @param int      $post_id Post id.
-	 * @param \WP_Post $post Post object.
-	 */
-	public function publish_snapshot( $post_id, $post ) {
-		if ( did_action( 'customize_save' ) || $this->suppress_publish_hook ) {
-			// Short circuit because customize_save ajax call is changing status.
-			return;
-		}
-		$snapshot_theme = get_post_meta( $post_id, '_snapshot_theme', true );
-		if ( ! empty( $snapshot_theme ) && get_stylesheet() !== $snapshot_theme ) {
-			// Theme mismatch.
-			if ( defined( 'DOING_CRON' ) && DOING_CRON ) {
-				wp_update_post( array(
-					'ID' => $post->ID,
-					'post_status' => 'pending',
-				) );
-			}
-		}
-		$this->snapshot_manager->ensure_customize_manager();
-
-		if ( ! did_action( 'customize_register' ) ) {
-			/*
-			 * When running from CLI or Cron, we have to remove the action because
-			 * it will get added with a default priority of 10, after themes and plugins
-			 * have already done add_action( 'customize_register' ), resulting in them
-			 * being called first at the priority 10. So we manually call the
-			 * prerequisite function WP_Customize_Manager::register_controls() and
-			 * remove it from being called when the customize_register action fires.
-			 */
-			remove_action( 'customize_register', array( $this->snapshot_manager->customize_manager, 'register_controls' ) );
-			$this->snapshot_manager->customize_manager->register_controls();
-
-			/** This action is documented in wp-includes/class-wp-customize-manager.php */
-			do_action( 'customize_register', $this->snapshot_manager->customize_manager );
-		}
-		$snapshot_content = $this->get_post_content( $post );
-
-		if ( method_exists( $this->snapshot_manager->customize_manager, 'validate_setting_values' ) ) {
-			/** This action is documented in wp-includes/class-wp-customize-manager.php */
-			do_action( 'customize_save_validation_before', $this->snapshot_manager->customize_manager );
-		}
-
-		$this->snapshot_manager->customize_manager->add_dynamic_settings( array_keys( $snapshot_content ) );
-		$setting_objs = array();
-		$have_error = false;
-		foreach ( $snapshot_content as $setting_id => &$setting_params ) {
-			if ( ! isset( $setting_params['value'] ) || is_null( $setting_params['value'] ) ) {
-				// Null setting save error.
-				if ( ! is_array( $setting_params ) ) {
-					if ( ! empty( $setting_params ) ) {
-						$setting_params = array( 'value' => $setting_params );
-					} else {
-						$setting_params = array();
-					}
-				}
-				$setting_params['publish_error'] = 'null_value';
-				$have_error = true;
-			}
-			$this->snapshot_manager->customize_manager->set_post_value( $setting_id, $setting_params['value'] );
-			$setting_obj = $this->snapshot_manager->customize_manager->get_setting( $setting_id );
-			if ( $setting_obj instanceof \WP_Customize_Setting ) {
-				$setting_objs[] = $setting_obj;
-			} elseif ( ! isset( $setting_params['publish_error'] ) ) {
-				// Invalid setting save error.
-				$setting_params['publish_error'] = 'setting_object_not_found';
-				$have_error = true;
-			}
-		}
-		if ( empty( $setting_objs ) ) {
-			$update_setting_args = array(
-				'ID' => $post->ID,
-				'post_status' => 'pending',
-			);
-			if ( true === $have_error ) {
-				$update_setting_args['post_content'] = Customize_Snapshot_Manager::encode_json( $snapshot_content );
-			}
-			wp_update_post( $update_setting_args );
-			update_post_meta( $post_id, 'snapshot_error_on_publish', 1 );
-			return;
-		}
-
-		if ( true === $have_error ) {
-			$this->suppress_publish_hook = true;
-			wp_update_post( array(
-				'ID' => $post->ID,
-				'post_content' => Customize_Snapshot_Manager::encode_json( $snapshot_content ),
-			) );
-			$this->suppress_publish_hook = false;
-		} else {
-			// Remove any previous error on setting.
-			delete_post_meta( $post_id, 'snapshot_error_on_publish' );
-		}
-
-		$existing_caps = wp_list_pluck( $setting_objs, 'capability' );
-		foreach ( $setting_objs as $setting_obj ) {
-			$setting_obj->capability = 'exist';
-		}
-
-		$action = 'customize_save';
-		$callback = array( $this->snapshot_manager, 'check_customize_publish_authorization' );
-		$priority = has_action( $action, $callback );
-		if ( false !== $priority ) {
-			remove_action( $action, $callback, $priority );
-		}
-		$this->snapshot_manager->customize_manager->doing_ajax( 'customize_save' );
-		if ( false !== $priority ) {
-			add_action( $action, $callback, $priority, 0 );
-		}
-
-		foreach ( $setting_objs as $setting_obj ) {
-			$setting_obj->save();
-		}
-
-		/** This action is documented in wp-includes/class-wp-customize-manager.php */
-		do_action( 'customize_save_after', $this->snapshot_manager->customize_manager );
-
-		foreach ( $existing_caps as $i => $existing_cap ) {
-			$setting_objs[ $i ]->capability = $existing_cap;
-		}
 	}
 
 	/**

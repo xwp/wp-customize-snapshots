@@ -278,6 +278,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 			'customize_snapshot_uuid' => self::UUID,
 			'customized' => '{"foo":"foo_default","bar":"bar_default"}',
 		);
+		$_REQUEST['action'] = 'customize_save';
 		$_REQUEST['customize_snapshot_uuid'] = self::UUID;
 		$manager = new Customize_Snapshot_Manager( $this->plugin );
 		$manager->init();

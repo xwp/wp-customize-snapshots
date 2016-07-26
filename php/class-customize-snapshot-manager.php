@@ -96,9 +96,12 @@ class Customize_Snapshot_Manager {
 		add_action( 'customize_controls_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
 		add_action( 'customize_controls_print_footer_scripts', array( $this, 'render_templates' ) );
 		add_action( 'customize_save', array( $this, 'check_customize_publish_authorization' ), 10, 0 );
-		add_action( 'customize_save_after', array( $this, 'publish_snapshot_with_customize_save_after' ) );
 		add_filter( 'customize_refresh_nonces', array( $this, 'filter_customize_refresh_nonces' ) );
 		add_action( 'admin_bar_menu', array( $this, 'customize_menu' ), 41 );
+
+		add_filter( 'wp_insert_post_data', array( $this, 'prepare_snapshot_post_content_for_publish' ) );
+		add_action( 'customize_save_after', array( $this, 'publish_snapshot_with_customize_save_after' ) );
+		add_action( 'transition_post_status', array( $this, 'save_settings_with_publish_snapshot' ), 10, 3 );
 
 		if ( isset( $_REQUEST['customize_snapshot_uuid'] ) ) { // WPCS: input var ok.
 			$uuid = sanitize_key( wp_unslash( $_REQUEST['customize_snapshot_uuid'] ) ); // WPCS: input var ok.
@@ -471,6 +474,7 @@ class Customize_Snapshot_Manager {
 	 * Check whether customize_publish capability is granted in customize_save.
 	 */
 	public function check_customize_publish_authorization() {
+		$this->ensure_customize_manager();
 		if ( $this->customize_manager->doing_ajax( 'customize_save' ) && ! current_user_can( 'customize_publish' ) ) {
 			wp_send_json_error( array(
 				'error' => 'customize_publish_unauthorized',
@@ -566,53 +570,259 @@ class Customize_Snapshot_Manager {
 	 * Publish the snapshot snapshots via AJAX.
 	 *
 	 * Fires at `customize_save_after` to update and publish the snapshot.
+	 * The logic in here is the inverse of save_settings_with_publish_snapshot.
+	 *
+	 * @see Customize_Snapshot_Manager::save_settings_with_publish_snapshot()
 	 *
 	 * @return bool Whether the snapshot was saved successfully.
 	 */
 	public function publish_snapshot_with_customize_save_after() {
 		$that = $this;
 
-		if ( $this->snapshot && current_user_can( 'customize_publish' ) ) {
+		if ( ! $this->snapshot || ! $this->customize_manager->doing_ajax( 'customize_save' ) ) {
+			return false;
+		}
 
-			$settings_data = array_map(
-				function( $value ) {
-					return compact( 'value' );
-				},
-				$this->customize_manager->unsanitized_post_values()
-			);
-			$result = $this->snapshot->set( $settings_data );
-			if ( ! empty( $result['errors'] ) ) {
-				add_filter( 'customize_save_response', function( $response ) use ( $result, $that ) {
-					$response['snapshot_errors'] = $that->prepare_errors_for_response( $result['errors'] );
-					return $response;
-				} );
-				return false;
-			}
+		// This should never be reached due to Customize_Snapshot_Manager::check_customize_publish_authorization().
+		if ( ! current_user_can( 'customize_publish' ) ) {
+			return false;
+		}
 
-			$r = null;
-			if ( ! $this->snapshot->post() || 'publish' !== $this->snapshot->post()->post_status ) {
-				$r = $this->snapshot->save( array(
-					'status' => 'publish',
-				) );
-			}
+		$settings_data = array_map(
+			function( $value ) {
+				return compact( 'value' );
+			},
+			$this->customize_manager->unsanitized_post_values()
+		);
+		$result = $this->snapshot->set( $settings_data );
+		if ( ! empty( $result['errors'] ) ) {
+			add_filter( 'customize_save_response', function( $response ) use ( $result, $that ) {
+				$response['snapshot_errors'] = $that->prepare_errors_for_response( $result['errors'] );
+				return $response;
+			} );
+			return false;
+		}
 
+		if ( ! $this->snapshot->post() || 'publish' !== $this->snapshot->post()->post_status ) {
+			$r = $this->snapshot->save( array(
+				'status' => 'publish',
+			) );
 			if ( is_wp_error( $r ) ) {
 				add_filter( 'customize_save_response', function( $response ) use ( $r, $that ) {
 					$response['snapshot_errors'] = $that->prepare_errors_for_response( $r );
 					return $response;
 				} );
 				return false;
-			} else {
-				// Send the new UUID to the client for the next snapshot.
-				$class = __CLASS__; // For PHP 5.3.
-				add_filter( 'customize_save_response', function( $data ) use ( $class ) {
-					$data['new_customize_snapshot_uuid'] = $class::generate_uuid();
-					return $data;
-				} );
 			}
-			return true;
 		}
-		return false;
+
+		// Send the new UUID to the client for the next snapshot.
+		$class = __CLASS__; // For PHP 5.3.
+		add_filter( 'customize_save_response', function( $data ) use ( $class ) {
+			$data['new_customize_snapshot_uuid'] = $class::generate_uuid();
+			return $data;
+		} );
+		return true;
+	}
+
+	/**
+	 * Prepare snapshot post content for publishing.
+	 *
+	 * Strips out publish_error from content, with it potentially being re-added
+	 * in a secondary wp_update_post() call if any of the settings in the post
+	 * were not able to be saved.
+	 *
+	 * @param array $data    An array of slashed post data.
+	 * @return array Post data.
+	 */
+	public function prepare_snapshot_post_content_for_publish( $data ) {
+		$is_publishing_snapshot = (
+			isset( $data['post_type'] )
+			&&
+			Post_Type::SLUG === $data['post_type']
+			&&
+			'publish' === $data['post_status']
+			&&
+			(
+				empty( $data['ID'] )
+				||
+				'publish' !== get_post_status( $data['ID'] )
+			)
+		);
+		if ( ! $is_publishing_snapshot ) {
+			return $data;
+		}
+
+		$post_content = json_decode( wp_unslash( $data['post_content'] ), true );
+		if ( ! is_array( $post_content ) ) {
+			return $data;
+		}
+
+		// Remove publish_error from post_content.
+		foreach ( $post_content as $setting_id => &$setting_params ) {
+			if ( is_array( $setting_params ) ) {
+				unset( $setting_params['publish_error'] );
+			}
+		}
+
+		$data['post_content'] = wp_slash( self::encode_json( $post_content ) );
+
+		// @todo We could incorporate more of the logic from save_settings_with_publish_snapshot here to pre-emptively set the pending status.
+		return $data;
+	}
+
+	/**
+	 * Publish snapshot changes when snapshot post is being published.
+	 *
+	 * The logic in here is the inverse of to publish_snapshot_with_customize_save_after.
+	 *
+	 * The meat of the logic that manipulates the post_content and validates the settings
+	 * needs to be done in wp_insert_post_data filter in like a
+	 * filter_insert_post_data_to_validate_published_snapshot method? This would
+	 * have the benefit of reducing one wp_insert_post() call.
+	 *
+	 * @todo Consider using wp_insert_post_data to prevent double calls to wp_insert_post().
+	 * @see Customize_Snapshot_Manager::publish_snapshot_with_customize_save_after()
+	 *
+	 * @param string   $new_status New status.
+	 * @param string   $old_status Old status.
+	 * @param \WP_Post $post       Post object.
+	 * @return bool Whether the settings were saved.
+	 */
+	public function save_settings_with_publish_snapshot( $new_status, $old_status, $post ) {
+
+		// Abort if not transitioning a snapshot post to publish from a non-publish status.
+		if ( Post_Type::SLUG !== $post->post_type || 'publish' !== $new_status || $new_status === $old_status ) {
+			return false;
+		}
+
+		$this->ensure_customize_manager();
+
+		if ( $this->customize_manager->doing_ajax( 'customize_save' ) ) {
+			// Short circuit because customize_save ajax call is changing status.
+			return false;
+		}
+
+		if ( ! did_action( 'customize_register' ) ) {
+			/*
+			 * When running from CLI or Cron, we have to remove the action because
+			 * it will get added with a default priority of 10, after themes and plugins
+			 * have already done add_action( 'customize_register' ), resulting in them
+			 * being called first at the priority 10. So we manually call the
+			 * prerequisite function WP_Customize_Manager::register_controls() and
+			 * remove it from being called when the customize_register action fires.
+			 */
+			remove_action( 'customize_register', array( $this->customize_manager, 'register_controls' ) );
+			$this->customize_manager->register_controls();
+
+			/** This action is documented in wp-includes/class-wp-customize-manager.php */
+			do_action( 'customize_register', $this->customize_manager );
+		}
+		$snapshot_content = $this->post_type->get_post_content( $post );
+
+		if ( method_exists( $this->customize_manager, 'validate_setting_values' ) ) {
+			/** This action is documented in wp-includes/class-wp-customize-manager.php */
+			do_action( 'customize_save_validation_before', $this->customize_manager );
+		}
+
+		$this->customize_manager->add_dynamic_settings( array_keys( $snapshot_content ) );
+
+		/** This action is documented in wp-includes/class-wp-customize-manager.php */
+		do_action( 'customize_save', $this->customize_manager );
+
+		/**
+		 * Settings to save.
+		 *
+		 * @var \WP_Customize_Setting[]
+		 */
+		$settings = array();
+
+		$publish_error_count = 0;
+		foreach ( $snapshot_content as $setting_id => &$setting_params ) {
+
+			// Missing value error.
+			if ( ! isset( $setting_params['value'] ) || is_null( $setting_params['value'] ) ) {
+				if ( ! is_array( $setting_params ) ) {
+					if ( ! empty( $setting_params ) ) {
+						$setting_params = array( 'value' => $setting_params );
+					} else {
+						$setting_params = array();
+					}
+				}
+				$setting_params['publish_error'] = 'null_value';
+				$publish_error_count += 1;
+				continue;
+			}
+
+			// Unrecognized setting error.
+			$this->customize_manager->set_post_value( $setting_id, $setting_params['value'] );
+			$setting = $this->customize_manager->get_setting( $setting_id );
+			if ( ! ( $setting instanceof \WP_Customize_Setting ) ) {
+				$setting_params['publish_error'] = 'unrecognized_setting';
+				$publish_error_count += 1;
+				continue;
+			}
+
+			// Validate setting value.
+			if ( method_exists( $setting, 'validate' ) && is_wp_error( $setting->validate( $setting_params['value'] ) ) ) {
+				$setting_params['publish_error'] = 'invalid_value';
+				$publish_error_count += 1;
+				continue;
+			}
+
+			// Validate sanitized setting value.
+			$sanitized_value = $setting->sanitize( $setting_params['value'] );
+			if ( is_null( $sanitized_value ) || is_wp_error( $sanitized_value ) ) {
+				$setting_params['publish_error'] = 'invalid_value';
+				$publish_error_count += 1;
+				continue;
+			}
+
+			$settings[] = $setting;
+			unset( $setting_params['publish_error'] );
+		}
+
+		// Handle error scenarios.
+		if ( $publish_error_count > 0 ) {
+			$update_setting_args = array(
+				'ID' => $post->ID,
+				'post_content' => Customize_Snapshot_Manager::encode_json( $snapshot_content ),
+				'post_status' => 'pending',
+			);
+			wp_update_post( wp_slash( $update_setting_args ) );
+			update_post_meta( $post->ID, 'snapshot_error_on_publish', $publish_error_count );
+			return false;
+		}
+
+		/*
+		 * Change all setting capabilities temporarily to 'exist' to allow them to
+		 * be saved regardless of current user, such as when WP-Cron is publishing
+		 * the snapshot post if it was scheduled. It is safe to do this because
+		 * a setting can only be written into a snapshot by users who have the
+		 * capability, so after it has been added to a snapshot it is good to commit.
+		 */
+		$existing_caps = wp_list_pluck( $settings, 'capability' );
+		foreach ( $settings as $setting ) {
+			$setting->capability = 'exist';
+		}
+
+		// Persist the settings in the DB.
+		foreach ( $settings as $setting ) {
+			$setting->save();
+		}
+
+		// Restore setting capabilities.
+		foreach ( $existing_caps as $setting_id => $existing_cap ) {
+			$settings[ $setting_id ]->capability = $existing_cap;
+		}
+
+		/** This action is documented in wp-includes/class-wp-customize-manager.php */
+		do_action( 'customize_save_after', $this->customize_manager );
+
+		// Remove any previous error on setting.
+		delete_post_meta( $post->ID, 'snapshot_error_on_publish' );
+
+		return true;
 	}
 
 	/**
