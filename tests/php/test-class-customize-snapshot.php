@@ -293,6 +293,20 @@ class Test_Customize_Snapshot extends \WP_UnitTestCase {
 	}
 
 	/**
+	 * Test set with a non-array param.
+	 *
+	 * @see Customize_Snapshot::set()
+	 * @expectedException Exception
+	 */
+	function test_set_with_non_array_params() {
+		$manager = new Customize_Snapshot_Manager( $this->plugin );
+		$manager->ensure_customize_manager();
+		$manager->init();
+		$snapshot = new Customize_Snapshot( $manager, self::UUID );
+		$snapshot->set( array( 'foo' => 'bad' ) );
+	}
+
+	/**
 	 * Test saved.
 	 *
 	 * @see Customize_Snapshot::saved()

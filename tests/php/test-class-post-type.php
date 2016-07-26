@@ -59,8 +59,6 @@ class Test_Post_type extends \WP_UnitTestCase {
 		$this->assertEquals( 10, has_action( 'display_post_states', array( $post_type, 'display_post_states' ) ) );
 	}
 
-
-
 	/**
 	 * Suspend kses which runs on content_save_pre and can corrupt JSON in post_content.
 	 *
@@ -103,6 +101,24 @@ class Test_Post_type extends \WP_UnitTestCase {
 		$this->assertFalse( ! empty( $wp_meta_boxes[ Post_Type::SLUG ]['normal']['high'][ $metabox_id ] ) );
 		do_action( 'add_meta_boxes_' . Post_Type::SLUG, $post_id );
 		$this->assertTrue( ! empty( $wp_meta_boxes[ Post_Type::SLUG ]['normal']['high'][ $metabox_id ] ) );
+	}
+
+	/**
+	 * Tests remove_publish_metabox.
+	 *
+	 * @covers Post_Type::remove_publish_metabox()
+	 */
+	public function test_remove_publish_metabox() {
+		$this->markTestIncomplete();
+	}
+
+	/**
+	 * Tests suspend_kses_for_snapshot_revision_restore.
+	 *
+	 * @covers Post_Type::suspend_kses_for_snapshot_revision_restore()
+	 */
+	public function test_suspend_kses_for_snapshot_revision_restore() {
+		$this->markTestIncomplete();
 	}
 
 	/**
@@ -354,7 +370,7 @@ class Test_Post_type extends \WP_UnitTestCase {
 	/**
 	 * Test getting the snapshot array out of the post_content.
 	 *
-	 * @see Post_Type::get_post_content()
+	 * @covers Post_Type::get_post_content()
 	 * @expectedException \PHPUnit_Framework_Error_Warning
 	 */
 	public function test_get_post_content() {
@@ -471,31 +487,9 @@ class Test_Post_type extends \WP_UnitTestCase {
 	}
 
 	/**
-	 * Test granting customize capability.
-	 *
-	 * @see Post_Type::filter_user_has_cap()
-	 */
-	function test_filter_user_has_cap() {
-		remove_all_filters( 'user_has_cap' );
-
-		$post_type = new Post_Type( $this->plugin->customize_snapshot_manager );
-		$post_type->register();
-
-		$post_id = $post_type->save( array(
-			'uuid' => self::UUID,
-			'data' => array( 'foo' => array( 'value' => 'bar' ) ),
-		) );
-
-		$this->assertFalse( current_user_can( 'edit_post', $post_id ) );
-		$admin_id = $this->factory()->user->create( array( 'role' => 'administrator' ) );
-		wp_set_current_user( $admin_id );
-		$this->assertTrue( current_user_can( 'edit_post', $post_id ) );
-	}
-
-	/**
 	 * Snapshot publish.
 	 *
-	 * @see Post_Type::publish_snapshot()
+	 * @see Post_Type::save()
 	 */
 	function test_publish_snapshot() {
 		$admin_user_id = $this->factory()->user->create( array( 'role' => 'administrator' ) );
@@ -574,5 +568,63 @@ class Test_Post_type extends \WP_UnitTestCase {
 		$this->assertEquals( 'publish', $snapshot_post->post_status );
 		$this->assertEquals( $data, $content );
 		$this->assertEquals( $tag_line, get_bloginfo( 'description' ) );
+	}
+
+	/**
+	 * Test granting customize capability.
+	 *
+	 * @see Post_Type::filter_user_has_cap()
+	 */
+	function test_filter_user_has_cap() {
+		remove_all_filters( 'user_has_cap' );
+
+		$post_type = new Post_Type( $this->plugin->customize_snapshot_manager );
+		$post_type->register();
+
+		$post_id = $post_type->save( array(
+			'uuid' => self::UUID,
+			'data' => array( 'foo' => array( 'value' => 'bar' ) ),
+		) );
+
+		$this->assertFalse( current_user_can( 'edit_post', $post_id ) );
+		$admin_id = $this->factory()->user->create( array( 'role' => 'administrator' ) );
+		wp_set_current_user( $admin_id );
+		$this->assertTrue( current_user_can( 'edit_post', $post_id ) );
+	}
+
+	/**
+	 * Tests display_post_states.
+	 *
+	 * @covers Post_Type::display_post_states()
+	 */
+	public function test_display_post_states() {
+		$this->markTestIncomplete();
+	}
+
+	/**
+	 * Tests show_publish_error_admin_notice.
+	 *
+	 * @covers Post_Type::show_publish_error_admin_notice()
+	 */
+	public function test_show_publish_error_admin_notice() {
+		$this->markTestIncomplete();
+	}
+
+	/**
+	 * Tests disable_revision_ui_for_published_posts.
+	 *
+	 * @covers Post_Type::disable_revision_ui_for_published_posts()
+	 */
+	public function test_disable_revision_ui_for_published_posts() {
+		$this->markTestIncomplete();
+	}
+
+	/**
+	 * Tests hide_disabled_publishing_actions.
+	 *
+	 * @covers Post_Type::hide_disabled_publishing_actions()
+	 */
+	public function test_hide_disabled_publishing_actions() {
+		$this->markTestIncomplete();
 	}
 }

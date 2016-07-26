@@ -178,6 +178,96 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	}
 
 	/**
+	 * Tests init.
+	 *
+	 * @covers Customize_Snapshot_Manager::init()
+	 */
+	public function test_init() {
+		$this->markTestIncomplete();
+	}
+
+	/**
+	 * Tests doing_customize_save_ajax.
+	 *
+	 * @covers Customize_Snapshot_Manager::doing_customize_save_ajax()
+	 */
+	public function test_doing_customize_save_ajax() {
+		$this->markTestIncomplete();
+	}
+
+	/**
+	 * Tests ensure_customize_manager.
+	 *
+	 * @covers Customize_Snapshot_Manager::ensure_customize_manager()
+	 */
+	public function test_ensure_customize_manager() {
+		$this->markTestIncomplete();
+	}
+
+	/**
+	 * Tests is_theme_active.
+	 *
+	 * @covers Customize_Snapshot_Manager::is_theme_active()
+	 */
+	public function test_is_theme_active() {
+		$this->markTestIncomplete();
+	}
+
+	/**
+	 * Tests should_import_and_preview_snapshot.
+	 *
+	 * @covers Customize_Snapshot_Manager::should_import_and_preview_snapshot()
+	 */
+	public function test_should_import_and_preview_snapshot() {
+		$this->markTestIncomplete();
+	}
+
+	/**
+	 * Tests preview_snapshot_settings.
+	 *
+	 * @covers Customize_Snapshot_Manager::preview_snapshot_settings()
+	 */
+	public function test_preview_snapshot_settings() {
+		$this->markTestIncomplete();
+	}
+
+	/**
+	 * Tests import_snapshot_data.
+	 *
+	 * @covers Customize_Snapshot_Manager::import_snapshot_data()
+	 */
+	public function test_import_snapshot_data() {
+		$this->markTestIncomplete();
+	}
+
+	/**
+	 * Tests add_widget_setting_preview_filters.
+	 *
+	 * @covers Customize_Snapshot_Manager::add_widget_setting_preview_filters()
+	 */
+	public function test_add_widget_setting_preview_filters() {
+		$this->markTestIncomplete();
+	}
+
+	/**
+	 * Tests add_nav_menu_setting_preview_filters.
+	 *
+	 * @covers Customize_Snapshot_Manager::add_nav_menu_setting_preview_filters()
+	 */
+	public function test_add_nav_menu_setting_preview_filters() {
+		$this->markTestIncomplete();
+	}
+
+	/**
+	 * Tests preview_early_nav_menus_in_customizer.
+	 *
+	 * @covers Customize_Snapshot_Manager::preview_early_nav_menus_in_customizer()
+	 */
+	public function test_preview_early_nav_menus_in_customizer() {
+		$this->markTestIncomplete();
+	}
+
+	/**
 	 * Test add snapshot uuid to return url.
 	 *
 	 * @see Customize_Snapshot_Manager::add_snapshot_uuid_to_return_url()
@@ -198,7 +288,8 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	/**
 	 * Test remove snapshot uuid from current url.
 	 *
-	 * @see Customize_Snapshot_Manager::clean_current_url()
+	 * @covers Customize_Snapshot_Manager::remove_snapshot_uuid_from_current_url()
+	 * @covers Customize_Snapshot_Manager::current_url()
 	 */
 	function test_remove_snapshot_uuid_from_current_url() {
 		$this->go_to( home_url( '?customize_snapshot_uuid=' . self::UUID ) );
@@ -211,18 +302,30 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	}
 
 	/**
-	 * Test create post type.
+	 * Tests show_theme_switch_error.
 	 *
-	 * @see Post_Type::register()
+	 * @covers Customize_Snapshot_Manager::show_theme_switch_error()
 	 */
-	function test_create_post_type() {
-		$post_type_object = get_post_type_object( Post_Type::SLUG );
-		$this->assertNotNull( $post_type_object );
-		$this->assertEquals( Post_Type::SLUG, $post_type_object->name );
+	function test_show_theme_switch_error() {
+		$this->markTestIncomplete();
+	}
 
-		// Test some defaults.
-		$this->assertFalse( is_post_type_hierarchical( Post_Type::SLUG ) );
-		$this->assertEquals( array(), get_object_taxonomies( Post_Type::SLUG ) );
+	/**
+	 * Tests get_theme_switch_error.
+	 *
+	 * @covers Customize_Snapshot_Manager::get_theme_switch_error()
+	 */
+	function test_get_theme_switch_error() {
+		$this->markTestIncomplete();
+	}
+
+	/**
+	 * Tests check_customize_publish_authorization.
+	 *
+	 * @covers Customize_Snapshot_Manager::check_customize_publish_authorization()
+	 */
+	function test_check_customize_publish_authorization() {
+		$this->markTestIncomplete();
 	}
 
 	/**
@@ -254,6 +357,15 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	}
 
 	/**
+	 * Test filter_customize_refresh_nonces.
+	 *
+	 * @covers Customize_Snapshot_Manager::filter_customize_refresh_nonces()
+	 */
+	function test_filter_customize_refresh_nonces() {
+		$this->markTestIncomplete();
+	}
+
+	/**
 	 * Test snapshot method.
 	 *
 	 * @see Customize_Snapshot_Manager::snapshot()
@@ -268,7 +380,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	/**
 	 * Test publish snapshot with customize_save_after.
 	 *
-	 * @see Customize_Snapshot_Manager::publish_snapshot_with_customize_save_after()
+	 * @covers Customize_Snapshot_Manager::publish_snapshot_with_customize_save_after()
 	 */
 	function test_publish_snapshot_with_customize_save_after() {
 		wp_set_current_user( $this->user_id );
@@ -285,6 +397,57 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		$this->assertEmpty( $manager->snapshot()->post() );
 		$manager->publish_snapshot_with_customize_save_after();
 		$this->assertNotEmpty( $manager->snapshot()->post() );
+
+		$this->markTestIncomplete( 'Need to test when snapshot->save() returns errors, and when snapshot post save fails.' );
+	}
+
+	/**
+	 * Test prepare_snapshot_post_content_for_publish.
+	 *
+	 * @covers Customize_Snapshot_Manager::prepare_snapshot_post_content_for_publish()
+	 */
+	public function test_prepare_snapshot_post_content_for_publish() {
+		$this->markTestIncomplete();
+	}
+
+	/**
+	 * Test save_settings_with_publish_snapshot.
+	 *
+	 * @covers Customize_Snapshot_Manager::save_settings_with_publish_snapshot()
+	 */
+	public function test_save_settings_with_publish_snapshot() {
+		$this->markTestIncomplete();
+	}
+
+	/*
+	 * For Customize_Snapshot_Manager::handle_update_snapshot_request(), see Test_Ajax_Customize_Snapshot_Manager.
+	 */
+
+	/**
+	 * Test prepare_errors_for_response.
+	 *
+	 * @covers Customize_Snapshot_Manager::prepare_errors_for_response()
+	 */
+	public function test_prepare_errors_for_response() {
+		$this->markTestIncomplete();
+	}
+
+	/**
+	 * Tests generate_uuid.
+	 *
+	 * @covers Customize_Snapshot_Manager::generate_uuid()
+	 */
+	public function test_generate_uuid() {
+		$this->markTestIncomplete();
+	}
+
+	/**
+	 * Tests is_valid_uuid.
+	 *
+	 * @covers Customize_Snapshot_Manager::is_valid_uuid()
+	 */
+	public function test_is_valid_uuid() {
+		$this->markTestIncomplete();
 	}
 
 	/**
@@ -326,6 +489,24 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 
 		do_action_ref_array( 'admin_bar_menu', array( &$wp_admin_bar ) );
 		$this->assertNull( $wp_admin_bar->get_node( 'customize' ) );
+	}
+
+	/**
+	 * Test add_post_edit_screen_link.
+	 *
+	 * @covers Customize_Snapshot_Manager::add_post_edit_screen_link()
+	 */
+	public function test_add_post_edit_screen_link() {
+		$this->markTestIncomplete();
+	}
+
+	/**
+	 * Test replace_customize_link.
+	 *
+	 * @covers Customize_Snapshot_Manager::replace_customize_link()
+	 */
+	public function test_replace_customize_link() {
+		$this->markTestIncomplete();
 	}
 
 	/**
