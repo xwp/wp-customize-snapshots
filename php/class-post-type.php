@@ -116,6 +116,7 @@ class Post_Type {
 		add_filter( 'user_has_cap', array( $this, 'filter_user_has_cap' ), 10, 2 );
 		add_action( 'publish_' . static::SLUG, array( $this, 'publish_snapshot' ), 10, 2 );
 		add_filter( 'display_post_states', array( $this, 'display_post_states' ), 10, 2 );
+		add_action( 'admin_notices', array( $this, 'show_publish_error_admin_notice' ) );
 	}
 
 	/**
@@ -724,5 +725,29 @@ class Post_Type {
 			$status['snapshot_error'] = __( 'Error on publish', 'customize-snapshots' );
 		}
 		return $status;
+	}
+
+	/**
+	 * Show an admin notice when publishing fails and the post gets kicked back to pending.
+	 */
+	public function show_publish_error_admin_notice() {
+		if ( ! function_exists( 'get_current_screen' ) ) {
+			return;
+		}
+		$current_screen = get_current_screen();
+		if ( 'customize_snapshot' !== $current_screen->id || 'post' !== $current_screen->base ) {
+			return;
+		}
+		if ( ! isset( $_REQUEST['message'] ) || 8 !== intval( $_REQUEST['message'] ) ) {
+			return;
+		}
+		if ( 'pending' !== get_post_status() ) {
+			return;
+		}
+		?>
+		<div class="notice notice-error is-dismissible">
+			<p><?php esc_html_e( 'Failed to publish snapshot due to an error with saving one of its settings. This may be due to a theme or plugin having been changed since the snapshot was created. See below.', 'customize-snapshots' ) ?></p>
+		</div>
+		<?php
 	}
 }
