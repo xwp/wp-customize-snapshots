@@ -471,7 +471,7 @@ class Customize_Snapshot_Manager {
 	 * Check whether customize_publish capability is granted in customize_save.
 	 */
 	public function check_customize_publish_authorization() {
-		if ( ! current_user_can( 'customize_publish' ) ) {
+		if ( $this->customize_manager->doing_ajax( 'customize_save' ) && ! current_user_can( 'customize_publish' ) ) {
 			wp_send_json_error( array(
 				'error' => 'customize_publish_unauthorized',
 			) );
