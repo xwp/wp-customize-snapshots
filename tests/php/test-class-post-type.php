@@ -27,28 +27,13 @@ class Test_Post_type extends \WP_UnitTestCase {
 	const UUID = '65aee1ff-af47-47df-9e14-9c69b3017cd3';
 
 	/**
-	 * Store tag line restore after all test-case finish.
-	 *
-	 * @var string
-	 */
-	public $blog_tag_line;
-
-	/**
 	 * Set up.
 	 */
 	function setUp() {
 		parent::setUp();
-		$this->blog_tag_line = get_bloginfo( 'description' );
+		$GLOBALS['wp_customize'] = null; // WPCS: Global override ok.
 		$this->plugin = get_plugin_instance();
 		unregister_post_type( Post_Type::SLUG );
-	}
-
-	/**
-	 *
-	 */
-	function tearDown() {
-		update_option( 'blogdescription', $this->blog_tag_line );
-		parent::tearDown();
 	}
 
 	/**
@@ -59,6 +44,7 @@ class Test_Post_type extends \WP_UnitTestCase {
 	public function test_register() {
 		$this->assertFalse( post_type_exists( Post_Type::SLUG ) );
 		$post_type = new Post_Type( $this->plugin->customize_snapshot_manager );
+		$this->plugin->customize_snapshot_manager->init();
 		$post_type->register();
 		$this->assertTrue( post_type_exists( Post_Type::SLUG ) );
 
@@ -174,7 +160,7 @@ class Test_Post_type extends \WP_UnitTestCase {
 
 		wp_set_current_user( $admin_user_id );
 		$filtered_actions = apply_filters( 'post_row_actions', $original_actions, get_post( $post_id ) );
-		$this->assertArrayNotHasKey( 'inline hide-if-no-js', $filtered_actions );
+		$this->assertArrayHasKey( 'inline hide-if-no-js', $filtered_actions );
 		$this->assertArrayHasKey( 'customize', $filtered_actions );
 		$this->assertArrayHasKey( 'front-view', $filtered_actions );
 
@@ -384,7 +370,7 @@ class Test_Post_type extends \WP_UnitTestCase {
 		$data = array(
 			'foo' => array(
 				'value' => 'bar',
-				'publish_error' => 'setting_object_not_found',
+				'publish_error' => 'unrecognized_setting',
 			),
 		);
 		$post_id = $post_type->save( array(
@@ -449,7 +435,10 @@ class Test_Post_type extends \WP_UnitTestCase {
 		$this->assertEquals( 'missing_value_param', $r->get_error_code() );
 
 		$data = array(
-			'foo' => array( 'value' => 'bar', 'publish_error' => 'setting_object_not_found' ),
+			'foo' => array(
+				'value' => 'bar',
+				'publish_error' => 'unrecognized_setting',
+			),
 		);
 
 		// Error: bad_status.
@@ -515,16 +504,24 @@ class Test_Post_type extends \WP_UnitTestCase {
 		$tag_line = 'Snapshot blog';
 
 		$data = array(
-			'blogdescription' => array( 'value' => $tag_line ),
-			'foo' => array( 'value' => 'bar' ),
-			'baz' => array( 'value' => null ),
-		);
-
-		$validate_data = array(
-			'blogdescription' => array( 'value' => $tag_line ),
+			'blogdescription' => array(
+				'value' => $tag_line,
+			),
 			'foo' => array(
 				'value' => 'bar',
-				'publish_error' => 'setting_object_not_found',
+			),
+			'baz' => array(
+				'value' => null,
+			),
+		);
+
+		$validated_content = array(
+			'blogdescription' => array(
+				'value' => $tag_line,
+			),
+			'foo' => array(
+				'value' => 'bar',
+				'publish_error' => 'unrecognized_setting',
 			),
 			'baz' => array(
 				'value' => null,
@@ -532,29 +529,50 @@ class Test_Post_type extends \WP_UnitTestCase {
 			),
 		);
 
-		// Test 1.
-		$post_id = $post_type->save( array(
-			'uuid' => self::UUID,
-			'data' => $data,
-			'status' => 'draft',
-		) );
-		wp_update_post( array( 'ID' => $post_id, 'post_status' => 'publish' ) );
-		$content = $post_type->get_post_content( get_post( $post_id ) );
-		$this->assertEquals( $validate_data, $content );
-		$this->assertEquals( $tag_line, get_bloginfo( 'description' ) );
-
-		// Test 2.
-		unset( $data['blogdescription'] );
+		/*
+		 * Ensure that directly updating a post succeeds with invalid settings
+		 * works because the post is a draft. Note that if using
+		 * Customize_Snapshot::set() this would fail because it does validation.
+		 */
 		$post_id = $post_type->save( array(
 			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
 			'data' => $data,
 			'status' => 'draft',
 		) );
-		wp_update_post( array( 'ID' => $post_id, 'post_status' => 'publish' ) );
-		unset( $validate_data['blogdescription'] );
+		wp_update_post( array( 'ID' => $post_id, 'post_status' => 'draft' ) );
+		$content = $post_type->get_post_content( get_post( $post_id ) );
+		$this->assertEquals( $data, $content );
+
+		/*
+		 * Ensure that attempting to publish a snapshot with invalid settings
+		 * will get the publish_errors added as well as kick it back to pending.
+		 */
+		$post_id = $post_type->save( array(
+			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
+			'data' => $data,
+			'status' => 'draft',
+		) );
+		wp_publish_post( $post_id );
 		$snapshot_post = get_post( $post_id );
 		$content = $post_type->get_post_content( $snapshot_post );
 		$this->assertEquals( 'pending', $snapshot_post->post_status );
-		$this->assertEquals( $validate_data, $content );
+		$this->assertEquals( $validated_content, $content );
+
+		/*
+		 * Remove invalid settings and now attempt publish.
+		 */
+		unset( $data['foo'] );
+		unset( $data['baz'] );
+		$post_id = $post_type->save( array(
+			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
+			'data' => $data,
+			'status' => 'draft',
+		) );
+		wp_publish_post( $post_id );
+		$snapshot_post = get_post( $post_id );
+		$content = $post_type->get_post_content( $snapshot_post );
+		$this->assertEquals( 'publish', $snapshot_post->post_status );
+		$this->assertEquals( $data, $content );
+		$this->assertEquals( $tag_line, get_bloginfo( 'description' ) );
 	}
 }

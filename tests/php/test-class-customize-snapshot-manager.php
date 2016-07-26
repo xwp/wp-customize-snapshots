@@ -101,8 +101,8 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		$this->manager = null;
 		unset( $GLOBALS['wp_customize'] );
 		unset( $GLOBALS['wp_scripts'] );
-		unset( $_REQUEST['customize_snapshot_uuid'] );
 		unset( $GLOBALS['screen'] );
+		$_REQUEST = array();
 		parent::tearDown();
 	}
 

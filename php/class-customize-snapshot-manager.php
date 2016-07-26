@@ -153,6 +153,15 @@ class Customize_Snapshot_Manager {
 	}
 
 	/**
+	 * Return true if it's a customize_save Ajax request.
+	 *
+	 * @return bool True if it's an Ajax request, false otherwise.
+	 */
+	public function doing_customize_save_ajax() {
+		return isset( $_REQUEST['action'] ) && wp_unslash( $_REQUEST['action'] ) === 'customize_save';
+	}
+
+	/**
 	 * Ensure Customizer manager is instantiated.
 	 *
 	 * @global \WP_Customize_Manager $wp_customize
@@ -192,7 +201,7 @@ class Customize_Snapshot_Manager {
 		}
 
 		// Abort if doing customize_save.
-		if ( $this->customize_manager->doing_ajax( 'customize_save' ) ) {
+		if ( $this->doing_customize_save_ajax() ) {
 			return false;
 		}
 
@@ -474,8 +483,7 @@ class Customize_Snapshot_Manager {
 	 * Check whether customize_publish capability is granted in customize_save.
 	 */
 	public function check_customize_publish_authorization() {
-		$this->ensure_customize_manager();
-		if ( $this->customize_manager->doing_ajax( 'customize_save' ) && ! current_user_can( 'customize_publish' ) ) {
+		if ( $this->doing_customize_save_ajax() && ! current_user_can( 'customize_publish' ) ) {
 			wp_send_json_error( array(
 				'error' => 'customize_publish_unauthorized',
 			) );
@@ -579,7 +587,7 @@ class Customize_Snapshot_Manager {
 	public function publish_snapshot_with_customize_save_after() {
 		$that = $this;
 
-		if ( ! $this->snapshot || ! $this->customize_manager->doing_ajax( 'customize_save' ) ) {
+		if ( ! $this->snapshot || ! $this->doing_customize_save_ajax() ) {
 			return false;
 		}
 
@@ -698,7 +706,7 @@ class Customize_Snapshot_Manager {
 
 		$this->ensure_customize_manager();
 
-		if ( $this->customize_manager->doing_ajax( 'customize_save' ) ) {
+		if ( $this->doing_customize_save_ajax() ) {
 			// Short circuit because customize_save ajax call is changing status.
 			return false;
 		}
