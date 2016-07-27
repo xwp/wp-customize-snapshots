@@ -424,7 +424,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 			'foo' => array( 'value' => 'bar' ),
 			'baz' => array( 'value' => null ),
 		);
-		$data_without_errors = $snapshot_manager->prepare_snapshot_post_content_for_publish( array(
+		$data_without_errors = $this->manager->prepare_snapshot_post_content_for_publish( array(
 			'post_type' => Post_Type::SLUG,
 			'post_content' => Customize_Snapshot_Manager::encode_json( $data ),
 			'post_status' => 'publish',
@@ -438,8 +438,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	 * @covers Customize_Snapshot_Manager::save_settings_with_publish_snapshot()
 	 */
 	public function test_save_settings_with_publish_snapshot() {
-		$snapshot_manager = get_plugin_instance()->customize_snapshot_manager;
-		$post_type = $snapshot_manager->post_type;
+		$post_type = $this->manager->post_type;
 		$data = array(
 			'blogdescription' => array( 'value' => 'Snapshot blog' ),
 			'unknown_setting_foo' => array( 'value' => 'bar' ),
@@ -475,7 +474,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 
 		// Test invalid settings.
 		$post = get_post( $post_id );
-		$snapshot_manager->save_settings_with_publish_snapshot( 'publish', 'draft', $post );
+		$this->manager->save_settings_with_publish_snapshot( 'publish', 'draft', $post );
 		$post = get_post( $post_id );
 		$this->assertEquals( $validate_data, json_decode( wp_unslash( $post->post_content ), true ) );
 		$this->assertEquals( 'pending', $post->post_status );
