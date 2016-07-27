@@ -91,7 +91,6 @@ class Post_Type {
 			'capability_type' => static::SLUG,
 			'capabilities' => array(
 				'create_posts' => 'do_not_allow',
-				'publish_posts' => 'do_not_allow',
 			),
 			'rewrite' => false,
 			'show_in_customizer' => false, // Prevent inception.
@@ -108,11 +107,14 @@ class Post_Type {
 		add_filter( 'post_type_link', array( $this, 'filter_post_type_link' ), 10, 2 );
 		add_action( 'add_meta_boxes_' . static::SLUG, array( $this, 'remove_publish_metabox' ), 100 );
 		add_action( 'load-revision.php', array( $this, 'suspend_kses_for_snapshot_revision_restore' ) );
-		add_filter( 'bulk_actions-edit-' . static::SLUG, array( $this, 'filter_bulk_actions' ) );
 		add_filter( 'get_the_excerpt', array( $this, 'filter_snapshot_excerpt' ), 10, 2 );
 		add_filter( 'post_row_actions', array( $this, 'filter_post_row_actions' ), 10, 2 );
 		add_filter( 'wp_insert_post_data', array( $this, 'preserve_post_name_in_insert_data' ), 10, 2 );
 		add_filter( 'user_has_cap', array( $this, 'filter_user_has_cap' ), 10, 2 );
+		add_filter( 'display_post_states', array( $this, 'display_post_states' ), 10, 2 );
+		add_action( 'admin_notices', array( $this, 'show_publish_error_admin_notice' ) );
+		add_action( 'post_submitbox_minor_actions', array( $this, 'hide_disabled_publishing_actions' ) );
+		add_action( 'admin_print_scripts-revision.php', array( $this, 'disable_revision_ui_for_published_posts' ) );
 	}
 
 	/**
@@ -176,8 +178,6 @@ class Post_Type {
 	 */
 	public function remove_publish_metabox() {
 		remove_meta_box( 'slugdiv', static::SLUG, 'normal' );
-		remove_meta_box( 'submitdiv', static::SLUG, 'side' );
-		remove_meta_box( 'authordiv', static::SLUG, 'normal' );
 	}
 
 	/**
@@ -218,17 +218,6 @@ class Post_Type {
 	}
 
 	/**
-	 * Remove edit bulk action for snapshots.
-	 *
-	 * @param array $actions Actions.
-	 * @return array Actions.
-	 */
-	public function filter_bulk_actions( $actions ) {
-		unset( $actions['edit'] );
-		return $actions;
-	}
-
-	/**
 	 * Include the setting IDs in the excerpt.
 	 *
 	 * @param string   $excerpt The post excerpt.
@@ -261,12 +250,8 @@ class Post_Type {
 			return $actions;
 		}
 
-		$snapshot_theme = get_post_meta( $post->ID, '_snapshot_theme', true );
-		$is_snapshot_theme_mismatch = ! empty( $snapshot_theme ) && get_stylesheet() !== $snapshot_theme;
-
-		unset( $actions['inline hide-if-no-js'] );
 		$post_type_obj = get_post_type_object( static::SLUG );
-		if ( 'publish' !== $post->post_status && current_user_can( $post_type_obj->cap->edit_post, $post->ID ) && ! $is_snapshot_theme_mismatch ) {
+		if ( 'publish' !== $post->post_status && current_user_can( $post_type_obj->cap->edit_post, $post->ID ) ) {
 			$args = array(
 				'customize_snapshot_uuid' => $post->post_name,
 			);
@@ -288,14 +273,18 @@ class Post_Type {
 				),
 				$actions
 			);
-		} elseif ( isset( $actions['edit'] ) ) {
-			$actions['edit'] = sprintf(
-				'<a href="%s" aria-label="%s">%s</a>',
-				get_edit_post_link( $post->ID ),
-				/* translators: %s: post title */
-				esc_attr( sprintf( __( 'View &#8220;%s&#8221;', 'customize-snapshots' ), get_the_title( $post->ID ) ) ),
-				__( 'View', 'customize-snapshots' )
-			);
+		} else {
+			unset( $actions['inline hide-if-no-js'] );
+
+			if ( isset( $actions['edit'] ) ) {
+				$actions['edit'] = sprintf(
+					'<a href="%s" aria-label="%s">%s</a>',
+					get_edit_post_link( $post->ID, 'display' ),
+					/* translators: %s: post title */
+					esc_attr( sprintf( __( 'View &#8220;%s&#8221;', 'customize-snapshots' ), get_the_title( $post->ID ) ) ),
+					__( 'View', 'customize-snapshots' )
+				);
+			}
 		}
 		return $actions;
 	}
@@ -327,14 +316,10 @@ class Post_Type {
 	 */
 	public function render_data_metabox( $post ) {
 		$snapshot_content = $this->get_post_content( $post );
-		$post_status_obj = get_post_status_object( $post->post_status );
 
 		echo '<p>';
 		echo esc_html__( 'UUID:', 'customize-snapshots' ) . ' <code>' . esc_html( $post->post_name ) . '</code><br>';
-		echo sprintf( '%1$s %2$s', esc_html__( 'Status:', 'customize-snapshots' ), esc_html( $post_status_obj->label ) ) . '<br>';
-		echo sprintf( '%1$s %2$s %3$s', esc_html__( 'Publish Date:', 'customize-snapshots' ), esc_html( get_the_date( '', $post->ID ) ), esc_html( get_the_time( '', $post->ID ) ) ) . '<br>';
 		echo sprintf( '%1$s %2$s %3$s', esc_html__( 'Modified:', 'customize-snapshots' ), esc_html( get_the_modified_date( '' ) ), esc_html( get_the_modified_time( '' ) ) ) . '<br>';
-		echo sprintf( '%1$s %2$s', esc_html__( 'Author:', 'customize-snapshots' ), esc_html( get_the_author_meta( 'display_name', $post->post_author ) ) ) . '</p>';
 		echo '</p>';
 
 		$snapshot_theme = get_post_meta( $post->ID, '_snapshot_theme', true );
@@ -368,15 +353,40 @@ class Post_Type {
 		ksort( $snapshot_content );
 		echo '<ul id="snapshot-settings">';
 		foreach ( $snapshot_content as $setting_id => $setting_params ) {
-			if ( ! isset( $setting_params['value'] ) ) {
+			if ( ! isset( $setting_params['value'] ) && ! isset( $setting_params['publish_error'] ) ) {
 				continue;
 			}
-			$value = $setting_params['value'];
-
+			$value = isset( $setting_params['value'] ) ? $setting_params['value'] : '';
 			echo '<li>';
 			echo '<details open>';
-			echo '<summary><code>' . esc_html( $setting_id ) . '</code></summary>';
-			if ( is_string( $value ) || is_numeric( $value ) ) {
+			echo '<summary><code>' . esc_html( $setting_id ) . '</code> ';
+
+			// Show error message when there was a publishing error.
+			if ( isset( $setting_params['publish_error'] ) ) {
+				echo '<span class="error-message">';
+				echo '<b>' . esc_html__( 'Publish error:', 'customize-snapshots' ) . '</b> ';
+				switch ( $setting_params['publish_error'] ) {
+					case 'null_value':
+						esc_html_e( 'Missing value.', 'customize-snapshots' );
+						break;
+					case 'unrecognized_setting':
+						esc_html_e( 'Unrecognized setting.', 'customize-snapshots' );
+						break;
+					case 'invalid_value':
+						esc_html_e( 'Invalid value.', 'customize-snapshots' );
+						break;
+					default:
+						echo '<code>' . esc_html( $setting_params['publish_error'] ) . '</code>';
+				}
+				echo '</span>';
+			}
+
+			echo '</summary>';
+
+
+			if ( '' === $value ) {
+				$preview = '<p><em>' . esc_html__( '(Empty string)', 'customize-snapshots' ) . '</em></p>';
+			} elseif ( is_string( $value ) || is_numeric( $value ) ) {
 				$preview = '<p>' . esc_html( $value ) . '</p>';
 			} elseif ( is_bool( $value ) ) {
 				$preview = '<p>' . wp_json_encode( $value ) . '</p>';
@@ -485,6 +495,7 @@ class Post_Type {
 	 */
 	public function save( array $args ) {
 
+		// @todo Add support for $args['post_id'].
 		if ( empty( $args['uuid'] ) || ! Customize_Snapshot_Manager::is_valid_uuid( $args['uuid'] ) ) {
 			return new \WP_Error( 'missing_valid_uuid' );
 		}
@@ -497,6 +508,12 @@ class Post_Type {
 				'_snapshot_version' => $this->snapshot_manager->plugin->version,
 			),
 		);
+		if ( ! empty( $args['status'] ) ) {
+			if ( ! get_post_status_object( $args['status'] ) ) {
+				return new \WP_Error( 'bad_status' );
+			}
+			$post_arr['post_status'] = $args['status'];
+		}
 
 		$post_id = $this->find_post( $args['uuid'] );
 		$is_update = ! empty( $post_id );
@@ -524,12 +541,6 @@ class Post_Type {
 
 		if ( ! empty( $args['theme'] ) ) {
 			$post_arr['meta_input']['_snapshot_theme'] = $args['theme'];
-		}
-		if ( ! empty( $args['status'] ) ) {
-			if ( ! get_post_status_object( $args['status'] ) ) {
-				return new \WP_Error( 'bad_status' );
-			}
-			$post_arr['post_status'] = $args['status'];
 		}
 		if ( ! empty( $args['author'] ) ) {
 			$post_arr['post_author'] = $args['author'];
@@ -579,5 +590,85 @@ class Post_Type {
 		}
 
 		return $allcaps;
+	}
+
+	/**
+	 * Display snapshot save error on post list table.
+	 *
+	 * @param array    $status Display status.
+	 * @param \WP_Post $post Post object.
+	 *
+	 * @return mixed
+	 */
+	public function display_post_states( $status, $post ) {
+		if ( static::SLUG !== $post->post_type ) {
+			return $status;
+		}
+		$maybe_error = get_post_meta( $post->ID, 'snapshot_error_on_publish', true );
+		if ( $maybe_error ) {
+			$status['snapshot_error'] = __( 'Error on publish', 'customize-snapshots' );
+		}
+		return $status;
+	}
+
+	/**
+	 * Show an admin notice when publishing fails and the post gets kicked back to pending.
+	 */
+	public function show_publish_error_admin_notice() {
+		if ( ! function_exists( 'get_current_screen' ) ) {
+			return;
+		}
+		$current_screen = get_current_screen();
+		if ( ! $current_screen || 'customize_snapshot' !== $current_screen->id || 'post' !== $current_screen->base ) {
+			return;
+		}
+		if ( ! isset( $_REQUEST['message'] ) || 8 !== intval( $_REQUEST['message'] ) ) {
+			return;
+		}
+		if ( 'pending' !== get_post_status() ) {
+			return;
+		}
+		?>
+		<div class="notice notice-error is-dismissible">
+			<p><?php esc_html_e( 'Failed to publish snapshot due to an error with saving one of its settings. This may be due to a theme or plugin having been changed since the snapshot was created. See below.', 'customize-snapshots' ) ?></p>
+		</div>
+		<?php
+	}
+
+	/**
+	 * Disable the revision revert UI for published posts.
+	 */
+	public function disable_revision_ui_for_published_posts() {
+		if ( 'publish' !== get_post_status() ) {
+			return;
+		}
+		?>
+		<style>
+			.restore-revision.button {
+				display: none;
+			}
+		</style>
+		<?php
+	}
+
+	/**
+	 * Hide publishing actions that are no longer relevant when a snapshot is published.
+	 *
+	 * @param \WP_Post $post Current post.
+	 */
+	public function hide_disabled_publishing_actions( $post ) {
+		if ( 'publish' !== $post->post_status ) {
+			return;
+		}
+		?>
+		<style>
+			#misc-publishing-actions .misc-pub-post-status,
+			#misc-publishing-actions .misc-pub-visibility,
+			#misc-publishing-actions .misc-pub-curtime,
+			.submitbox #publish {
+				display: none;
+			}
+		</style>
+		<?php
 	}
 }
