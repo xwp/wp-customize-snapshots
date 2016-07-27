@@ -529,7 +529,7 @@ class Customize_Snapshot_Manager {
 		wp_enqueue_script( $this->plugin->slug );
 
 		// Script data array.
-		$exports = apply_filters( 'customize-snapshots-export-data', array(
+		$exports = apply_filters( 'customize_snapshots_export_data', array(
 			'action' => self::AJAX_ACTION,
 			'uuid' => $this->snapshot ? $this->snapshot->uuid() : self::generate_uuid(),
 			'editLink' => $this->snapshot ? get_edit_post_link( $this->snapshot->post(), 'raw' ) : '',
