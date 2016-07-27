@@ -205,6 +205,11 @@ class Customize_Snapshot_Manager {
 			return false;
 		}
 
+		// Abort if the snapshot was already published.
+		if ( $snapshot->saved() && 'publish' === get_post_status( $snapshot->post() ) ) {
+			return false;
+		}
+
 		/*
 		 * Prevent clobbering existing values (or previewing non-snapshotted values on frontend).
 		 * Note that wp.customize.Snapshots.extendPreviewerQuery() will extend the
@@ -864,8 +869,19 @@ class Customize_Snapshot_Manager {
 			wp_send_json_error( 'bad_status' );
 		}
 
-		// Set the snapshot UUID.
+		// Prevent attempting to modify a "locked" snapshot (a published one).
 		$post = $this->snapshot->post();
+		if ( $post && 'publish' === $post->post_status ) {
+			wp_send_json_error( array(
+				'errors' => array(
+					'already_published' => array(
+						'message' => __( 'The snapshot has already published so it is locked.', 'customize-snapshots' ),
+					),
+				),
+			) );
+		}
+
+		// Set the snapshot UUID.
 		$post_type = get_post_type_object( Post_Type::SLUG );
 		$authorized = ( $post ?
 			current_user_can( $post_type->cap->edit_post, $post->ID ) :
