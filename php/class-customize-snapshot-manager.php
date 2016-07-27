@@ -728,8 +728,24 @@ class Customize_Snapshot_Manager {
 			remove_action( 'customize_register', array( $this->customize_manager, 'register_controls' ) );
 			$this->customize_manager->register_controls();
 
+			/*
+			 * Unfortunate hack to prevent \WP_Customize_Widgets::customize_register()
+			 * from calling preview() on settings. This needs to be cleaned up in core.
+			 * It is important for previewing to be prevented because if an option has
+			 * a filter it will short-circuit when an update is attempted since it
+			 * detects that there is no change to be put into the DB.
+			 * See: https://github.com/xwp/wordpress-develop/blob/e8c58c47db1421a1d0b2afa9ad4b9eb9e1e338e0/src/wp-includes/class-wp-customize-widgets.php#L208-L217
+			 */
+			if ( ! defined( 'DOING_AJAX' ) ) {
+				define( 'DOING_AJAX', true );
+			}
+			$_REQUEST['action'] = 'customize_save';
+
 			/** This action is documented in wp-includes/class-wp-customize-manager.php */
 			do_action( 'customize_register', $this->customize_manager );
+
+			// undefine( 'DOING_AJAX' )... just kidding. This is the end of the unfortunate hack and it should be fixed in Core.
+			unset( $_REQUEST['action'] );
 		}
 		$snapshot_content = $this->post_type->get_post_content( $post );
 
