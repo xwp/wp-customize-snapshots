@@ -407,7 +407,29 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	 * @covers Customize_Snapshot_Manager::prepare_snapshot_post_content_for_publish()
 	 */
 	public function test_prepare_snapshot_post_content_for_publish() {
-		$this->markTestIncomplete();
+		$snapshot_manager = get_plugin_instance()->customize_snapshot_manager;
+		$data = array(
+			'blogdescription' => array( 'value' => 'Snapshot blog' ),
+			'foo' => array(
+				'value' => 'bar',
+				'publish_error' => 'unrecognized_setting',
+			),
+			'baz' => array(
+				'value' => null,
+				'publish_error' => 'invalid_value',
+			),
+		);
+		$validate_data = array(
+			'blogdescription' => array( 'value' => 'Snapshot blog' ),
+			'foo' => array( 'value' => 'bar' ),
+			'baz' => array( 'value' => null ),
+		);
+		$data_without_errors = $snapshot_manager->prepare_snapshot_post_content_for_publish( array(
+			'post_type' => Post_Type::SLUG,
+			'post_content' => Customize_Snapshot_Manager::encode_json( $data ),
+			'post_status' => 'publish',
+		) );
+		$this->assertEquals( $validate_data, json_decode( wp_unslash( $data_without_errors['post_content'] ), true ) );
 	}
 
 	/**
