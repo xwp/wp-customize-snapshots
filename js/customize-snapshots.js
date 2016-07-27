@@ -179,19 +179,20 @@
 		if ( ! component.data.editLink ) {
 			snapshotEditLinkEl.hide();
 		}
+		api.state.bind( 'change', function( saved ) {
+			snapshotEditLinkEl.toggle( api.state( 'snapshot-saved' ).get() && api.state( 'snapshot-exists' ).get() );
+		} );
 
 		api.state( 'snapshot-saved' ).bind( function( saved ) {
 			snapshotButton.prop( 'disabled', saved );
 			if ( saved ) {
 				snapshotEditLinkEl.attr( 'href', component.data.editLink );
-				snapshotEditLinkEl.show();
 			}
 		} );
 
 		api.state( 'saved' ).bind( function( saved ) {
 			if ( saved ) {
 				snapshotButton.prop( 'disabled', true );
-				snapshotEditLinkEl.hide();
 			}
 		} );
 		api.bind( 'change', function() {
@@ -205,12 +206,10 @@
 				permsMsg = component.data.i18n.permsMsg.update;
 				if ( component.data.editLink ) {
 					snapshotEditLinkEl.attr( 'href', component.data.editLink );
-					snapshotEditLinkEl.show();
 				}
 			} else {
 				buttonText = component.data.i18n.saveButton;
 				permsMsg = component.data.i18n.permsMsg.save;
-				snapshotEditLinkEl.hide();
 			}
 
 			snapshotButton.text( buttonText );
