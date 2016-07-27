@@ -457,14 +457,16 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 			),
 			'foo' => array(
 				'value' => 'foo',
-				'publish_error' => 'invalid_value',
 			),
 		);
 
-		add_filter( 'customize_validate_foo', function( $validity ) {
-			$validity->add( 'you_shell_not_pass', 'Testing invalid setting while publishing snapshot' );
-			return $validity;
-		}, 10, 1 );
+		if ( method_exists( 'WP_Customize_Setting', 'validate' ) ) {
+			$validate_data['foo']['publish_error'] = 'invalid_value';
+			add_filter( 'customize_validate_foo', function( $validity ) {
+				$validity->add( 'you_shell_not_pass', 'Testing invalid setting while publishing snapshot' );
+				return $validity;
+			}, 10, 1 );
+		}
 
 		$post_id = $post_type->save( array(
 			'uuid' => self::UUID,
