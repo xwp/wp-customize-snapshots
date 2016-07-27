@@ -661,7 +661,27 @@ class Test_Post_type extends \WP_UnitTestCase {
 	 * @covers Post_Type::disable_revision_ui_for_published_posts()
 	 */
 	public function test_disable_revision_ui_for_published_posts() {
-		$this->markTestIncomplete();
+		$post_type = new Post_Type( $this->plugin->customize_snapshot_manager );
+		$post_id = $post_type->save( array(
+			'uuid' => self::UUID,
+			'data' => array(),
+		) );
+
+		ob_start();
+		$post_type->disable_revision_ui_for_published_posts( get_post( $post_id ) );
+		$output = ob_get_clean();
+		$this->assertEmpty( $output );
+
+		$post_type->save( array(
+			'uuid' => self::UUID,
+			'status' => 'publish',
+		) );
+		ob_start();
+		$GLOBALS['post'] = get_post( $post_id ); // WPCS: global override ok.
+		$post_type->disable_revision_ui_for_published_posts( get_post( $post_id ) );
+		$output = ob_get_clean();
+		$this->assertNotEmpty( $output );
+		$this->assertContains( 'restore-revision.button', $output );
 	}
 
 	/**
@@ -670,6 +690,25 @@ class Test_Post_type extends \WP_UnitTestCase {
 	 * @covers Post_Type::hide_disabled_publishing_actions()
 	 */
 	public function test_hide_disabled_publishing_actions() {
-		$this->markTestIncomplete();
+		$post_type = new Post_Type( $this->plugin->customize_snapshot_manager );
+		$post_id = $post_type->save( array(
+			'uuid' => self::UUID,
+			'data' => array(),
+		) );
+
+		ob_start();
+		$post_type->hide_disabled_publishing_actions( get_post( $post_id ) );
+		$output = ob_get_clean();
+		$this->assertEmpty( $output );
+
+		$post_type->save( array(
+			'uuid' => self::UUID,
+			'status' => 'publish',
+		) );
+		ob_start();
+		$post_type->hide_disabled_publishing_actions( get_post( $post_id ) );
+		$output = ob_get_clean();
+		$this->assertNotEmpty( $output );
+		$this->assertContains( 'misc-pub-post-status', $output );
 	}
 }
