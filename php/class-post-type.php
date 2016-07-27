@@ -526,15 +526,13 @@ class Post_Type {
 			if ( ! is_array( $args['data'] ) ) {
 				return new \WP_Error( 'missing_data' );
 			}
-			foreach ( $args['data'] as $setting_id => &$setting_params ) {
+			foreach ( $args['data'] as $setting_id => $setting_params ) {
 				if ( ! is_array( $setting_params ) ) {
 					return new \WP_Error( 'bad_setting_params' );
 				}
 				if ( ! array_key_exists( 'value', $setting_params ) ) {
 					return new \WP_Error( 'missing_value_param' );
 				}
-
-				// @todo if 'publish' === $args['status'] then strip out all publish_error setting params. Or do this in a wp_insert_post_data filter.
 			}
 			$post_arr['post_content'] = Customize_Snapshot_Manager::encode_json( $args['data'] );
 		} elseif ( ! $is_update ) {

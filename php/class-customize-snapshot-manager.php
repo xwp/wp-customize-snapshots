@@ -754,7 +754,8 @@ class Customize_Snapshot_Manager {
 			do_action( 'customize_save_validation_before', $this->customize_manager );
 		}
 
-		$this->customize_manager->add_dynamic_settings( array_keys( $snapshot_content ) );
+		$setting_ids = array_keys( $snapshot_content );
+		$this->customize_manager->add_dynamic_settings( $setting_ids );
 
 		/** This action is documented in wp-includes/class-wp-customize-manager.php */
 		do_action( 'customize_save', $this->customize_manager );
