@@ -635,7 +635,8 @@ class Post_Type {
 		<style>
 			#misc-publishing-actions .misc-pub-post-status,
 			#misc-publishing-actions .misc-pub-visibility,
-			#misc-publishing-actions .misc-pub-curtime {
+			#misc-publishing-actions .misc-pub-curtime,
+			.submitbox #publish {
 				display: none;
 			}
 		</style>
