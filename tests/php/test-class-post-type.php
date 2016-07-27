@@ -46,6 +46,7 @@ class Test_Post_type extends \WP_UnitTestCase {
 		$post_type->register();
 		$this->assertTrue( post_type_exists( Post_Type::SLUG ) );
 
+		$this->assertEquals( 10, has_filter( 'post_type_link', array( $post_type, 'filter_post_type_link' ) ) );
 		$this->assertEquals( 100, has_action( 'add_meta_boxes_' . Post_Type::SLUG, array( $post_type, 'remove_publish_metabox' ) ) );
 		$this->assertEquals( 10, has_action( 'load-revision.php', array( $post_type, 'suspend_kses_for_snapshot_revision_restore' ) ) );
 		$this->assertEquals( 10, has_filter( 'bulk_actions-edit-' . Post_Type::SLUG, array( $post_type, 'filter_bulk_actions' ) ) );
@@ -55,7 +56,30 @@ class Test_Post_type extends \WP_UnitTestCase {
 		$this->assertEquals( 10, has_filter( 'user_has_cap', array( $post_type, 'filter_user_has_cap' ) ) );
 	}
 
+	/**
+	 * Test filter_post_type_link.
+	 *
+	 * @covers Post_Type::filter_post_type_link()
+	 */
+	function test_filter_post_type_link() {
+		$post_type = new Post_Type( $this->plugin->customize_snapshot_manager );
 
+		$post_id = $post_type->save( array(
+			'uuid' => self::UUID,
+			'data' => array(
+				'blogname' => array( 'value' => 'Hello' ),
+			),
+		) );
+
+		$this->assertContains(
+			'customize_snapshot_uuid=' . self::UUID,
+			$post_type->filter_post_type_link( '', get_post( $post_id ) )
+		);
+
+		remove_all_filters( 'post_type_link' );
+		$post_type->register();
+		$this->assertContains( 'customize_snapshot_uuid=' . self::UUID, get_permalink( $post_id ) );
+	}
 
 	/**
 	 * Suspend kses which runs on content_save_pre and can corrupt JSON in post_content.
@@ -465,6 +489,25 @@ class Test_Post_type extends \WP_UnitTestCase {
 
 		$this->assertEquals( get_stylesheet(), get_post_meta( $r, '_snapshot_theme', true ) );
 		$this->assertEquals( $this->plugin->version, get_post_meta( $r, '_snapshot_version', true ) );
+
+		// Success with author supplied.
+		$user_id = $this->factory()->user->create( array( 'role' => 'administrator' ) );
+		$post_id = $post_type->save( array(
+			'uuid' => self::UUID,
+			'data' => $data,
+			'status' => 'publish',
+			'author' => $user_id,
+		) );
+		$this->assertEquals( $user_id, get_post( $post_id )->post_author );
+
+		// Success with future date.
+		$post_id = $post_type->save( array(
+			'uuid' => self::UUID,
+			'data' => $data,
+			'status' => 'publish',
+			'date_gmt' => gmdate( 'Y-m-d H:i:s', time() + 24 * 3600 ),
+		) );
+		$this->assertEquals( 'future', get_post_status( $post_id ) );
 	}
 
 	/**
