@@ -416,7 +416,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 			),
 			'baz' => array(
 				'value' => null,
-				'publish_error' => 'invalid_value',
+				'publish_error' => 'null_value',
 			),
 		);
 		$validate_data = array(
@@ -438,7 +438,57 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	 * @covers Customize_Snapshot_Manager::save_settings_with_publish_snapshot()
 	 */
 	public function test_save_settings_with_publish_snapshot() {
-		$this->markTestIncomplete();
+		$snapshot_manager = get_plugin_instance()->customize_snapshot_manager;
+		$post_type = $snapshot_manager->post_type;
+		$data = array(
+			'blogdescription' => array( 'value' => 'Snapshot blog' ),
+			'unknown_setting_foo' => array( 'value' => 'bar' ),
+			'null_value_baz' => array( 'value' => null ),
+			'foo' => array( 'value' => 'foo' ),
+		);
+		$validate_data = array(
+			'blogdescription' => array( 'value' => 'Snapshot blog' ),
+			'unknown_setting_foo' => array(
+				'value' => 'bar',
+				'publish_error' => 'unrecognized_setting',
+			),
+			'null_value_baz' => array(
+				'value' => null,
+				'publish_error' => 'null_value',
+			),
+			'foo' => array(
+				'value' => 'foo',
+				'publish_error' => 'invalid_value',
+			),
+		);
+
+		add_filter( 'customize_validate_foo', function( $validity ) {
+			$validity->add( 'you_shell_not_pass', 'Testing invalid setting while publishing snapshot' );
+			return $validity;
+		}, 10, 1 );
+
+		$post_id = $post_type->save( array(
+			'uuid' => self::UUID,
+			'data' => $data,
+			'status' => 'draft',
+		) );
+
+		// Test invalid settings.
+		$post = get_post( $post_id );
+		$snapshot_manager->save_settings_with_publish_snapshot( 'publish', 'draft', $post );
+		$post = get_post( $post_id );
+		$this->assertEquals( $validate_data, json_decode( wp_unslash( $post->post_content ), true ) );
+		$this->assertEquals( 'pending', $post->post_status );
+
+		// Test valid settings.
+		unset( $data['unknown_setting_foo'], $data['null_value_baz'], $data['foo'] );
+		$post_id = $post_type->save( array(
+			'uuid' => self::UUID,
+			'data' => $data,
+			'status' => 'publish',
+		) );
+		$this->assertEquals( 'publish', get_post_status( $post_id ) );
+		$this->assertEquals( 'Snapshot blog', get_bloginfo( 'description' ) );
 	}
 
 	/*
