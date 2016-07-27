@@ -383,7 +383,6 @@ class Post_Type {
 
 			echo '</summary>';
 
-
 			if ( '' === $value ) {
 				$preview = '<p><em>' . esc_html__( '(Empty string)', 'customize-snapshots' ) . '</em></p>';
 			} elseif ( is_string( $value ) || is_numeric( $value ) ) {
