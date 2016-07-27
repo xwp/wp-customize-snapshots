@@ -1,4 +1,4 @@
-/* global jQuery, _customizeSnapshots, JSON */
+/* global jQuery, _customizeSnapshots */
 /* eslint-disable no-extra-parens */
 
 ( function( api, $ ) {
@@ -28,11 +28,8 @@
 		window._wpCustomizeControlsL10n.saved = component.data.i18n.published;
 
 		api.bind( 'ready', function() {
-			if ( ! api.settings.theme.active || ( component.data.theme && component.data.theme !== api.settings.theme.stylesheet ) ) {
-				return;
-			}
+			api.state.create( 'snapshot-exists', component.data.snapshotExists );
 			api.state.create( 'snapshot-saved', true );
-			api.state.create( 'snapshot-exists', Boolean( component.data.isPreview ) );
 			api.state.create( 'snapshot-submitted', true );
 			api.bind( 'change', function() {
 				api.state( 'snapshot-saved' ).set( false );
@@ -41,7 +38,7 @@
 			component.frontendPreviewUrl = new api.Value( api.previewer.previewUrl.get() );
 			component.frontendPreviewUrl.link( api.previewer.previewUrl );
 
-			component.previewerQuery();
+			component.extendPreviewerQuery();
 			component.addButtons();
 
 			$( '#snapshot-save' ).on( 'click', function( event ) {
@@ -92,26 +89,21 @@
 			return request;
 		} );
 
-		api.bind( 'saved', function() {
+		api.bind( 'saved', function( response ) {
 			var url = window.location.href,
-				request,
 				updatedUrl,
 				urlParts;
 
-			// Set the button text back to "Save".
-			component.changeButton( component.data.i18n.saveButton, component.data.i18n.permsMsg.save );
-			api.state( 'snapshot-exists' ).set( false );
-
-			request = wp.ajax.post( 'customize_get_snapshot_uuid', {
-				nonce: component.data.nonce,
-				wp_customize: 'on'
-			} );
-
 			// Update the UUID.
-			request.done( function( response ) {
-				component.data.uuid = response.uuid;
+			if ( response.new_customize_snapshot_uuid ) {
+				component.data.uuid = response.new_customize_snapshot_uuid;
 				component.previewLink.attr( 'target', component.data.uuid );
-			} );
+			}
+			if ( response.edit_link ) {
+				component.data.editLink = response.edit_link;
+			}
+
+			api.state( 'snapshot-exists' ).set( false );
 
 			// Replace the history state with an updated Customizer URL that does not include the Snapshot UUID.
 			urlParts = url.split( '?' );
@@ -132,27 +124,14 @@
 	 *
 	 * @return {void}
 	 */
-	component.previewerQuery = function() {
+	component.extendPreviewerQuery = function() {
 		var originalQuery = api.previewer.query;
 
 		api.previewer.query = function() {
-			var allCustomized = {},
-				retval;
-
-			retval = originalQuery.apply( this, arguments );
-
+			var retval = originalQuery.apply( this, arguments );
 			if ( api.state( 'snapshot-exists' ).get() ) {
-				api.each( function( value, key ) {
-					if ( value._dirty ) {
-						allCustomized[ key ] = {
-							'value': value()
-						};
-					}
-				} );
-				retval.snapshot_customized = JSON.stringify( allCustomized );
-				retval.snapshot_uuid = component.data.uuid;
+				retval.customize_snapshot_uuid = component.data.uuid;
 			}
-
 			return retval;
 		};
 	};
@@ -180,7 +159,8 @@
 	component.addButtons = function() {
 		var header = $( '#customize-header-actions' ),
 			publishButton = header.find( '#save' ),
-			snapshotButton, submitButton, data, setPreviewLinkHref;
+			snapshotEditLinkTemplate = wp.template( 'snapshot-edit-link' ),
+			snapshotButton, submitButton, data, setPreviewLinkHref, snapshotEditLinkEl;
 
 		// Save/update button.
 		snapshotButton = wp.template( 'snapshot-save' );
@@ -193,6 +173,50 @@
 		}
 		snapshotButton.prop( 'disabled', true );
 		snapshotButton.insertAfter( publishButton );
+
+		snapshotEditLinkEl = $( $.trim( snapshotEditLinkTemplate( component.data ) ) );
+		snapshotEditLinkEl.insertAfter( snapshotButton );
+		if ( ! component.data.editLink ) {
+			snapshotEditLinkEl.hide();
+		}
+		api.state.bind( 'change', function() {
+			snapshotEditLinkEl.toggle( api.state( 'snapshot-saved' ).get() && api.state( 'snapshot-exists' ).get() );
+		} );
+
+		api.state( 'snapshot-saved' ).bind( function( saved ) {
+			snapshotButton.prop( 'disabled', saved );
+			if ( saved ) {
+				snapshotEditLinkEl.attr( 'href', component.data.editLink );
+			}
+		} );
+
+		api.state( 'saved' ).bind( function( saved ) {
+			if ( saved ) {
+				snapshotButton.prop( 'disabled', true );
+			}
+		} );
+		api.bind( 'change', function() {
+			snapshotButton.prop( 'disabled', false );
+		} );
+
+		api.state( 'snapshot-exists' ).bind( function( exists ) {
+			var buttonText, permsMsg;
+			if ( exists ) {
+				buttonText = component.data.i18n.updateButton;
+				permsMsg = component.data.i18n.permsMsg.update;
+				if ( component.data.editLink ) {
+					snapshotEditLinkEl.attr( 'href', component.data.editLink );
+				}
+			} else {
+				buttonText = component.data.i18n.saveButton;
+				permsMsg = component.data.i18n.permsMsg.save;
+			}
+
+			snapshotButton.text( buttonText );
+			if ( ! component.data.currentUserCanPublish ) {
+				snapshotButton.attr( 'title', permsMsg );
+			}
+		} );
 
 		// Preview link.
 		component.previewLink = $( $.trim( wp.template( 'snapshot-preview-link' )() ) );
@@ -211,7 +235,6 @@
 		api.bind( 'saved', setPreviewLinkHref );
 		snapshotButton.after( component.previewLink );
 		api.state( 'snapshot-saved' ).bind( function( saved ) {
-			snapshotButton.prop( 'disabled', saved );
 			component.previewLink.toggle( saved );
 		} );
 
@@ -230,24 +253,6 @@
 		}
 
 		header.addClass( 'button-added' );
-	};
-
-	/**
-	 * Change the snapshot button.
-	 *
-	 * @param {string} buttonText The button text.
-	 * @param {string} permsMsg The permissions message.
-	 * @return {void}
-	 */
-	component.changeButton = function( buttonText, permsMsg ) {
-		var snapshotButton = $( '#customize-header-actions' ).find( '#snapshot-save' );
-
-		if ( snapshotButton.length ) {
-			snapshotButton.text( buttonText );
-			if ( ! component.data.currentUserCanPublish ) {
-				snapshotButton.attr( 'title', permsMsg );
-			}
-		}
 	};
 
 	/**
@@ -276,7 +281,7 @@
 	 */
 	component.sendUpdateSnapshotRequest = function( options ) {
 		var spinner = $( '#customize-header-actions .spinner' ),
-			request, customized, args;
+			request, data, args;
 
 		args = _.extend(
 			{
@@ -285,38 +290,39 @@
 			options
 		);
 
-		spinner.addClass( 'is-active' );
+		data = _.extend(
+			{},
+			api.previewer.query(),
+			{
+				nonce: api.settings.nonce.snapshot,
+				customize_snapshot_uuid: component.data.uuid,
+				status: args.status
+			}
+		);
+		request = wp.ajax.post( 'customize_update_snapshot', data );
 
-		customized = {};
-		api.each( function( value, key ) {
-			if ( value._dirty ) {
-				customized[ key ] = {
-					'value': value()
-				};
+		spinner.addClass( 'is-active' );
+		request.always( function( response ) {
+			spinner.removeClass( 'is-active' );
+			if ( response.edit_link ) {
+				component.data.editLink = response.edit_link;
+			}
+
+			// @todo Remove privateness from _handleSettingValidities in Core.
+			if ( api._handleSettingValidities && response.setting_validities ) {
+				api._handleSettingValidities( {
+					settingValidities: response.setting_validities,
+					focusInvalidControl: true
+				} );
 			}
 		} );
 
-		request = wp.ajax.post( 'customize_update_snapshot', {
-			nonce: component.data.nonce,
-			wp_customize: 'on',
-			snapshot_customized: JSON.stringify( customized ),
-			customize_snapshot_uuid: component.data.uuid,
-			status: args.status,
-			preview: ( api.state( 'snapshot-exists' ).get() ? 'on' : 'off' )
-		} );
-
-		request.done( function( response ) {
+		request.done( function() {
 			var url = api.previewer.previewUrl(),
 				regex = new RegExp( '([?&])customize_snapshot_uuid=.*?(&|$)', 'i' ),
 				separator = url.indexOf( '?' ) !== -1 ? '&' : '?',
 				customizeUrl = window.location.href,
 				customizeSeparator = customizeUrl.indexOf( '?' ) !== -1 ? '&' : '?';
-
-			// Set the UUID.
-			if ( ! component.data.uuid ) {
-				component.data.uuid = response.customize_snapshot_uuid;
-				component.previewLink.attr( 'target', component.data.uuid );
-			}
 
 			if ( url.match( regex ) ) {
 				url = url.replace( regex, '$1customize_snapshot_uuid=' + encodeURIComponent( component.data.uuid ) + '$2' );
@@ -325,10 +331,7 @@
 			}
 
 			// Change the save button text to update.
-			component.changeButton( component.data.i18n.updateButton, component.data.i18n.permsMsg.update );
 			api.state( 'snapshot-exists' ).set( true );
-
-			spinner.removeClass( 'is-active' );
 
 			// Replace the history state with an updated Customizer URL that includes the Snapshot UUID.
 			if ( history.replaceState && ! customizeUrl.match( regex ) ) {
@@ -350,25 +353,49 @@
 			} );
 		} );
 
-		request.fail( function() {
+		request.fail( function( response ) {
 			var id = 'snapshot-dialog-error',
-				snapshotDialogShareError = wp.template( id );
+				snapshotDialogShareError = wp.template( id ),
+				messages = component.data.i18n.errorMsg,
+				invalidityCount = 0,
+				dialogElement;
+
+			if ( response.setting_validities ) {
+				invalidityCount = _.size( response.setting_validities, function( validity ) {
+					return true !== validity;
+				} );
+			}
+
+			/*
+			 * Short-circuit if there are setting validation errors, since the error messages
+			 * will be displayed with the controls themselves. Eventually, once we have
+			 * a global notification area in the Customizer, we can eliminate this
+			 * short-circuit and instead display the messages in there.
+			 * See https://core.trac.wordpress.org/ticket/35210
+			 */
+			if ( invalidityCount > 0 ) {
+				return;
+			}
+
+			if ( response.errors ) {
+				messages += ' ' + _.pluck( response.errors, 'message' ).join( ' ' );
+			}
 
 			// Insert the snapshot dialog error template.
-			if ( 0 === $( '#' + id ).length ) {
-				$( 'body' ).append( snapshotDialogShareError( {
+			dialogElement = $( '#' + id );
+			if ( ! dialogElement.length ) {
+				dialogElement = $( snapshotDialogShareError( {
 					title: component.data.i18n.errorTitle,
-					message: component.data.i18n.errorMsg
+					message: messages
 				} ) );
+				$( 'body' ).append( dialogElement );
 			}
 
 			// Open the dialog.
-			$( '#' + id ).dialog( {
+			dialogElement.dialog( {
 				autoOpen: true,
 				modal: true
 			} );
-
-			spinner.removeClass( 'is-active' );
 		} );
 	};
 

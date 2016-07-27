@@ -1,8 +1,18 @@
 <?php
+/**
+ * Class Test_Customize_Snapshots
+ *
+ * @package CustomizeSnapshots
+ */
 
+/**
+ * Class Test_Customize_Snapshots
+ */
 class Test_Customize_Snapshots extends \WP_UnitTestCase {
 
 	/**
+	 * Test customize_snapshots_php_version_error.
+	 *
 	 * @see customize_snapshots_php_version_error()
 	 */
 	function test_customize_snapshots_php_version_error() {
@@ -13,6 +23,8 @@ class Test_Customize_Snapshots extends \WP_UnitTestCase {
 	}
 
 	/**
+	 * Test customize_snapshots_php_version_text.
+	 *
 	 * @see customize_snapshots_php_version_text()
 	 */
 	function test_customize_snapshots_php_version_text() {
