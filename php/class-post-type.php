@@ -279,7 +279,7 @@ class Post_Type {
 			if ( isset( $actions['edit'] ) ) {
 				$actions['edit'] = sprintf(
 					'<a href="%s" aria-label="%s">%s</a>',
-					get_edit_post_link( $post->ID ),
+					get_edit_post_link( $post->ID, 'display' ),
 					/* translators: %s: post title */
 					esc_attr( sprintf( __( 'View &#8220;%s&#8221;', 'customize-snapshots' ), get_the_title( $post->ID ) ) ),
 					__( 'View', 'customize-snapshots' )

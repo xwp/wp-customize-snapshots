@@ -532,7 +532,7 @@ class Customize_Snapshot_Manager {
 		$exports = apply_filters( 'customize-snapshots-export-data', array(
 			'action' => self::AJAX_ACTION,
 			'uuid' => $this->snapshot ? $this->snapshot->uuid() : self::generate_uuid(),
-			'editLink' => $this->snapshot ? get_edit_post_link( $this->snapshot->post() ) : '',
+			'editLink' => $this->snapshot ? get_edit_post_link( $this->snapshot->post(), 'raw' ) : '',
 			'currentUserCanPublish' => current_user_can( 'customize_publish' ),
 			'i18n' => array(
 				'saveButton' => __( 'Save', 'customize-snapshots' ),
@@ -937,7 +937,7 @@ class Customize_Snapshot_Manager {
 
 		$post = $this->snapshot->post();
 		if ( $post ) {
-			$data['edit_link'] = get_edit_post_link( $post, '' );
+			$data['edit_link'] = get_edit_post_link( $post, 'raw' );
 		}
 
 		if ( is_wp_error( $r ) ) {
@@ -1019,7 +1019,7 @@ class Customize_Snapshot_Manager {
 			'parent' => 'customize',
 			'id' => 'snapshot-view-link',
 			'title' => __( 'Inspect Snapshot', 'customize-snapshots' ),
-			'href' => get_edit_post_link( $post->ID ),
+			'href' => get_edit_post_link( $post->ID, 'raw' ),
 		) );
 	}
 
