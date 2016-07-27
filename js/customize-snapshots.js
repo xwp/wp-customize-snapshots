@@ -179,7 +179,7 @@
 		if ( ! component.data.editLink ) {
 			snapshotEditLinkEl.hide();
 		}
-		api.state.bind( 'change', function( saved ) {
+		api.state.bind( 'change', function() {
 			snapshotEditLinkEl.toggle( api.state( 'snapshot-saved' ).get() && api.state( 'snapshot-exists' ).get() );
 		} );
 
