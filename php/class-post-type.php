@@ -93,13 +93,18 @@ class Post_Type {
 				'create_posts' => 'do_not_allow',
 			),
 			'rewrite' => false,
-			'show_in_customizer' => false,
+			'show_in_customizer' => false, // Prevent inception.
+			'show_in_rest' => true,
+			'rest_base' => 'customize_snapshots',
+			'rest_controller_class' => __NAMESPACE__ . '\\Snapshot_REST_API_Controller',
+			'customize_snapshot_post_type_obj' => $this,
 			'menu_icon' => 'dashicons-camera',
 			'register_meta_box_cb' => array( $this, 'setup_metaboxes' ),
 		);
 
 		register_post_type( static::SLUG, $args );
 
+		add_filter( 'post_type_link', array( $this, 'filter_post_type_link' ), 10, 2 );
 		add_action( 'add_meta_boxes_' . static::SLUG, array( $this, 'remove_publish_metabox' ), 100 );
 		add_action( 'load-revision.php', array( $this, 'suspend_kses_for_snapshot_revision_restore' ) );
 		add_filter( 'get_the_excerpt', array( $this, 'filter_snapshot_excerpt' ), 10, 2 );
@@ -110,6 +115,23 @@ class Post_Type {
 		add_action( 'admin_notices', array( $this, 'show_publish_error_admin_notice' ) );
 		add_action( 'post_submitbox_minor_actions', array( $this, 'hide_disabled_publishing_actions' ) );
 		add_action( 'admin_print_scripts-revision.php', array( $this, 'disable_revision_ui_for_published_posts' ) );
+	}
+
+	/**
+	 * Filter post link.
+	 *
+	 * @param string   $url  URL.
+	 * @param \WP_Post $post Post.
+	 * @return string URL.
+	 */
+	public function filter_post_type_link( $url, $post ) {
+		if ( self::SLUG === $post->post_type ) {
+			$url = add_query_arg(
+				array( 'customize_snapshot_uuid' => $post->post_name ),
+				home_url( '/' )
+			);
+		}
+		return $url;
 	}
 
 	/**
@@ -241,10 +263,13 @@ class Post_Type {
 				$actions
 			);
 
-			$frontend_view_url = add_query_arg( array_map( 'rawurlencode', $args ), home_url() );
 			$actions = array_merge(
 				array(
-					'front-view' => sprintf( '<a href="%s">%s</a>', esc_url( $frontend_view_url ), esc_html__( 'Preview Snapshot', 'customize-snapshots' ) ),
+					'front-view' => sprintf(
+						'<a href="%s">%s</a>',
+						esc_url( get_permalink( $post->ID ) ),
+						esc_html__( 'Preview Snapshot', 'customize-snapshots' )
+					),
 				),
 				$actions
 			);
@@ -314,7 +339,7 @@ class Post_Type {
 				esc_html__( 'Edit in Customizer', 'customize-snapshots' )
 			);
 
-			$frontend_view_url = add_query_arg( array_map( 'rawurlencode', $args ), home_url() );
+			$frontend_view_url = get_permalink( $post->ID );
 			echo sprintf(
 				'<a href="%s" class="button button-secondary">%s</a>',
 				esc_url( $frontend_view_url ),
@@ -518,6 +543,12 @@ class Post_Type {
 
 		if ( ! empty( $args['theme'] ) ) {
 			$post_arr['meta_input']['_snapshot_theme'] = $args['theme'];
+		}
+		if ( ! empty( $args['author'] ) ) {
+			$post_arr['post_author'] = $args['author'];
+		}
+		if ( ! empty( $args['date_gmt'] ) ) {
+			$post_arr['post_date_gmt'] = $args['date_gmt'];
 		}
 
 		$this->suspend_kses();
