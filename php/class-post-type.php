@@ -619,7 +619,7 @@ class Post_Type {
 			return;
 		}
 		$current_screen = get_current_screen();
-		if ( 'customize_snapshot' !== $current_screen->id || 'post' !== $current_screen->base ) {
+		if ( ! $current_screen || 'customize_snapshot' !== $current_screen->id || 'post' !== $current_screen->base ) {
 			return;
 		}
 		if ( ! isset( $_REQUEST['message'] ) || 8 !== intval( $_REQUEST['message'] ) ) {

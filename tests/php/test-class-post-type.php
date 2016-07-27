@@ -652,7 +652,39 @@ class Test_Post_type extends \WP_UnitTestCase {
 	 * @covers Post_Type::show_publish_error_admin_notice()
 	 */
 	public function test_show_publish_error_admin_notice() {
-		$this->markTestIncomplete();
+		global $current_screen, $post;
+		$post_type = new Post_Type( $this->plugin->customize_snapshot_manager );
+		$post_id = $post_type->save( array(
+			'uuid' => self::UUID,
+			'data' => array(),
+		) );
+
+		ob_start();
+		$post_type->show_publish_error_admin_notice();
+		$this->assertEmpty( ob_get_clean() );
+
+		$current_screen = \WP_Screen::get( 'customize_snapshot' ); // WPCS: Override ok.
+		$current_screen->id = 'customize_snapshot';
+		$current_screen->base = 'edit';
+		ob_start();
+		$post_type->show_publish_error_admin_notice();
+		$this->assertEmpty( ob_get_clean() );
+
+		$current_screen->base = 'post';
+		ob_start();
+		$post_type->show_publish_error_admin_notice();
+		$this->assertEmpty( ob_get_clean() );
+
+		$_REQUEST['message'] = 8;
+		ob_start();
+		$post_type->show_publish_error_admin_notice();
+		$this->assertEmpty( ob_get_clean() );
+
+		wp_update_post( array( 'ID' => $post_id, 'post_status' => 'pending' ) );
+		$post = get_post( $post_id ); // WPCS: override ok.
+		ob_start();
+		$post_type->show_publish_error_admin_notice();
+		$this->assertContains( 'notice-error', ob_get_clean() );
 	}
 
 	/**
