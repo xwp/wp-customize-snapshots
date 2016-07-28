@@ -159,8 +159,9 @@
 	component.addButtons = function() {
 		var header = $( '#customize-header-actions' ),
 			publishButton = header.find( '#save' ),
-			snapshotEditLinkTemplate = wp.template( 'snapshot-edit-link' ),
-			snapshotButton, submitButton, data, setPreviewLinkHref, snapshotEditLinkEl;
+			snapshotDropDownToggleTemplate = wp.template( 'snapshot-toggle-button' ),
+			snapshotScheduleBoxTemplate = wp.template( 'snapshot-schedule-accordion' ),
+			snapshotScheduleBox, snapshotButton, submitButton, data, setPreviewLinkHref, snapshotDropDownToggle, snapshotEditLink;
 
 		// Save/update button.
 		snapshotButton = wp.template( 'snapshot-save' );
@@ -174,19 +175,34 @@
 		snapshotButton.prop( 'disabled', true );
 		snapshotButton.insertAfter( publishButton );
 
-		snapshotEditLinkEl = $( $.trim( snapshotEditLinkTemplate( component.data ) ) );
-		snapshotEditLinkEl.insertAfter( snapshotButton );
+		snapshotDropDownToggle = $( $.trim( snapshotDropDownToggleTemplate( {} ) ) );
+		snapshotEditLink = snapshotDropDownToggle.find( 'a' );
+
+		snapshotDropDownToggle.click( function( e ) {
+			var customizeInfo = $( '#customize-info' );
+			if ( ! snapshotScheduleBox ) {
+				snapshotScheduleBox = $( $.trim( snapshotScheduleBoxTemplate( component.data ) ) );
+				snapshotScheduleBox.insertBefore( customizeInfo );
+			} else {
+
+				// Todo need to update in case of dynamic section.
+				snapshotScheduleBox.slideToggle();
+			}
+			e.preventDefault();
+		} );
+
+		snapshotDropDownToggle.insertAfter( snapshotButton );
 		if ( ! component.data.editLink ) {
-			snapshotEditLinkEl.hide();
+			snapshotDropDownToggle.hide();
 		}
 		api.state.bind( 'change', function() {
-			snapshotEditLinkEl.toggle( api.state( 'snapshot-saved' ).get() && api.state( 'snapshot-exists' ).get() );
+			snapshotDropDownToggle.toggle( api.state( 'snapshot-saved' ).get() && api.state( 'snapshot-exists' ).get() );
 		} );
 
 		api.state( 'snapshot-saved' ).bind( function( saved ) {
 			snapshotButton.prop( 'disabled', saved );
 			if ( saved ) {
-				snapshotEditLinkEl.attr( 'href', component.data.editLink );
+				snapshotEditLink.attr( 'href', component.data.editLink );
 			}
 		} );
 
@@ -205,7 +221,7 @@
 				buttonText = component.data.i18n.updateButton;
 				permsMsg = component.data.i18n.permsMsg.update;
 				if ( component.data.editLink ) {
-					snapshotEditLinkEl.attr( 'href', component.data.editLink );
+					snapshotEditLink.attr( 'href', component.data.editLink );
 				}
 			} else {
 				buttonText = component.data.i18n.saveButton;

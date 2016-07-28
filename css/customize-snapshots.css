@@ -1,10 +1,10 @@
-#snapshot-preview-link, #snapshot-edit-link {
+#snapshot-preview-link, #snapshot-toggle-button {
 	float: right;
 	margin-top: 13px;
 	margin-right: 4px;
 	color: #656a6f;
 }
-#snapshot-edit-link{
+#snapshot-toggle-button{
 	display: block;
 }
 
@@ -53,4 +53,70 @@
 		margin-top: 6px;
 		margin-right: 6px;
 	}
+}
+
+#customize-snapshot-control select,
+#customize-snapshot-control input[type="text"] {
+	min-width: 10%;
+	width: auto;
+}
+
+#customize-snapshot-control{
+	padding: 5px;
+}
+
+#customize-snapshot-control input[type="text"].error {
+	border-color: #dc3232 !important;
+	-webkit-box-shadow: 0 0 2px rgba( 204, 0, 0, 0.8 );
+	box-shadow: 0 0 2px rgba( 204, 0, 0, 0.8 );
+}
+
+#customize-schedule-box{
+	background: #fff !important;
+	margin-bottom: 10px;
+	padding-bottom: 10px;
+}
+
+#customize-schedule-box .accordion-section-title{
+	background: #fff;
+	color: #555;
+	border-left: none;
+	border-right: none;
+	border-bottom: none;
+	cursor: default;
+}
+
+#customize-schedule-box .accordion-section-title:after{
+	z-index: -1;
+}
+#customize-schedule-box a{
+	position: absolute;
+	top: 4px;
+	right: 1px;
+	width: 20px;
+	height: 20px;
+	cursor: pointer;
+	-webkit-box-shadow: none;
+	box-shadow: none;
+	-webkit-appearance: none;
+	background: transparent;
+	color: #555;
+	border: none;
+	padding: 10px;
+}
+
+#customize-schedule-box span{
+	font-size: 13px;
+	line-height: 24px;
+}
+#customize-schedule-box .customize-snapshot-control{
+	padding: 5px;
+}
+#customize-schedule-box .accordion-section-title{
+	padding: 10px;
+}
+.in-sub-panel #customize-schedule-box {
+	left: -100%;
+	width: 100%;
+	position: relative;
 }

@@ -1058,6 +1058,7 @@ class Customize_Snapshot_Manager {
 	 * Underscore (JS) templates for dialog windows.
 	 */
 	public function render_templates() {
+		$data = $this->data_json();
 		?>
 		<script type="text/html" id="tmpl-snapshot-preview-link">
 			<a href="#" target="frontend-preview" id="snapshot-preview-link" class="dashicons dashicons-welcome-view-site" title="<?php esc_attr_e( 'View on frontend', 'customize-snapshots' ) ?>">
@@ -1065,8 +1066,74 @@ class Customize_Snapshot_Manager {
 			</a>
 		</script>
 
-		<script type="text/html" id="tmpl-snapshot-edit-link">
-			<a href="{{ data.editLink }}" id="snapshot-edit-link" class="dashicons dashicons-calendar-alt" title="<?php esc_attr_e( 'Edit Snapshot','customize-snapshots' ); ?>"></a>
+		<script type="text/html" id="tmpl-snapshot-toggle-button">
+			<a href="#" id="snapshot-toggle-button" class="dashicons dashicons-calendar-alt" title="<?php esc_attr_e( 'Schedule Snapshot','customize-snapshots' ); ?>"></a>
+		</script>
+
+		<script type="text/html" id="tmpl-snapshot-schedule-accordion">
+			<div id="customize-schedule-box" class="accordion-section">
+				<div class="accordion-section-title">
+					<span class="preview-notice"><strong class="panel-title site-title"><?php esc_html_e( 'Schedule Snapshot', 'customize-snapshots' ); ?></strong></span>
+					<a href={{ data.editLink }} class="dashicons dashicons-edit" aria-expanded="false"></a>
+				</div>
+				<div class="customize-snapshot-control">
+					<#
+						_.defaults( data, <?php echo wp_json_encode( $data ) ?> );
+						data.input_id_post_date = 'input-' + String( Math.random() );
+						data.input_id_post_date_gmt = 'input-' + String( Math.random() );
+						#>
+						<# _.each( data.date_inputs, function( width, type ) { #>
+							<# if ( 'month' === type  ) { #>
+								<select class="date-input {{ type }}">
+									<# _.each( data.month_choices, function( choice ) { #>
+										<# if ( _.isObject( choice ) && ! _.isUndefined( choice.text ) && ! _.isUndefined( choice.value ) ) {
+												text = choice.text;
+												value = choice.value;
+											} #>
+										<option value="{{ value }}">{{ text }}</option>
+									<# } ); #>
+								</select>
+							<# } else { #>
+								<input
+									type="text"
+									size="{{ width }}"
+									maxlength="{{ width }}"
+									autocomplete="off"
+									class="date-input {{ type }}"
+								/>
+									<# if ( 'year' === type ) { #>
+										&nbsp;@&nbsp;
+									<# } #>
+							<# } #>
+						<# }); #>
+						<input
+							id=""
+							type="hidden"
+							class="post-date"
+							<# if ( data.setting_property ) { #>
+								data-customize-setting-property-link="post_date"
+							<# } #>
+							/>
+						<input
+							id=""
+							type="hidden"
+							class="post-date-gmt"
+							value=""
+							<# if ( data.setting_property ) { #>
+								data-customize-setting-property-link="post_date_gmt"
+							<# } #>
+							/>
+						<input
+							id=""
+							type="hidden"
+							class="post-status"
+							value=""
+							<# if ( data.setting_property ) { #>
+								data-customize-setting-property-link="post_status"
+							<# } #>
+							/>
+				</div>
+			</div>
 		</script>
 
 		<script type="text/html" id="tmpl-snapshot-save">
@@ -1087,5 +1154,46 @@ class Customize_Snapshot_Manager {
 			</div>
 		</script>
 		<?php
+	}
+
+	/**
+	 * Get the data to export to the client via JSON.
+	 *
+	 * @return array Array of parameters passed to the JavaScript.
+	 */
+	public function data_json() {
+		$exported['month_choices'] = $this->get_month_choices();
+		// Type / width pairs.
+		$exported['date_inputs'] = array(
+			'month' => null,
+			'day' => 2,
+			'year' => 4,
+			'hour' => 2,
+			'min' => 2,
+		);
+		return $exported;
+	}
+
+	/**
+	 * Generate options for the month Select.
+	 *
+	 * Based on touch_time().
+	 *
+	 * @see touch_time()
+	 *
+	 * @return array
+	 */
+	public function get_month_choices() {
+		global $wp_locale;
+		$months = array();
+		for ( $i = 1; $i < 13; $i = $i + 1 ) {
+			$month_number = zeroise( $i, 2 );
+			$month_text = $wp_locale->get_month_abbrev( $wp_locale->get_month( $i ) );
+
+			/* translators: 1: month number (01, 02, etc.), 2: month abbreviation */
+			$months[ $i ]['text'] = sprintf( __( '%1$s-%2$s', 'customize-snapshots' ), $month_number, $month_text );
+			$months[ $i ]['value'] = $month_number;
+		}
+		return $months;
 	}
 }
