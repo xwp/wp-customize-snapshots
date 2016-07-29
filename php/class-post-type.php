@@ -638,7 +638,7 @@ class Post_Type {
 	 * Disable the revision revert UI for published posts.
 	 */
 	public function disable_revision_ui_for_published_posts() {
-		if ( 'publish' !== get_post_status() ) {
+		if ( 'publish' !== get_post_status() || self::SLUG !== get_post_type() ) {
 			return;
 		}
 		?>
@@ -656,7 +656,7 @@ class Post_Type {
 	 * @param \WP_Post $post Current post.
 	 */
 	public function hide_disabled_publishing_actions( $post ) {
-		if ( 'publish' !== $post->post_status ) {
+		if ( 'publish' !== $post->post_status || self::SLUG !== $post->post_type ) {
 			return;
 		}
 		?>
