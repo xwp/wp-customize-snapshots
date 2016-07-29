@@ -533,6 +533,7 @@ class Customize_Snapshot_Manager {
 			'action' => self::AJAX_ACTION,
 			'uuid' => $this->snapshot ? $this->snapshot->uuid() : self::generate_uuid(),
 			'editLink' => $this->snapshot ? get_edit_post_link( $this->snapshot->post(), 'raw' ) : '',
+			'snapshotPublishDate' => $this->snapshot ? $this->snapshot->post()->post_date_gmt : '',
 			'currentUserCanPublish' => current_user_can( 'customize_publish' ),
 			'i18n' => array(
 				'saveButton' => __( 'Save', 'customize-snapshots' ),
@@ -938,6 +939,7 @@ class Customize_Snapshot_Manager {
 		$post = $this->snapshot->post();
 		if ( $post ) {
 			$data['edit_link'] = get_edit_post_link( $post, 'raw' );
+			$data['snapshotPublishDate'] = $post->post_date_gmt;
 		}
 
 		if ( is_wp_error( $r ) ) {
@@ -1058,7 +1060,7 @@ class Customize_Snapshot_Manager {
 	 * Underscore (JS) templates for dialog windows.
 	 */
 	public function render_templates() {
-		$data = $this->data_json();
+		$data = $this->get_month_choices();
 		?>
 		<script type="text/html" id="tmpl-snapshot-preview-link">
 			<a href="#" target="frontend-preview" id="snapshot-preview-link" class="dashicons dashicons-welcome-view-site" title="<?php esc_attr_e( 'View on frontend', 'customize-snapshots' ) ?>">
@@ -1074,64 +1076,33 @@ class Customize_Snapshot_Manager {
 			<div id="customize-schedule-box" class="accordion-section">
 				<div class="accordion-section-title">
 					<span class="preview-notice"><strong class="panel-title site-title"><?php esc_html_e( 'Schedule Snapshot', 'customize-snapshots' ); ?></strong></span>
+					<# if ( data.description ) { #>
+						<span class="description customize-control-description">
+							{{ data.description }}
+						</span>
+					<# } #>
 					<a href={{ data.editLink }} class="dashicons dashicons-edit" aria-expanded="false"></a>
 				</div>
 				<div class="customize-snapshot-control">
-					<#
-						_.defaults( data, <?php echo wp_json_encode( $data ) ?> );
+					<# _.defaults( data, <?php echo wp_json_encode( $data ) ?> );
 						data.input_id_post_date = 'input-' + String( Math.random() );
 						data.input_id_post_date_gmt = 'input-' + String( Math.random() );
 						#>
-						<# _.each( data.date_inputs, function( width, type ) { #>
-							<# if ( 'month' === type  ) { #>
-								<select class="date-input {{ type }}">
-									<# _.each( data.month_choices, function( choice ) { #>
-										<# if ( _.isObject( choice ) && ! _.isUndefined( choice.text ) && ! _.isUndefined( choice.value ) ) {
-												text = choice.text;
-												value = choice.value;
-											} #>
-										<option value="{{ value }}">{{ text }}</option>
-									<# } ); #>
-								</select>
-							<# } else { #>
-								<input
-									type="text"
-									size="{{ width }}"
-									maxlength="{{ width }}"
-									autocomplete="off"
-									class="date-input {{ type }}"
-								/>
-									<# if ( 'year' === type ) { #>
-										&nbsp;@&nbsp;
-									<# } #>
-							<# } #>
-						<# }); #>
-						<input
-							id=""
-							type="hidden"
-							class="post-date"
-							<# if ( data.setting_property ) { #>
-								data-customize-setting-property-link="post_date"
-							<# } #>
-							/>
-						<input
-							id=""
-							type="hidden"
-							class="post-date-gmt"
-							value=""
-							<# if ( data.setting_property ) { #>
-								data-customize-setting-property-link="post_date_gmt"
-							<# } #>
-							/>
-						<input
-							id=""
-							type="hidden"
-							class="post-status"
-							value=""
-							<# if ( data.setting_property ) { #>
-								data-customize-setting-property-link="post_status"
-							<# } #>
-							/>
+						<select id="{{ data.input_id }}" class="date-input month" data-component="month">
+							<# _.each( data.month_choices, function( choice ) { #>
+								<# if ( _.isObject( choice ) && ! _.isUndefined( choice.text ) && ! _.isUndefined( choice.value ) ) {
+									text = choice.text;
+									value = choice.value;
+									}
+									#>
+								<option value="{{ value }}">{{ text }}</option>
+							<# } ); #>
+						</select>
+
+						<input type="number" size="2" maxlength="2" autocomplete="off" class="date-input day" data-component="day" min="1" max="31" />,
+						<input type="number" size="4" maxlength="4" autocomplete="off" class="date-input year" data-component="year" min="<?php echo esc_attr( date( 'Y' ) ); ?>" max="9999" />
+						@ <input type="number" size="2" maxlength="2" autocomplete="off" class="date-input hour" data-component="hour" min="0" max="23" />:<?php
+						?><input type="number" size="2" maxlength="2" autocomplete="off" class="date-input minute" data-component="minute" min="0" max="59" />
 				</div>
 			</div>
 		</script>
@@ -1157,24 +1128,6 @@ class Customize_Snapshot_Manager {
 	}
 
 	/**
-	 * Get the data to export to the client via JSON.
-	 *
-	 * @return array Array of parameters passed to the JavaScript.
-	 */
-	public function data_json() {
-		$exported['month_choices'] = $this->get_month_choices();
-		// Type / width pairs.
-		$exported['date_inputs'] = array(
-			'month' => null,
-			'day' => 2,
-			'year' => 4,
-			'hour' => 2,
-			'min' => 2,
-		);
-		return $exported;
-	}
-
-	/**
 	 * Generate options for the month Select.
 	 *
 	 * Based on touch_time().
@@ -1194,6 +1147,6 @@ class Customize_Snapshot_Manager {
 			$months[ $i ]['text'] = sprintf( __( '%1$s-%2$s', 'customize-snapshots' ), $month_number, $month_text );
 			$months[ $i ]['value'] = $month_number;
 		}
-		return $months;
+		return array( 'month_choices' => $months );
 	}
 }

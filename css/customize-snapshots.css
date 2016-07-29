@@ -55,20 +55,22 @@
 	}
 }
 
-#customize-snapshot-control select,
-#customize-snapshot-control input[type="text"] {
+.customize-snapshot-control select,
+.customize-snapshot-control input.date-input {
 	min-width: 10%;
 	width: auto;
+}
+.customize-snapshot-control input.date-input {
+	-moz-appearance: textfield;
+}
+.customize-snapshot-control input.date-input::-webkit-outer-spin-button,
+.customize-snapshot-control input.date-input::-webkit-inner-spin-button {
+	-webkit-appearance: none;
+	margin: 0;
 }
 
 #customize-snapshot-control{
 	padding: 5px;
-}
-
-#customize-snapshot-control input[type="text"].error {
-	border-color: #dc3232 !important;
-	-webkit-box-shadow: 0 0 2px rgba( 204, 0, 0, 0.8 );
-	box-shadow: 0 0 2px rgba( 204, 0, 0, 0.8 );
 }
 
 #customize-schedule-box{
