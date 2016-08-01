@@ -40,6 +40,7 @@
 
 			component.extendPreviewerQuery();
 			component.addButtons();
+			component.addSlideDown();
 
 			$( '#snapshot-save' ).on( 'click', function( event ) {
 				event.preventDefault();
@@ -151,6 +152,32 @@
 		return a.href;
 	};
 
+	component.dateComponentInputs = {};
+
+	component.addSlideDown = function slideDown() {
+		var snapshotScheduleBoxTemplate = wp.template( 'snapshot-schedule-accordion' ),
+			snapshotScheduleBox;
+		component.snapshotSlideDownToggle.click( function( e ) {
+			var customizeInfo = $( '#customize-info' );
+			if ( ! snapshotScheduleBox ) {
+				component.data = _.extend( component.data, component.parseDateTime( component.data.snapshotPublishDate ) );
+				snapshotScheduleBox = $( $.trim( snapshotScheduleBoxTemplate( component.data ) ) );
+				component.dateInputs = snapshotScheduleBox.find( '.date-input' );
+				component.dateInputs.each( function() {
+						var input = $( this ), componentName;
+						componentName = input.data( 'component' );
+						component.dateComponentInputs[ componentName ] = input;
+				} );
+				snapshotScheduleBox.insertBefore( customizeInfo );
+			} else {
+
+				// Todo need to update in case of dynamic section.
+				snapshotScheduleBox.slideToggle();
+			}
+			e.preventDefault();
+		} );
+	};
+
 	/**
 	 * Create the snapshot buttons.
 	 *
@@ -159,9 +186,8 @@
 	component.addButtons = function() {
 		var header = $( '#customize-header-actions' ),
 			publishButton = header.find( '#save' ),
-			snapshotDropDownToggleTemplate = wp.template( 'snapshot-toggle-button' ),
-			snapshotScheduleBoxTemplate = wp.template( 'snapshot-schedule-accordion' ),
-			snapshotScheduleBox, snapshotButton, submitButton, data, setPreviewLinkHref, snapshotDropDownToggle, snapshotEditLink;
+			snapshotSlideDownToggleTemplate = wp.template( 'snapshot-toggle-button' ),
+			snapshotButton, submitButton, data, setPreviewLinkHref, snapshotSlideDownToggle, snapshotEditLink;
 
 		// Save/update button.
 		snapshotButton = wp.template( 'snapshot-save' );
@@ -175,28 +201,15 @@
 		snapshotButton.prop( 'disabled', true );
 		snapshotButton.insertAfter( publishButton );
 
-		snapshotDropDownToggle = $( $.trim( snapshotDropDownToggleTemplate( {} ) ) );
-		snapshotEditLink = snapshotDropDownToggle.find( 'a' );
-
-		snapshotDropDownToggle.click( function( e ) {
-			var customizeInfo = $( '#customize-info' );
-			if ( ! snapshotScheduleBox ) {
-				snapshotScheduleBox = $( $.trim( snapshotScheduleBoxTemplate( component.data ) ) );
-				snapshotScheduleBox.insertBefore( customizeInfo );
-			} else {
-
-				// Todo need to update in case of dynamic section.
-				snapshotScheduleBox.slideToggle();
-			}
-			e.preventDefault();
-		} );
-
-		snapshotDropDownToggle.insertAfter( snapshotButton );
+		snapshotSlideDownToggle = $( $.trim( snapshotSlideDownToggleTemplate( {} ) ) );
+		snapshotSlideDownToggle.insertAfter( snapshotButton );
+		snapshotEditLink = snapshotSlideDownToggle.find( 'a' );
+		component.snapshotSlideDownToggle = snapshotSlideDownToggle;
 		if ( ! component.data.editLink ) {
-			snapshotDropDownToggle.hide();
+			snapshotSlideDownToggle.hide();
 		}
 		api.state.bind( 'change', function() {
-			snapshotDropDownToggle.toggle( api.state( 'snapshot-saved' ).get() && api.state( 'snapshot-exists' ).get() );
+			snapshotSlideDownToggle.toggle( api.state( 'snapshot-saved' ).get() && api.state( 'snapshot-exists' ).get() );
 		} );
 
 		api.state( 'snapshot-saved' ).bind( function( saved ) {
@@ -413,6 +426,68 @@
 				modal: true
 			} );
 		} );
+	};
+
+	/**
+	 * Get date from inputs.
+	 *
+	 * @returns {Date|null} Date created from inputs or null if invalid date.
+	 */
+	component.getDateFromInputs = function getDateFromInputs() {
+		var control = component, date;
+		date = new Date(
+			parseInt( control.dateComponentInputs.year.val(), 10 ),
+			parseInt( control.dateComponentInputs.month.val(), 10 ) - 1,
+			parseInt( control.dateComponentInputs.day.val(), 10 ),
+			parseInt( control.dateComponentInputs.hour.val(), 10 ),
+			parseInt( control.dateComponentInputs.minute.val(), 10 )
+		);
+		if ( isNaN( date.valueOf() ) ) {
+			return null;
+		}
+		return date;
+	};
+
+	/**
+	 * Parse datetime string.
+	 *
+	 * @param {string} datetime Date/Time string.
+	 * @returns {object|null} Returns object containing date components or null if parse error.
+	 */
+	component.parseDateTime = function parseDateTime( datetime ) {
+		var matches = datetime.match( /^(\d\d\d\d)-(\d\d)-(\d\d) (\d\d):(\d\d):(\d\d)$/ );
+		if ( ! matches ) {
+			return null;
+		}
+		matches.shift();
+		return {
+			year: matches.shift(),
+			month: matches.shift(),
+			day: matches.shift(),
+			hour: matches.shift(),
+			minute: matches.shift(),
+			second: matches.shift()
+		};
+	};
+
+	/**
+	 * Format a Date Object. Returns 'Y-m-d H:i:s' format.
+	 *
+	 * @param {Date} date A Date object.
+	 * @returns {string} A formatted date String.
+	 */
+	component.formatDate = function formatDate( date ) {
+		var formattedDate, yearLength = 4, nonYearLength = 2;
+
+		// Props: http://stackoverflow.com/questions/10073699/pad-a-number-with-leading-zeros-in-javascript#comment33639551_10073699
+		formattedDate = ( '0000' + date.getFullYear() ).substr( -yearLength, yearLength );
+		formattedDate += '-' + ( '00' + ( date.getMonth() + 1 ) ).substr( -nonYearLength, nonYearLength );
+		formattedDate += '-' + ( '00' + date.getDate() ).substr( -nonYearLength, nonYearLength );
+		formattedDate += ' ' + ( '00' + date.getHours() ).substr( -nonYearLength, nonYearLength );
+		formattedDate += ':' + ( '00' + date.getMinutes() ).substr( -nonYearLength, nonYearLength );
+		formattedDate += ':' + ( '00' + date.getSeconds() ).substr( -nonYearLength, nonYearLength );
+
+		return formattedDate;
 	};
 
 	component.init();

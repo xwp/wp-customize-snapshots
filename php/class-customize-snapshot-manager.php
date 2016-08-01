@@ -527,13 +527,17 @@ class Customize_Snapshot_Manager {
 
 		wp_enqueue_style( $this->plugin->slug );
 		wp_enqueue_script( $this->plugin->slug );
+		if ( $this->snapshot ) {
+			$post = $this->snapshot->post();
+			$this->override_post_date_default_data( $post );
+		}
 
 		// Script data array.
 		$exports = apply_filters( 'customize_snapshots_export_data', array(
 			'action' => self::AJAX_ACTION,
 			'uuid' => $this->snapshot ? $this->snapshot->uuid() : self::generate_uuid(),
-			'editLink' => $this->snapshot ? get_edit_post_link( $this->snapshot->post(), 'raw' ) : '',
-			'snapshotPublishDate' => $this->snapshot ? $this->snapshot->post()->post_date_gmt : '',
+			'editLink' => $this->snapshot ? get_edit_post_link( $post, 'raw' ) : '',
+			'snapshotPublishDate' => $this->snapshot ? $post->post_date_gmt : '',
 			'currentUserCanPublish' => current_user_can( 'customize_publish' ),
 			'i18n' => array(
 				'saveButton' => __( 'Save', 'customize-snapshots' ),
@@ -1076,11 +1080,25 @@ class Customize_Snapshot_Manager {
 			<div id="customize-schedule-box" class="accordion-section">
 				<div class="accordion-section-title">
 					<span class="preview-notice"><strong class="panel-title site-title"><?php esc_html_e( 'Schedule Snapshot', 'customize-snapshots' ); ?></strong></span>
-					<# if ( data.description ) { #>
-						<span class="description customize-control-description">
-							{{ data.description }}
-						</span>
-					<# } #>
+					<span class="description customize-control-description">
+						<?php
+						$tz_string = get_option( 'timezone_string' );
+						if ( $tz_string ) {
+							$tz = new \DateTimezone( $tz_string );
+							$formatted_gmt_offset = $this->format_gmt_offset( $tz->getOffset( new \DateTime() ) / 3600 );
+							$tz_name = str_replace( '_', ' ', $tz->getName() );
+
+							/* translators: 1: timezone name, 2: gmt offset  */
+							$date_control_description = sprintf( __( 'This site\'s dates are in the %1$s timezone (currently UTC%2$s).', 'customize-snapshots' ), $tz_name, $formatted_gmt_offset );
+						} else {
+							$formatted_gmt_offset = $this->format_gmt_offset( get_option( 'gmt_offset' ) );
+
+							/* translators: %s: gmt offset  */
+							$date_control_description = sprintf( __( 'Dates are in UTC%s.', 'customize-snapshots' ), $formatted_gmt_offset );
+						}
+						?>
+						<span class="timezone-info"><?php echo esc_html( $date_control_description ); ?></span>
+					</span>
 					<a href={{ data.editLink }} class="dashicons dashicons-edit" aria-expanded="false"></a>
 				</div>
 				<div class="customize-snapshot-control">
@@ -1095,14 +1113,15 @@ class Customize_Snapshot_Manager {
 									value = choice.value;
 									}
 									#>
-								<option value="{{ value }}">{{ text }}</option>
+								<option value="{{ value }}" <# if (choice.value == data.month) { #>
+										selected="selected"
+										<# } #>>{{ text }}</option>
 							<# } ); #>
 						</select>
-
-						<input type="number" size="2" maxlength="2" autocomplete="off" class="date-input day" data-component="day" min="1" max="31" />,
-						<input type="number" size="4" maxlength="4" autocomplete="off" class="date-input year" data-component="year" min="<?php echo esc_attr( date( 'Y' ) ); ?>" max="9999" />
-						@ <input type="number" size="2" maxlength="2" autocomplete="off" class="date-input hour" data-component="hour" min="0" max="23" />:<?php
-						?><input type="number" size="2" maxlength="2" autocomplete="off" class="date-input minute" data-component="minute" min="0" max="59" />
+						<input type="number" size="2" maxlength="2" autocomplete="off" class="date-input day" data-component="day" min="1" max="31" value="{{ data.day }}" />,
+						<input type="number" size="4" maxlength="4" autocomplete="off" class="date-input year" data-component="year" min="<?php echo esc_attr( date( 'Y' ) ); ?>" value="{{ data.year }}" max="9999" />
+						@ <input type="number" size="2" maxlength="2" autocomplete="off" class="date-input hour" data-component="hour" min="0" max="23" value="{{ data.hour }}" />:<?php
+						?><input type="number" size="2" maxlength="2" autocomplete="off" class="date-input minute" data-component="minute" min="0" max="59" value="{{ data.minute }}" />
 				</div>
 			</div>
 		</script>
@@ -1127,6 +1146,28 @@ class Customize_Snapshot_Manager {
 		<?php
 	}
 
+
+	/**
+	 * Format GMT Offset.
+	 *
+	 * @see wp_timezone_choice()
+	 * @param float $offset Offset in hours.
+	 * @return string Formatted offset.
+	 */
+	public function format_gmt_offset( $offset ) {
+		if ( 0 <= $offset ) {
+			$formatted_offset = '+' . (string) $offset;
+		} else {
+			$formatted_offset = (string) $offset;
+		}
+		$formatted_offset = str_replace(
+			array( '.25', '.5', '.75' ),
+			array( ':15', ':30', ':45' ),
+			$formatted_offset
+		);
+		return $formatted_offset;
+	}
+
 	/**
 	 * Generate options for the month Select.
 	 *
@@ -1148,5 +1189,31 @@ class Customize_Snapshot_Manager {
 			$months[ $i ]['value'] = $month_number;
 		}
 		return array( 'month_choices' => $months );
+	}
+
+	/**
+	 * Override default date values to a post.
+	 *
+	 * @param \WP_Post $post Post.
+	 * @return \WP_Post Object if the post data did not apply.
+	 */
+	public function override_post_date_default_data( \WP_Post &$post ) {
+		if ( ! is_array( $post ) ) {
+			// Make sure that empty dates are not used in case of setting invalidity.
+			$empty_date = '0000-00-00 00:00:00';
+			if ( $empty_date === $post->post_date ) {
+				$post->post_date = current_time( 'mysql', false );
+			}
+			if ( $empty_date === $post->post_date_gmt ) {
+				$post->post_date_gmt = current_time( 'mysql', true );
+			}
+			if ( $empty_date === $post->post_modified ) {
+				$post->post_modified = current_time( 'mysql', false );
+			}
+			if ( $empty_date === $post->post_modified_gmt ) {
+				$post->post_modified_gmt = current_time( 'mysql', true );
+			}
+		}
+		return $post;
 	}
 }
