@@ -943,7 +943,7 @@ class Customize_Snapshot_Manager {
 		$post = $this->snapshot->post();
 		if ( $post ) {
 			$data['edit_link'] = get_edit_post_link( $post, 'raw' );
-			$data['snapshotPublishDate'] = $post->post_date_gmt;
+			$data['snapshot_publish_date'] = $post->post_date_gmt;
 		}
 
 		if ( is_wp_error( $r ) ) {

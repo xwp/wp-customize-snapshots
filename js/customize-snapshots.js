@@ -154,27 +154,64 @@
 
 	component.dateComponentInputs = {};
 
+	component.snapshotScheduleBox = {};
+
 	component.addSlideDown = function slideDown() {
 		var snapshotScheduleBoxTemplate = wp.template( 'snapshot-schedule-accordion' ),
-			snapshotScheduleBox;
+			snapshotScheduleBox = component.snapshotScheduleBox;
 		component.snapshotSlideDownToggle.click( function( e ) {
 			var customizeInfo = $( '#customize-info' );
-			if ( ! snapshotScheduleBox ) {
+			if ( _.isEmpty( snapshotScheduleBox ) ) {
 				component.data = _.extend( component.data, component.parseDateTime( component.data.snapshotPublishDate ) );
 				snapshotScheduleBox = $( $.trim( snapshotScheduleBoxTemplate( component.data ) ) );
 				component.dateInputs = snapshotScheduleBox.find( '.date-input' );
 				component.dateInputs.each( function() {
-						var input = $( this ), componentName;
-						componentName = input.data( 'component' );
-						component.dateComponentInputs[ componentName ] = input;
+					var input = $( this ), componentName;
+					componentName = input.data( 'component' );
+					component.dateComponentInputs[componentName] = input;
 				} );
 				snapshotScheduleBox.insertBefore( customizeInfo );
+				component.snapshotScheduleBox = snapshotScheduleBox;
+				component.snapshotEditLink = snapshotScheduleBox.find( 'a' );
 			} else {
 
 				// Todo need to update in case of dynamic section.
 				snapshotScheduleBox.slideToggle();
 			}
 			e.preventDefault();
+		} );
+
+		api.state( 'snapshot-saved' ).bind( function( saved ) {
+			if ( saved ) {
+				component.updateSnapshotScheduleBox();
+			}
+		} );
+
+		api.state( 'saved' ).bind( function( saved ) {
+			if ( saved && ! _.isEmpty( component.snapshotScheduleBox ) ) {
+				component.snapshotScheduleBox.hide();
+			}
+		} );
+
+		api.state( 'snapshot-exists' ).bind( function( exists ) {
+			if ( exists && ! _.isEmpty( component.snapshotScheduleBox ) ) {
+				component.updateSnapshotScheduleBox();
+			}
+		} );
+
+	};
+
+	component.updateSnapshotScheduleBox = function updateSnapshotScheduleBox() {
+		var parsed;
+		if ( _.isEmpty( component.snapshotScheduleBox ) ) {
+			return;
+		}
+
+		// Update date controls.
+		component.snapshotEditLink.attr( 'href', component.data.editLink );
+		parsed = component.parseDateTime( component.data.snapshotPublishDate );
+		_.each( component.snapshotScheduleBox, function populateInput( node, component ) {
+			$( node ).val( parsed[component] );
 		} );
 	};
 
@@ -203,7 +240,6 @@
 
 		snapshotSlideDownToggle = $( $.trim( snapshotSlideDownToggleTemplate( {} ) ) );
 		snapshotSlideDownToggle.insertAfter( snapshotButton );
-		snapshotEditLink = snapshotSlideDownToggle.find( 'a' );
 		component.snapshotSlideDownToggle = snapshotSlideDownToggle;
 		if ( ! component.data.editLink ) {
 			snapshotSlideDownToggle.hide();
@@ -214,9 +250,6 @@
 
 		api.state( 'snapshot-saved' ).bind( function( saved ) {
 			snapshotButton.prop( 'disabled', saved );
-			if ( saved ) {
-				snapshotEditLink.attr( 'href', component.data.editLink );
-			}
 		} );
 
 		api.state( 'saved' ).bind( function( saved ) {
@@ -233,9 +266,6 @@
 			if ( exists ) {
 				buttonText = component.data.i18n.updateButton;
 				permsMsg = component.data.i18n.permsMsg.update;
-				if ( component.data.editLink ) {
-					snapshotEditLink.attr( 'href', component.data.editLink );
-				}
 			} else {
 				buttonText = component.data.i18n.saveButton;
 				permsMsg = component.data.i18n.permsMsg.save;
@@ -335,6 +365,9 @@
 			spinner.removeClass( 'is-active' );
 			if ( response.edit_link ) {
 				component.data.editLink = response.edit_link;
+			}
+			if ( response.snapshot_publish_date ) {
+				component.data.snapshotPublishDate = response.snapshot_publish_date;
 			}
 
 			// @todo Remove privateness from _handleSettingValidities in Core.
