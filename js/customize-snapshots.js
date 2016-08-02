@@ -12,7 +12,17 @@
 
 	component = api.Snapshots;
 
-	component.data = {};
+	component.data = {
+		action: '',
+		uuid: '',
+		editLink: '',
+		snapshotPublishDate: '',
+		currentUserCanPublish: '',
+		initialServerDate: '',
+		initialServerTimestamp: 0,
+		initialClientTimestamp: ( new Date() ).valueOf(),
+		i18n: ''
+	};
 
 	if ( 'undefined' !== typeof _customizeSnapshots ) {
 		_.extend( component.data, _customizeSnapshots );
@@ -43,8 +53,19 @@
 			component.addSlideDown();
 
 			$( '#snapshot-save' ).on( 'click', function( event ) {
+				var scheduleDate;
 				event.preventDefault();
-				component.sendUpdateSnapshotRequest( { status: 'draft' } );
+				if ( $( this ).html() === component.data.i18n.scheduleButton && ! _.isEmpty( component.snapshotScheduleBox ) && component.getDateFromInputs() ) {
+
+					// Todo: If date is in future make status schedule and pass date with it. Or maybe handle that in php?
+					scheduleDate = component.getDateFromInputs();
+					component.sendUpdateSnapshotRequest( {
+						status: 'future',
+						publish_date: component.formatDate( scheduleDate )
+					} );
+				} else {
+					component.sendUpdateSnapshotRequest( { status: 'draft' } );
+				}
 			} );
 			$( '#snapshot-submit' ).on( 'click', function( event ) {
 				event.preventDefault();
@@ -162,6 +183,9 @@
 		component.snapshotSlideDownToggle.click( function( e ) {
 			var customizeInfo = $( '#customize-info' );
 			if ( _.isEmpty( snapshotScheduleBox ) ) {
+				if ( '0000-00-00 00:00:00' === component.data.snapshotPublishDate ) {
+					component.data.snapshotPublishDate = component.getCurrentTime();
+				}
 				component.data = _.extend( component.data, component.parseDateTime( component.data.snapshotPublishDate ) );
 				snapshotScheduleBox = $( $.trim( snapshotScheduleBoxTemplate( component.data ) ) );
 				component.dateInputs = snapshotScheduleBox.find( '.date-input' );
@@ -173,6 +197,22 @@
 				snapshotScheduleBox.insertBefore( customizeInfo );
 				component.snapshotScheduleBox = snapshotScheduleBox;
 				component.snapshotEditLink = snapshotScheduleBox.find( 'a' );
+				component.dateInputs.on( 'input', function hydrateInputValues() {
+					var parsed, setComponentInputValue;
+
+					// Todo Check if date is in future?.
+					if ( '0000-00-00 00:00:00' === component.data.snapshotPublishDate ) {
+						parsed = component.parseDateTime( component.getCurrentTime() );
+						setComponentInputValue = function( value, inputName ) {
+							var input = component.dateComponentInputs[inputName];
+							if ( input && ! input.is( 'select' ) && '' === input.val() ) {
+								input.val( value );
+							}
+						};
+						_.each( parsed, setComponentInputValue );
+					}
+					component.populateSetting();
+				} );
 			} else {
 
 				// Todo need to update in case of dynamic section.
@@ -205,6 +245,9 @@
 		var parsed;
 		if ( _.isEmpty( component.snapshotScheduleBox ) ) {
 			return;
+		}
+		if ( '0000-00-00 00:00:00' === component.data.snapshotPublishDate ) {
+			component.data.snapshotPublishDate = component.getCurrentTime();
 		}
 
 		// Update date controls.
@@ -349,14 +392,15 @@
 			options
 		);
 
+		data = _.extend( args, {
+			nonce: api.settings.nonce.snapshot,
+			customize_snapshot_uuid: component.data.uuid
+		} );
+
 		data = _.extend(
 			{},
 			api.previewer.query(),
-			{
-				nonce: api.settings.nonce.snapshot,
-				customize_snapshot_uuid: component.data.uuid,
-				status: args.status
-			}
+			data
 		);
 		request = wp.ajax.post( 'customize_update_snapshot', data );
 
@@ -521,6 +565,56 @@
 		formattedDate += ':' + ( '00' + date.getSeconds() ).substr( -nonYearLength, nonYearLength );
 
 		return formattedDate;
+	};
+
+	/**
+	 * Populate setting value from the inputs.
+	 *
+	 * @returns {boolean} Whether the date inputs currently represent a valid date.
+	 */
+	component.populateSetting = function populateSetting() {
+		var date, remainingTime, save;
+		date = component.getDateFromInputs();
+		if ( ! date ) {
+			return false;
+		} else {
+			remainingTime = ( new Date( date ) ).valueOf();
+			remainingTime -= ( new Date( component.getCurrentTime() ) ).valueOf();
+			remainingTime = Math.ceil( remainingTime / 1000 );
+			save = $( '#snapshot-save' );
+			if ( remainingTime > 0 ) {
+
+				// Change update button to schedule.
+				if ( save.length ) {
+					save.html( component.data.i18n.scheduleButton );
+					save.prop( 'disabled', false );
+				}
+			} else {
+				if ( save.length ) {
+					save.html( component.data.i18n.updateButton );
+
+					//Todo If snapshot don't have changes make button disable.
+				}
+			}
+			date.setSeconds( 0 );
+			component.data.snapshotPublishDate = component.formatDate( date );
+			return true;
+		}
+	};
+
+	/**
+	 * Get current date/time in the site's timezone, as does the current_time( 'mysql', false ) function in PHP.
+	 *
+	 * @returns {string} Current datetime string.
+	 */
+	component.getCurrentTime = function getCurrentTime() {
+		var currentDate, currentTimestamp, timestampDifferential;
+		currentTimestamp = ( new Date() ).valueOf();
+		currentDate = new Date( component.data.initialServerDate );
+		timestampDifferential = currentTimestamp - component.data.initialClientTimestamp;
+		timestampDifferential += component.data.initialClientTimestamp - component.data.initialServerTimestamp;
+		currentDate.setTime( currentDate.getTime() + timestampDifferential );
+		return component.formatDate( currentDate );
 	};
 
 	component.init();

@@ -537,11 +537,14 @@ class Customize_Snapshot_Manager {
 			'action' => self::AJAX_ACTION,
 			'uuid' => $this->snapshot ? $this->snapshot->uuid() : self::generate_uuid(),
 			'editLink' => $this->snapshot ? get_edit_post_link( $post, 'raw' ) : '',
-			'snapshotPublishDate' => $this->snapshot ? $post->post_date_gmt : '',
+			'snapshotPublishDate' => $this->snapshot ? $post->post_date : '',
 			'currentUserCanPublish' => current_user_can( 'customize_publish' ),
+			'initialServerDate' => current_time( 'mysql', false ),
+			'initialServerTimestamp' => floor( microtime( true ) * 1000 ),
 			'i18n' => array(
 				'saveButton' => __( 'Save', 'customize-snapshots' ),
 				'updateButton' => __( 'Update', 'customize-snapshots' ),
+				'scheduleButton' => __( 'Schedule', 'customize-snapshots' ),
 				'submit' => __( 'Submit', 'customize-snapshots' ),
 				'submitted' => __( 'Submitted', 'customize-snapshots' ),
 				'publish' => __( 'Publish', 'customize-snapshots' ),
@@ -886,9 +889,18 @@ class Customize_Snapshot_Manager {
 		} else {
 			$status = 'draft';
 		}
-		if ( ! in_array( $status, array( 'draft', 'pending' ), true ) ) {
+		if ( ! in_array( $status, array( 'draft', 'pending', 'future' ), true ) ) {
 			status_header( 400 );
 			wp_send_json_error( 'bad_status' );
+		}
+		$publish_date = isset( $_POST['publish_date'] ) ? $_POST['publish_date'] : '';
+		if ( 'future' === $status ) {
+			$publish_date_obj = new \DateTime( $publish_date );
+			$current_date = new \DateTime();
+			if ( empty( $publish_date ) || ! $publish_date_obj || $publish_date > $current_date ) {
+				status_header( 400 );
+				wp_send_json_error( 'bad_schedule_time' );
+			}
 		}
 
 		// Prevent attempting to modify a "locked" snapshot (a published one).
@@ -935,10 +947,15 @@ class Customize_Snapshot_Manager {
 			$data['errors'] = $this->prepare_errors_for_response( $r['errors'] );
 			wp_send_json_error( $data );
 		}
-
-		$r = $this->snapshot->save( array(
+		$args = array(
 			'status' => $status,
-		) );
+		);
+
+		if ( isset( $publish_date_obj ) && 'future' === $status ) {
+			$args['post_date'] = $publish_date_obj->format( 'Y-m-d H:i:s' );
+			$args['edit_date'] = current_time( 'mysql' );
+		}
+		$r = $this->snapshot->save( $args );
 
 		$post = $this->snapshot->post();
 		if ( $post ) {
