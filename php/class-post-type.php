@@ -508,7 +508,7 @@ class Post_Type {
 			),
 		);
 		if ( ! empty( $args['status'] ) ) {
-			if ( isset( $args['post_date'], $post_arr['edit_date'] ) && 'future' === $args['status'] ) {
+			if ( isset( $args['post_date'], $args['edit_date'] ) && 'future' === $args['status'] ) {
 				$post_arr['post_date'] = $args['post_date'];
 				$post_arr['edit_date'] = $args['edit_date'];
 			}
