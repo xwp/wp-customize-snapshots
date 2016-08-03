@@ -197,20 +197,10 @@
 				component.snapshotScheduleBox = snapshotScheduleBox;
 				component.snapshotEditLink = snapshotScheduleBox.find( 'a' );
 				component.dateInputs.on( 'input', function hydrateInputValues() {
-					var parsed, setComponentInputValue;
-
-					// Todo Check if date is in future?.
-					if ( '0000-00-00 00:00:00' === component.data.snapshotPublishDate ) {
-						parsed = component.parseDateTime( component.getCurrentTime() );
-						setComponentInputValue = function( value, inputName ) {
-							var input = component.dateComponentInputs[inputName];
-							if ( input && ! input.is( 'select' ) && '' === input.val() ) {
-								input.val( value );
-							}
-						};
-						_.each( parsed, setComponentInputValue );
-					}
 					component.populateSetting();
+				} );
+				component.dateInputs.on( 'blur', function hydrateInputValues() {
+					component.populateInputs();
 				} );
 			} else {
 
@@ -571,6 +561,30 @@
 	};
 
 	/**
+	 * Populate inputs from the setting value, if none of them are currently focused.
+	 *
+	 * @returns {boolean} Whether the inputs were populated.
+	 */
+	component.populateInputs = function populateInputs() {
+		var parsed, setComponentInputValue;
+		if ( component.dateInputs.is( ':focus' ) || '0000-00-00 00:00:00' === component.data.snapshotPublishDate ) {
+			return false;
+		}
+		parsed = component.parseDateTime( component.data.snapshotPublishDate );
+		if ( ! parsed ) {
+			return false;
+		}
+		setComponentInputValue = function( value, inputName ) {
+			var input = component.dateComponentInputs[inputName];
+			if ( input && ! input.is( 'select' ) && '' === input.val() ) {
+				input.val( value );
+			}
+		};
+		_.each( parsed, setComponentInputValue );
+		return true;
+	};
+
+	/**
 	 * Populate setting value from the inputs.
 	 *
 	 * @returns {boolean} Whether the date inputs currently represent a valid date.
@@ -596,8 +610,6 @@
 				}
 			}
 			date.setSeconds( 0 );
-			component.data.snapshotPublishDate = component.formatDate( date );
-			return true;
 		}
 	};
 
