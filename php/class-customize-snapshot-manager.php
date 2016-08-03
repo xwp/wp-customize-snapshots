@@ -538,6 +538,7 @@ class Customize_Snapshot_Manager {
 			'uuid' => $this->snapshot ? $this->snapshot->uuid() : self::generate_uuid(),
 			'editLink' => $this->snapshot ? get_edit_post_link( $post, 'raw' ) : '',
 			'snapshotPublishDate' => $this->snapshot ? $post->post_date : '',
+			'snapshotStatus' => $this->snapshot ? $post->post_status : '',
 			'currentUserCanPublish' => current_user_can( 'customize_publish' ),
 			'initialServerDate' => current_time( 'mysql', false ),
 			'initialServerTimestamp' => floor( microtime( true ) * 1000 ),

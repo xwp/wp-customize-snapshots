@@ -17,6 +17,7 @@
 		uuid: '',
 		editLink: '',
 		snapshotPublishDate: '',
+		snapshotStatus: '',
 		currentUserCanPublish: '',
 		initialServerDate: '',
 		initialServerTimestamp: 0,
@@ -260,12 +261,21 @@
 		var header = $( '#customize-header-actions' ),
 			publishButton = header.find( '#save' ),
 			snapshotSlideDownToggleTemplate = wp.template( 'snapshot-toggle-button' ),
-			snapshotButton, submitButton, data, setPreviewLinkHref, snapshotSlideDownToggle, snapshotEditLink;
+			snapshotButton, submitButton, data, setPreviewLinkHref, snapshotSlideDownToggle, snapshotButtonText;
 
 		// Save/update button.
 		snapshotButton = wp.template( 'snapshot-save' );
+		if ( api.state( 'snapshot-exists' ).get() ) {
+			if ( 'future' === component.data.snapshotStatus ) {
+				snapshotButtonText = component.data.i18n.scheduleButton;
+			} else {
+				snapshotButtonText = component.data.i18n.updateButton;
+			}
+		} else {
+			snapshotButtonText = component.data.i18n.saveButton;
+		}
 		data = {
-			buttonText: api.state( 'snapshot-exists' ).get() ? component.data.i18n.updateButton : component.data.i18n.saveButton
+			buttonText: snapshotButtonText
 		};
 		snapshotButton = $( $.trim( snapshotButton( data ) ) );
 		if ( ! component.data.currentUserCanPublish ) {
