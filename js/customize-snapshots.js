@@ -22,7 +22,7 @@
 		initialServerTimestamp: 0,
 		initialClientTimestamp: ( new Date() ).valueOf(),
 		i18n: {},
-		snapshotHaveChange: false
+		isSnapshotHasUnsavedChanges: false
 	};
 
 	if ( 'undefined' !== typeof _customizeSnapshots ) {
@@ -227,7 +227,7 @@
 		} );
 
 		api.bind( 'change', function() {
-			component.data.snapshotHaveChange = true;
+			component.data.isSnapshotHasUnsavedChanges = true;
 		} );
 
 		api.state( 'saved' ).bind( function( saved ) {
@@ -592,7 +592,7 @@
 			} else {
 				if ( save.length ) {
 					save.html( component.data.i18n.updateButton );
-					save.prop( 'disabled', ! component.data.snapshotHaveChange );
+					save.prop( 'disabled', ! component.data.isSnapshotHasUnsavedChanges );
 				}
 			}
 			date.setSeconds( 0 );
