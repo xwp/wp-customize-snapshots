@@ -21,7 +21,8 @@
 		initialServerDate: '',
 		initialServerTimestamp: 0,
 		initialClientTimestamp: ( new Date() ).valueOf(),
-		i18n: ''
+		i18n: {},
+		snapshotHaveChange: false
 	};
 
 	if ( 'undefined' !== typeof _customizeSnapshots ) {
@@ -225,6 +226,10 @@
 			if ( saved ) {
 				component.updateSnapshotScheduleBox();
 			}
+		} );
+
+		api.bind( 'change', function() {
+			component.data.snapshotHaveChange = true;
 		} );
 
 		api.state( 'saved' ).bind( function( saved ) {
@@ -592,8 +597,7 @@
 			} else {
 				if ( save.length ) {
 					save.html( component.data.i18n.updateButton );
-
-					//Todo If snapshot don't have changes make button disable.
+					save.prop( 'disabled', ! component.data.snapshotHaveChange );
 				}
 			}
 			date.setSeconds( 0 );
