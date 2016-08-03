@@ -191,6 +191,8 @@
 				snapshotScheduleBox.insertBefore( customizeInfo );
 				component.dateInputs = snapshotScheduleBox.find( '.date-input' );
 				component.scheduledCountdownContainer = snapshotScheduleBox.find( '.scheduled-countdown' );
+				component.resetTimeButton = snapshotScheduleBox.find( '.reset-time' );
+				component.resetTimeWrap = snapshotScheduleBox.find( '.wrap-reset-time' );
 				component.scheduledCountdownTemplate = wp.template( 'snapshot-scheduled-countdown' );
 				component.snapshotScheduleBox = snapshotScheduleBox;
 				component.dateInputs.each( function() {
@@ -207,6 +209,11 @@
 					component.populateSetting();
 				} );
 				component.updateScheduledCountdown();
+				component.resetTimeButton.on( 'click', function( e ) {
+					component.updateSnapshotScheduleBox();
+					component.resetTimeWrap.hide();
+					e.preventDefault();
+				} );
 			} else {
 
 				// Todo need to update in case of dynamic section.
@@ -251,7 +258,7 @@
 		// Update date controls.
 		component.snapshotEditLink.attr( 'href', component.data.editLink );
 		parsed = component.parseDateTime( component.data.snapshotPublishDate );
-		_.each( component.snapshotScheduleBox, function populateInput( node, component ) {
+		_.each( component.dateComponentInputs, function populateInput( node, component ) {
 			$( node ).val( parsed[component] );
 		} );
 	};
@@ -604,18 +611,23 @@
 	 * @returns {boolean} Whether the date inputs currently represent a valid date.
 	 */
 	component.populateSetting = function populateSetting() {
-		var date, save;
+		var date, save, isScheduleDateUpdated;
 		date = component.getDateFromInputs();
 		if ( ! date ) {
 			return false;
 		} else {
 			save = $( '#snapshot-save' );
+			isScheduleDateUpdated = component.formatDate( date ) !== component.data.snapshotPublishDate;
 			if ( component.isScheduleDateFuture() ) {
 
 				// Change update button to schedule.
 				if ( save.length ) {
 					save.html( component.data.i18n.scheduleButton );
-					save.prop( 'disabled', false );
+					if ( isScheduleDateUpdated || component.data.isSnapshotHasUnsavedChanges ) {
+						save.prop( 'disabled', false );
+					} else {
+						save.prop( 'disabled', true );
+					}
 				}
 			} else {
 				if ( save.length ) {
@@ -625,6 +637,11 @@
 			}
 			component.updateScheduledCountdown();
 			date.setSeconds( 0 );
+			if ( isScheduleDateUpdated ) {
+				component.resetTimeWrap.show();
+			} else {
+				component.resetTimeWrap.hide();
+			}
 		}
 	};
 

@@ -1097,7 +1097,10 @@ class Customize_Snapshot_Manager {
 		<script type="text/html" id="tmpl-snapshot-schedule-accordion">
 			<div id="customize-schedule-box" class="accordion-section">
 				<div class="accordion-section-title">
-					<div class="preview-notice"><strong class="panel-title site-title"><?php esc_html_e( 'Schedule Snapshot', 'customize-snapshots' ); ?></strong></div>
+					<div class="preview-notice">
+						<strong class="panel-title site-title"><?php esc_html_e( 'Schedule Snapshot', 'customize-snapshots' ); ?></strong>
+						<span class="wrap-reset-time">(<a href="#" class="reset-time"><?php esc_html_e( 'Reset', 'customize-posts' ) ?></a>)</span>
+					</div>
 					<span class="description snapshot-description">
 						<?php
 						$tz_string = get_option( 'timezone_string' );
@@ -1118,7 +1121,7 @@ class Customize_Snapshot_Manager {
 						<span class="scheduled-countdown"></span>
 						<span class="timezone-info"><?php echo esc_html( $date_control_description ); ?></span>
 					</span>
-					<a href={{ data.editLink }} class="dashicons dashicons-edit" aria-expanded="false"></a>
+					<a href={{ data.editLink }} class="dashicons dashicons-edit snapshot-edit-link" aria-expanded="false"></a>
 				</div>
 				<div class="customize-snapshot-control">
 					<# _.defaults( data, <?php echo wp_json_encode( $data ) ?> );
