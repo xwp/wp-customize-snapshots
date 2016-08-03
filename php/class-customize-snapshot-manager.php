@@ -1097,8 +1097,8 @@ class Customize_Snapshot_Manager {
 		<script type="text/html" id="tmpl-snapshot-schedule-accordion">
 			<div id="customize-schedule-box" class="accordion-section">
 				<div class="accordion-section-title">
-					<span class="preview-notice"><strong class="panel-title site-title"><?php esc_html_e( 'Schedule Snapshot', 'customize-snapshots' ); ?></strong></span>
-					<span class="description customize-control-description">
+					<div class="preview-notice"><strong class="panel-title site-title"><?php esc_html_e( 'Schedule Snapshot', 'customize-snapshots' ); ?></strong></div>
+					<span class="description snapshot-description">
 						<?php
 						$tz_string = get_option( 'timezone_string' );
 						if ( $tz_string ) {
@@ -1115,6 +1115,7 @@ class Customize_Snapshot_Manager {
 							$date_control_description = sprintf( __( 'Dates are in UTC%s.', 'customize-snapshots' ), $formatted_gmt_offset );
 						}
 						?>
+						<span class="scheduled-countdown"></span>
 						<span class="timezone-info"><?php echo esc_html( $date_control_description ); ?></span>
 					</span>
 					<a href={{ data.editLink }} class="dashicons dashicons-edit" aria-expanded="false"></a>
@@ -1142,6 +1143,27 @@ class Customize_Snapshot_Manager {
 						?><input type="number" size="2" maxlength="2" autocomplete="off" class="date-input minute" data-component="minute" min="0" max="59" value="{{ data.minute }}" />
 				</div>
 			</div>
+		</script>
+
+		<script id="tmpl-snapshot-scheduled-countdown" type="text/html">
+			<# if ( data.remainingTime < 2 * 60 ) { #>
+			<?php esc_html_e( 'This is scheduled for publishing in about a minute.', 'customize-snapshots' ); ?>
+			<# } else if ( data.remainingTime < 60 * 60 ) { #>
+			<?php
+			/* translators: %s is a placeholder for the Underscore template var */
+			echo sprintf( esc_html__( 'This snapshot is scheduled for publishing in about %s minutes.', 'customize-snapshots' ), '{{ Math.ceil( data.remainingTime / 60 ) }}' );
+			?>
+			<# } else if ( data.remainingTime < 24 * 60 * 60 ) { #>
+			<?php
+			/* translators: %s is a placeholder for the Underscore template var */
+			echo sprintf( esc_html__( 'This snapshot is scheduled for publishing in about %s hours.', 'customize-snapshots' ), '{{ Math.round( data.remainingTime / 60 / 60 * 10 ) / 10 }}' );
+			?>
+			<# } else { #>
+				<?php
+				/* translators: %s is a placeholder for the Underscore template var */
+				echo sprintf( esc_html__( 'This snapshot is scheduled for publishing in about %s days.', 'customize-snapshots' ), '{{ Math.round( data.remainingTime / 60 / 60 / 24 * 10 ) / 10 }}' );
+				?>
+				<# } #>
 		</script>
 
 		<script type="text/html" id="tmpl-snapshot-save">

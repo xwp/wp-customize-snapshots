@@ -188,21 +188,25 @@
 				}
 				component.data = _.extend( component.data, component.parseDateTime( component.data.snapshotPublishDate ) );
 				snapshotScheduleBox = $( $.trim( snapshotScheduleBoxTemplate( component.data ) ) );
+				snapshotScheduleBox.insertBefore( customizeInfo );
 				component.dateInputs = snapshotScheduleBox.find( '.date-input' );
+				component.scheduledCountdownContainer = snapshotScheduleBox.find( '.scheduled-countdown' );
+				component.scheduledCountdownTemplate = wp.template( 'snapshot-scheduled-countdown' );
+				component.snapshotScheduleBox = snapshotScheduleBox;
 				component.dateInputs.each( function() {
 					var input = $( this ), componentName;
 					componentName = input.data( 'component' );
 					component.dateComponentInputs[componentName] = input;
 				} );
-				snapshotScheduleBox.insertBefore( customizeInfo );
-				component.snapshotScheduleBox = snapshotScheduleBox;
 				component.snapshotEditLink = snapshotScheduleBox.find( 'a' );
 				component.dateInputs.on( 'input', function hydrateInputValues() {
 					component.populateSetting();
 				} );
 				component.dateInputs.on( 'blur', function hydrateInputValues() {
 					component.populateInputs();
+					component.populateSetting();
 				} );
+				component.updateScheduledCountdown();
 			} else {
 
 				// Todo need to update in case of dynamic section.
@@ -619,6 +623,7 @@
 					save.prop( 'disabled', ! component.data.isSnapshotHasUnsavedChanges );
 				}
 			}
+			component.updateScheduledCountdown();
 			date.setSeconds( 0 );
 		}
 	};
@@ -652,6 +657,27 @@
 		timestampDifferential += component.data.initialClientTimestamp - component.data.initialServerTimestamp;
 		currentDate.setTime( currentDate.getTime() + timestampDifferential );
 		return component.formatDate( currentDate );
+	};
+
+	/**
+	 * Update the scheduled countdown.
+	 *
+	 * Hides countdown if post_status is not already future.
+	 * Toggles the countdown if there is no remaining time.
+	 *
+	 * @returns {void}
+	 */
+	component.updateScheduledCountdown = function updateScheduledCountdown() {
+		var remainingTime;
+		remainingTime = component.getDateFromInputs().valueOf();
+		remainingTime -= ( new Date( component.getCurrentTime() ) ).valueOf();
+		remainingTime = Math.ceil( remainingTime / 1000 );
+		if ( remainingTime > 0 ) {
+			component.scheduledCountdownContainer.text( component.scheduledCountdownTemplate( { remainingTime: remainingTime } ) );
+			component.scheduledCountdownContainer.show();
+		} else {
+			component.scheduledCountdownContainer.hide();
+		}
 	};
 
 	component.init();
