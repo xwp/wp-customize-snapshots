@@ -56,9 +56,7 @@
 			$( '#snapshot-save' ).on( 'click', function( event ) {
 				var scheduleDate;
 				event.preventDefault();
-				if ( $( this ).html() === component.data.i18n.scheduleButton && ! _.isEmpty( component.snapshotScheduleBox ) && component.getDateFromInputs() ) {
-
-					// Todo: If date is in future make status schedule and pass date with it. Or maybe handle that in php?
+				if ( $( this ).html() === component.data.i18n.scheduleButton && ! _.isEmpty( component.snapshotScheduleBox ) && component.getDateFromInputs() && component.isScheduleDateFuture() ) {
 					scheduleDate = component.getDateFromInputs();
 					component.sendUpdateSnapshotRequest( {
 						status: 'future',
@@ -578,16 +576,13 @@
 	 * @returns {boolean} Whether the date inputs currently represent a valid date.
 	 */
 	component.populateSetting = function populateSetting() {
-		var date, remainingTime, save;
+		var date, save;
 		date = component.getDateFromInputs();
 		if ( ! date ) {
 			return false;
 		} else {
-			remainingTime = ( new Date( date ) ).valueOf();
-			remainingTime -= ( new Date( component.getCurrentTime() ) ).valueOf();
-			remainingTime = Math.ceil( remainingTime / 1000 );
 			save = $( '#snapshot-save' );
-			if ( remainingTime > 0 ) {
+			if ( component.isScheduleDateFuture() ) {
 
 				// Change update button to schedule.
 				if ( save.length ) {
@@ -604,6 +599,22 @@
 			component.data.snapshotPublishDate = component.formatDate( date );
 			return true;
 		}
+	};
+
+	/**
+	 * Check if snapshot schedule date is in future date
+	 * @returns {boolean}
+	 */
+	component.isScheduleDateFuture = function isScheduleDateFuture() {
+		var date, remainingTime;
+		date = component.getDateFromInputs();
+		if ( ! date ) {
+			return false;
+		}
+		remainingTime = ( new Date( date ) ).valueOf();
+		remainingTime -= ( new Date( component.getCurrentTime() ) ).valueOf();
+		remainingTime = Math.ceil( remainingTime / 1000 );
+		return remainingTime > 0;
 	};
 
 	/**
