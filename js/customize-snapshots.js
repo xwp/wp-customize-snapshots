@@ -287,6 +287,7 @@
 		_.each( component.dateComponentInputs, function populateInput( node, fieldName ) {
 			$( node ).val( parsed[fieldName] );
 		} );
+		component.populateSetting();
 	};
 
 	/**
@@ -458,6 +459,8 @@
 			if ( response.snapshot_publish_date ) {
 				component.data.snapshotPublishDate = response.snapshot_publish_date;
 			}
+			component.updateSnapshotScheduleSection();
+			component.data.isSnapshotHasUnsavedChanges = false;
 
 			// @todo Remove privateness from _handleSettingValidities in Core.
 			if ( api._handleSettingValidities && response.setting_validities ) {
