@@ -223,7 +223,8 @@
 			component.updateScheduledCountdown();
 			component.resetTimeButton.on( 'click', function( event ) {
 				component.updateSnapshotScheduleSection();
-				component.resetTimeWrap.hide();
+				component.populateSetting();
+
 				// @todo reset button back to save or update and set disabled prop and remove scheduled text.
 				event.preventDefault();
 			} );
@@ -553,6 +554,7 @@
 		if ( isNaN( date.valueOf() ) ) {
 			return null;
 		}
+		date.setSeconds( 0 );
 		return date;
 	};
 
@@ -634,6 +636,7 @@
 			return false;
 		}
 		save = $( '#snapshot-save' );
+		date.setSeconds( 0 );
 		isScheduleDateUpdated = component.formatDate( date ) !== component.data.snapshotPublishDate;
 		if ( component.isScheduleDateFuture() && save.length ) {
 
@@ -649,7 +652,6 @@
 			save.prop( 'disabled', ! component.data.isSnapshotHasUnsavedChanges );
 		}
 		component.updateScheduledCountdown();
-		date.setSeconds( 0 );
 		if ( isScheduleDateUpdated ) {
 			component.resetTimeWrap.show();
 		} else {
