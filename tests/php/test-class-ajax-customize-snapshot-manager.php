@@ -334,6 +334,7 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 					'setting_validities' => array(
 						'anyonecanedit' => true,
 					),
+					'snapshot_publish_date' => '0000-00-00 00:00:00',
 				),
 			),
 		);
