@@ -951,17 +951,20 @@ class Customize_Snapshot_Manager {
 		$args = array(
 			'status' => $status,
 		);
+		$args['edit_date'] = current_time( 'mysql' );
 
 		if ( isset( $publish_date_obj ) && 'future' === $status ) {
 			$args['post_date'] = $publish_date_obj->format( 'Y-m-d H:i:s' );
-			$args['edit_date'] = current_time( 'mysql' );
+			$args['post_date_gmt'] = '0000-00-00 00:00:00';
+		} else {
+			$args['post_date_gmt'] = $args['post_date'] = '0000-00-00 00:00:00';
 		}
 		$r = $this->snapshot->save( $args );
 
 		$post = $this->snapshot->post();
 		if ( $post ) {
 			$data['edit_link'] = get_edit_post_link( $post, 'raw' );
-			$data['snapshot_publish_date'] = $post->post_date_gmt;
+			$data['snapshot_publish_date'] = $post->post_date;
 		}
 
 		if ( is_wp_error( $r ) ) {

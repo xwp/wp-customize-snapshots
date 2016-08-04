@@ -662,7 +662,11 @@
 			}
 		} else if ( save.length ) {
 			save.html( component.data.i18n.updateButton );
-			save.prop( 'disabled', ! component.data.isSnapshotHasUnsavedChanges );
+			if ( component.data.isSnapshotHasUnsavedChanges || isScheduleDateUpdated ) {
+				save.prop( 'disabled', false );
+			} else {
+				save.prop( 'disabled', true );
+			}
 		}
 		component.updateScheduledCountdown();
 		if ( isScheduleDateUpdated ) {
