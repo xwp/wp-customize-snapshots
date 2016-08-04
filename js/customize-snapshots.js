@@ -319,9 +319,6 @@
 		if ( ! component.data.editLink ) {
 			snapshotSlideDownToggle.hide();
 		}
-		api.state.bind( 'change', function() {
-			snapshotSlideDownToggle.toggle( api.state( 'snapshot-saved' ).get() && api.state( 'snapshot-exists' ).get() );
-		} );
 
 		api.state( 'snapshot-saved' ).bind( function( saved ) {
 			snapshotButton.prop( 'disabled', saved );
