@@ -697,11 +697,15 @@
 	 * Hides countdown if post_status is not already future.
 	 * Toggles the countdown if there is no remaining time.
 	 *
-	 * @returns {void}
+	 * @returns {boolean} if date input have valid time.
 	 */
 	component.updateScheduledCountdown = function updateScheduledCountdown() {
-		var remainingTime;
-		remainingTime = component.getDateFromInputs().valueOf();
+		var remainingTime, dateTimeFromInput;
+		dateTimeFromInput = component.getDateFromInputs();
+		if ( ! dateTimeFromInput ) {
+			return false;
+		}
+		remainingTime = dateTimeFromInput.valueOf();
 		remainingTime -= ( new Date( component.getCurrentTime() ) ).valueOf();
 		remainingTime = Math.ceil( remainingTime / 1000 );
 		if ( remainingTime > 0 ) {
@@ -710,6 +714,7 @@
 		} else {
 			component.scheduledCountdownContainer.hide();
 		}
+		return true;
 	};
 
 	component.init();
