@@ -1,6 +1,6 @@
 /* global jQuery, _customizeSnapshots */
 /* eslint-disable no-extra-parens */
-/* eslint no-magic-numbers: ["error", { "ignore": [-1,0,1,1000] }] */
+/* eslint no-magic-numbers: ["error", { "ignore": [-2,-1,0,1,1000] }] */
 /* eslint complexity: ["error", 7] */
 
 ( function( api, $ ) {
@@ -193,6 +193,9 @@
 				component.data.snapshotPublishDate = component.getCurrentTime();
 			}
 
+			// Normalize date with secs set as zeros removed.
+			component.data.snapshotPublishDate = component.data.snapshotPublishDate.slice( 0, -2 ) + '00';
+
 			component.data = _.extend( component.data, component.parseDateTime( component.data.snapshotPublishDate ) );
 
 			component.snapshotScheduleSection = $( $.trim( snapshotScheduleSectionTemplate( component.data ) ) );
@@ -255,6 +258,8 @@
 		api.state( 'snapshot-exists' ).bind( function( exists ) {
 			if ( exists && ! _.isEmpty( component.snapshotScheduleSection ) ) {
 				component.updateSnapshotScheduleSection();
+			} else {
+				component.snapshotScheduleSection.hide();
 			}
 		} );
 	};
@@ -272,6 +277,9 @@
 		if ( '0000-00-00 00:00:00' === component.data.snapshotPublishDate ) {
 			component.data.snapshotPublishDate = component.getCurrentTime();
 		}
+
+		// Normalize date with secs removed.
+		component.data.snapshotPublishDate = component.data.snapshotPublishDate.slice( 0, -2 ) + '00';
 
 		// Update date controls.
 		component.snapshotEditLink.attr( 'href', component.data.editLink );
@@ -319,6 +327,14 @@
 		if ( ! component.data.editLink ) {
 			snapshotSlideDownToggle.hide();
 		}
+
+		api.state( 'change', function() {
+			snapshotSlideDownToggle.toggle( api.state( 'snapshot-saved' ).get() && api.state( 'snapshot-exists' ).get() );
+		} );
+
+		api.state( 'snapshot-exists' ).bind( function( exist ) {
+			snapshotSlideDownToggle.toggle( exist );
+		} );
 
 		api.state( 'snapshot-saved' ).bind( function( saved ) {
 			snapshotButton.prop( 'disabled', saved );
