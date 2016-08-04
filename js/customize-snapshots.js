@@ -1,7 +1,7 @@
 /* global jQuery, _customizeSnapshots */
 /* eslint-disable no-extra-parens */
 /* eslint no-magic-numbers: ["error", { "ignore": [-2,-1,0,1,1000] }] */
-/* eslint complexity: ["error", 7] */
+/* eslint complexity: ["error", 9] */
 
 ( function( api, $ ) {
 	'use strict';
