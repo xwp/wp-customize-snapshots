@@ -4,6 +4,9 @@ language:
     - php
     - node_js
 
+node_js:
+    - 5
+
 php:
     - 5.3
     - 7.0
