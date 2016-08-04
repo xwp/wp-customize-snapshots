@@ -1099,7 +1099,7 @@ class Customize_Snapshot_Manager {
 				<div class="accordion-section-title">
 					<div class="preview-notice">
 						<strong class="panel-title site-title"><?php esc_html_e( 'Schedule Snapshot', 'customize-snapshots' ); ?></strong>
-						<span class="wrap-reset-time">(<a href="#" class="reset-time"><?php esc_html_e( 'Reset', 'customize-posts' ) ?></a>)</span>
+						<span class="wrap-reset-time">(<a href="#" class="reset-time"><?php esc_html_e( 'Reset', 'customize-snapshots' ) ?></a>)</span>
 					</div>
 					<span class="description snapshot-description">
 						<?php
