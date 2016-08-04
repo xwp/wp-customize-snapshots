@@ -1,5 +1,7 @@
 /* global jQuery, _customizeSnapshots */
 /* eslint-disable no-extra-parens */
+/* eslint no-magic-numbers: ["error", { "ignore": [-1,0,1,1000] }] */
+/* eslint complexity: ["error", 7] */
 
 ( function( api, $ ) {
 	'use strict';
@@ -176,12 +178,6 @@
 	component.dateComponentInputs = {};
 
 	component.snapshotScheduleSection = {};
-
-	component.snapshotScheduleSlideToggle = function snapshotScheduleSlideToggle() {
-		component.snapshotScheduleSection.slideToggle( 'fast', function() {
-			$( this ).parent().toggleClass( 'schedule-section-open' );
-		} );
-	};
 
 	/**
 	 * Renders Snapshot Schedule Section and handles it's events.
@@ -636,39 +632,37 @@
 		date = component.getDateFromInputs();
 		if ( ! date ) {
 			return false;
-		} else {
-			save = $( '#snapshot-save' );
-			isScheduleDateUpdated = component.formatDate( date ) !== component.data.snapshotPublishDate;
-			if ( component.isScheduleDateFuture() ) {
-
-				// Change update button to schedule.
-				if ( save.length ) {
-					save.html( component.data.i18n.scheduleButton );
-					if ( isScheduleDateUpdated || component.data.isSnapshotHasUnsavedChanges ) {
-						save.prop( 'disabled', false );
-					} else {
-						save.prop( 'disabled', true );
-					}
-				}
-			} else {
-				if ( save.length ) {
-					save.html( component.data.i18n.updateButton );
-					save.prop( 'disabled', ! component.data.isSnapshotHasUnsavedChanges );
-				}
-			}
-			component.updateScheduledCountdown();
-			date.setSeconds( 0 );
-			if ( isScheduleDateUpdated ) {
-				component.resetTimeWrap.show();
-			} else {
-				component.resetTimeWrap.hide();
-			}
 		}
+		save = $( '#snapshot-save' );
+		isScheduleDateUpdated = component.formatDate( date ) !== component.data.snapshotPublishDate;
+		if ( component.isScheduleDateFuture() && save.length ) {
+
+			// Change update button to schedule.
+			save.html( component.data.i18n.scheduleButton );
+			if ( isScheduleDateUpdated || component.data.isSnapshotHasUnsavedChanges ) {
+				save.prop( 'disabled', false );
+			} else {
+				save.prop( 'disabled', true );
+			}
+		} else if ( save.length ) {
+			save.html( component.data.i18n.updateButton );
+			save.prop( 'disabled', ! component.data.isSnapshotHasUnsavedChanges );
+		}
+		component.updateScheduledCountdown();
+		date.setSeconds( 0 );
+		if ( isScheduleDateUpdated ) {
+			component.resetTimeWrap.show();
+		} else {
+			component.resetTimeWrap.hide();
+		}
+		return true;
+
 	};
 
 	/**
 	 * Check if snapshot schedule date is in future date
-	 * @returns {boolean}
+	 *
+	 * @returns {boolean} if date in input controls is of future
 	 */
 	component.isScheduleDateFuture = function isScheduleDateFuture() {
 		var date, remainingTime;
