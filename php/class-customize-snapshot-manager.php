@@ -1121,7 +1121,7 @@ class Customize_Snapshot_Manager {
 						<span class="snapshot-scheduled-countdown"></span>
 						<span class="timezone-info"><?php echo esc_html( $date_control_description ); ?></span>
 					</span>
-					<a href={{ data.editLink }} class="dashicons dashicons-edit snapshot-edit-link" aria-expanded="false"></a>
+					<a href="{{ data.editLink }}" class="dashicons dashicons-edit snapshot-edit-link" aria-expanded="false"></a>
 				</div>
 				<div class="snapshot-schedule-control">
 					<# _.defaults( data, <?php echo wp_json_encode( $data ) ?> );

@@ -213,7 +213,7 @@
 				component.dateComponentInputs[componentName] = input;
 			} );
 
-			component.snapshotEditLink = component.snapshotScheduleSection.find( 'a' );
+			component.snapshotEditLink = component.snapshotScheduleSection.find( 'a.snapshot-edit-link' );
 			component.dateInputs.on( 'input', function hydrateInputValues() {
 				component.populateSetting();
 			} );
