@@ -1,10 +1,12 @@
-#snapshot-preview-link, #snapshot-toggle-button {
+#snapshot-preview-link,
+#snapshot-schedule-button {
 	float: right;
 	margin-top: 13px;
 	margin-right: 4px;
 	color: #656a6f;
 }
-#snapshot-toggle-button{
+
+#snapshot-schedule-button {
 	display: block;
 }
 
@@ -55,43 +57,27 @@
 	}
 }
 
-.customize-snapshot-control select,
-.customize-snapshot-control input.date-input {
-	min-width: 10%;
-	width: auto;
-}
-.customize-snapshot-control input.date-input {
-	-moz-appearance: textfield;
-}
-.customize-snapshot-control input.date-input::-webkit-outer-spin-button,
-.customize-snapshot-control input.date-input::-webkit-inner-spin-button {
-	-webkit-appearance: none;
-	margin: 0;
-}
-
-#customize-snapshot-control{
-	padding: 5px;
-}
-
-#customize-schedule-box{
+#snapshot-schedule-section {
 	background: #fff !important;
-	margin-bottom: 10px;
-	padding-bottom: 10px;
+	border-bottom: 1px solid #ddd;
+	line-height: 1.5;
+	left: 0;
+	top: 46px;
+	position: absolute;
+	width: 100%;
+	box-shadow: 0 5px 0 0 rgba(0,0,0,0.05);
 }
 
-#customize-schedule-box .accordion-section-title{
-	background: #fff;
+#snapshot-schedule-section .snapshot-schedule-title {
 	color: #555;
-	border-left: none;
-	border-right: none;
-	border-bottom: none;
-	cursor: default;
+	padding: 10px 10px 0;
 }
 
-#customize-schedule-box .accordion-section-title:after{
-	z-index: -1;
+#snapshot-schedule-section .snapshot-schedule-title h3 {
+	margin: .2em 2em .75em 0;
 }
-#customize-schedule-box a.snapshot-edit-link{
+
+#snapshot-schedule-section a.snapshot-edit-link {
 	position: absolute;
 	top: 4px;
 	right: 1px;
@@ -107,26 +93,34 @@
 	padding: 10px;
 }
 
-#customize-schedule-box div.preview-notice{
-	font-size: 13px;
-	line-height: 24px;
-}
-#customize-schedule-box .customize-snapshot-control{
-	padding: 5px;
-}
-#customize-schedule-box .accordion-section-title{
+#snapshot-schedule-section .snapshot-schedule-control {
 	padding: 10px;
 }
-.in-sub-panel #customize-schedule-box {
-	left: -100%;
-	width: 100%;
-	position: relative;
-}
-#customize-schedule-box .snapshot-description{
-	font-style: normal;
+
+#snapshot-schedule-section .accordion-section-title {
+	padding: 10px;
 }
 
-#customize-schedule-box .wrap-reset-time{
+#snapshot-schedule-section .wrap-reset-time {
 	font-weight: normal;
-	font-size: 75%;
+	font-size: 80%;
+	display: none;
+}
+
+.snapshot-schedule-control select.date-input {
+	height: 28px;
+}
+
+.snapshot-schedule-control select,
+.snapshot-schedule-control input.date-input {
+	min-width: 10%;
+	width: auto;
+}
+.snapshot-schedule-control input.date-input {
+	-moz-appearance: textfield;
+}
+.snapshot-schedule-control input.date-input::-webkit-outer-spin-button,
+.snapshot-schedule-control input.date-input::-webkit-inner-spin-button {
+	-webkit-appearance: none;
+	margin: 0;
 }

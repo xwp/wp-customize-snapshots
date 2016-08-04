@@ -52,12 +52,12 @@
 
 			component.extendPreviewerQuery();
 			component.addButtons();
-			component.addSlideDown();
+			component.addSnapshotScheduleSection();
 
 			$( '#snapshot-save' ).on( 'click', function( event ) {
 				var scheduleDate;
 				event.preventDefault();
-				if ( $( this ).html() === component.data.i18n.scheduleButton && ! _.isEmpty( component.snapshotScheduleBox ) && component.getDateFromInputs() && component.isScheduleDateFuture() ) {
+				if ( $( this ).html() === component.data.i18n.scheduleButton && ! _.isEmpty( component.snapshotScheduleSection ) && component.getDateFromInputs() && component.isScheduleDateFuture() ) {
 					scheduleDate = component.getDateFromInputs();
 					component.sendUpdateSnapshotRequest( {
 						status: 'future',
@@ -175,56 +175,73 @@
 
 	component.dateComponentInputs = {};
 
-	component.snapshotScheduleBox = {};
+	component.snapshotScheduleSection = {};
 
-	component.addSlideDown = function slideDown() {
-		var snapshotScheduleBoxTemplate = wp.template( 'snapshot-schedule-accordion' ),
-			snapshotScheduleBox = component.snapshotScheduleBox;
-		component.snapshotSlideDownToggle.click( function( e ) {
-			var customizeInfo = $( '#customize-info' );
-			if ( _.isEmpty( snapshotScheduleBox ) ) {
-				if ( '0000-00-00 00:00:00' === component.data.snapshotPublishDate ) {
-					component.data.snapshotPublishDate = component.getCurrentTime();
-				}
-				component.data = _.extend( component.data, component.parseDateTime( component.data.snapshotPublishDate ) );
-				snapshotScheduleBox = $( $.trim( snapshotScheduleBoxTemplate( component.data ) ) );
-				snapshotScheduleBox.insertBefore( customizeInfo );
-				component.dateInputs = snapshotScheduleBox.find( '.date-input' );
-				component.scheduledCountdownContainer = snapshotScheduleBox.find( '.scheduled-countdown' );
-				component.resetTimeButton = snapshotScheduleBox.find( '.reset-time' );
-				component.resetTimeWrap = snapshotScheduleBox.find( '.wrap-reset-time' );
-				component.scheduledCountdownTemplate = wp.template( 'snapshot-scheduled-countdown' );
-				component.snapshotScheduleBox = snapshotScheduleBox;
-				component.dateInputs.each( function() {
-					var input = $( this ), componentName;
-					componentName = input.data( 'component' );
-					component.dateComponentInputs[componentName] = input;
-				} );
-				component.snapshotEditLink = snapshotScheduleBox.find( 'a' );
-				component.dateInputs.on( 'input', function hydrateInputValues() {
-					component.populateSetting();
-				} );
-				component.dateInputs.on( 'blur', function hydrateInputValues() {
-					component.populateInputs();
-					component.populateSetting();
-				} );
-				component.updateScheduledCountdown();
-				component.resetTimeButton.on( 'click', function( e ) {
-					component.updateSnapshotScheduleBox();
-					component.resetTimeWrap.hide();
-					e.preventDefault();
-				} );
-			} else {
+	component.snapshotScheduleSlideToggle = function snapshotScheduleSlideToggle() {
+		component.snapshotScheduleSection.slideToggle( 'fast', function() {
+			$( this ).parent().toggleClass( 'schedule-section-open' );
+		} );
+	};
 
-				// Todo need to update in case of dynamic section.
-				snapshotScheduleBox.slideToggle();
+	/**
+	 * Renders Snapshot Schedule Section and handles it's events.
+	 *
+	 * @returns {void}
+	 */
+	component.addSnapshotScheduleSection = function addSnapshotScheduleSection() {
+		var snapshotScheduleSectionTemplate = wp.template( 'snapshot-schedule-accordion' );
+
+		// Inject the UI.
+		if ( _.isEmpty( component.snapshotScheduleSection ) ) {
+			if ( '0000-00-00 00:00:00' === component.data.snapshotPublishDate ) {
+				component.data.snapshotPublishDate = component.getCurrentTime();
 			}
-			e.preventDefault();
+
+			component.data = _.extend( component.data, component.parseDateTime( component.data.snapshotPublishDate ) );
+
+			component.snapshotScheduleSection = $( $.trim( snapshotScheduleSectionTemplate( component.data ) ) );
+			component.snapshotScheduleSection.hide().appendTo( $( '#customize-header-actions' ) );
+
+			component.dateInputs = component.snapshotScheduleSection.find( '.date-input' );
+			component.scheduledCountdownContainer = component.snapshotScheduleSection.find( '.snapshot-scheduled-countdown' );
+			component.resetTimeButton = component.snapshotScheduleSection.find( '.reset-time' );
+			component.resetTimeWrap = component.snapshotScheduleSection.find( '.wrap-reset-time' );
+			component.scheduledCountdownTemplate = wp.template( 'snapshot-scheduled-countdown' );
+
+			component.dateInputs.each( function() {
+				var input = $( this ), componentName;
+				componentName = input.data( 'component' );
+				component.dateComponentInputs[componentName] = input;
+			} );
+
+			component.snapshotEditLink = component.snapshotScheduleSection.find( 'a' );
+			component.dateInputs.on( 'input', function hydrateInputValues() {
+				component.populateSetting();
+			} );
+
+			component.dateInputs.on( 'blur', function hydrateInputValues() {
+				component.populateInputs();
+				component.populateSetting();
+			} );
+
+			component.updateScheduledCountdown();
+			component.resetTimeButton.on( 'click', function( event ) {
+				component.updateSnapshotScheduleSection();
+				component.resetTimeWrap.hide();
+				// @todo reset button back to save or update and set disabled prop and remove scheduled text.
+				event.preventDefault();
+			} );
+		}
+
+		// Listen for click events.
+		component.snapshotSlideDownToggle.on( 'click', function( event ) {
+			event.preventDefault();
+			component.snapshotScheduleSection.toggle();
 		} );
 
 		api.state( 'snapshot-saved' ).bind( function( saved ) {
 			if ( saved ) {
-				component.updateSnapshotScheduleBox();
+				component.updateSnapshotScheduleSection();
 			}
 		} );
 
@@ -233,22 +250,26 @@
 		} );
 
 		api.state( 'saved' ).bind( function( saved ) {
-			if ( saved && ! _.isEmpty( component.snapshotScheduleBox ) ) {
-				component.snapshotScheduleBox.hide();
+			if ( saved && ! _.isEmpty( component.snapshotScheduleSection ) ) {
+				component.snapshotScheduleSection.hide();
 			}
 		} );
 
 		api.state( 'snapshot-exists' ).bind( function( exists ) {
-			if ( exists && ! _.isEmpty( component.snapshotScheduleBox ) ) {
-				component.updateSnapshotScheduleBox();
+			if ( exists && ! _.isEmpty( component.snapshotScheduleSection ) ) {
+				component.updateSnapshotScheduleSection();
 			}
 		} );
-
 	};
 
-	component.updateSnapshotScheduleBox = function updateSnapshotScheduleBox() {
+	/**
+	 * Updates snapshot schedule section with `component.data`.
+	 *
+	 * @return {void}
+	 */
+	component.updateSnapshotScheduleSection = function updateSnapshotScheduleSection() {
 		var parsed;
-		if ( _.isEmpty( component.snapshotScheduleBox ) ) {
+		if ( _.isEmpty( component.snapshotScheduleSection ) ) {
 			return;
 		}
 		if ( '0000-00-00 00:00:00' === component.data.snapshotPublishDate ) {
@@ -258,8 +279,8 @@
 		// Update date controls.
 		component.snapshotEditLink.attr( 'href', component.data.editLink );
 		parsed = component.parseDateTime( component.data.snapshotPublishDate );
-		_.each( component.dateComponentInputs, function populateInput( node, component ) {
-			$( node ).val( parsed[component] );
+		_.each( component.dateComponentInputs, function populateInput( node, fieldName ) {
+			$( node ).val( parsed[fieldName] );
 		} );
 	};
 
@@ -271,7 +292,7 @@
 	component.addButtons = function() {
 		var header = $( '#customize-header-actions' ),
 			publishButton = header.find( '#save' ),
-			snapshotSlideDownToggleTemplate = wp.template( 'snapshot-toggle-button' ),
+			snapshotSlideDownToggleTemplate = wp.template( 'snapshot-schedule-button' ),
 			snapshotButton, submitButton, data, setPreviewLinkHref, snapshotSlideDownToggle, snapshotButtonText;
 
 		// Save/update button.

@@ -1090,18 +1090,18 @@ class Customize_Snapshot_Manager {
 			</a>
 		</script>
 
-		<script type="text/html" id="tmpl-snapshot-toggle-button">
-			<a href="#" id="snapshot-toggle-button" class="dashicons dashicons-calendar-alt" title="<?php esc_attr_e( 'Schedule Snapshot','customize-snapshots' ); ?>"></a>
+		<script type="text/html" id="tmpl-snapshot-schedule-button">
+			<a href="#" id="snapshot-schedule-button" class="dashicons dashicons-calendar-alt" title="<?php esc_attr_e( 'Schedule Snapshot','customize-snapshots' ); ?>"></a>
 		</script>
 
 		<script type="text/html" id="tmpl-snapshot-schedule-accordion">
-			<div id="customize-schedule-box" class="accordion-section">
-				<div class="accordion-section-title">
-					<div class="preview-notice">
-						<strong class="panel-title site-title"><?php esc_html_e( 'Schedule Snapshot', 'customize-snapshots' ); ?></strong>
+			<div id="snapshot-schedule-section" class="accordion-section">
+				<div class="snapshot-schedule-title">
+					<h3>
+						<?php esc_html_e( 'Schedule Snapshot', 'customize-snapshots' ); ?>
 						<span class="wrap-reset-time">(<a href="#" class="reset-time"><?php esc_html_e( 'Reset', 'customize-posts' ) ?></a>)</span>
-					</div>
-					<span class="description snapshot-description">
+					</h3>
+					<span class="snapshot-schedule-description">
 						<?php
 						$tz_string = get_option( 'timezone_string' );
 						if ( $tz_string ) {
@@ -1118,12 +1118,12 @@ class Customize_Snapshot_Manager {
 							$date_control_description = sprintf( __( 'Dates are in UTC%s.', 'customize-snapshots' ), $formatted_gmt_offset );
 						}
 						?>
-						<span class="scheduled-countdown"></span>
+						<span class="snapshot-scheduled-countdown"></span>
 						<span class="timezone-info"><?php echo esc_html( $date_control_description ); ?></span>
 					</span>
 					<a href={{ data.editLink }} class="dashicons dashicons-edit snapshot-edit-link" aria-expanded="false"></a>
 				</div>
-				<div class="customize-snapshot-control">
+				<div class="snapshot-schedule-control">
 					<# _.defaults( data, <?php echo wp_json_encode( $data ) ?> );
 						data.input_id_post_date = 'input-' + String( Math.random() );
 						data.input_id_post_date_gmt = 'input-' + String( Math.random() );
