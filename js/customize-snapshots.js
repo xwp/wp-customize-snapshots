@@ -59,7 +59,7 @@
 			$( '#snapshot-save' ).on( 'click', function( event ) {
 				var scheduleDate;
 				event.preventDefault();
-				if ( $( this ).html() === component.data.i18n.scheduleButton && ! _.isEmpty( component.snapshotScheduleSection ) && component.getDateFromInputs() && component.isScheduleDateFuture() ) {
+				if ( ! _.isEmpty( component.snapshotScheduleSection ) && component.getDateFromInputs() && component.isScheduleDateFuture() ) {
 					scheduleDate = component.getDateFromInputs();
 					component.sendUpdateSnapshotRequest( {
 						status: 'future',
