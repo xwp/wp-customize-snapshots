@@ -1,5 +1,7 @@
 /* global jQuery, _customizeSnapshots */
 /* eslint-disable no-extra-parens */
+/* eslint no-magic-numbers: ["error", { "ignore": [-1,0,1,1000] }] */
+/* eslint complexity: ["error", 7] */
 
 ( function( api, $ ) {
 	'use strict';
@@ -52,7 +54,7 @@
 
 			component.extendPreviewerQuery();
 			component.addButtons();
-			component.addSlideDown();
+			component.addSnapshotScheduleBox();
 
 			$( '#snapshot-save' ).on( 'click', function( event ) {
 				var scheduleDate;
@@ -177,7 +179,12 @@
 
 	component.snapshotScheduleBox = {};
 
-	component.addSlideDown = function slideDown() {
+	/**
+	 * Renders Snapshot Schedule Box and handles it's events.
+	 *
+	 * @returns {void}
+	 */
+	component.addSnapshotScheduleBox = function addSnapshotScheduleBox() {
 		var snapshotScheduleBoxTemplate = wp.template( 'snapshot-schedule-accordion' ),
 			snapshotScheduleBox = component.snapshotScheduleBox;
 		component.snapshotSlideDownToggle.click( function( e ) {
@@ -209,10 +216,10 @@
 					component.populateSetting();
 				} );
 				component.updateScheduledCountdown();
-				component.resetTimeButton.on( 'click', function( e ) {
+				component.resetTimeButton.on( 'click', function( event ) {
 					component.updateSnapshotScheduleBox();
 					component.resetTimeWrap.hide();
-					e.preventDefault();
+					event.preventDefault();
 				} );
 			} else {
 
@@ -246,6 +253,11 @@
 
 	};
 
+	/**
+	 * Updates snapshot schedule box with component.data
+	 *
+	 * @returns {void}
+	 */
 	component.updateSnapshotScheduleBox = function updateSnapshotScheduleBox() {
 		var parsed;
 		if ( _.isEmpty( component.snapshotScheduleBox ) ) {
@@ -258,8 +270,8 @@
 		// Update date controls.
 		component.snapshotEditLink.attr( 'href', component.data.editLink );
 		parsed = component.parseDateTime( component.data.snapshotPublishDate );
-		_.each( component.dateComponentInputs, function populateInput( node, component ) {
-			$( node ).val( parsed[component] );
+		_.each( component.dateComponentInputs, function populateInput( node, fieldName ) {
+			$( node ).val( parsed[fieldName] );
 		} );
 	};
 
@@ -615,39 +627,37 @@
 		date = component.getDateFromInputs();
 		if ( ! date ) {
 			return false;
-		} else {
-			save = $( '#snapshot-save' );
-			isScheduleDateUpdated = component.formatDate( date ) !== component.data.snapshotPublishDate;
-			if ( component.isScheduleDateFuture() ) {
-
-				// Change update button to schedule.
-				if ( save.length ) {
-					save.html( component.data.i18n.scheduleButton );
-					if ( isScheduleDateUpdated || component.data.isSnapshotHasUnsavedChanges ) {
-						save.prop( 'disabled', false );
-					} else {
-						save.prop( 'disabled', true );
-					}
-				}
-			} else {
-				if ( save.length ) {
-					save.html( component.data.i18n.updateButton );
-					save.prop( 'disabled', ! component.data.isSnapshotHasUnsavedChanges );
-				}
-			}
-			component.updateScheduledCountdown();
-			date.setSeconds( 0 );
-			if ( isScheduleDateUpdated ) {
-				component.resetTimeWrap.show();
-			} else {
-				component.resetTimeWrap.hide();
-			}
 		}
+		save = $( '#snapshot-save' );
+		isScheduleDateUpdated = component.formatDate( date ) !== component.data.snapshotPublishDate;
+		if ( component.isScheduleDateFuture() && save.length ) {
+
+			// Change update button to schedule.
+			save.html( component.data.i18n.scheduleButton );
+			if ( isScheduleDateUpdated || component.data.isSnapshotHasUnsavedChanges ) {
+				save.prop( 'disabled', false );
+			} else {
+				save.prop( 'disabled', true );
+			}
+		} else if ( save.length ) {
+			save.html( component.data.i18n.updateButton );
+			save.prop( 'disabled', ! component.data.isSnapshotHasUnsavedChanges );
+		}
+		component.updateScheduledCountdown();
+		date.setSeconds( 0 );
+		if ( isScheduleDateUpdated ) {
+			component.resetTimeWrap.show();
+		} else {
+			component.resetTimeWrap.hide();
+		}
+		return true;
+
 	};
 
 	/**
 	 * Check if snapshot schedule date is in future date
-	 * @returns {boolean}
+	 *
+	 * @returns {boolean} if date in input controls is of future
 	 */
 	component.isScheduleDateFuture = function isScheduleDateFuture() {
 		var date, remainingTime;
