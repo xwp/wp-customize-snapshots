@@ -57,7 +57,7 @@
 	}
 }
 
-#snapshot-schedule-section {
+#snapshot-schedule {
 	background: #fff !important;
 	border-bottom: 1px solid #ddd;
 	line-height: 1.5;
@@ -68,16 +68,16 @@
 	box-shadow: 0 5px 0 0 rgba(0,0,0,0.05);
 }
 
-#snapshot-schedule-section .snapshot-schedule-title {
+#snapshot-schedule .snapshot-schedule-title {
 	color: #555;
 	padding: 10px 10px 0;
 }
 
-#snapshot-schedule-section .snapshot-schedule-title h3 {
+#snapshot-schedule .snapshot-schedule-title h3 {
 	margin: .2em 2em .75em 0;
 }
 
-#snapshot-schedule-section a.snapshot-edit-link {
+#snapshot-schedule a.snapshot-edit-link {
 	position: absolute;
 	top: 4px;
 	right: 1px;
@@ -93,15 +93,39 @@
 	padding: 10px;
 }
 
-#snapshot-schedule-section .snapshot-schedule-control {
+#snapshot-schedule a.snapshot-edit-link:focus,
+#snapshot-schedule a.snapshot-edit-link:hover {
+	color: #0073aa;
+	
+}
+			
+#snapshot-schedule a.snapshot-edit-link:before {
+	padding: 4px;
+	position: absolute;
+	top: 5px;
+	left: 6px;
+	-webkit-border-radius: 100%;
+	border-radius: 100%;
+}
+
+#snapshot-schedule a.snapshot-edit-link:focus:before {
+	-webkit-box-shadow:
+		0 0 0 1px #5b9dd9,
+		0 0 2px 1px rgba(30, 140, 190, .8);
+	box-shadow:
+		0 0 0 1px #5b9dd9,
+		0 0 2px 1px rgba(30, 140, 190, .8);
+}
+
+#snapshot-schedule .snapshot-schedule-control {
 	padding: 10px;
 }
 
-#snapshot-schedule-section .accordion-section-title {
+#snapshot-schedule .accordion-section-title {
 	padding: 10px;
 }
 
-#snapshot-schedule-section .wrap-reset-time {
+#snapshot-schedule .reset-time {
 	font-weight: normal;
 	font-size: 80%;
 	display: none;
