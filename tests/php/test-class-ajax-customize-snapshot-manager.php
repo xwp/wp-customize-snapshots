@@ -455,7 +455,7 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 		);
 		require_once ABSPATH . WPINC . '/class-wp-customize-manager.php';
 		if ( ! method_exists( 'WP_Customize_Manager', 'prepare_setting_validity_for_js' ) ) {
-			unset( $expected_results['data']['errors'], $expected_results['data']['setting_validities'] );
+			unset( $expected_results['data']['setting_validities'] );
 		}
 		// Get the results.
 		$response = json_decode( $this->_last_response, true );
