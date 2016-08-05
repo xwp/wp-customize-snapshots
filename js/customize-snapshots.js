@@ -357,6 +357,8 @@
 		api.state( 'saved' ).bind( function( saved ) {
 			if ( saved && ! _.isEmpty( component.schedule.template ) ) {
 				component.schedule.template.hide();
+				component.data.publishDate = '0000-00-00 00:00:00';
+				component.data.dirty = false;
 			}
 		} );
 
