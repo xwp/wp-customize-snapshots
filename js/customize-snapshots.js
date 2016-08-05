@@ -751,7 +751,7 @@
 		remainingTime -= component.dateValueOf( component.getCurrentTime() );
 		remainingTime = Math.ceil( remainingTime / millisecondsDivider );
 
-		return ( 0 < remainingTime );
+		return 0 < remainingTime;
 	};
 
 	/**
@@ -777,7 +777,7 @@
 	 * Get the primitive value of a Date object.
 	 *
 	 * @param {string} dateString The post status for the snapshot.
-	 * @return {string}
+	 * @return {object|string} The primitive value or date object.
 	 */
 	component.dateValueOf = function( dateString ) {
 		var date;
