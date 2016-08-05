@@ -777,7 +777,7 @@
 	 * Get the primitive value of a Date object.
 	 *
 	 * @param {string} dateString The post status for the snapshot.
-	 * @return {object|string} The primitive value or date object.
+	 * @returns {object|string} The primitive value or date object.
 	 */
 	component.dateValueOf = function( dateString ) {
 		var date;
