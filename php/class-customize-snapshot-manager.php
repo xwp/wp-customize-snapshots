@@ -1164,23 +1164,27 @@ class Customize_Snapshot_Manager {
 
 		<script id="tmpl-snapshot-scheduled-countdown" type="text/html">
 			<# if ( data.remainingTime < 2 * 60 ) { #>
-			<?php esc_html_e( 'This is scheduled for publishing in about a minute.', 'customize-snapshots' ); ?>
+				<?php esc_html_e( 'This is scheduled for publishing in about a minute.', 'customize-snapshots' ); ?>
+
 			<# } else if ( data.remainingTime < 60 * 60 ) { #>
-			<?php
-			/* translators: %s is a placeholder for the Underscore template var */
-			echo sprintf( esc_html__( 'This snapshot is scheduled for publishing in about %s minutes.', 'customize-snapshots' ), '{{ Math.ceil( data.remainingTime / 60 ) }}' );
-			?>
+				<?php
+				/* translators: %s is a placeholder for the Underscore template var */
+				echo sprintf( esc_html__( 'This snapshot is scheduled for publishing in about %s minutes.', 'customize-snapshots' ), '{{ Math.ceil( data.remainingTime / 60 ) }}' );
+				?>
+
 			<# } else if ( data.remainingTime < 24 * 60 * 60 ) { #>
-			<?php
-			/* translators: %s is a placeholder for the Underscore template var */
-			echo sprintf( esc_html__( 'This snapshot is scheduled for publishing in about %s hours.', 'customize-snapshots' ), '{{ Math.round( data.remainingTime / 60 / 60 * 10 ) / 10 }}' );
-			?>
+				<?php
+				/* translators: %s is a placeholder for the Underscore template var */
+				echo sprintf( esc_html__( 'This snapshot is scheduled for publishing in about %s hours.', 'customize-snapshots' ), '{{ Math.round( data.remainingTime / 60 / 60 * 10 ) / 10 }}' );
+				?>
+
 			<# } else { #>
 				<?php
 				/* translators: %s is a placeholder for the Underscore template var */
 				echo sprintf( esc_html__( 'This snapshot is scheduled for publishing in about %s days.', 'customize-snapshots' ), '{{ Math.round( data.remainingTime / 60 / 60 / 24 * 10 ) / 10 }}' );
 				?>
-				<# } #>
+
+			<# } #>
 		</script>
 
 		<script type="text/html" id="tmpl-snapshot-save">
