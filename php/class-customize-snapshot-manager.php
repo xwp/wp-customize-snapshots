@@ -626,9 +626,18 @@ class Customize_Snapshot_Manager {
 		}
 
 		if ( ! $this->snapshot->post() || 'publish' !== $this->snapshot->post()->post_status ) {
-			$r = $this->snapshot->save( array(
+			$args = array(
 				'status' => 'publish',
-			) );
+			);
+
+			// Ensure a scheduled Snapshot is published.
+			if ( 'future' === $this->snapshot->post()->post_status ) {
+				$args['edit_date'] = true;
+				$args['post_date'] = current_time( 'mysql', false );
+				$args['post_date_gmt'] = current_time( 'mysql', true );
+			}
+
+			$r = $this->snapshot->save( $args );
 			if ( is_wp_error( $r ) ) {
 				add_filter( 'customize_save_response', function( $response ) use ( $r, $that ) {
 					$response['snapshot_errors'] = $that->prepare_errors_for_response( $r );

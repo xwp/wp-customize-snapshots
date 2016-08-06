@@ -332,9 +332,7 @@
 
 			component.schedule.template.find( '.reset-time a' ).on( 'click', function( event ) {
 				event.preventDefault();
-
 				component.updateSchedule();
-				component.populateSetting();
 			} );
 		}
 
@@ -356,8 +354,9 @@
 
 		api.state( 'saved' ).bind( function( saved ) {
 			if ( saved && ! _.isEmpty( component.schedule.template ) ) {
+				component.data.publishDate = component.getCurrentTime();
+				component.updateSchedule();
 				component.schedule.template.hide();
-				component.data.publishDate = '0000-00-00 00:00:00';
 				component.data.dirty = false;
 			}
 		} );
