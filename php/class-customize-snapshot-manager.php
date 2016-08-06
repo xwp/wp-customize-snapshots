@@ -631,7 +631,7 @@ class Customize_Snapshot_Manager {
 			);
 
 			// Ensure a scheduled Snapshot is published.
-			if ( 'future' === $this->snapshot->post()->post_status ) {
+			if ( $this->snapshot->post() && 'future' === $this->snapshot->post()->post_status ) {
 				$args['edit_date'] = true;
 				$args['post_date'] = current_time( 'mysql', false );
 				$args['post_date_gmt'] = current_time( 'mysql', true );
