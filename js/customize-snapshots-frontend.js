@@ -1,8 +1,9 @@
-/* global jQuery */
+/* global jQuery, confirm */
 /* exported CustomizeSnapshotsFrontend */
 /* eslint consistent-this: [ "error", "section" ], no-magic-numbers: [ "error", { "ignore": [0,1] } ] */
+/* eslint-disable no-alert */
 
-// @todo Use session storage to make sure the user stays in the snapshot frontend preview, unless explicitly exited. Warn with confirm if clicking.
+// @todo Allow the session to be explicitly exited. Warn with confirm if clicking a non-snapshotted link (to the admin).
 // @todo Inject customize_snapshot_uuid into all Ajax requests back to the site.
 
 var CustomizeSnapshotsFrontend = ( function( $ ) {
@@ -15,6 +16,9 @@ var CustomizeSnapshotsFrontend = ( function( $ ) {
 				scheme: '',
 				host: '',
 				path: ''
+			},
+			l10n: {
+				restoreSessionPrompt: ''
 			}
 		}
 	};
@@ -27,15 +31,65 @@ var CustomizeSnapshotsFrontend = ( function( $ ) {
 	 * @returns {void}
 	 */
 	component.init = function init( args ) {
-		if ( ! args.uuid ) {
-			throw new Error( 'Missing UUID' );
-		}
-
 		_.extend( component.data, args );
 
-		// Inject snapshot UUID into links on click.
+		component.keepSessionAlive();
+		component.rememberSessionSnapshot();
+		component.injectSnapshotIntoLinks();
+	};
+
+	/**
+	 * Prompt to restore session.
+	 *
+	 * @returns {void}
+	 */
+	component.keepSessionAlive = function keepSessionAlive() {
+		var currentSnapshotUuid, urlParser;
+		if ( 'undefined' === typeof sessionStorage ) {
+			return;
+		}
+		currentSnapshotUuid = sessionStorage.getItem( 'customize_snapshot_uuid' );
+		if ( ! currentSnapshotUuid || component.data.uuid ) {
+			return;
+		}
+		if ( confirm( component.data.l10n.restoreSessionPrompt ) ) {
+			urlParser = document.createElement( 'a' );
+			urlParser.href = location.href;
+			if ( urlParser.search.length > 1 ) {
+				urlParser.search += '&';
+			}
+			urlParser.search += 'customize_snapshot_uuid=' + encodeURIComponent( sessionStorage.getItem( 'customize_snapshot_uuid' ) );
+			location.replace( urlParser.href );
+		} else {
+			sessionStorage.removeItem( 'customize_snapshot_uuid' );
+		}
+	};
+
+	/**
+	 * Remember the session's snapshot.
+	 *
+	 * Persist the snapshot UUID in session storage so that we can prompt to restore the snapshot query param if inadvertently dropped.
+	 *
+	 * @returns {void}
+	 */
+	component.rememberSessionSnapshot = function rememberSessionSnapshot() {
+		if ( 'undefined' === typeof sessionStorage || ! component.data.uuid ) {
+			return;
+		}
+		sessionStorage.setItem( 'customize_snapshot_uuid', component.data.uuid );
+	};
+
+	/**
+	 * Inject the snapshot UUID into links in the document.
+	 *
+	 * @returns {void}
+	 */
+	component.injectSnapshotIntoLinks = function injectSnapshotIntoLinks() {
+		if ( ! component.data.uuid ) {
+			return;
+		}
 		$( document.documentElement ).on( 'click focus mouseover', 'a, area', function() {
-			component.injectQueryParam( this );
+			component.injectLinkQueryParam( this );
 		} );
 	};
 
@@ -46,7 +100,7 @@ var CustomizeSnapshotsFrontend = ( function( $ ) {
 	 * @param {object} element.search Query string.
 	 * @returns {void}
 	 */
-	component.injectQueryParam = function injectQueryParam( element ) {
+	component.injectLinkQueryParam = function injectLinkQueryParam( element ) {
 		if ( element.hostname !== component.data.home_url.host ) {
 			return;
 		}

@@ -570,13 +570,16 @@ class Customize_Snapshot_Manager {
 	 * Enqueue Customizer frontend scripts.
 	 */
 	public function enqueue_frontend_scripts() {
-		if ( $this->snapshot ) {
+		if ( $this->snapshot || current_user_can( 'customize' ) ) {
 			$handle = 'customize-snapshots-frontend';
 			wp_enqueue_script( $handle );
 
 			$exports = array(
-				'uuid' => $this->snapshot->uuid(),
+				'uuid' => $this->snapshot ? $this->snapshot->uuid() : null,
 				'home_url' => wp_parse_url( home_url( '/' ) ),
+				'l10n' => array(
+					'restoreSessionPrompt' => __( 'It seems you may have inadvertently navigated away from previewing a customized state. Would you like to restore the snapshot context?', 'customize-snapshots' ),
+				),
 			);
 			wp_add_inline_script(
 				$handle,
