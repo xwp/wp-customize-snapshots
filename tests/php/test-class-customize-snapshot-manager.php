@@ -94,13 +94,21 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	}
 
 	/**
+	 * Clean up global scope.
+	 */
+	function clean_up_global_scope() {
+		unset( $GLOBALS['wp_scripts'] );
+		unset( $GLOBALS['wp_styles'] );
+		parent::clean_up_global_scope();
+	}
+
+	/**
 	 * Tear down.
 	 */
 	function tearDown() {
 		$this->wp_customize = null;
 		$this->manager = null;
 		unset( $GLOBALS['wp_customize'] );
-		unset( $GLOBALS['wp_scripts'] );
 		unset( $GLOBALS['screen'] );
 		$_REQUEST = array();
 		parent::tearDown();
@@ -342,18 +350,40 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	}
 
 	/**
-	 * Test enqueue scripts.
+	 * Test enqueue controls scripts.
 	 *
 	 * @see Customize_Snapshot_Manager::enqueue_controls_scripts()
 	 */
-	function test_enqueue_scripts() {
+	function test_enqueue_controls_scripts() {
 		$this->plugin->register_scripts( wp_scripts() );
 		$this->plugin->register_styles( wp_styles() );
 		$manager = new Customize_Snapshot_Manager( $this->plugin );
 		$manager->init();
 		$manager->enqueue_controls_scripts();
-		$this->assertTrue( wp_script_is( $this->plugin->slug, 'enqueued' ) );
-		$this->assertTrue( wp_style_is( $this->plugin->slug, 'enqueued' ) );
+		$this->assertTrue( wp_script_is( 'customize-snapshots', 'enqueued' ) );
+		$this->assertTrue( wp_style_is( 'customize-snapshots', 'enqueued' ) );
+	}
+
+	/**
+	 * Test enqueue frontend scripts.
+	 *
+	 * @see Customize_Snapshot_Manager::enqueue_frontend_scripts()
+	 */
+	function test_enqueue_frontend_scripts() {
+		$this->plugin->register_scripts( wp_scripts() );
+		$this->plugin->register_styles( wp_styles() );
+		$manager = new Customize_Snapshot_Manager( $this->plugin );
+		$manager->init();
+		$this->assertFalse( wp_script_is( 'customize-snapshots-frontend', 'enqueued' ) );
+		$manager->enqueue_frontend_scripts();
+		$this->assertFalse( wp_script_is( 'customize-snapshots-frontend', 'enqueued' ) );
+
+		$_REQUEST['customize_snapshot_uuid'] = self::UUID;
+		$manager = new Customize_Snapshot_Manager( $this->plugin );
+		$manager->init();
+		$this->assertFalse( wp_script_is( 'customize-snapshots-frontend', 'enqueued' ) );
+		$manager->enqueue_frontend_scripts();
+		$this->assertTrue( wp_script_is( 'customize-snapshots-frontend', 'enqueued' ) );
 	}
 
 	/**
