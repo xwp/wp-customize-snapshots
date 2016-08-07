@@ -115,6 +115,7 @@ class Customize_Snapshot_Manager {
 		if ( $this->current_snapshot_uuid ) {
 			$this->ensure_customize_manager();
 
+			add_action( 'wp_head', array( $this, 'print_admin_bar_styles' ) );
 			add_action( 'wp_ajax_' . self::AJAX_ACTION, array( $this, 'handle_update_snapshot_request' ) );
 
 			$this->snapshot = new Customize_Snapshot( $this, $this->current_snapshot_uuid );
@@ -411,17 +412,6 @@ class Customize_Snapshot_Manager {
 	}
 
 	/**
-	 * Get the current URL.
-	 *
-	 * @return string
-	 */
-	public function current_url() {
-		$http_host = isset( $_SERVER['HTTP_HOST'] ) ? wp_unslash( $_SERVER['HTTP_HOST'] ) : parse_url( home_url(), PHP_URL_HOST ); // WPCS: input var ok; sanitization ok.
-		$request_uri = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '/'; // WPCS: input var ok; sanitization ok.
-		return ( is_ssl() ? 'https://' : 'http://' ) . $http_host . $request_uri;
-	}
-
-	/**
 	 * Add snapshot UUID the Customizer return URL.
 	 *
 	 * If the Customizer was loaded with a snapshot UUID, let the return URL include this snapshot.
@@ -441,15 +431,6 @@ class Customize_Snapshot_Manager {
 			$return_url = add_query_arg( array_map( 'rawurlencode', $args ), $this->customize_manager->get_return_url() );
 			$this->customize_manager->set_return_url( $return_url );
 		}
-	}
-
-	/**
-	 * Get the clean version of current URL.
-	 *
-	 * @return string
-	 */
-	public function remove_snapshot_uuid_from_current_url() {
-		return remove_query_arg( array( 'customize_snapshot_uuid' ), $this->current_url() );
 	}
 
 	/**
@@ -1028,9 +1009,23 @@ class Customize_Snapshot_Manager {
 	 * @param \WP_Admin_Bar $wp_admin_bar WP_Admin_Bar instance.
 	 */
 	public function customize_menu( $wp_admin_bar ) {
+		add_action( 'wp_before_admin_bar_render', 'wp_customize_support_script' );
 		$this->replace_customize_link( $wp_admin_bar );
 		$this->add_post_edit_screen_link( $wp_admin_bar );
-		add_action( 'wp_before_admin_bar_render', 'wp_customize_support_script' );
+	}
+
+	/**
+	 * Print admin bar styles.
+	 */
+	public function print_admin_bar_styles() {
+		?>
+		<style type="text/css">
+		#wpadminbar #wp-admin-bar-inspect-snapshot > .ab-item:before {
+			content: "\f179";
+			top: 2px;
+		}
+		</style>
+		<?php
 	}
 
 	/**
@@ -1046,11 +1041,13 @@ class Customize_Snapshot_Manager {
 		if ( ! $post ) {
 			return;
 		}
-		$wp_admin_bar->add_node( array(
-			'parent' => 'customize',
-			'id' => 'snapshot-view-link',
+		$wp_admin_bar->add_menu( array(
+			'id' => 'inspect-snapshot',
 			'title' => __( 'Inspect Snapshot', 'customize-snapshots' ),
 			'href' => get_edit_post_link( $post->ID, 'raw' ),
+			'meta' => array(
+				'class' => 'ab-item ab-snapshot-item',
+			),
 		) );
 	}
 
@@ -1061,28 +1058,36 @@ class Customize_Snapshot_Manager {
 	 */
 	public function replace_customize_link( $wp_admin_bar ) {
 		// Don't show for users who can't access the customizer or when in the admin.
-		if ( ! current_user_can( 'customize' ) || is_admin() ) {
+		if ( empty( $this->current_snapshot_uuid ) ) {
 			return;
 		}
 
-		$args = array();
-		if ( $this->current_snapshot_uuid ) {
-			$args['customize_snapshot_uuid'] = $this->current_snapshot_uuid;
+		$customize_node = $wp_admin_bar->get_node( 'customize' );
+		if ( empty( $customize_node ) ) {
+			return;
 		}
 
-		$args['url'] = esc_url_raw( $this->remove_snapshot_uuid_from_current_url() );
-		$customize_url = add_query_arg( array_map( 'rawurlencode', $args ), wp_customize_url() );
+		// Remove customize_snapshot_uuuid query param from url param to be previewed in Customizer.
+		$preview_url_query_params = array();
+		$preview_url_parsed = wp_parse_url( $customize_node->href );
+		parse_str( $preview_url_parsed['query'], $preview_url_query_params );
+		if ( ! empty( $preview_url_query_params['url'] ) ) {
+			$preview_url_query_params['url'] = remove_query_arg( array( 'customize_snapshot_uuid' ), $preview_url_query_params['url'] );
+			$customize_node->href = preg_replace(
+				'/(?<=\?).*?(?=#|$)/',
+				build_query( $preview_url_query_params ),
+				$customize_node->href
+			);
+		}
 
-		$wp_admin_bar->add_menu(
-			array(
-				'id'     => 'customize',
-				'title'  => __( 'Customize', 'customize-snapshots' ),
-				'href'   => $customize_url,
-				'meta'   => array(
-					'class' => 'hide-if-no-customize',
-				),
-			)
+		// Add customize_snapshot_uuid param as param to customize.php itself.
+		$customize_node->href = add_query_arg(
+			array( 'customize_snapshot_uuid' => $this->current_snapshot_uuid ),
+			$customize_node->href
 		);
+
+		$customize_node->meta['class'] .= ' ab-snapshot-item';
+		$wp_admin_bar->add_menu( (array) $customize_node );
 	}
 
 	/**

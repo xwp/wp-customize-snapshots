@@ -99,6 +99,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	function clean_up_global_scope() {
 		unset( $GLOBALS['wp_scripts'] );
 		unset( $GLOBALS['wp_styles'] );
+		unset( $_REQUEST['customize_snapshot_uuid'] );
 		parent::clean_up_global_scope();
 	}
 
@@ -291,22 +292,6 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 			$manager->add_snapshot_uuid_to_return_url();
 			$this->assertContains( 'customize_snapshot_uuid', $manager->customize_manager->get_return_url() );
 		}
-	}
-
-	/**
-	 * Test remove snapshot uuid from current url.
-	 *
-	 * @covers Customize_Snapshot_Manager::remove_snapshot_uuid_from_current_url()
-	 * @covers Customize_Snapshot_Manager::current_url()
-	 */
-	function test_remove_snapshot_uuid_from_current_url() {
-		$this->go_to( home_url( '?customize_snapshot_uuid=' . self::UUID ) );
-		ob_start();
-		$manager = new Customize_Snapshot_Manager( $this->plugin );
-		$this->assertContains( 'customize_snapshot_uuid', $manager->current_url() );
-		echo $manager->remove_snapshot_uuid_from_current_url(); // WPCS: xss ok.
-		$buffer = ob_get_clean();
-		$this->assertEquals( home_url( '/' ), $buffer );
 	}
 
 	/**
@@ -560,21 +545,28 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	 */
 	public function test_customize_menu() {
 		set_current_screen( 'front' );
-		$customize_url = admin_url( 'customize.php' ) . '?customize_snapshot_uuid=' . self::UUID . '&url=' . urlencode( esc_url( home_url( '/' ) ) );
+		$preview_url = home_url( '/' );
+		$customize_url = admin_url( 'customize.php' ) . '?customize_snapshot_uuid=' . self::UUID . '&url=' . urlencode( $preview_url );
 
 		$_REQUEST['customize_snapshot_uuid'] = self::UUID;
 		$manager = new Customize_Snapshot_Manager( $this->plugin );
 		$manager->init();
 
 		require_once( ABSPATH . WPINC . '/class-wp-admin-bar.php' );
-		$wp_admin_bar = new \WP_Admin_Bar();
+		$wp_admin_bar = new \WP_Admin_Bar(); // WPCS: Override OK.
 		$this->assertInstanceOf( 'WP_Admin_Bar', $wp_admin_bar );
 
 		wp_set_current_user( $this->user_id );
 		$this->go_to( home_url( '?customize_snapshot_uuid=' . self::UUID ) );
+		$wp_admin_bar->initialize();
+		$wp_admin_bar->add_menus();
 
 		do_action_ref_array( 'admin_bar_menu', array( &$wp_admin_bar ) );
-		$this->assertEquals( $customize_url, $wp_admin_bar->get_node( 'customize' )->href );
+		$parsed_url = wp_parse_url( $wp_admin_bar->get_node( 'customize' )->href );
+		$query_params = array();
+		wp_parse_str( $parsed_url['query'], $query_params );
+		$this->assertEquals( $preview_url, $query_params['url'] );
+		$this->assertEquals( self::UUID, $query_params['customize_snapshot_uuid'] );
 	}
 
 	/**
@@ -584,7 +576,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	 */
 	public function test_customize_menu_return() {
 		require_once( ABSPATH . WPINC . '/class-wp-admin-bar.php' );
-		$wp_admin_bar = new \WP_Admin_Bar;
+		$wp_admin_bar = new \WP_Admin_Bar(); // WPCS: Override OK.
 		$this->assertInstanceOf( 'WP_Admin_Bar', $wp_admin_bar );
 
 		wp_set_current_user( $this->factory()->user->create( array( 'role' => 'editor' ) ) );
@@ -592,6 +584,19 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 
 		do_action_ref_array( 'admin_bar_menu', array( &$wp_admin_bar ) );
 		$this->assertNull( $wp_admin_bar->get_node( 'customize' ) );
+	}
+
+	/**
+	 * Tests print_admin_bar_styles.
+	 *
+	 * @covers Customize_Snapshot_Manager::print_admin_bar_styles()
+	 */
+	public function test_print_admin_bar_styles() {
+		$manager = new Customize_Snapshot_Manager( $this->plugin );
+		ob_start();
+		$manager->print_admin_bar_styles();
+		$contents = ob_get_clean();
+		$this->assertContains( '<style', $contents );
 	}
 
 	/**
@@ -609,7 +614,38 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	 * @covers Customize_Snapshot_Manager::replace_customize_link()
 	 */
 	public function test_replace_customize_link() {
-		$this->markTestIncomplete();
+		global $wp_admin_bar;
+
+		require_once ABSPATH . WPINC . '/class-wp-admin-bar.php';
+		remove_all_actions( 'admin_bar_menu' );
+		$this->go_to( home_url( '?customize_snapshot_uuid=' . self::UUID ) );
+		$_REQUEST['customize_snapshot_uuid'] = self::UUID;
+
+		$manager = new Customize_Snapshot_Manager( $this->plugin );
+		$manager->init();
+
+		wp_set_current_user( 0 );
+		$wp_admin_bar = new \WP_Admin_Bar(); // WPCS: Override OK.
+		$wp_admin_bar->initialize();
+		$wp_admin_bar->add_menus();
+		do_action_ref_array( 'admin_bar_menu', array( &$wp_admin_bar ) );
+		$this->assertEmpty( $wp_admin_bar->get_node( 'customize' ) );
+
+		wp_set_current_user( $this->user_id );
+		$wp_admin_bar = new \WP_Admin_Bar(); // WPCS: Override OK.
+		$wp_admin_bar->initialize();
+		$wp_admin_bar->add_menus();
+		do_action_ref_array( 'admin_bar_menu', array( &$wp_admin_bar ) );
+		$node = $wp_admin_bar->get_node( 'customize' );
+		$this->assertTrue( is_object( $node ) );
+		$parsed_url = wp_parse_url( $node->href );
+		$query_params = array();
+		parse_str( $parsed_url['query'], $query_params );
+		$this->assertArrayHasKey( 'customize_snapshot_uuid', $query_params );
+		$this->assertEquals( self::UUID, $query_params['customize_snapshot_uuid'] );
+		$this->assertArrayHasKey( 'url', $query_params );
+		$parsed_preview_url = wp_parse_url( $query_params['url'] );
+		$this->assertArrayNotHasKey( 'query', $parsed_preview_url );
 	}
 
 	/**
