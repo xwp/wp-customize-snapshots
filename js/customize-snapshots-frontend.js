@@ -18,7 +18,8 @@ var CustomizeSnapshotsFrontend = ( function( $ ) {
 				path: ''
 			},
 			l10n: {
-				restoreSessionPrompt: ''
+				restoreSessionPrompt: '',
+				leaveSessionPrompt: ''
 			}
 		}
 	};
@@ -33,6 +34,8 @@ var CustomizeSnapshotsFrontend = ( function( $ ) {
 	component.init = function init( args ) {
 		_.extend( component.data, args );
 
+		component.hasSessionStorage = 'undefined' !== typeof sessionStorage;
+
 		component.keepSessionAlive();
 		component.rememberSessionSnapshot();
 		component.injectSnapshotIntoLinks();
@@ -45,7 +48,7 @@ var CustomizeSnapshotsFrontend = ( function( $ ) {
 	 */
 	component.keepSessionAlive = function keepSessionAlive() {
 		var currentSnapshotUuid, urlParser;
-		if ( 'undefined' === typeof sessionStorage ) {
+		if ( ! component.hasSessionStorage ) {
 			return;
 		}
 		currentSnapshotUuid = sessionStorage.getItem( 'customize_snapshot_uuid' );
@@ -73,7 +76,7 @@ var CustomizeSnapshotsFrontend = ( function( $ ) {
 	 * @returns {void}
 	 */
 	component.rememberSessionSnapshot = function rememberSessionSnapshot() {
-		if ( 'undefined' === typeof sessionStorage || ! component.data.uuid ) {
+		if ( ! component.hasSessionStorage || ! component.data.uuid ) {
 			return;
 		}
 		sessionStorage.setItem( 'customize_snapshot_uuid', component.data.uuid );
@@ -88,9 +91,62 @@ var CustomizeSnapshotsFrontend = ( function( $ ) {
 		if ( ! component.data.uuid ) {
 			return;
 		}
-		$( document.documentElement ).on( 'click focus mouseover', 'a, area', function() {
+		$( document.documentElement ).on( 'click focus mouseover', 'a, area', function( event ) {
 			component.injectLinkQueryParam( this );
+
+			if ( 'click' === event.type && ! component.isLinkSnapshottable( this ) ) {
+				if ( confirm( component.data.l10n.leaveSessionPrompt ) ) {
+					if ( component.hasSessionStorage ) {
+						sessionStorage.removeItem( 'customize_snapshot_uuid' );
+					}
+				} else {
+					event.preventDefault();
+				}
+			}
 		} );
+	};
+
+	/**
+	 * Should the supplied link have a snapshot UUID added (or does it have one already)?
+	 *
+	 * @param {HTMLAnchorElement|HTMLAreaElement} element Link element.
+	 * @param {string} element.search Query string.
+	 * @param {string} element.pathname Path.
+	 * @param {string} element.hostname Hostname.
+	 * @returns {boolean} Is appropriate for snapshot link.
+	 */
+	component.isLinkSnapshottable = function isLinkSnapshottable( element ) {
+		if ( element.hostname !== component.data.home_url.host ) {
+			return false;
+		}
+		if ( 0 !== element.pathname.indexOf( component.data.home_url.path ) ) {
+			return false;
+		}
+
+		if ( /\/wp-(login|signup)\.php$/.test( element.pathname ) ) {
+			return false;
+		}
+
+		// @todo The snapshot UUID is getting added here still.
+		if ( $( element ).parent().is( '#wp-admin-bar-snapshot-view-link' ) ) {
+			return true;
+		}
+
+		if ( /(^|&)customize_snapshot_uuid=/.test( element.search.substr( 1 ) ) ) {
+			return true;
+		}
+
+		// Allow links to admin ajax as faux frontend URLs.
+		if ( /\/wp-admin\/admin-ajax\.php$/.test( element.pathname ) ) {
+			return true;
+		}
+
+		// Disallow links to admin.
+		if ( /\/wp-admin(\/|$)/.test( element.pathname ) ) {
+			return false;
+		}
+
+		return true;
 	};
 
 	/**
@@ -101,10 +157,7 @@ var CustomizeSnapshotsFrontend = ( function( $ ) {
 	 * @returns {void}
 	 */
 	component.injectLinkQueryParam = function injectLinkQueryParam( element ) {
-		if ( element.hostname !== component.data.home_url.host ) {
-			return;
-		}
-		if ( 0 !== element.pathname.indexOf( component.data.home_url.path ) ) {
+		if ( ! component.isLinkSnapshottable( element ) ) {
 			return;
 		}
 		if ( /(^|&)customize_snapshot_uuid=/.test( element.search.substr( 1 ) ) ) {
