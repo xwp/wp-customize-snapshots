@@ -158,7 +158,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		$this->assertInstanceOf( 'CustomizeSnapshots\Post_Type', $manager->post_type );
 		$this->assertInstanceOf( 'CustomizeSnapshots\Customize_Snapshot', $manager->snapshot() );
 		$this->assertEquals( 0, has_action( 'init', array( $manager, 'create_post_type' ) ) );
-		$this->assertEquals( 10, has_action( 'customize_controls_enqueue_scripts', array( $manager, 'enqueue_scripts' ) ) );
+		$this->assertEquals( 10, has_action( 'customize_controls_enqueue_scripts', array( $manager, 'enqueue_controls_scripts' ) ) );
 		$this->assertEquals( 10, has_action( 'wp_ajax_customize_update_snapshot', array( $manager, 'handle_update_snapshot_request' ) ) );
 	}
 
@@ -344,14 +344,14 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	/**
 	 * Test enqueue scripts.
 	 *
-	 * @see Customize_Snapshot_Manager::enqueue_scripts()
+	 * @see Customize_Snapshot_Manager::enqueue_controls_scripts()
 	 */
 	function test_enqueue_scripts() {
 		$this->plugin->register_scripts( wp_scripts() );
 		$this->plugin->register_styles( wp_styles() );
 		$manager = new Customize_Snapshot_Manager( $this->plugin );
 		$manager->init();
-		$manager->enqueue_scripts();
+		$manager->enqueue_controls_scripts();
 		$this->assertTrue( wp_script_is( $this->plugin->slug, 'enqueued' ) );
 		$this->assertTrue( wp_style_is( $this->plugin->slug, 'enqueued' ) );
 	}

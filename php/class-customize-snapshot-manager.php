@@ -92,8 +92,10 @@ class Customize_Snapshot_Manager {
 
 		add_action( 'template_redirect', array( $this, 'show_theme_switch_error' ) );
 
+		add_action( 'customize_controls_enqueue_scripts', array( $this, 'enqueue_controls_scripts' ) );
+		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_frontend_scripts' ) );
+
 		add_action( 'customize_controls_init', array( $this, 'add_snapshot_uuid_to_return_url' ) );
-		add_action( 'customize_controls_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
 		add_action( 'customize_controls_print_footer_scripts', array( $this, 'render_templates' ) );
 		add_action( 'customize_save', array( $this, 'check_customize_publish_authorization' ), 10, 0 );
 		add_filter( 'customize_refresh_nonces', array( $this, 'filter_customize_refresh_nonces' ) );
@@ -518,15 +520,15 @@ class Customize_Snapshot_Manager {
 	 * @action customize_controls_enqueue_scripts
 	 * @global \WP_Customize_Manager $wp_customize
 	 */
-	public function enqueue_scripts() {
+	public function enqueue_controls_scripts() {
 
 		// Prevent loading the Snapshot interface if the theme is not active.
 		if ( ! $this->is_theme_active() ) {
 			return;
 		}
 
-		wp_enqueue_style( $this->plugin->slug );
-		wp_enqueue_script( $this->plugin->slug );
+		wp_enqueue_style( 'customize-snapshots' );
+		wp_enqueue_script( 'customize-snapshots' );
 
 		// Script data array.
 		$exports = apply_filters( 'customize_snapshots_export_data', array(
@@ -557,6 +559,26 @@ class Customize_Snapshot_Manager {
 			'data',
 			sprintf( 'var _customizeSnapshots = %s;', wp_json_encode( $exports ) )
 		);
+	}
+
+	/**
+	 * Enqueue Customizer frontend scripts.
+	 */
+	public function enqueue_frontend_scripts() {
+		if ( $this->snapshot ) {
+			$handle = 'customize-snapshots-frontend';
+			wp_enqueue_script( $handle );
+
+			$exports = array(
+				'uuid' => $this->snapshot->uuid(),
+				'home_url' => wp_parse_url( home_url( '/' ) ),
+			);
+			wp_add_inline_script(
+				$handle,
+				sprintf( 'CustomizeSnapshotsFrontend.init( %s )', wp_json_encode( $exports ) ),
+				'after'
+			);
+		}
 	}
 
 	/**
