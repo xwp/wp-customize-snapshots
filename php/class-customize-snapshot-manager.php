@@ -198,6 +198,11 @@ class Customize_Snapshot_Manager {
 	 */
 	public function should_import_and_preview_snapshot( Customize_Snapshot $snapshot ) {
 
+		// Ignore if in the admin.
+		if ( is_admin() && ! ( defined( 'DOING_AJAX' ) && DOING_AJAX ) ) {
+			return false;
+		}
+
 		if ( is_wp_error( $this->get_theme_switch_error( $snapshot ) ) ) {
 			return false;
 		}
