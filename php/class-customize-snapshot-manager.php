@@ -562,7 +562,6 @@ class Customize_Snapshot_Manager {
 				'home_url' => wp_parse_url( home_url( '/' ) ),
 				'l10n' => array(
 					'restoreSessionPrompt' => __( 'It seems you may have inadvertently navigated away from previewing a customized state. Would you like to restore the snapshot context?', 'customize-snapshots' ),
-					'leaveSessionPrompt' => __( 'You\'re about to leave previewing our snapshotted customized state. Would you like to continue?', 'customize-snapshots' ),
 				),
 			);
 			wp_add_inline_script(

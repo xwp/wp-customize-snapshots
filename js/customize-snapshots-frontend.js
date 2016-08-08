@@ -15,8 +15,7 @@ var CustomizeSnapshotsFrontend = ( function( $ ) {
 				path: ''
 			},
 			l10n: {
-				restoreSessionPrompt: '',
-				leaveSessionPrompt: ''
+				restoreSessionPrompt: ''
 			}
 		}
 	};
