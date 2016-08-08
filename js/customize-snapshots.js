@@ -350,6 +350,7 @@
 
 		api.bind( 'change', function() {
 			component.data.dirty = true;
+			component.schedule.template.find( 'a.snapshot-edit-link' ).hide();
 		} );
 
 		api.state( 'saved' ).bind( function( saved ) {
@@ -392,7 +393,9 @@
 		component.data.publishDate = component.data.publishDate.slice( sliceBegin, sliceEnd ) + '00';
 
 		// Update date controls.
-		component.schedule.template.find( 'a.snapshot-edit-link' ).attr( 'href', component.data.editLink );
+		component.schedule.template.find( 'a.snapshot-edit-link' )
+			.attr( 'href', component.data.editLink )
+			.show();
 		parsed = component.parseDateTime( component.data.publishDate );
 
 		component.schedule.inputs.each( function() {
