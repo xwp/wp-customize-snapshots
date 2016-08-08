@@ -15,7 +15,7 @@ Customize Snapshots save the state of a Customizer session so it can be shared o
 
 Requires PHP 5.3+. **Development of this plugin is done [on GitHub](https://github.com/xwp/wp-customize-snapshots). Pull requests welcome. Please see [issues](https://github.com/xwp/wp-customize-snapshots) reported there before going to the [plugin forum](https://wordpress.org/support/plugin/customize-snapshots).**
 
-=== Persistent Object Caching ===
+= Persistent Object Caching =
 
 Plugins and themes may currently only use `is_customize_preview()` to
 decide whether or not they can store a value in the object cache. For
@@ -27,7 +27,7 @@ is `true`, or they should include the `CustomizeSnapshots\current_snapshot_uuid(
 
 Example of bypassing object cache when previewing settings inside the Customizer preview or on the frontend via snapshots:
 
-<pre lang=php>
+<pre lang="php">
 if ( function_exists( 'CustomizeSnapshots\is_previewing_settings' ) ) {
 	$bypass_object_cache = CustomizeSnapshots\is_previewing_settings();
 } else {
