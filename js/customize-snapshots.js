@@ -469,24 +469,18 @@
 	 */
 	component.sendUpdateSnapshotRequest = function( options ) {
 		var spinner = $( '#customize-header-actions .spinner' ),
-			request, data, args;
+			request, data;
 
-		args = _.extend(
+		data = _.extend(
 			{
 				status: 'draft'
 			},
-			options
-		);
-
-		data = _.extend( args, {
-			nonce: api.settings.nonce.snapshot,
-			customize_snapshot_uuid: component.data.uuid
-		} );
-
-		data = _.extend(
-			{},
 			api.previewer.query(),
-			data
+			options,
+			{
+				nonce: api.settings.nonce.snapshot,
+				customize_snapshot_uuid: component.data.uuid
+			}
 		);
 		request = wp.ajax.post( 'customize_update_snapshot', data );
 
