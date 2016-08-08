@@ -3,7 +3,6 @@
 /* eslint consistent-this: [ "error", "section" ], no-magic-numbers: [ "error", { "ignore": [0,1] } ] */
 /* eslint-disable no-alert */
 
-// @todo Allow the session to be explicitly exited. Warn with confirm if clicking a non-snapshotted link (to the admin).
 // @todo Inject customize_snapshot_uuid into all Ajax requests back to the site.
 
 var CustomizeSnapshotsFrontend = ( function( $ ) {
@@ -39,6 +38,7 @@ var CustomizeSnapshotsFrontend = ( function( $ ) {
 		component.keepSessionAlive();
 		component.rememberSessionSnapshot();
 		component.injectSnapshotIntoLinks();
+		component.handleExitSnapshotSessionLink();
 	};
 
 	/**
@@ -94,7 +94,7 @@ var CustomizeSnapshotsFrontend = ( function( $ ) {
 		$( document.documentElement ).on( 'click focus mouseover', 'a, area', function( event ) {
 			component.injectLinkQueryParam( this );
 
-			if ( 'click' === event.type && ! component.isLinkSnapshottable( this ) ) {
+			if ( 'click' === event.type && ! component.doesLinkHaveSnapshotQueryParam( this ) && ! $( this ).parent().hasClass( 'ab-customize-snapshots-item' ) ) {
 				if ( confirm( component.data.l10n.leaveSessionPrompt ) ) {
 					if ( component.hasSessionStorage ) {
 						sessionStorage.removeItem( 'customize_snapshot_uuid' );
@@ -115,25 +115,21 @@ var CustomizeSnapshotsFrontend = ( function( $ ) {
 	 * @param {string} element.hostname Hostname.
 	 * @returns {boolean} Is appropriate for snapshot link.
 	 */
-	component.isLinkSnapshottable = function isLinkSnapshottable( element ) {
+	component.shouldLinkHaveSnapshotParam = function shouldLinkHaveSnapshotParam( element ) {
+
+		// Skip links to different hosts.
 		if ( element.hostname !== component.data.home_url.host ) {
 			return false;
 		}
+
+		// Skip links that aren't under the home path.
 		if ( 0 !== element.pathname.indexOf( component.data.home_url.path ) ) {
 			return false;
 		}
 
+		// Skip wp login and signup pages.
 		if ( /\/wp-(login|signup)\.php$/.test( element.pathname ) ) {
 			return false;
-		}
-
-		// @todo The snapshot UUID is getting added here still.
-		if ( $( element ).parent().is( '#wp-admin-bar-snapshot-view-link' ) ) {
-			return true;
-		}
-
-		if ( /(^|&)customize_snapshot_uuid=/.test( element.search.substr( 1 ) ) ) {
-			return true;
 		}
 
 		// Allow links to admin ajax as faux frontend URLs.
@@ -146,7 +142,23 @@ var CustomizeSnapshotsFrontend = ( function( $ ) {
 			return false;
 		}
 
+		// Skip links in admin bar.
+		if ( $( element ).closest( '#wpadminbar' ).length ) {
+			return false;
+		}
+
 		return true;
+	};
+
+	/**
+	 * Return whether the supplied link element has the snapshot query param.
+	 *
+	 * @param {HTMLAnchorElement|HTMLAreaElement} element Link element.
+	 * @param {object} element.search Query string.
+	 * @returns {boolean} Whether query param is present.
+	 */
+	component.doesLinkHaveSnapshotQueryParam = function( element ) {
+		return /(^|&)customize_snapshot_uuid=/.test( element.search.substr( 1 ) );
 	};
 
 	/**
@@ -157,10 +169,7 @@ var CustomizeSnapshotsFrontend = ( function( $ ) {
 	 * @returns {void}
 	 */
 	component.injectLinkQueryParam = function injectLinkQueryParam( element ) {
-		if ( ! component.isLinkSnapshottable( element ) ) {
-			return;
-		}
-		if ( /(^|&)customize_snapshot_uuid=/.test( element.search.substr( 1 ) ) ) {
+		if ( component.doesLinkHaveSnapshotQueryParam( element ) || ! component.shouldLinkHaveSnapshotParam( element ) ) {
 			return;
 		}
 
@@ -168,6 +177,22 @@ var CustomizeSnapshotsFrontend = ( function( $ ) {
 			element.search += '&';
 		}
 		element.search += 'customize_snapshot_uuid=' + encodeURIComponent( component.data.uuid );
+	};
+
+	/**
+	 * Handle electing to exit from the snapshot session.
+	 *
+	 * @returns {void}
+	 */
+	component.handleExitSnapshotSessionLink = function handleExitSnapshotSessionLink() {
+		$( function() {
+			if ( ! component.hasSessionStorage ) {
+				return;
+			}
+			$( '#wpadminbar' ).on( 'click', '#wp-admin-bar-exit-customize-snapshot', function() {
+				sessionStorage.removeItem( 'customize_snapshot_uuid' );
+			} );
+		} );
 	};
 
 	return component;

@@ -100,6 +100,7 @@ class Customize_Snapshot_Manager {
 		add_action( 'customize_save', array( $this, 'check_customize_publish_authorization' ), 10, 0 );
 		add_filter( 'customize_refresh_nonces', array( $this, 'filter_customize_refresh_nonces' ) );
 		add_action( 'admin_bar_menu', array( $this, 'customize_menu' ), 41 );
+		add_action( 'admin_bar_menu', array( $this, 'remove_all_non_snapshot_admin_bar_links' ), 1000 );
 
 		add_filter( 'wp_insert_post_data', array( $this, 'prepare_snapshot_post_content_for_publish' ) );
 		add_action( 'customize_save_after', array( $this, 'publish_snapshot_with_customize_save_after' ) );
@@ -1012,43 +1013,28 @@ class Customize_Snapshot_Manager {
 		add_action( 'wp_before_admin_bar_render', 'wp_customize_support_script' );
 		$this->replace_customize_link( $wp_admin_bar );
 		$this->add_post_edit_screen_link( $wp_admin_bar );
+		$this->add_snapshot_exit_link( $wp_admin_bar );
 	}
 
 	/**
 	 * Print admin bar styles.
 	 */
 	public function print_admin_bar_styles() {
+		if ( ! $this->snapshot ) {
+			return;
+		}
 		?>
 		<style type="text/css">
-		#wpadminbar #wp-admin-bar-inspect-snapshot > .ab-item:before {
+		#wpadminbar #wp-admin-bar-inspect-customize-snapshot > .ab-item:before {
 			content: "\f179";
+			top: 2px;
+		}
+		#wpadminbar #wp-admin-bar-exit-customize-snapshot > .ab-item:before {
+			content: "\f158";
 			top: 2px;
 		}
 		</style>
 		<?php
-	}
-
-	/**
-	 * Adds a "Snapshot in Dashboard" link to the Toolbar when in Snapshot mode.
-	 *
-	 * @param \WP_Admin_Bar $wp_admin_bar WP_Admin_Bar instance.
-	 */
-	public function add_post_edit_screen_link( $wp_admin_bar ) {
-		if ( ! $this->snapshot ) {
-			return;
-		}
-		$post = $this->snapshot->post();
-		if ( ! $post ) {
-			return;
-		}
-		$wp_admin_bar->add_menu( array(
-			'id' => 'inspect-snapshot',
-			'title' => __( 'Inspect Snapshot', 'customize-snapshots' ),
-			'href' => get_edit_post_link( $post->ID, 'raw' ),
-			'meta' => array(
-				'class' => 'ab-item ab-snapshot-item',
-			),
-		) );
 	}
 
 	/**
@@ -1057,8 +1043,7 @@ class Customize_Snapshot_Manager {
 	 * @param \WP_Admin_Bar $wp_admin_bar WP_Admin_Bar instance.
 	 */
 	public function replace_customize_link( $wp_admin_bar ) {
-		// Don't show for users who can't access the customizer or when in the admin.
-		if ( empty( $this->current_snapshot_uuid ) ) {
+		if ( empty( $this->snapshot ) ) {
 			return;
 		}
 
@@ -1086,8 +1071,67 @@ class Customize_Snapshot_Manager {
 			$customize_node->href
 		);
 
-		$customize_node->meta['class'] .= ' ab-snapshot-item';
+		$customize_node->meta['class'] .= ' ab-customize-snapshots-item';
 		$wp_admin_bar->add_menu( (array) $customize_node );
+	}
+
+	/**
+	 * Adds a "Snapshot in Dashboard" link to the Toolbar when in Snapshot mode.
+	 *
+	 * @param \WP_Admin_Bar $wp_admin_bar WP_Admin_Bar instance.
+	 */
+	public function add_post_edit_screen_link( $wp_admin_bar ) {
+		if ( ! $this->snapshot ) {
+			return;
+		}
+		$post = $this->snapshot->post();
+		if ( ! $post ) {
+			return;
+		}
+		$wp_admin_bar->add_menu( array(
+			'id' => 'inspect-customize-snapshot',
+			'title' => __( 'Inspect Snapshot', 'customize-snapshots' ),
+			'href' => get_edit_post_link( $post->ID, 'raw' ),
+			'meta' => array(
+				'class' => 'ab-item ab-customize-snapshots-item',
+			),
+		) );
+	}
+
+	/**
+	 * Adds an "Exit Snapshot" link to the Toolbar when in Snapshot mode.
+	 *
+	 * @param \WP_Admin_Bar $wp_admin_bar WP_Admin_Bar instance.
+	 */
+	public function add_snapshot_exit_link( $wp_admin_bar ) {
+		if ( ! $this->snapshot ) {
+			return;
+		}
+		$wp_admin_bar->add_menu( array(
+			'id' => 'exit-customize-snapshot',
+			'title' => __( 'Exit Snapshot', 'customize-snapshots' ),
+			'href' => remove_query_arg( 'customize_snapshot_uuid' ),
+			'meta' => array(
+				'class' => 'ab-item ab-customize-snapshots-item',
+			),
+		) );
+	}
+
+	/**
+	 * Remove all admin bar nodes that have links and which aren't for snapshots.
+	 *
+	 * @param \WP_Admin_Bar $wp_admin_bar Admin bar.
+	 */
+	public function remove_all_non_snapshot_admin_bar_links( $wp_admin_bar ) {
+		if ( empty( $this->snapshot ) ) {
+			return;
+		}
+		$snapshot_admin_bar_node_ids = array( 'customize', 'exit-customize-snapshot', 'inspect-customize-snapshot' );
+		foreach ( $wp_admin_bar->get_nodes() as $node ) {
+			if ( ! in_array( $node->id, $snapshot_admin_bar_node_ids, true ) && '#' !== substr( $node->href, 0, 1 ) ) {
+				$wp_admin_bar->remove_node( $node->id );
+			}
+		}
 	}
 
 	/**
