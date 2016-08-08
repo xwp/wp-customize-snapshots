@@ -93,6 +93,7 @@ class Customize_Snapshot_Manager {
 		add_action( 'template_redirect', array( $this, 'show_theme_switch_error' ) );
 
 		add_action( 'customize_controls_enqueue_scripts', array( $this, 'enqueue_controls_scripts' ) );
+		add_action( 'customize_preview_init', array( $this, 'customize_preview_init' ) );
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_frontend_scripts' ) );
 
 		add_action( 'customize_controls_init', array( $this, 'add_snapshot_uuid_to_return_url' ) );
@@ -547,6 +548,20 @@ class Customize_Snapshot_Manager {
 			'data',
 			sprintf( 'var _customizeSnapshots = %s;', wp_json_encode( $exports ) )
 		);
+	}
+
+	/**
+	 * Set up Customizer preview.
+	 */
+	public function customize_preview_init() {
+		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_preview_scripts' ) );
+	}
+
+	/**
+	 * Enqueue Customizer preview scripts.
+	 */
+	public function enqueue_preview_scripts() {
+		wp_enqueue_script( 'customize-snapshots-preview' );
 	}
 
 	/**
