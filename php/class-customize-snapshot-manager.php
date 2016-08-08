@@ -100,7 +100,8 @@ class Customize_Snapshot_Manager {
 		add_action( 'customize_save', array( $this, 'check_customize_publish_authorization' ), 10, 0 );
 		add_filter( 'customize_refresh_nonces', array( $this, 'filter_customize_refresh_nonces' ) );
 		add_action( 'admin_bar_menu', array( $this, 'customize_menu' ), 41 );
-		add_action( 'admin_bar_menu', array( $this, 'remove_all_non_snapshot_admin_bar_links' ), 1000 );
+		add_action( 'admin_bar_menu', array( $this, 'remove_all_non_snapshot_admin_bar_links' ), 100000 );
+		add_action( 'wp_print_styles', array( $this, 'print_admin_bar_styles' ) );
 
 		add_filter( 'wp_insert_post_data', array( $this, 'prepare_snapshot_post_content_for_publish' ) );
 		add_action( 'customize_save_after', array( $this, 'publish_snapshot_with_customize_save_after' ) );
@@ -116,7 +117,6 @@ class Customize_Snapshot_Manager {
 		if ( $this->current_snapshot_uuid ) {
 			$this->ensure_customize_manager();
 
-			add_action( 'wp_head', array( $this, 'print_admin_bar_styles' ) );
 			add_action( 'wp_ajax_' . self::AJAX_ACTION, array( $this, 'handle_update_snapshot_request' ) );
 
 			$this->snapshot = new Customize_Snapshot( $this, $this->current_snapshot_uuid );
@@ -1128,7 +1128,20 @@ class Customize_Snapshot_Manager {
 		}
 		$snapshot_admin_bar_node_ids = array( 'customize', 'exit-customize-snapshot', 'inspect-customize-snapshot' );
 		foreach ( $wp_admin_bar->get_nodes() as $node ) {
-			if ( ! in_array( $node->id, $snapshot_admin_bar_node_ids, true ) && '#' !== substr( $node->href, 0, 1 ) ) {
+			if ( in_array( $node->id, $snapshot_admin_bar_node_ids, true ) || '#' === substr( $node->href, 0, 1 ) ) {
+				continue;
+			}
+
+			$parsed_link_url = wp_parse_url( $node->href );
+			$parsed_home_url = wp_parse_url( home_url( '/' ) );
+			$is_external_link = (
+				isset( $parsed_link_url['host'] ) && $parsed_link_url['host'] !== $parsed_home_url['host']
+				||
+				isset( $parsed_link_url['path'] ) && 0 !== strpos( $parsed_link_url['path'], $parsed_home_url['path'] )
+				||
+				( ! isset( $parsed_link_url['query'] ) || ! preg_match( '#(^|&)customize_snapshot_uuid=#', $parsed_link_url['query'] ) )
+			);
+			if ( $is_external_link ) {
 				$wp_admin_bar->remove_node( $node->id );
 			}
 		}
