@@ -199,9 +199,10 @@ class Customize_Snapshot_Manager {
 	 * @return true|\WP_Error Returns true if previewable, or `WP_Error` if cannot.
 	 */
 	public function should_import_and_preview_snapshot( Customize_Snapshot $snapshot ) {
+		global $pagenow;
 
 		// Ignore if in the admin.
-		if ( is_admin() && ! ( defined( 'DOING_AJAX' ) && DOING_AJAX ) ) {
+		if ( is_admin() && ! ( defined( 'DOING_AJAX' ) && DOING_AJAX ) && 'customize.php' !== $pagenow ) {
 			return false;
 		}
 
