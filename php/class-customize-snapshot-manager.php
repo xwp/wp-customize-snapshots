@@ -161,7 +161,29 @@ class Customize_Snapshot_Manager {
 					add_action( 'wp_loaded', array( $this, 'preview_snapshot_settings' ), 11 );
 				}
 			}
+		} elseif ( is_customize_preview() && isset( $_REQUEST['wp_customize_preview_ajax'] ) && 'true' === $_REQUEST['wp_customize_preview_ajax'] ) {
+			add_action( 'wp_loaded', array( $this, 'setup_preview_ajax_requests' ), 12 );
 		}
+	}
+
+	/**
+	 * Setup previewing of Ajax requests in the Customizer preview.
+	 *
+	 * @global \WP_Customize_Manager $wp_customize
+	 */
+	public function setup_preview_ajax_requests() {
+		global $wp_customize;
+
+		/*
+		 * When making admin-ajax requests from the frontend, settings won't be
+		 * previewed because is_admin() and the call to preview will be
+		 * short-circuited in \WP_Customize_Manager::wp_loaded().
+		 */
+		if ( ! did_action( 'customize_preview_init' ) ) {
+			$wp_customize->customize_preview_init();
+		}
+
+		$wp_customize->remove_preview_signature();
 	}
 
 	/**
@@ -592,32 +614,49 @@ class Customize_Snapshot_Manager {
 
 	/**
 	 * Enqueue Customizer preview scripts.
+	 *
+	 * @global \WP_Customize_Manager $wp_customize
 	 */
 	public function enqueue_preview_scripts() {
-		wp_enqueue_script( 'customize-snapshots-preview' );
+		global $wp_customize;
+
+		$handle = 'customize-snapshots-preview';
+		wp_enqueue_script( $handle );
+
+		$exports = array(
+			'home_url' => wp_parse_url( home_url( '/' ) ),
+			'initial_dirty_settings' => array_keys( $wp_customize->unsanitized_post_values() ),
+			// @todo Include rest_api_url and admin_ajax_url?
+		);
+		wp_add_inline_script(
+			$handle,
+			sprintf( 'CustomizeSnapshotsPreview.init( %s )', wp_json_encode( $exports ) ),
+			'after'
+		);
 	}
 
 	/**
 	 * Enqueue Customizer frontend scripts.
 	 */
 	public function enqueue_frontend_scripts() {
-		if ( $this->snapshot ) {
-			$handle = 'customize-snapshots-frontend';
-			wp_enqueue_script( $handle );
-
-			$exports = array(
-				'uuid' => $this->snapshot ? $this->snapshot->uuid() : null,
-				'home_url' => wp_parse_url( home_url( '/' ) ),
-				'l10n' => array(
-					'restoreSessionPrompt' => __( 'It seems you may have inadvertently navigated away from previewing a customized state. Would you like to restore the snapshot context?', 'customize-snapshots' ),
-				),
-			);
-			wp_add_inline_script(
-				$handle,
-				sprintf( 'CustomizeSnapshotsFrontend.init( %s )', wp_json_encode( $exports ) ),
-				'after'
-			);
+		if ( ! $this->snapshot ) {
+			return;
 		}
+		$handle = 'customize-snapshots-frontend';
+		wp_enqueue_script( $handle );
+
+		$exports = array(
+			'uuid' => $this->snapshot ? $this->snapshot->uuid() : null,
+			'home_url' => wp_parse_url( home_url( '/' ) ),
+			'l10n' => array(
+				'restoreSessionPrompt' => __( 'It seems you may have inadvertently navigated away from previewing a customized state. Would you like to restore the snapshot context?', 'customize-snapshots' ),
+			),
+		);
+		wp_add_inline_script(
+			$handle,
+			sprintf( 'CustomizeSnapshotsFrontend.init( %s )', wp_json_encode( $exports ) ),
+			'after'
+		);
 	}
 
 	/**
