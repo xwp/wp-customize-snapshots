@@ -146,7 +146,8 @@ class Customize_Snapshot_Manager {
 				if ( did_action( 'wp_loaded' ) ) {
 					$this->preview_snapshot_settings();
 				} else {
-					add_action( 'wp_loaded', array( $this, 'preview_snapshot_settings' ), 11 );
+					remove_action( 'wp_loaded', array( $this->customize_manager, 'wp_loaded' ) );
+					add_action( 'wp_loaded', array( $this, 'preview_snapshot_settings' ), 10 );
 				}
 			}
 		}
@@ -236,6 +237,9 @@ class Customize_Snapshot_Manager {
 	 * @see Customize_Snapshot_Manager::should_import_and_preview_snapshot()
 	 */
 	public function import_snapshot_data() {
+
+		$this->customize_manager->start_previewing_theme();
+
 		/*
 		 * We don't merge the snapshot data with any existing existing unsanitized
 		 * post values since should_import_and_preview_snapshot returns false if
@@ -265,15 +269,15 @@ class Customize_Snapshot_Manager {
 	/**
 	 * Preview the snapshot settings.
 	 *
-	 * Note that this happens at `wp_loaded` action with priority 11 so that we
-	 * can look at whether the `customize_preview_init` action was done.
+	 * This replaces
+	 *
+	 * @see WP_Customize_Manager::wp_loaded()
+	 * @see WP_Customize_Manager::customize_preview_init()
 	 */
 	public function preview_snapshot_settings() {
 
-		// Short-circuit because if customize_preview_init happened, then all settings have been previewed.
-		if ( did_action( 'customize_preview_init' ) ) {
-			return;
-		}
+		/** This action is documented in wp-includes/class-wp-customize-manager.php */
+		do_action( 'customize_register', $this->customize_manager );
 
 		/*
 		 * Note that we need to preview the settings outside the Customizer preview
@@ -287,6 +291,12 @@ class Customize_Snapshot_Manager {
 			$setting->preview();
 			$setting->dirty = true;
 		}
+
+		/*
+		 * Note that the customize_preview_init action is not being done here
+		 * because it is often used as a signal for whether or not the actual
+		 * Customizer preview inside inside.
+		 */
 	}
 
 	/**
