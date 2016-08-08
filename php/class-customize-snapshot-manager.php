@@ -62,6 +62,13 @@ class Customize_Snapshot_Manager {
 	public $current_snapshot_uuid;
 
 	/**
+	 * Whether the snapshot settings are being previewed.
+	 *
+	 * @var bool
+	 */
+	protected $previewing_settings = false;
+
+	/**
 	 * The originally active theme.
 	 *
 	 * @access public
@@ -274,17 +281,43 @@ class Customize_Snapshot_Manager {
 	}
 
 	/**
+	 * Is previewing settings.
+	 *
+	 * Plugins and themes may currently only use `is_customize_preview()` to
+	 * decide whether or not they can store a value in the object cache. For
+	 * example, see `Twenty_Eleven_Ephemera_Widget::widget()`. However, when
+	 * viewing a snapshot on the frontend, the `is_customize_preview()` method
+	 * will return `false`. Plugins and themes that store values in the object
+	 * cache must either skip doing this when `$this->previewing` is `true`,
+	 * or include the `$this->current_snapshot_uuid` (`current_snapshot_uuid()`)
+	 * in the cache key when it is `true`. Note that if the `customize_preview_init` action
+	 * was done, this means that the settings have been previewed in the regular
+	 * Customizer preview.
+	 *
+	 * @see Twenty_Eleven_Ephemera_Widget::widget()
+	 * @see WP_Customize_Manager::is_previewing_settings()
+	 * @see is_previewing_settings()
+	 * @see current_snapshot_uuid()()
+	 * @see WP_Customize_Manager::customize_preview_init()
+	 * @see Customize_Snapshot_Manager::$previewing_settings
+	 *
+	 * @return bool Whether previewing settings.
+	 */
+	public function is_previewing_settings() {
+		return $this->previewing_settings || did_action( 'customize_preview_init' );
+	}
+
+	/**
 	 * Preview the snapshot settings.
 	 *
 	 * Note that this happens at `wp_loaded` action with priority 11 so that we
 	 * can look at whether the `customize_preview_init` action was done.
 	 */
 	public function preview_snapshot_settings() {
-
-		// Short-circuit because if customize_preview_init happened, then all settings have been previewed.
-		if ( did_action( 'customize_preview_init' ) ) {
+		if ( $this->is_previewing_settings() ) {
 			return;
 		}
+		$this->previewing_settings = true;
 
 		/*
 		 * Note that we need to preview the settings outside the Customizer preview

@@ -232,6 +232,35 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	}
 
 	/**
+	 * Tests is_previewing_settings.
+	 *
+	 * @covers Customize_Snapshot_Manager::is_previewing_settings()
+	 */
+	public function test_is_previewing_settings() {
+		$_REQUEST['customize_snapshot_uuid'] = self::UUID;
+		$this->plugin->customize_snapshot_manager->post_type->save( array(
+			'uuid' => self::UUID,
+			'data' => array( 'blogname' => array( 'value' => 'Foo' ) ),
+		) );
+		$manager = new Customize_Snapshot_Manager( $this->plugin );
+		$manager->init();
+		$manager->preview_snapshot_settings();
+		$this->assertTrue( $manager->is_previewing_settings() );
+	}
+
+	/**
+	 * Tests is_previewing_settings.
+	 *
+	 * @covers Customize_Snapshot_Manager::is_previewing_settings()
+	 */
+	public function test_is_previewing_settings_via_preview_init() {
+		$manager = new Customize_Snapshot_Manager( $this->plugin );
+		$this->assertFalse( $manager->is_previewing_settings() );
+		do_action( 'customize_preview_init' );
+		$this->assertTrue( $manager->is_previewing_settings() );
+	}
+
+	/**
 	 * Tests preview_snapshot_settings.
 	 *
 	 * @covers Customize_Snapshot_Manager::preview_snapshot_settings()
