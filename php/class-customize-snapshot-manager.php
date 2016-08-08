@@ -101,7 +101,7 @@ class Customize_Snapshot_Manager {
 		add_filter( 'customize_refresh_nonces', array( $this, 'filter_customize_refresh_nonces' ) );
 		add_action( 'admin_bar_menu', array( $this, 'customize_menu' ), 41 );
 		add_action( 'admin_bar_menu', array( $this, 'remove_all_non_snapshot_admin_bar_links' ), 100000 );
-		add_action( 'wp_print_styles', array( $this, 'print_admin_bar_styles' ) );
+		add_action( 'wp_before_admin_bar_render', array( $this, 'print_admin_bar_styles' ) );
 
 		add_filter( 'wp_insert_post_data', array( $this, 'prepare_snapshot_post_content_for_publish' ) );
 		add_action( 'customize_save_after', array( $this, 'publish_snapshot_with_customize_save_after' ) );
@@ -1012,6 +1012,7 @@ class Customize_Snapshot_Manager {
 	public function customize_menu( $wp_admin_bar ) {
 		add_action( 'wp_before_admin_bar_render', 'wp_customize_support_script' );
 		$this->replace_customize_link( $wp_admin_bar );
+		$this->add_resume_snapshot_link( $wp_admin_bar );
 		$this->add_post_edit_screen_link( $wp_admin_bar );
 		$this->add_snapshot_exit_link( $wp_admin_bar );
 	}
@@ -1020,19 +1021,23 @@ class Customize_Snapshot_Manager {
 	 * Print admin bar styles.
 	 */
 	public function print_admin_bar_styles() {
-		if ( ! $this->snapshot ) {
-			return;
-		}
 		?>
 		<style type="text/css">
-		#wpadminbar #wp-admin-bar-inspect-customize-snapshot > .ab-item:before {
-			content: "\f179";
-			top: 2px;
-		}
-		#wpadminbar #wp-admin-bar-exit-customize-snapshot > .ab-item:before {
-			content: "\f158";
-			top: 2px;
-		}
+			#wpadminbar #wp-admin-bar-resume-customize-snapshot {
+				display: none;
+			}
+			#wpadminbar #wp-admin-bar-resume-customize-snapshot > .ab-item:before {
+				content: "\f531";
+				top: 2px;
+			}
+			#wpadminbar #wp-admin-bar-inspect-customize-snapshot > .ab-item:before {
+				content: "\f179";
+				top: 2px;
+			}
+			#wpadminbar #wp-admin-bar-exit-customize-snapshot > .ab-item:before {
+				content: "\f158";
+				top: 2px;
+			}
 		</style>
 		<?php
 	}
@@ -1073,6 +1078,22 @@ class Customize_Snapshot_Manager {
 
 		$customize_node->meta['class'] .= ' ab-customize-snapshots-item';
 		$wp_admin_bar->add_menu( (array) $customize_node );
+	}
+
+	/**
+	 * Adds a link to resume snapshot previewing.
+	 *
+	 * @param \WP_Admin_Bar $wp_admin_bar WP_Admin_Bar instance.
+	 */
+	public function add_resume_snapshot_link( $wp_admin_bar ) {
+		$wp_admin_bar->add_menu( array(
+			'id' => 'resume-customize-snapshot',
+			'title' => __( 'Resume Snapshot Preview', 'customize-snapshots' ),
+			'href' => '#',
+			'meta' => array(
+				'class' => 'ab-item ab-customize-snapshots-item',
+			),
+		) );
 	}
 
 	/**

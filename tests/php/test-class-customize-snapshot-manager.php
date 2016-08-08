@@ -596,24 +596,6 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		ob_start();
 		$manager->print_admin_bar_styles();
 		$contents = ob_get_clean();
-		$this->assertEmpty( $contents );
-
-		$this->manager->post_type->save( array(
-			'uuid' => self::UUID,
-			'data' => array(
-				'blogname' => array(
-					'value' => 'Hello',
-				),
-			),
-			'status' => 'draft',
-		) );
-		$this->go_to( home_url( '?customize_snapshot_uuid=' . self::UUID ) );
-		$_REQUEST['customize_snapshot_uuid'] = self::UUID;
-		$manager = new Customize_Snapshot_Manager( $this->plugin );
-		$manager->init();
-		ob_start();
-		$manager->print_admin_bar_styles();
-		$contents = ob_get_clean();
 		$this->assertContains( '<style', $contents );
 	}
 
@@ -661,10 +643,11 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	}
 
 	/**
-	 * Test add_post_edit_screen_link, add_snapshot_exit_link, and remove_all_non_snapshot_admin_bar_links.
+	 * Test misc admin bar extensions.
 	 *
 	 * @covers Customize_Snapshot_Manager::add_post_edit_screen_link()
 	 * @covers Customize_Snapshot_Manager::add_snapshot_exit_link()
+	 * @covers Customize_Snapshot_Manager::add_resume_snapshot_link()
 	 * @covers Customize_Snapshot_Manager::remove_all_non_snapshot_admin_bar_links()
 	 */
 	public function test_add_post_edit_and_exit_links() {
@@ -692,6 +675,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		$this->assertEmpty( $wp_admin_bar->get_node( 'inspect-customize-snapshot' ) );
 		$this->assertEmpty( $wp_admin_bar->get_node( 'exit-customize-snapshot' ) );
 		$this->assertNotEmpty( $wp_admin_bar->get_node( 'wporg' ) );
+		$this->assertNotEmpty( $wp_admin_bar->get_node( 'resume-customize-snapshot' ) );
 
 		$this->go_to( home_url( '?customize_snapshot_uuid=' . self::UUID ) );
 		$_REQUEST['customize_snapshot_uuid'] = self::UUID;
@@ -705,6 +689,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		$this->assertNotEmpty( $wp_admin_bar->get_node( 'inspect-customize-snapshot' ) );
 		$this->assertNotEmpty( $wp_admin_bar->get_node( 'exit-customize-snapshot' ) );
 		$this->assertEmpty( $wp_admin_bar->get_node( 'wporg' ) );
+		$this->assertNotEmpty( $wp_admin_bar->get_node( 'resume-customize-snapshot' ) );
 	}
 
 	/**

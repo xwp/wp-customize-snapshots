@@ -47,7 +47,7 @@ var CustomizeSnapshotsFrontend = ( function( $ ) {
 	 * @returns {void}
 	 */
 	component.keepSessionAlive = function keepSessionAlive() {
-		var currentSnapshotUuid, urlParser;
+		var currentSnapshotUuid, urlParser, adminBarItem;
 		if ( ! component.hasSessionStorage ) {
 			return;
 		}
@@ -55,17 +55,25 @@ var CustomizeSnapshotsFrontend = ( function( $ ) {
 		if ( ! currentSnapshotUuid || component.data.uuid ) {
 			return;
 		}
-		if ( confirm( component.data.l10n.restoreSessionPrompt ) ) {
-			urlParser = document.createElement( 'a' );
-			urlParser.href = location.href;
-			if ( urlParser.search.length > 1 ) {
-				urlParser.search += '&';
-			}
-			urlParser.search += 'customize_snapshot_uuid=' + encodeURIComponent( sessionStorage.getItem( 'customize_snapshot_uuid' ) );
-			location.replace( urlParser.href );
-		} else {
-			sessionStorage.removeItem( 'customize_snapshot_uuid' );
+
+		urlParser = document.createElement( 'a' );
+		urlParser.href = location.href;
+		if ( urlParser.search.length > 1 ) {
+			urlParser.search += '&';
 		}
+		urlParser.search += 'customize_snapshot_uuid=' + encodeURIComponent( sessionStorage.getItem( 'customize_snapshot_uuid' ) );
+
+		$( function() {
+			adminBarItem = $( '#wp-admin-bar-resume-customize-snapshot' );
+			if ( adminBarItem.length ) {
+				adminBarItem.find( '> a' ).prop( 'href', urlParser.href );
+				adminBarItem.show();
+			} else if ( confirm( component.data.l10n.restoreSessionPrompt ) ) {
+				location.replace( urlParser.href );
+			} else {
+				sessionStorage.removeItem( 'customize_snapshot_uuid' );
+			}
+		} );
 	};
 
 	/**
