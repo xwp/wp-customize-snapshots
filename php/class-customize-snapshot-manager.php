@@ -552,7 +552,7 @@ class Customize_Snapshot_Manager {
 	 * Enqueue Customizer frontend scripts.
 	 */
 	public function enqueue_frontend_scripts() {
-		if ( $this->snapshot || current_user_can( 'customize' ) ) {
+		if ( $this->snapshot ) {
 			$handle = 'customize-snapshots-frontend';
 			wp_enqueue_script( $handle );
 

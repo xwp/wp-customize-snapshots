@@ -1,9 +1,7 @@
 /* global jQuery, confirm */
 /* exported CustomizeSnapshotsFrontend */
-/* eslint consistent-this: [ "error", "section" ], no-magic-numbers: [ "error", { "ignore": [0,1] } ] */
+/* eslint consistent-this: [ "error", "section" ], no-magic-numbers: [ "error", { "ignore": [-1,0,1] } ] */
 /* eslint-disable no-alert */
-
-// @todo Inject customize_snapshot_uuid into all Ajax requests back to the site.
 
 var CustomizeSnapshotsFrontend = ( function( $ ) {
 	'use strict';
@@ -39,6 +37,7 @@ var CustomizeSnapshotsFrontend = ( function( $ ) {
 		component.rememberSessionSnapshot();
 		component.injectSnapshotIntoLinks();
 		component.handleExitSnapshotSessionLink();
+		component.injectSnapshotIntoAjaxRequests();
 	};
 
 	/**
@@ -132,6 +131,18 @@ var CustomizeSnapshotsFrontend = ( function( $ ) {
 	};
 
 	/**
+	 * Is matching base URL (host and path)?
+	 *
+	 * @param {HTMLAnchorElement} parsedUrl Parsed URL.
+	 * @param {string} parsedUrl.hostname Host.
+	 * @param {string} parsedUrl.pathname Path.
+	 * @returns {boolean} Whether matched.
+	 */
+	component.isMatchingBaseUrl = function isMatchingBaseUrl( parsedUrl ) {
+		return parsedUrl.hostname === component.data.home_url.host && 0 === parsedUrl.pathname.indexOf( component.data.home_url.path );
+	};
+
+	/**
 	 * Should the supplied link have a snapshot UUID added (or does it have one already)?
 	 *
 	 * @param {HTMLAnchorElement|HTMLAreaElement} element Link element.
@@ -141,14 +152,7 @@ var CustomizeSnapshotsFrontend = ( function( $ ) {
 	 * @returns {boolean} Is appropriate for snapshot link.
 	 */
 	component.shouldLinkHaveSnapshotParam = function shouldLinkHaveSnapshotParam( element ) {
-
-		// Skip links to different hosts.
-		if ( element.hostname !== component.data.home_url.host ) {
-			return false;
-		}
-
-		// Skip links that aren't under the home path.
-		if ( 0 !== element.pathname.indexOf( component.data.home_url.path ) ) {
+		if ( ! component.isMatchingBaseUrl( element ) ) {
 			return false;
 		}
 
@@ -218,6 +222,50 @@ var CustomizeSnapshotsFrontend = ( function( $ ) {
 				sessionStorage.removeItem( 'customize_snapshot_uuid' );
 			} );
 		} );
+	};
+
+	/**
+	 * Inject the snapshot UUID into Ajax requests.
+	 *
+	 * @return {void}
+	 */
+	component.injectSnapshotIntoAjaxRequests = function injectSnapshotIntoAjaxRequests() {
+		$.ajaxPrefilter( component.prefilterAjax );
+	};
+
+	/**
+	 * Rewrite Ajax requests to inject Customizer state.
+	 *
+	 * @param {object} options Options.
+	 * @param {string} options.type Type.
+	 * @param {string} options.url URL.
+	 * @returns {void}
+	 */
+	component.prefilterAjax = function prefilterAjax( options ) {
+		var urlParser;
+		if ( ! component.data.uuid ) {
+			return;
+		}
+
+		urlParser = document.createElement( 'a' );
+		urlParser.href = options.url;
+
+		// Abort if the request is not for this site.
+		if ( ! component.isMatchingBaseUrl( urlParser ) ) {
+			return;
+		}
+
+		// Skip if snapshot UUID already in URL.
+		if ( -1 !== urlParser.search.indexOf( 'customize_snapshot_uuid=' + component.data.uuid ) ) {
+			return;
+		}
+
+		if ( urlParser.search.substr( 1 ).length > 0 ) {
+			urlParser.search += '&';
+		}
+		urlParser.search += 'customize_snapshot_uuid=' + component.data.uuid;
+
+		options.url = urlParser.href;
 	};
 
 	return component;
