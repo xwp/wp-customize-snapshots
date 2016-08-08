@@ -529,7 +529,7 @@
 			}
 
 			api.state( 'snapshot-saved' ).set( true );
-			if ( 'pending' === args.status ) {
+			if ( 'pending' === data.status ) {
 				api.state( 'snapshot-submitted' ).set( true );
 			}
 			component.resetSavedStateQuietly();
