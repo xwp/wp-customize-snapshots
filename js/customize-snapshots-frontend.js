@@ -101,16 +101,6 @@ var CustomizeSnapshotsFrontend = ( function( $ ) {
 		}
 		$( document.documentElement ).on( 'click focus mouseover', 'a, area', function( event ) {
 			component.injectLinkQueryParam( this );
-
-			if ( 'click' === event.type && ! component.doesLinkHaveSnapshotQueryParam( this ) && ! $( this ).parent().hasClass( 'ab-customize-snapshots-item' ) ) {
-				if ( confirm( component.data.l10n.leaveSessionPrompt ) ) {
-					if ( component.hasSessionStorage ) {
-						sessionStorage.removeItem( 'customize_snapshot_uuid' );
-					}
-				} else {
-					event.preventDefault();
-				}
-			}
 		} );
 	};
 

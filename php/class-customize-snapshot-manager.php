@@ -1130,7 +1130,7 @@ class Customize_Snapshot_Manager {
 		}
 		$wp_admin_bar->add_menu( array(
 			'id' => 'exit-customize-snapshot',
-			'title' => __( 'Exit Snapshot', 'customize-snapshots' ),
+			'title' => __( 'Exit Snapshot Preview', 'customize-snapshots' ),
 			'href' => remove_query_arg( 'customize_snapshot_uuid' ),
 			'meta' => array(
 				'class' => 'ab-item ab-customize-snapshots-item',
