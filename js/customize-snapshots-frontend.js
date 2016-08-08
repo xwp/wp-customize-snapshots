@@ -96,11 +96,38 @@ var CustomizeSnapshotsFrontend = ( function( $ ) {
 	 * @returns {void}
 	 */
 	component.injectSnapshotIntoLinks = function injectSnapshotIntoLinks() {
+		var linkSelectors = 'a, area';
+
 		if ( ! component.data.uuid ) {
 			return;
 		}
-		$( document.documentElement ).on( 'click focus mouseover', 'a, area', function( event ) {
-			component.injectLinkQueryParam( this );
+		$( function() {
+
+			// Inject links into initial document.
+			$( document.body ).find( linkSelectors ).each( function() {
+				component.injectLinkQueryParam( this );
+			} );
+
+			// Inject links for new elements added to the page
+			if ( 'undefined' !== typeof MutationObserver ) {
+				component.mutationObserver = new MutationObserver( function( mutations ) {
+					_.each( mutations, function( mutation ) {
+						$( mutation.target ).find( linkSelectors ).each( function() {
+							component.injectLinkQueryParam( this );
+						} );
+					} );
+				} );
+				component.mutationObserver.observe( document.documentElement, {
+					childList: true,
+					subtree: true
+				} );
+			} else {
+
+				// If mutation observers aren't available, fallback to just-in-time injection.
+				$( document.documentElement ).on( 'click focus mouseover', linkSelectors, function() {
+					component.injectLinkQueryParam( this );
+				} );
+			}
 		} );
 	};
 
