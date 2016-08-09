@@ -292,8 +292,8 @@ class Customize_Snapshot_Manager {
 	public function should_import_and_preview_snapshot( Customize_Snapshot $snapshot ) {
 		global $pagenow;
 
-		// Ignore if in the admin.
-		if ( is_admin() && ! ( defined( 'DOING_AJAX' ) && DOING_AJAX ) && 'customize.php' !== $pagenow ) {
+		// Ignore if in the admin, but not Admin Ajax or Customizer.
+		if ( is_admin() && ! in_array( $pagenow, array( 'admin-ajax.php', 'customize.php' ), true ) ) {
 			return false;
 		}
 
@@ -316,7 +316,7 @@ class Customize_Snapshot_Manager {
 		 * Note that wp.customize.Snapshots.extendPreviewerQuery() will extend the
 		 * previewer data to include the current snapshot UUID.
 		 */
-		if ( count( $this->customize_manager->unsanitized_post_values() ) > 0 ) {
+		if ( $this->customize_manager && count( $this->customize_manager->unsanitized_post_values() ) > 0 ) {
 			return false;
 		}
 

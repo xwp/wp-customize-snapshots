@@ -377,7 +377,55 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	 * @covers Customize_Snapshot_Manager::should_import_and_preview_snapshot()
 	 */
 	public function test_should_import_and_preview_snapshot() {
-		$this->markTestIncomplete();
+		global $pagenow, $wp_customize;
+		$_REQUEST['customize_snapshot_uuid'] = self::UUID;
+		$manager = $this->plugin->customize_snapshot_manager;
+		$post_id = $manager->post_type->save( array(
+			'uuid' => self::UUID,
+			'data' => array( 'blogname' => array( 'value' => 'Foo' ) ),
+		) );
+		$snapshot = new Customize_Snapshot( $manager, self::UUID );
+
+		// Not if admin.
+		set_current_screen( 'posts' );
+		$pagenow = 'posts.php'; // WPCS: global override ok.
+		$this->assertTrue( is_admin() );
+		$this->assertFalse( $manager->should_import_and_preview_snapshot( $snapshot ) );
+
+		// Not if theme switch error.
+		set_current_screen( 'customize' );
+		$pagenow = 'customize.php'; // WPCS: global override ok.
+		update_post_meta( $post_id, '_snapshot_theme', 'Foo' );
+		$this->assertFalse( $manager->should_import_and_preview_snapshot( $snapshot ) );
+		delete_post_meta( $post_id, '_snapshot_theme' );
+
+		// Not if customize_save.
+		$_REQUEST['action'] = 'customize_save';
+		$this->assertFalse( $manager->should_import_and_preview_snapshot( $snapshot ) );
+		unset( $_REQUEST['action'] );
+
+		// Not if published snapshot.
+		$manager->post_type->save( array(
+			'uuid' => self::UUID,
+			'status' => 'publish',
+		) );
+		$this->assertFalse( $manager->should_import_and_preview_snapshot( $snapshot ) );
+		$manager->post_type->save( array(
+			'uuid' => self::UUID,
+			'status' => 'draft',
+		) );
+
+		// Not if unsanitized post values is not empty.
+		$manager->customize_manager = new \WP_Customize_Manager();
+		$wp_customize = $manager->customize_manager; // WPCS: global override ok.
+		$wp_customize->set_post_value( 'name', 'value' );
+		$this->assertNotEmpty( $manager->customize_manager->unsanitized_post_values() );
+		$this->assertFalse( $manager->should_import_and_preview_snapshot( $snapshot ) );
+
+		// OK.
+		$manager->customize_manager = new \WP_Customize_Manager();
+		$wp_customize = $manager->customize_manager; // WPCS: global override ok.
+		$this->assertTrue( $manager->should_import_and_preview_snapshot( $snapshot ) );
 	}
 
 	/**
