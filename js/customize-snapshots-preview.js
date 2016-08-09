@@ -1,9 +1,10 @@
 /* global jQuery, JSON */
 /* exported CustomizeSnapshotsPreview */
 /* eslint consistent-this: [ "error", "section" ], no-magic-numbers: [ "error", { "ignore": [-1,0,1] } ] */
-/* eslint-disable no-alert */
 
-// @todo Inject customized state into all Ajax requests back to the site? All can be taken from Customize REST Resources.
+/*
+ * The code here is derived from Customize REST Resources: https://github.com/xwp/wp-customize-rest-resources
+ */
 
 var CustomizeSnapshotsPreview = (function( api, $ ) {
 	'use strict';
@@ -11,6 +12,16 @@ var CustomizeSnapshotsPreview = (function( api, $ ) {
 	var component = {
 		data: {
 			home_url: {
+				scheme: '',
+				host: '',
+				path: ''
+			},
+			rest_api_url: {
+				scheme: '',
+				host: '',
+				path: ''
+			},
+			admin_ajax_url: {
 				scheme: '',
 				host: '',
 				path: ''
@@ -73,7 +84,6 @@ var CustomizeSnapshotsPreview = (function( api, $ ) {
 	 *
 	 * This will not work 100% of the time, such as if an Admin Ajax handler is
 	 * specifically looking for a $_GET param vs a $_POST param.
-	 * @todo We could rewrite the REQUEST_METHOD and $_POST to $_GET when wp_customize_preview_ajax.
 	 *
 	 * @param {object} options Options.
 	 * @param {string} options.type Type.
@@ -83,13 +93,16 @@ var CustomizeSnapshotsPreview = (function( api, $ ) {
 	 * @returns {void}
 	 */
 	component.prefilterAjax = function prefilterAjax( options, originalOptions, xhr ) {
-		var requestMethod, urlParser, queryVars;
+		var requestMethod, urlParser, queryVars, isMatchingHomeUrl, isMatchingRestUrl, isMatchingAdminAjaxUrl;
 
 		urlParser = document.createElement( 'a' );
 		urlParser.href = options.url;
 
-		// @todo Handle admin_ajax and rest_api requests differently?
-		if ( urlParser.host !== component.data.home_url.host || 0 !== urlParser.pathname.indexOf( component.data.home_url.path ) ) {
+		isMatchingHomeUrl = urlParser.host === component.data.home_url.host && 0 === urlParser.pathname.indexOf( component.data.home_url.path );
+		isMatchingRestUrl = urlParser.host === component.data.rest_api_url.host && 0 === urlParser.pathname.indexOf( component.data.rest_api_url.path );
+		isMatchingAdminAjaxUrl = urlParser.host === component.data.admin_ajax_url.host && 0 === urlParser.pathname.indexOf( component.data.admin_ajax_url.path );
+
+		if ( ! isMatchingHomeUrl && ! isMatchingRestUrl && ! isMatchingAdminAjaxUrl ) {
 			return;
 		}
 
@@ -125,7 +138,7 @@ var CustomizeSnapshotsPreview = (function( api, $ ) {
 		}
 		queryVars = component.getCustomizeQueryVars();
 		queryVars.wp_customize_preview_ajax = 'true';
-		options.data += jQuery.param( queryVars );
+		options.data += $.param( queryVars );
 	};
 
 	return component;

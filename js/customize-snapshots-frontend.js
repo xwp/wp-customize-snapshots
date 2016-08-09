@@ -3,6 +3,11 @@
 /* eslint consistent-this: [ "error", "section" ], no-magic-numbers: [ "error", { "ignore": [-1,0,1] } ] */
 /* eslint-disable no-alert */
 
+/*
+ * The code here is derived from the initial Transactions pull request: https://github.com/xwp/wordpress-develop/pull/61
+ * See https://github.com/xwp/wordpress-develop/blob/97fd5019c488a0713d34b517bdbff67c62c48a5d/src/wp-includes/js/customize-preview.js#L98-L111
+ */
+
 var CustomizeSnapshotsFrontend = ( function( $ ) {
 	'use strict';
 

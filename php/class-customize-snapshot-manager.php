@@ -183,7 +183,53 @@ class Customize_Snapshot_Manager {
 			$wp_customize->customize_preview_init();
 		}
 
+		if ( defined( 'DOING_AJAX' ) && DOING_AJAX ) {
+			 $this->override_request_method();
+		} else {
+			add_action( 'parse_request', array( $this, 'override_request_method' ), 5 );
+		}
+
+		add_action( 'admin_init', array( $this, 'override_request_method' ) );
+
 		$wp_customize->remove_preview_signature();
+	}
+
+	/**
+	 * Attempt to convert the current request environment into another environment.
+	 *
+	 * @global \WP $wp
+	 *
+	 * @return bool Whether the override was applied.
+	 */
+	public function override_request_method() {
+		global $wp;
+
+		// Skip of X-HTTP-Method-Override request header is not present.
+		if ( ! isset( $_SERVER['HTTP_X_HTTP_METHOD_OVERRIDE'] ) ) {
+			return false;
+		}
+
+		// Skip if REST API request since it has built-in support for overriding the request method.
+		if ( ! empty( $wp ) && ! empty( $wp->query_vars['rest_route'] ) ) {
+			return false;
+		}
+
+		// Skip if the request method is not GET or POST, or the override is the same as the original.
+		$original_request_method = $_SERVER['REQUEST_METHOD'];
+		$override_request_method = strtoupper( $_SERVER['HTTP_X_HTTP_METHOD_OVERRIDE'] );
+		if ( ! in_array( $override_request_method, array( 'GET', 'POST' ), true ) || $original_request_method === $override_request_method ) {
+			return false;
+		}
+
+		// Convert a POST request into a GET request.
+		if ( 'GET' === $override_request_method && 'POST' === $original_request_method ) {
+			$_SERVER['REQUEST_METHOD'] = $override_request_method;
+			$_GET = array_merge( $_GET, $_POST );
+			$_SERVER['QUERY_STRING'] = build_query( array_map( 'rawurlencode', wp_unslash( $_GET ) ) );
+			return true;
+		}
+
+		return false;
 	}
 
 	/**
@@ -625,8 +671,9 @@ class Customize_Snapshot_Manager {
 
 		$exports = array(
 			'home_url' => wp_parse_url( home_url( '/' ) ),
+			'rest_api_url' => wp_parse_url( rest_url( '/' ) ),
+			'admin_ajax_url' => wp_parse_url( admin_url( 'admin-ajax.php' ) ),
 			'initial_dirty_settings' => array_keys( $wp_customize->unsanitized_post_values() ),
-			// @todo Include rest_api_url and admin_ajax_url?
 		);
 		wp_add_inline_script(
 			$handle,

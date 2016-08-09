@@ -196,6 +196,24 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	}
 
 	/**
+	 * Tests setup_preview_ajax_requests.
+	 *
+	 * @covers Customize_Snapshot_Manager::setup_preview_ajax_requests()
+	 */
+	public function test_setup_preview_ajax_requests() {
+		$this->markTestIncomplete();
+	}
+
+	/**
+	 * Tests override_request_method.
+	 *
+	 * @covers Customize_Snapshot_Manager::override_request_method()
+	 */
+	public function test_override_request_method() {
+		$this->markTestIncomplete();
+	}
+
+	/**
 	 * Tests doing_customize_save_ajax.
 	 *
 	 * @covers Customize_Snapshot_Manager::doing_customize_save_ajax()
