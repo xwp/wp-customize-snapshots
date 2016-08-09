@@ -150,5 +150,5 @@
 }
 .wp-full-overlay-sidebar .wp-full-overlay-header{
 	padding-left: 15px !important;
-	z-index: 1000001; !important;
+	z-index: 1000001 !important;
 }
