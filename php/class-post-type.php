@@ -733,7 +733,7 @@ class Post_Type {
 		}
 		$query .= ' )';
 
-		$results = $wpdb->get_results( $query, ARRAY_A );
+		$results = $wpdb->get_results( $query, ARRAY_A ); // WPCS: unprepared SQL ok.
 
 		if ( ! empty( $results ) ) {
 			foreach ( $results as $item ) {
