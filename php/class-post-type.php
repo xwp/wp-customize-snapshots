@@ -316,7 +316,13 @@ class Post_Type {
 	 */
 	public function render_data_metabox( $post ) {
 		$snapshot_content = $this->get_post_content( $post );
-
+		if ( 'publish' !== get_post_status( $post ) ) {
+			$conflicts_keys = $this->get_conflicts_setting( $post );
+			add_thickbox();
+			wp_enqueue_style( 'snapshot-admin' );
+		} else {
+			$conflicts_keys = array();
+		}
 		echo '<p>';
 		echo esc_html__( 'UUID:', 'customize-snapshots' ) . ' <code>' . esc_html( $post->post_name ) . '</code><br>';
 		echo sprintf( '%1$s %2$s %3$s', esc_html__( 'Modified:', 'customize-snapshots' ), esc_html( get_the_modified_date( '' ) ), esc_html( get_the_modified_time( '' ) ) ) . '<br>';
@@ -380,18 +386,23 @@ class Post_Type {
 				}
 				echo '</span>';
 			}
+			if ( isset( $conflicts_keys[ $setting_id ] ) ) {
+				$setting_id_key = trim( str_replace( array( '][', '[', ']' ), '-', $setting_id ), '-' );
+				echo '<a href="#TB_inline?width=600&height=550&inlineId=snapshot-' . esc_attr( $setting_id_key ) . '" class="dashicons dashicons-warning thickbox snapshot-thickbox" title="' . esc_attr( $setting_id ) . ' ' . __( 'conflicts with following snapshot(click to expend)', 'customize-snapshots' ) . '"></a>'; ?>
+				<div id="snapshot-<?php echo esc_attr( $setting_id_key ); ?>" style="display:none;">
+					<?php foreach ( $conflicts_keys[ $setting_id ] as $data ) { ?>
+								<details>
+									<summary><code><?php echo $data['name'] ?></code><a href="<?php echo get_edit_post_link( $data['post_id'], 'raw' ); ?>">(<?php _e( 'edit', 'customize-snapshots' ); ?>)</a></summary>
+									<?php echo $this->get_printable_setting_value( $data['value'] ); ?>
+								</details>
+						<?php } ?>
+				</div>
+				<?php
+			}
 
 			echo '</summary>';
 
-			if ( '' === $value ) {
-				$preview = '<p><em>' . esc_html__( '(Empty string)', 'customize-snapshots' ) . '</em></p>';
-			} elseif ( is_string( $value ) || is_numeric( $value ) ) {
-				$preview = '<p>' . esc_html( $value ) . '</p>';
-			} elseif ( is_bool( $value ) ) {
-				$preview = '<p>' . wp_json_encode( $value ) . '</p>';
-			} else {
-				$preview = sprintf( '<pre class="pre">%s</pre>', esc_html( Customize_Snapshot_Manager::encode_json( $value ) ) );
-			}
+			$preview = $this->get_printable_setting_value( $value );
 
 			/**
 			 * Filters the previewed value for a snapshot.
@@ -413,6 +424,26 @@ class Post_Type {
 			echo '</li>';
 		}
 		echo '</ul>';
+	}
+
+	/**
+	 * Get printable setting value
+	 *
+	 * @param mixed $value Setting value.
+	 *
+	 * @return string
+	 */
+	public function get_printable_setting_value( $value ) {
+		if ( '' === $value ) {
+			$preview = '<p><em>' . esc_html__( '(Empty string)', 'customize-snapshots' ) . '</em></p>';
+		} elseif ( is_string( $value ) || is_numeric( $value ) ) {
+			$preview = '<p>' . esc_html( $value ) . '</p>';
+		} elseif ( is_bool( $value ) ) {
+			$preview = '<p>' . wp_json_encode( $value ) . '</p>';
+		} else {
+			$preview = sprintf( '<pre class="pre">%s</pre>', esc_html( Customize_Snapshot_Manager::encode_json( $value ) ) );
+		}
+		return $preview;
 	}
 
 	/**
@@ -674,5 +705,56 @@ class Post_Type {
 			}
 		</style>
 		<?php
+	}
+
+	/**
+	 * Get conflicts settings
+	 *
+	 * @param \WP_Post $post post to compare conflict values.
+	 *
+	 * @return array
+	 */
+	public function get_conflicts_setting( $post ) {
+		global $wpdb;
+		$post = get_post( $post );
+		if ( ! $post || $post instanceof \WP_Error ) {
+			return array();
+		}
+		$return = array();
+		$content = $this->get_post_content( $post );
+		if ( empty( $content ) || ! is_array( $content ) ) {
+			return $return;
+		}
+		$settings = array_keys( $content );
+		$query = $wpdb->prepare( "SELECT ID, post_name, post_status, post_content FROM $wpdb->posts WHERE post_type = %s AND post_status IN ( 'draft', 'pending', 'future' ) AND ID != %d AND ( 1 = 2 ", self::SLUG, $post->ID );
+
+		foreach ( $settings as $setting_id ) {
+			$query .= $wpdb->prepare( 'OR post_content LIKE %s', '%' . $wpdb->esc_like( wp_json_encode( $setting_id ) ) . '%' );
+		}
+		$query .= ' )';
+
+		$results = $wpdb->get_results( $query, ARRAY_A );
+
+		if ( ! empty( $results ) ) {
+			foreach ( $results as $item ) {
+				$data = json_decode( $item['post_content'], true );
+				$snapshot_content_keys = array_keys( $data );
+				$conflicts_keys = array_intersect( $snapshot_content_keys, $settings );
+				if ( empty( $conflicts_keys ) ) {
+					continue;
+				}
+				foreach ( $conflicts_keys as $conflicts_key ) {
+					if ( ! isset( $return[ $conflicts_key ] ) ) {
+						$return[ $conflicts_key ] = array();
+					}
+					$return[ $conflicts_key ][] = array(
+						'post_id' => $item['ID'],
+						'value' => $data[ $conflicts_key ]['value'],
+						'name' => $item['post_name'],
+					);
+				}
+			}
+		}
+		return $return;
 	}
 }

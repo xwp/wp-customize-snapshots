@@ -82,5 +82,9 @@ class Plugin extends Plugin_Base {
 		$src = $this->dir_url . 'css/customize-snapshots' . $min . '.css';
 		$deps = array( 'wp-jquery-ui-dialog' );
 		$wp_styles->add( $this->slug, $src, $deps );
+
+		$src = $this->dir_url . 'css/customize-snapshots-admin' . $min . '.css';
+		$deps = array();
+		$wp_styles->add( 'snapshot-admin', $src, $deps );
 	}
 }
