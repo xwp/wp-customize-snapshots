@@ -347,7 +347,13 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	 * @covers Customize_Snapshot_Manager::ensure_customize_manager()
 	 */
 	public function test_ensure_customize_manager() {
-		$this->markTestIncomplete();
+		global $wp_customize;
+		$wp_customize = null; // WPCS: global override ok.
+		$manager = new Customize_Snapshot_Manager( $this->plugin );
+		$this->assertEmpty( $manager->customize_manager );
+		$manager->ensure_customize_manager();
+		$this->assertInstanceOf( 'WP_Customize_Manager', $manager->customize_manager );
+		$this->assertInstanceOf( 'WP_Customize_Manager', $wp_customize );
 	}
 
 	/**
