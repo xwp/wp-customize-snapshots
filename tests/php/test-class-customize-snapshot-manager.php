@@ -100,6 +100,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		unset( $GLOBALS['wp_scripts'] );
 		unset( $GLOBALS['wp_styles'] );
 		unset( $_REQUEST['customize_snapshot_uuid'] );
+		unset( $_REQUEST['wp_customize_preview_ajax'] );
 		parent::clean_up_global_scope();
 	}
 
@@ -187,21 +188,106 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	}
 
 	/**
-	 * Tests init.
+	 * Tests init hooks.
 	 *
 	 * @covers Customize_Snapshot_Manager::init()
 	 */
-	public function test_init() {
-		$this->markTestIncomplete();
+	public function test_init_hooks() {
+		$manager = new Customize_Snapshot_Manager( $this->plugin );
+		$manager->init();
+
+		$this->assertInstanceOf( __NAMESPACE__ . '\Post_Type', $manager->post_type );
+		$this->assertEquals( 10, has_action( 'template_redirect', array( $manager, 'show_theme_switch_error' ) ) );
+		$this->assertEquals( 10, has_action( 'customize_controls_enqueue_scripts', array( $manager, 'enqueue_controls_scripts' ) ) );
+		$this->assertEquals( 10, has_action( 'customize_preview_init', array( $manager, 'customize_preview_init' ) ) );
+		$this->assertEquals( 10, has_action( 'wp_enqueue_scripts', array( $manager, 'enqueue_frontend_scripts' ) ) );
+
+		$this->assertEquals( 10, has_action( 'customize_controls_init', array( $manager, 'add_snapshot_uuid_to_return_url' ) ) );
+		$this->assertEquals( 10, has_action( 'customize_controls_print_footer_scripts', array( $manager, 'render_templates' ) ) );
+		$this->assertEquals( 10, has_action( 'customize_save', array( $manager, 'check_customize_publish_authorization' ) ) );
+		$this->assertEquals( 10, has_filter( 'customize_refresh_nonces', array( $manager, 'filter_customize_refresh_nonces' ) ) );
+		$this->assertEquals( 41, has_action( 'admin_bar_menu', array( $manager, 'customize_menu' ) ) );
+		$this->assertEquals( 100000, has_action( 'admin_bar_menu', array( $manager, 'remove_all_non_snapshot_admin_bar_links' ) ) );
+		$this->assertEquals( 10, has_action( 'wp_before_admin_bar_render', array( $manager, 'print_admin_bar_styles' ) ) );
+
+		$this->assertEquals( 10, has_filter( 'wp_insert_post_data', array( $manager, 'prepare_snapshot_post_content_for_publish' ) ) );
+		$this->assertEquals( 10, has_action( 'customize_save_after', array( $manager, 'publish_snapshot_with_customize_save_after' ) ) );
+		$this->assertEquals( 10, has_action( 'transition_post_status', array( $manager, 'save_settings_with_publish_snapshot' ) ) );
+		$this->assertEquals( 10, has_action( 'wp_ajax_customize_update_snapshot', array( $manager, 'handle_update_snapshot_request' ) ) );
+	}
+
+	/**
+	 * Tests init hooks.
+	 *
+	 * @covers Customize_Snapshot_Manager::init()
+	 * @covers Customize_Snapshot_Manager::read_current_snapshot_uuid()
+	 */
+	public function test_read_current_snapshot_uuid() {
+		$manager = new Customize_Snapshot_Manager( $this->plugin );
+		$this->assertFalse( $manager->read_current_snapshot_uuid() );
+		$this->assertNull( $manager->current_snapshot_uuid );
+
+		$_REQUEST['customize_snapshot_uuid'] = 'bad';
+		$this->assertFalse( $manager->read_current_snapshot_uuid() );
+		$this->assertNull( $manager->current_snapshot_uuid );
+
+		$_REQUEST['customize_snapshot_uuid'] = self::UUID;
+		$this->assertTrue( $manager->read_current_snapshot_uuid() );
+		$this->assertEquals( self::UUID, $manager->current_snapshot_uuid );
+
+		$_REQUEST['customize_snapshot_uuid'] = self::UUID;
+		$manager = new Customize_Snapshot_Manager( $this->plugin );
+		$manager->init();
+		$this->assertEquals( self::UUID, $manager->current_snapshot_uuid );
+	}
+
+	/**
+	 * Tests load_snapshot.
+	 *
+	 * @covers Customize_Snapshot_Manager::init()
+	 * @covers Customize_Snapshot_Manager::load_snapshot()
+	 */
+	public function test_load_snapshot() {
+		global $wp_actions;
+		$_REQUEST['customize_snapshot_uuid'] = self::UUID;
+		$this->plugin->customize_snapshot_manager->post_type->save( array(
+			'uuid' => self::UUID,
+			'data' => array(
+				'blogname' => array( 'value' => 'Hello' ),
+			),
+			'status' => 'draft',
+		) );
+		$manager = new Customize_Snapshot_Manager( $this->plugin );
+		unset( $wp_actions['setup_theme'] );
+		unset( $wp_actions['wp_loaded'] );
+		$manager->init();
+		$this->assertNotEmpty( $manager->customize_manager );
+		$this->assertNotEmpty( $manager->snapshot );
+
+		$this->assertEquals( 10, has_action( 'setup_theme', array( $manager, 'import_snapshot_data' ) ) );
+		$this->assertEquals( 10, has_action( 'wp_head', 'wp_no_robots' ) );
+		$this->assertEquals( 11, has_action( 'wp_loaded', array( $manager, 'preview_snapshot_settings' ) ) );
 	}
 
 	/**
 	 * Tests setup_preview_ajax_requests.
 	 *
+	 * @covers Customize_Snapshot_Manager::init()
 	 * @covers Customize_Snapshot_Manager::setup_preview_ajax_requests()
 	 */
 	public function test_setup_preview_ajax_requests() {
-		$this->markTestIncomplete();
+		wp_set_current_user( $this->user_id );
+		$_REQUEST['wp_customize_preview_ajax'] = 'true';
+		$_POST['customized'] = wp_slash( wp_json_encode( array( 'blogname' => 'Foo' ) ) );
+		$manager = new Customize_Snapshot_Manager( $this->plugin );
+		$this->do_customize_boot_actions( true );
+		$this->assertTrue( is_customize_preview() );
+		$manager->init();
+		$this->assertEquals( 12, has_action( 'wp_loaded', array( $manager, 'setup_preview_ajax_requests' ) ) );
+		do_action( 'wp_loaded' );
+
+		$this->assertFalse( has_action( 'shutdown', array( $this->wp_customize, 'customize_preview_signature' ) ) );
+		$this->assertEquals( 5, has_action( 'parse_request', array( $manager, 'override_request_method' ) ) );
 	}
 
 	/**
@@ -210,7 +296,33 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	 * @covers Customize_Snapshot_Manager::override_request_method()
 	 */
 	public function test_override_request_method() {
-		$this->markTestIncomplete();
+		global $wp;
+
+		$manager = new Customize_Snapshot_Manager( $this->plugin );
+		$this->assertFalse( $manager->override_request_method() );
+
+		$_SERVER['HTTP_X_HTTP_METHOD_OVERRIDE'] = 'GET';
+		$wp->query_vars['rest_route'] = '/wp/v1/foo';
+		$this->assertFalse( $manager->override_request_method() );
+		unset( $wp->query_vars['rest_route'] );
+
+		$_SERVER['REQUEST_METHOD'] = 'GET';
+		$_SERVER['HTTP_X_HTTP_METHOD_OVERRIDE'] = 'GET';
+		$this->assertFalse( $manager->override_request_method() );
+
+		$_SERVER['REQUEST_METHOD'] = 'GET';
+		$_SERVER['HTTP_X_HTTP_METHOD_OVERRIDE'] = 'BAD';
+		$this->assertFalse( $manager->override_request_method() );
+
+		$_GET = wp_slash( array( 'foo' => '1' ) );
+		$_POST = wp_slash( array( 'bar' => '2' ) );
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_SERVER['HTTP_X_HTTP_METHOD_OVERRIDE'] = 'GET';
+		$this->assertTrue( $manager->override_request_method() );
+		$this->assertEquals( 'GET', $_SERVER['REQUEST_METHOD'] );
+		$this->assertEquals( 'foo=1&bar=2', $_SERVER['QUERY_STRING'] );
+		$this->assertArrayHasKey( 'foo', $_GET );
+		$this->assertArrayHasKey( 'bar', $_GET );
 	}
 
 	/**

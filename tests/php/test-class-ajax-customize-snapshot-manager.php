@@ -55,6 +55,7 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 		parent::setUp();
 
 		remove_all_actions( 'wp_ajax_customize_save' );
+		remove_all_actions( 'wp_ajax_customize_update_snapshot' );
 		$this->plugin = new Plugin();
 		$this->set_input_vars();
 		$this->plugin->init();

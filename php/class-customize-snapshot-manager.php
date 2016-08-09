@@ -114,55 +114,71 @@ class Customize_Snapshot_Manager {
 		add_filter( 'wp_insert_post_data', array( $this, 'prepare_snapshot_post_content_for_publish' ) );
 		add_action( 'customize_save_after', array( $this, 'publish_snapshot_with_customize_save_after' ) );
 		add_action( 'transition_post_status', array( $this, 'save_settings_with_publish_snapshot' ), 10, 3 );
+		add_action( 'wp_ajax_' . self::AJAX_ACTION, array( $this, 'handle_update_snapshot_request' ) );
 
+		if ( $this->read_current_snapshot_uuid() ) {
+			$this->load_snapshot();
+		} elseif ( is_customize_preview() && isset( $_REQUEST['wp_customize_preview_ajax'] ) && 'true' === $_REQUEST['wp_customize_preview_ajax'] ) {
+			add_action( 'wp_loaded', array( $this, 'setup_preview_ajax_requests' ), 12 );
+		}
+	}
+
+	/**
+	 * Read the current snapshot UUID from the request.
+	 *
+	 * @returns bool Whether a valid snapshot was read.
+	 */
+	public function read_current_snapshot_uuid() {
 		if ( isset( $_REQUEST['customize_snapshot_uuid'] ) ) { // WPCS: input var ok.
 			$uuid = sanitize_key( wp_unslash( $_REQUEST['customize_snapshot_uuid'] ) ); // WPCS: input var ok.
 			if ( static::is_valid_uuid( $uuid ) ) {
 				$this->current_snapshot_uuid = $uuid;
+				return true;
 			}
 		}
+		$this->current_snapshot_uuid = null;
+		return false;
+	}
 
-		if ( $this->current_snapshot_uuid ) {
-			$this->ensure_customize_manager();
+	/**
+	 * Load snapshot.
+	 */
+	public function load_snapshot() {
+		$this->ensure_customize_manager();
+		$this->snapshot = new Customize_Snapshot( $this, $this->current_snapshot_uuid );
 
-			add_action( 'wp_ajax_' . self::AJAX_ACTION, array( $this, 'handle_update_snapshot_request' ) );
+		if ( ! $this->should_import_and_preview_snapshot( $this->snapshot ) ) {
+			return;
+		}
 
-			$this->snapshot = new Customize_Snapshot( $this, $this->current_snapshot_uuid );
+		$this->add_widget_setting_preview_filters();
+		$this->add_nav_menu_setting_preview_filters();
 
-			if ( true === $this->should_import_and_preview_snapshot( $this->snapshot ) ) {
+		/*
+		 * Populate post values.
+		 *
+		 * Note we have to defer until setup_theme since the transaction
+		 * can be set beforehand, and wp_magic_quotes() would not have
+		 * been called yet, resulting in a $_POST['customized'] that is
+		 * double-escaped. Note that this happens at priority 1, which
+		 * is immediately after Customize_Snapshot_Manager::store_customized_post_data
+		 * which happens at setup_theme priority 0, so that the initial
+		 * POST data can be preserved.
+		 */
+		if ( did_action( 'setup_theme' ) ) {
+			$this->import_snapshot_data();
+		} else {
+			add_action( 'setup_theme', array( $this, 'import_snapshot_data' ) );
+		}
 
-				$this->add_widget_setting_preview_filters();
-				$this->add_nav_menu_setting_preview_filters();
+		// Block the robots.
+		add_action( 'wp_head', 'wp_no_robots' );
 
-				/*
-				 * Populate post values.
-				 *
-				 * Note we have to defer until setup_theme since the transaction
-				 * can be set beforehand, and wp_magic_quotes() would not have
-				 * been called yet, resulting in a $_POST['customized'] that is
-				 * double-escaped. Note that this happens at priority 1, which
-				 * is immediately after Customize_Snapshot_Manager::store_customized_post_data
-				 * which happens at setup_theme priority 0, so that the initial
-				 * POST data can be preserved.
-				 */
-				if ( did_action( 'setup_theme' ) ) {
-					$this->import_snapshot_data();
-				} else {
-					add_action( 'setup_theme', array( $this, 'import_snapshot_data' ) );
-				}
-
-				// Block the robots.
-				add_action( 'wp_head', 'wp_no_robots' );
-
-				// Preview post values.
-				if ( did_action( 'wp_loaded' ) ) {
-					$this->preview_snapshot_settings();
-				} else {
-					add_action( 'wp_loaded', array( $this, 'preview_snapshot_settings' ), 11 );
-				}
-			}
-		} elseif ( is_customize_preview() && isset( $_REQUEST['wp_customize_preview_ajax'] ) && 'true' === $_REQUEST['wp_customize_preview_ajax'] ) {
-			add_action( 'wp_loaded', array( $this, 'setup_preview_ajax_requests' ), 12 );
+		// Preview post values.
+		if ( did_action( 'wp_loaded' ) ) {
+			$this->preview_snapshot_settings();
+		} else {
+			add_action( 'wp_loaded', array( $this, 'preview_snapshot_settings' ), 11 );
 		}
 	}
 
@@ -172,7 +188,7 @@ class Customize_Snapshot_Manager {
 	 * @global \WP_Customize_Manager $wp_customize
 	 */
 	public function setup_preview_ajax_requests() {
-		global $wp_customize;
+		global $wp_customize, $pagenow;
 
 		/*
 		 * When making admin-ajax requests from the frontend, settings won't be
@@ -183,13 +199,12 @@ class Customize_Snapshot_Manager {
 			$wp_customize->customize_preview_init();
 		}
 
-		if ( defined( 'DOING_AJAX' ) && DOING_AJAX ) {
-			 $this->override_request_method();
+		// Note that using $pagenow is easier to test vs DOING_AJAX.
+		if ( ! empty( $pagenow ) && 'admin-ajax.php' === $pagenow ) {
+			$this->override_request_method();
 		} else {
 			add_action( 'parse_request', array( $this, 'override_request_method' ), 5 );
 		}
-
-		add_action( 'admin_init', array( $this, 'override_request_method' ) );
 
 		$wp_customize->remove_preview_signature();
 	}
