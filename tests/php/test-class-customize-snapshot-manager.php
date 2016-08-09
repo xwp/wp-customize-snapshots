@@ -362,7 +362,13 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	 * @covers Customize_Snapshot_Manager::is_theme_active()
 	 */
 	public function test_is_theme_active() {
-		$this->markTestIncomplete();
+		global $wp_customize;
+		$wp_customize = null; // WPCS: global override ok.
+		$manager = new Customize_Snapshot_Manager( $this->plugin );
+		$this->assertTrue( $manager->is_theme_active() );
+
+		$manager->ensure_customize_manager();
+		$this->assertTrue( $manager->is_theme_active() );
 	}
 
 	/**
