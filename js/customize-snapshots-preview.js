@@ -158,23 +158,9 @@ var CustomizeSnapshotsPreview = (function( api, $ ) {
 	};
 
 	/**
-	 * Check if form is previewable (has a GET method and an action pointing to WP).
-	 *
-	 * @param {HTMLFormElement} form Form.
-	 * @returns {boolean} Is previewable.
-	 */
-	component.isFormPreviewable = function isFormPreviewable( form ) {
-		var method = form.method.toUpperCase(), urlParser;
-		if ( 'GET' !== method ) {
-			return false;
-		}
-		urlParser = document.createElement( 'a' );
-		urlParser.href = form.action;
-		return urlParser.host === component.data.home_url.host && 0 === urlParser.pathname.indexOf( component.data.home_url.path );
-	};
-
-	/**
 	 * Replace form submit handler.
+	 *
+	 * @returns {void}
 	 */
 	component.replaceFormSubmitHandler = function replaceFormSubmitHandler() {
 		var body = $( document.body );
@@ -190,7 +176,7 @@ var CustomizeSnapshotsPreview = (function( api, $ ) {
 			 * URL and send this in a url message to the Customizer pane so that
 			 * it will be loaded.
 			 */
-			if ( ! event.isDefaultPrevented() && component.isFormPreviewable( this ) ) {
+			if ( ! event.isDefaultPrevented() && 'GET' === this.method.toUpperCase() ) {
 				urlParser = document.createElement( 'a' );
 				urlParser.href = this.action;
 				if ( urlParser.search.substr( 1 ).length > 1 ) {
