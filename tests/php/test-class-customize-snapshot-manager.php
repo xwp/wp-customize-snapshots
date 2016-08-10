@@ -931,4 +931,31 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		$this->assertContains( 'tmpl-snapshot-save', $templates );
 		$this->assertContains( 'tmpl-snapshot-dialog-error', $templates );
 	}
+
+	/**
+	 * Test month choices
+	 *
+	 * @covers Customize_Snapshot_Manager::get_month_choices()
+	 */
+	public function test_get_month_choices() {
+		$data = $this->manager->get_month_choices();
+		$this->assertArrayHasKey( 'month_choices', $data );
+		$this->assertCount( 12, $data['month_choices'] );
+	}
+
+	/**
+	 * Test override post date if empty.
+	 *
+	 * @covers Customize_Snapshot_Manager::override_post_date_default_data()
+	 */
+	public function test_override_post_date_default_data() {
+		$post_id = $this->factory()->post->create();
+		$post = get_post( $post_id );
+		$post->post_date = $post->post_date_gmt = $post->post_modified = $post->post_modified_gmt = '0000-00-00 00:00:00';
+		$this->manager->override_post_date_default_data( $post );
+		$this->assertNotEquals( $post->post_date, '0000-00-00 00:00:00' );
+		$this->assertNotEquals( $post->post_date_gmt, '0000-00-00 00:00:00' );
+		$this->assertNotEquals( $post->post_modified, '0000-00-00 00:00:00' );
+		$this->assertNotEquals( $post->post_modified_gmt, '0000-00-00 00:00:00' );
+	}
 }
