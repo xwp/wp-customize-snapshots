@@ -44,7 +44,7 @@ if ( version_compare( phpversion(), '5.3', '>=' ) ) {
  * Admin notice for incompatible versions of PHP.
  */
 function customize_snapshots_php_version_error() {
-	printf( '<div class="error"><p>%s</p></div>', customize_snapshots_php_version_text() );
+	printf( '<div class="error"><p>%s</p></div>', customize_snapshots_php_version_text() ); // WPCS: XSS OK.
 }
 
 /**
