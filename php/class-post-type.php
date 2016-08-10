@@ -735,6 +735,7 @@ class Post_Type {
 			return $return;
 		}
 		$query = $wpdb->prepare( "SELECT ID, post_name, post_status, post_content FROM $wpdb->posts WHERE post_type = %s AND post_status IN ( 'draft', 'pending', 'future' ) AND ID != %d AND ( ", self::SLUG, $post->ID );
+		// Todo: finalize post_status to check in.
 		$or = array();
 		foreach ( $settings as $setting_id ) {
 			$or[] = $wpdb->prepare( 'post_content LIKE %s', '%' . $wpdb->esc_like( wp_json_encode( $setting_id ) ) . '%' );

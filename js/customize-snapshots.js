@@ -57,6 +57,7 @@
 			component.extendPreviewerQuery();
 			component.addButtons();
 			component.addSchedule();
+			component.addConflictCheck();
 
 			$( '#snapshot-save' ).on( 'click', function( event ) {
 				var scheduleDate;
@@ -789,6 +790,72 @@
 		}
 
 		return date.valueOf();
+	};
+
+	component.conflict = {};
+
+	/**
+	 * Handles snapshot conflict UI and events.
+	 *
+	 * @return {void}
+	 */
+	component.addConflictCheck = function() {
+		component.conflict.warningTemplate = wp.template( 'snapshot-conflict' );
+		component.conflict.controls = [];
+		api.bind( 'change', function( setting ) { // Todo: confirm event.
+			component.sendControlConflictRequest( setting );
+		} );
+
+		// Todo: handle removing of conflict icon on publish.
+	};
+
+	/**
+	 * Send request for conflict check.
+	 *
+	 * @param {object} setting to check conflicts for.
+	 * @return {void} false in case of fail.
+	 */
+	component.sendControlConflictRequest = function( setting ) {
+		var request, data, controls, multiple;
+		if ( ! setting.id ) {
+			return;
+		}
+		if ( component.conflict.doingConflictAjax || component.conflict.controls[setting.id] ) {
+			return;
+		}
+		component.conflict.doingConflictAjax = true;
+		data = {
+			control: setting.id,
+			nonce: api.settings.nonce.snapshot,
+			customize_snapshot_uuid: component.data.uuid
+		};
+		request = wp.ajax.post( 'customize_snapshot_conflict_check', data );
+		request.done( function( returnData ) {
+			if ( ! _.isEmpty( returnData ) && returnData[setting.id] ) {
+				component.conflict.controls[setting.id] = $( $.trim( component.conflict.warningTemplate( {
+					setting_id: setting.id,
+					conflicts: returnData[setting.id]
+				} ) ) );
+
+				controls = setting.findControls();
+				_.each( controls, function( control ) {
+					if ( multiple ) {
+						component.conflict.controls[setting.id]
+							.first()
+							.clone()
+							.insertAfter( control.container.find( '.customize-control-title' ) );
+
+						// Just add the Anchor in case of multiple controls.
+					} else {
+						component.conflict.controls[setting.id].insertAfter( control.container.find( '.customize-control-title' ) );
+					}
+					multiple = true;
+				} );
+			}
+		} );
+		request.always( function() {
+			component.conflict.doingConflictAjax = false;
+		} );
 	};
 
 	component.init();

@@ -115,6 +115,7 @@ class Customize_Snapshot_Manager {
 		add_action( 'customize_save_after', array( $this, 'publish_snapshot_with_customize_save_after' ) );
 		add_action( 'transition_post_status', array( $this, 'save_settings_with_publish_snapshot' ), 10, 3 );
 		add_action( 'wp_ajax_' . self::AJAX_ACTION, array( $this, 'handle_update_snapshot_request' ) );
+		add_action( 'wp_ajax_customize_snapshot_conflict_check', array( $this, 'handle_conflicts_snapshot_request' ) );
 
 		if ( $this->read_current_snapshot_uuid() ) {
 			$this->load_snapshot();
@@ -1469,6 +1470,26 @@ class Customize_Snapshot_Manager {
 				<p>{{ data.message }}</p>
 			</div>
 		</script>
+
+		<script type="text/html" id="tmpl-snapshot-conflict">
+			<?php $title_text = sprintf( esc_html__( 'Potential Snapshot conflicts (click to expand)', 'customize-snapshots' ) );?>
+			<# id= data.setting_id.replace( /]/g, '' ).split( '[' ).filter( Boolean ).join( '-' ); #>
+			<a href="#TB_inline?width=600&height=550&inlineId=snapshot-conflicts-{{id}}" class="dashicons dashicons-warning thickbox snapshot-conflicts-thickbox" title="<?php echo $title_text; ?>"></a>
+			<div id="snapshot-conflicts-{{id}}" style="display:none;">
+				    <# _.each( data.conflicts, function( setting ) { #>
+						<details>
+							<summary>
+								<code>{{setting.name}}</code>
+								<a href="{{setting.editLink}}">
+									(<?php _e( 'edit', 'customize-snapshots' ); ?>)
+								</a>
+							</summary>
+							<!-- Todo handle displaying value in js? Filter? -->
+							{{{setting.value}}}
+						</details>
+				    <# }); #>
+			</div>
+		</script>
 		<?php
 	}
 
@@ -1541,5 +1562,55 @@ class Customize_Snapshot_Manager {
 			}
 		}
 		return $post;
+	}
+
+	/**
+	 * Handle snapshot conflicts AJAX request.
+	 */
+	public function handle_conflicts_snapshot_request() {
+		if ( ! check_ajax_referer( self::AJAX_ACTION, 'nonce', false ) ) {
+			status_header( 400 );
+			wp_send_json_error( 'bad_nonce' );
+		} elseif ( ! current_user_can( 'customize' ) ) {
+			status_header( 403 );
+			wp_send_json_error( 'customize_not_allowed' );
+		} elseif ( ! isset( $_SERVER['REQUEST_METHOD'] ) || 'POST' !== $_SERVER['REQUEST_METHOD'] ) { // WPCS: input var ok.
+			status_header( 405 );
+			wp_send_json_error( 'bad_method' );
+		} elseif ( empty( $this->current_snapshot_uuid ) ) {
+			status_header( 400 );
+			wp_send_json_error( 'invalid_customize_snapshot_uuid' );
+		}
+
+		if ( isset( $_POST['control'] ) ) { // WPCS: input var ok.
+			$control = $_POST['control']; // Todo validate setting id.
+		} else {
+			status_header( 400 );
+			wp_send_json_error( 'required_param_missing' );
+		}
+		global $wpdb;
+		$query = $wpdb->prepare( "SELECT ID, post_name, post_status, post_content FROM $wpdb->posts WHERE post_type = %s AND post_status IN ( 'draft', 'pending', 'future' ) AND  post_content LIKE %s", Post_Type::SLUG, '%' . $wpdb->esc_like( $control ) . '%' );
+		// Todo: finalize post_status to check in.
+		// Todo: ignore saved snapshot settings post.
+		$results = $wpdb->get_results( $query, ARRAY_A ); // WPCS: unprepared SQL ok.
+		$return = array();
+		if ( ! empty( $results ) ) {
+			foreach ( $results as $item ) {
+				$data = json_decode( $item['post_content'], true );
+				if ( empty( $data[ $control ] ) ) {
+					continue;
+				}
+				if ( ! isset( $return[ $control ] ) ) {
+					$return[ $control ] = array();
+				}
+				$return[ $control ][] = array(
+					'post_id' => $item['ID'],
+					'value' => $this->post_type->get_printable_setting_value( $data[ $control ]['value'] ),
+					'name' => $item['post_name'],
+					'editLink' => get_edit_post_link( $item['ID'], 'raw' ),
+				);
+			}
+		}
+		wp_send_json_success( $return );
 	}
 }
