@@ -41,6 +41,7 @@ var CustomizeSnapshotsPreview = (function( api, $ ) {
 		_.extend( component.data, args );
 
 		component.injectSnapshotIntoAjaxRequests();
+		component.handleFormSubmissions();
 	};
 
 	/**
@@ -139,6 +140,70 @@ var CustomizeSnapshotsPreview = (function( api, $ ) {
 		queryVars = component.getCustomizeQueryVars();
 		queryVars.wp_customize_preview_ajax = 'true';
 		options.data += $.param( queryVars );
+	};
+
+	/**
+	 * Handle form submissions.
+	 *
+	 * Implements todo in https://github.com/xwp/wordpress-develop/blob/4.5.3/src/wp-includes/js/customize-preview.js#L69-L73
+	 */
+	component.handleFormSubmissions = function handleFormSubmissions() {
+		$( function() {
+
+			// Defer so that we can be sure that our event handler will come after any other event handlers.
+			_.defer( function() {
+				component.replaceFormSubmitHandler();
+			} );
+		} );
+	};
+
+	/**
+	 * Check if form is previewable (has a GET method and an action pointing to WP).
+	 *
+	 * @param {HTMLFormElement} form Form.
+	 * @returns {boolean} Is previewable.
+	 */
+	component.isFormPreviewable = function isFormPreviewable( form ) {
+		var method = form.method.toUpperCase(), urlParser;
+		if ( 'GET' !== method ) {
+			return false;
+		}
+		urlParser = document.createElement( 'a' );
+		urlParser.href = form.action;
+		return urlParser.host === component.data.home_url.host && 0 === urlParser.pathname.indexOf( component.data.home_url.path );
+	};
+
+	/**
+	 * Replace form submit handler.
+	 */
+	component.replaceFormSubmitHandler = function replaceFormSubmitHandler() {
+		var body = $( document.body );
+		body.off( 'submit.preview' );
+		body.on( 'submit.preview', 'form', function( event ) {
+			var urlParser;
+
+			/*
+			 * If the default wasn't prevented already (in which case the form
+			 * submission is already being handled by JS), and if the method is
+			 * GET and its action points to a URL on this site, then take the
+			 * serialized form data and add it as a query string to the action
+			 * URL and send this in a url message to the Customizer pane so that
+			 * it will be loaded.
+			 */
+			if ( ! event.isDefaultPrevented() && component.isFormPreviewable( this ) ) {
+				urlParser = document.createElement( 'a' );
+				urlParser.href = this.action;
+				if ( urlParser.search.substr( 1 ).length > 1 ) {
+					urlParser.search += '&';
+				}
+				urlParser.search += $( this ).serialize();
+
+				api.preview.send( 'url', urlParser.href );
+			}
+
+			// Now preventDefault as is done on the normal submit.preview handler in customize-preview.js.
+			event.preventDefault();
+		});
 	};
 
 	return component;
