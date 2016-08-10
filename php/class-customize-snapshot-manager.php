@@ -683,6 +683,7 @@ class Customize_Snapshot_Manager {
 
 		$handle = 'customize-snapshots-preview';
 		wp_enqueue_script( $handle );
+		wp_enqueue_style( $handle );
 
 		$exports = array(
 			'home_url' => wp_parse_url( home_url( '/' ) ),
