@@ -42,6 +42,7 @@ var CustomizeSnapshotsFrontend = ( function( $ ) {
 		component.injectSnapshotIntoLinks();
 		component.handleExitSnapshotSessionLink();
 		component.injectSnapshotIntoAjaxRequests();
+		component.injectSnapshotIntoForms();
 	};
 
 	/**
@@ -108,7 +109,7 @@ var CustomizeSnapshotsFrontend = ( function( $ ) {
 
 			// Inject links into initial document.
 			$( document.body ).find( linkSelectors ).each( function() {
-				component.injectLinkQueryParam( this );
+				component.injectSnapshotLinkParam( this );
 			} );
 
 			// Inject links for new elements added to the page
@@ -116,7 +117,7 @@ var CustomizeSnapshotsFrontend = ( function( $ ) {
 				component.mutationObserver = new MutationObserver( function( mutations ) {
 					_.each( mutations, function( mutation ) {
 						$( mutation.target ).find( linkSelectors ).each( function() {
-							component.injectLinkQueryParam( this );
+							component.injectSnapshotLinkParam( this );
 						} );
 					} );
 				} );
@@ -128,7 +129,7 @@ var CustomizeSnapshotsFrontend = ( function( $ ) {
 
 				// If mutation observers aren't available, fallback to just-in-time injection.
 				$( document.documentElement ).on( 'click focus mouseover', linkSelectors, function() {
-					component.injectLinkQueryParam( this );
+					component.injectSnapshotLinkParam( this );
 				} );
 			}
 		} );
@@ -201,7 +202,7 @@ var CustomizeSnapshotsFrontend = ( function( $ ) {
 	 * @param {object} element.search Query string.
 	 * @returns {void}
 	 */
-	component.injectLinkQueryParam = function injectLinkQueryParam( element ) {
+	component.injectSnapshotLinkParam = function injectSnapshotLinkParam( element ) {
 		if ( component.doesLinkHaveSnapshotQueryParam( element ) || ! component.shouldLinkHaveSnapshotParam( element ) ) {
 			return;
 		}
@@ -270,6 +271,63 @@ var CustomizeSnapshotsFrontend = ( function( $ ) {
 		urlParser.search += 'customize_snapshot_uuid=' + component.data.uuid;
 
 		options.url = urlParser.href;
+	};
+
+	/**
+	 * Inject snapshot into forms, allowing preview to persist through submissions.
+	 *
+	 * @returns {void}
+	 */
+	component.injectSnapshotIntoForms = function injectSnapshotIntoForms() {
+		if ( ! component.data.uuid ) {
+			return;
+		}
+		$( function() {
+
+			// Inject inputs for forms in initial document.
+			$( document.body ).find( 'form' ).each( function() {
+				component.injectSnapshotFormInput( this );
+			} );
+
+			// Inject inputs for new forms added to the page.
+			if ( 'undefined' !== typeof MutationObserver ) {
+				component.mutationObserver = new MutationObserver( function( mutations ) {
+					_.each( mutations, function( mutation ) {
+						$( mutation.target ).find( 'form' ).each( function() {
+							component.injectSnapshotFormInput( this );
+						} );
+					} );
+				} );
+				component.mutationObserver.observe( document.documentElement, {
+					childList: true,
+					subtree: true
+				} );
+			}
+		} );
+	};
+
+	/**
+	 * Inject snapshot into form inputs.
+	 *
+	 * @param {HTMLFormElement} form Form.
+	 * @returns {void}
+	 */
+	component.injectSnapshotFormInput = function injectSnapshotFormInput( form ) {
+		var urlParser;
+		if ( $( form ).find( 'input[name=customize_snapshot_uuid]' ).length > 0 ) {
+			return;
+		}
+		urlParser = document.createElement( 'a' );
+		urlParser.href = form.action;
+		if ( ! component.isMatchingBaseUrl( urlParser ) ) {
+			return;
+		}
+
+		$( form ).prepend( $( '<input>', {
+			type: 'hidden',
+			name: 'customize_snapshot_uuid',
+			value: component.data.uuid
+		} ) );
 	};
 
 	return component;
