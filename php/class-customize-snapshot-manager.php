@@ -643,9 +643,9 @@ class Customize_Snapshot_Manager {
 		$exports = apply_filters( 'customize_snapshots_export_data', array(
 			'action' => self::AJAX_ACTION,
 			'uuid' => $this->snapshot ? $this->snapshot->uuid() : self::generate_uuid(),
-			'editLink' => $this->snapshot ? get_edit_post_link( $post, 'raw' ) : '',
-			'publishDate' => $this->snapshot ? $post->post_date : '',
-			'postStatus' => $this->snapshot ? $post->post_status : '',
+			'editLink' => isset( $post ) ? get_edit_post_link( $post, 'raw' ) : '',
+			'publishDate' => isset( $post->post_date ) ? $post->post_date : '',
+			'postStatus' => isset( $post->post_status ) ? $post->post_status : '',
 			'currentUserCanPublish' => current_user_can( 'customize_publish' ),
 			'initialServerDate' => current_time( 'mysql', false ),
 			'initialServerTimestamp' => floor( microtime( true ) * 1000 ),
