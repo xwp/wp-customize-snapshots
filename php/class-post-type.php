@@ -105,7 +105,7 @@ class Post_Type {
 		register_post_type( static::SLUG, $args );
 
 		add_filter( 'post_type_link', array( $this, 'filter_post_type_link' ), 10, 2 );
-		add_action( 'add_meta_boxes_' . static::SLUG, array( $this, 'remove_publish_metabox' ), 100 );
+		add_action( 'add_meta_boxes_' . static::SLUG, array( $this, 'remove_slug_metabox' ), 100 );
 		add_action( 'load-revision.php', array( $this, 'suspend_kses_for_snapshot_revision_restore' ) );
 		add_filter( 'get_the_excerpt', array( $this, 'filter_snapshot_excerpt' ), 10, 2 );
 		add_filter( 'post_row_actions', array( $this, 'filter_post_row_actions' ), 10, 2 );
@@ -176,7 +176,7 @@ class Post_Type {
 	 *
 	 * @codeCoverageIgnore
 	 */
-	public function remove_publish_metabox() {
+	public function remove_slug_metabox() {
 		remove_meta_box( 'slugdiv', static::SLUG, 'normal' );
 	}
 
@@ -594,20 +594,20 @@ class Post_Type {
 	/**
 	 * Display snapshot save error on post list table.
 	 *
-	 * @param array    $status Display status.
-	 * @param \WP_Post $post Post object.
+	 * @param array    $states Display states.
+	 * @param \WP_Post $post   Post object.
 	 *
 	 * @return mixed
 	 */
-	public function display_post_states( $status, $post ) {
+	public function display_post_states( $states, $post ) {
 		if ( static::SLUG !== $post->post_type ) {
-			return $status;
+			return $states;
 		}
 		$maybe_error = get_post_meta( $post->ID, 'snapshot_error_on_publish', true );
 		if ( $maybe_error ) {
-			$status['snapshot_error'] = __( 'Error on publish', 'customize-snapshots' );
+			$states['snapshot_error'] = __( 'Error on publish', 'customize-snapshots' );
 		}
-		return $status;
+		return $states;
 	}
 
 	/**

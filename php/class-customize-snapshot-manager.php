@@ -62,6 +62,13 @@ class Customize_Snapshot_Manager {
 	public $current_snapshot_uuid;
 
 	/**
+	 * Whether the snapshot settings are being previewed.
+	 *
+	 * @var bool
+	 */
+	protected $previewing_settings = false;
+
+	/**
 	 * The originally active theme.
 	 *
 	 * @access public
@@ -92,64 +99,152 @@ class Customize_Snapshot_Manager {
 
 		add_action( 'template_redirect', array( $this, 'show_theme_switch_error' ) );
 
+		add_action( 'customize_controls_enqueue_scripts', array( $this, 'enqueue_controls_scripts' ) );
+		add_action( 'customize_preview_init', array( $this, 'customize_preview_init' ) );
+		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_frontend_scripts' ) );
+
 		add_action( 'customize_controls_init', array( $this, 'add_snapshot_uuid_to_return_url' ) );
-		add_action( 'customize_controls_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
 		add_action( 'customize_controls_print_footer_scripts', array( $this, 'render_templates' ) );
 		add_action( 'customize_save', array( $this, 'check_customize_publish_authorization' ), 10, 0 );
 		add_filter( 'customize_refresh_nonces', array( $this, 'filter_customize_refresh_nonces' ) );
 		add_action( 'admin_bar_menu', array( $this, 'customize_menu' ), 41 );
+		add_action( 'admin_bar_menu', array( $this, 'remove_all_non_snapshot_admin_bar_links' ), 100000 );
+		add_action( 'wp_before_admin_bar_render', array( $this, 'print_admin_bar_styles' ) );
 
 		add_filter( 'wp_insert_post_data', array( $this, 'prepare_snapshot_post_content_for_publish' ) );
 		add_action( 'customize_save_after', array( $this, 'publish_snapshot_with_customize_save_after' ) );
 		add_action( 'transition_post_status', array( $this, 'save_settings_with_publish_snapshot' ), 10, 3 );
+		add_action( 'wp_ajax_' . self::AJAX_ACTION, array( $this, 'handle_update_snapshot_request' ) );
 
+		if ( $this->read_current_snapshot_uuid() ) {
+			$this->load_snapshot();
+		} elseif ( is_customize_preview() && isset( $_REQUEST['wp_customize_preview_ajax'] ) && 'true' === $_REQUEST['wp_customize_preview_ajax'] ) {
+			add_action( 'wp_loaded', array( $this, 'setup_preview_ajax_requests' ), 12 );
+		}
+	}
+
+	/**
+	 * Read the current snapshot UUID from the request.
+	 *
+	 * @returns bool Whether a valid snapshot was read.
+	 */
+	public function read_current_snapshot_uuid() {
 		if ( isset( $_REQUEST['customize_snapshot_uuid'] ) ) { // WPCS: input var ok.
 			$uuid = sanitize_key( wp_unslash( $_REQUEST['customize_snapshot_uuid'] ) ); // WPCS: input var ok.
 			if ( static::is_valid_uuid( $uuid ) ) {
 				$this->current_snapshot_uuid = $uuid;
+				return true;
 			}
 		}
+		$this->current_snapshot_uuid = null;
+		return false;
+	}
 
-		if ( $this->current_snapshot_uuid ) {
-			$this->ensure_customize_manager();
+	/**
+	 * Load snapshot.
+	 */
+	public function load_snapshot() {
+		$this->ensure_customize_manager();
+		$this->snapshot = new Customize_Snapshot( $this, $this->current_snapshot_uuid );
 
-			add_action( 'wp_ajax_' . self::AJAX_ACTION, array( $this, 'handle_update_snapshot_request' ) );
-
-			$this->snapshot = new Customize_Snapshot( $this, $this->current_snapshot_uuid );
-
-			if ( true === $this->should_import_and_preview_snapshot( $this->snapshot ) ) {
-
-				$this->add_widget_setting_preview_filters();
-				$this->add_nav_menu_setting_preview_filters();
-
-				/*
-				 * Populate post values.
-				 *
-				 * Note we have to defer until setup_theme since the transaction
-				 * can be set beforehand, and wp_magic_quotes() would not have
-				 * been called yet, resulting in a $_POST['customized'] that is
-				 * double-escaped. Note that this happens at priority 1, which
-				 * is immediately after Customize_Snapshot_Manager::store_customized_post_data
-				 * which happens at setup_theme priority 0, so that the initial
-				 * POST data can be preserved.
-				 */
-				if ( did_action( 'setup_theme' ) ) {
-					$this->import_snapshot_data();
-				} else {
-					add_action( 'setup_theme', array( $this, 'import_snapshot_data' ) );
-				}
-
-				// Block the robots.
-				add_action( 'wp_head', 'wp_no_robots' );
-
-				// Preview post values.
-				if ( did_action( 'wp_loaded' ) ) {
-					$this->preview_snapshot_settings();
-				} else {
-					add_action( 'wp_loaded', array( $this, 'preview_snapshot_settings' ), 11 );
-				}
-			}
+		if ( ! $this->should_import_and_preview_snapshot( $this->snapshot ) ) {
+			return;
 		}
+
+		$this->add_widget_setting_preview_filters();
+		$this->add_nav_menu_setting_preview_filters();
+
+		/*
+		 * Populate post values.
+		 *
+		 * Note we have to defer until setup_theme since the transaction
+		 * can be set beforehand, and wp_magic_quotes() would not have
+		 * been called yet, resulting in a $_POST['customized'] that is
+		 * double-escaped. Note that this happens at priority 1, which
+		 * is immediately after Customize_Snapshot_Manager::store_customized_post_data
+		 * which happens at setup_theme priority 0, so that the initial
+		 * POST data can be preserved.
+		 */
+		if ( did_action( 'setup_theme' ) ) {
+			$this->import_snapshot_data();
+		} else {
+			add_action( 'setup_theme', array( $this, 'import_snapshot_data' ) );
+		}
+
+		// Block the robots.
+		add_action( 'wp_head', 'wp_no_robots' );
+
+		// Preview post values.
+		if ( did_action( 'wp_loaded' ) ) {
+			$this->preview_snapshot_settings();
+		} else {
+			add_action( 'wp_loaded', array( $this, 'preview_snapshot_settings' ), 11 );
+		}
+	}
+
+	/**
+	 * Setup previewing of Ajax requests in the Customizer preview.
+	 *
+	 * @global \WP_Customize_Manager $wp_customize
+	 */
+	public function setup_preview_ajax_requests() {
+		global $wp_customize, $pagenow;
+
+		/*
+		 * When making admin-ajax requests from the frontend, settings won't be
+		 * previewed because is_admin() and the call to preview will be
+		 * short-circuited in \WP_Customize_Manager::wp_loaded().
+		 */
+		if ( ! did_action( 'customize_preview_init' ) ) {
+			$wp_customize->customize_preview_init();
+		}
+
+		// Note that using $pagenow is easier to test vs DOING_AJAX.
+		if ( ! empty( $pagenow ) && 'admin-ajax.php' === $pagenow ) {
+			$this->override_request_method();
+		} else {
+			add_action( 'parse_request', array( $this, 'override_request_method' ), 5 );
+		}
+
+		$wp_customize->remove_preview_signature();
+	}
+
+	/**
+	 * Attempt to convert the current request environment into another environment.
+	 *
+	 * @global \WP $wp
+	 *
+	 * @return bool Whether the override was applied.
+	 */
+	public function override_request_method() {
+		global $wp;
+
+		// Skip of X-HTTP-Method-Override request header is not present.
+		if ( ! isset( $_SERVER['HTTP_X_HTTP_METHOD_OVERRIDE'] ) ) {
+			return false;
+		}
+
+		// Skip if REST API request since it has built-in support for overriding the request method.
+		if ( ! empty( $wp ) && ! empty( $wp->query_vars['rest_route'] ) ) {
+			return false;
+		}
+
+		// Skip if the request method is not GET or POST, or the override is the same as the original.
+		$original_request_method = $_SERVER['REQUEST_METHOD'];
+		$override_request_method = strtoupper( $_SERVER['HTTP_X_HTTP_METHOD_OVERRIDE'] );
+		if ( ! in_array( $override_request_method, array( 'GET', 'POST' ), true ) || $original_request_method === $override_request_method ) {
+			return false;
+		}
+
+		// Convert a POST request into a GET request.
+		if ( 'GET' === $override_request_method && 'POST' === $original_request_method ) {
+			$_SERVER['REQUEST_METHOD'] = $override_request_method;
+			$_GET = array_merge( $_GET, $_POST );
+			$_SERVER['QUERY_STRING'] = build_query( array_map( 'rawurlencode', wp_unslash( $_GET ) ) );
+			return true;
+		}
+
+		return false;
 	}
 
 	/**
@@ -195,6 +290,12 @@ class Customize_Snapshot_Manager {
 	 * @return true|\WP_Error Returns true if previewable, or `WP_Error` if cannot.
 	 */
 	public function should_import_and_preview_snapshot( Customize_Snapshot $snapshot ) {
+		global $pagenow;
+
+		// Ignore if in the admin, but not Admin Ajax or Customizer.
+		if ( is_admin() && ! in_array( $pagenow, array( 'admin-ajax.php', 'customize.php' ), true ) ) {
+			return false;
+		}
 
 		if ( is_wp_error( $this->get_theme_switch_error( $snapshot ) ) ) {
 			return false;
@@ -215,7 +316,7 @@ class Customize_Snapshot_Manager {
 		 * Note that wp.customize.Snapshots.extendPreviewerQuery() will extend the
 		 * previewer data to include the current snapshot UUID.
 		 */
-		if ( count( $this->customize_manager->unsanitized_post_values() ) > 0 ) {
+		if ( $this->customize_manager && count( $this->customize_manager->unsanitized_post_values() ) > 0 ) {
 			return false;
 		}
 
@@ -263,17 +364,43 @@ class Customize_Snapshot_Manager {
 	}
 
 	/**
+	 * Is previewing settings.
+	 *
+	 * Plugins and themes may currently only use `is_customize_preview()` to
+	 * decide whether or not they can store a value in the object cache. For
+	 * example, see `Twenty_Eleven_Ephemera_Widget::widget()`. However, when
+	 * viewing a snapshot on the frontend, the `is_customize_preview()` method
+	 * will return `false`. Plugins and themes that store values in the object
+	 * cache must either skip doing this when `$this->previewing` is `true`,
+	 * or include the `$this->current_snapshot_uuid` (`current_snapshot_uuid()`)
+	 * in the cache key when it is `true`. Note that if the `customize_preview_init` action
+	 * was done, this means that the settings have been previewed in the regular
+	 * Customizer preview.
+	 *
+	 * @see Twenty_Eleven_Ephemera_Widget::widget()
+	 * @see WP_Customize_Manager::is_previewing_settings()
+	 * @see is_previewing_settings()
+	 * @see current_snapshot_uuid()()
+	 * @see WP_Customize_Manager::customize_preview_init()
+	 * @see Customize_Snapshot_Manager::$previewing_settings
+	 *
+	 * @return bool Whether previewing settings.
+	 */
+	public function is_previewing_settings() {
+		return $this->previewing_settings || did_action( 'customize_preview_init' );
+	}
+
+	/**
 	 * Preview the snapshot settings.
 	 *
 	 * Note that this happens at `wp_loaded` action with priority 11 so that we
 	 * can look at whether the `customize_preview_init` action was done.
 	 */
 	public function preview_snapshot_settings() {
-
-		// Short-circuit because if customize_preview_init happened, then all settings have been previewed.
-		if ( did_action( 'customize_preview_init' ) ) {
+		if ( $this->is_previewing_settings() ) {
 			return;
 		}
+		$this->previewing_settings = true;
 
 		/*
 		 * Note that we need to preview the settings outside the Customizer preview
@@ -404,17 +531,6 @@ class Customize_Snapshot_Manager {
 	}
 
 	/**
-	 * Get the current URL.
-	 *
-	 * @return string
-	 */
-	public function current_url() {
-		$http_host = isset( $_SERVER['HTTP_HOST'] ) ? wp_unslash( $_SERVER['HTTP_HOST'] ) : parse_url( home_url(), PHP_URL_HOST ); // WPCS: input var ok; sanitization ok.
-		$request_uri = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '/'; // WPCS: input var ok; sanitization ok.
-		return ( is_ssl() ? 'https://' : 'http://' ) . $http_host . $request_uri;
-	}
-
-	/**
 	 * Add snapshot UUID the Customizer return URL.
 	 *
 	 * If the Customizer was loaded with a snapshot UUID, let the return URL include this snapshot.
@@ -434,15 +550,6 @@ class Customize_Snapshot_Manager {
 			$return_url = add_query_arg( array_map( 'rawurlencode', $args ), $this->customize_manager->get_return_url() );
 			$this->customize_manager->set_return_url( $return_url );
 		}
-	}
-
-	/**
-	 * Get the clean version of current URL.
-	 *
-	 * @return string
-	 */
-	public function remove_snapshot_uuid_from_current_url() {
-		return remove_query_arg( array( 'customize_snapshot_uuid' ), $this->current_url() );
 	}
 
 	/**
@@ -518,15 +625,15 @@ class Customize_Snapshot_Manager {
 	 * @action customize_controls_enqueue_scripts
 	 * @global \WP_Customize_Manager $wp_customize
 	 */
-	public function enqueue_scripts() {
+	public function enqueue_controls_scripts() {
 
 		// Prevent loading the Snapshot interface if the theme is not active.
 		if ( ! $this->is_theme_active() ) {
 			return;
 		}
 
-		wp_enqueue_style( $this->plugin->slug );
-		wp_enqueue_script( $this->plugin->slug );
+		wp_enqueue_style( 'customize-snapshots' );
+		wp_enqueue_script( 'customize-snapshots' );
 
 		// Script data array.
 		$exports = apply_filters( 'customize_snapshots_export_data', array(
@@ -556,6 +663,62 @@ class Customize_Snapshot_Manager {
 			$this->plugin->slug,
 			'data',
 			sprintf( 'var _customizeSnapshots = %s;', wp_json_encode( $exports ) )
+		);
+	}
+
+	/**
+	 * Set up Customizer preview.
+	 */
+	public function customize_preview_init() {
+		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_preview_scripts' ) );
+	}
+
+	/**
+	 * Enqueue Customizer preview scripts.
+	 *
+	 * @global \WP_Customize_Manager $wp_customize
+	 */
+	public function enqueue_preview_scripts() {
+		global $wp_customize;
+
+		$handle = 'customize-snapshots-preview';
+		wp_enqueue_script( $handle );
+		wp_enqueue_style( $handle );
+
+		$exports = array(
+			'home_url' => wp_parse_url( home_url( '/' ) ),
+			'rest_api_url' => wp_parse_url( rest_url( '/' ) ),
+			'admin_ajax_url' => wp_parse_url( admin_url( 'admin-ajax.php' ) ),
+			'initial_dirty_settings' => array_keys( $wp_customize->unsanitized_post_values() ),
+		);
+		wp_add_inline_script(
+			$handle,
+			sprintf( 'CustomizeSnapshotsPreview.init( %s )', wp_json_encode( $exports ) ),
+			'after'
+		);
+	}
+
+	/**
+	 * Enqueue Customizer frontend scripts.
+	 */
+	public function enqueue_frontend_scripts() {
+		if ( ! $this->snapshot ) {
+			return;
+		}
+		$handle = 'customize-snapshots-frontend';
+		wp_enqueue_script( $handle );
+
+		$exports = array(
+			'uuid' => $this->snapshot ? $this->snapshot->uuid() : null,
+			'home_url' => wp_parse_url( home_url( '/' ) ),
+			'l10n' => array(
+				'restoreSessionPrompt' => __( 'It seems you may have inadvertently navigated away from previewing a customized state. Would you like to restore the snapshot context?', 'customize-snapshots' ),
+			),
+		);
+		wp_add_inline_script(
+			$handle,
+			sprintf( 'CustomizeSnapshotsFrontend.init( %s )', wp_json_encode( $exports ) ),
+			'after'
 		);
 	}
 
@@ -997,9 +1160,90 @@ class Customize_Snapshot_Manager {
 	 * @param \WP_Admin_Bar $wp_admin_bar WP_Admin_Bar instance.
 	 */
 	public function customize_menu( $wp_admin_bar ) {
-		$this->replace_customize_link( $wp_admin_bar );
-		$this->add_post_edit_screen_link( $wp_admin_bar );
 		add_action( 'wp_before_admin_bar_render', 'wp_customize_support_script' );
+		$this->replace_customize_link( $wp_admin_bar );
+		$this->add_resume_snapshot_link( $wp_admin_bar );
+		$this->add_post_edit_screen_link( $wp_admin_bar );
+		$this->add_snapshot_exit_link( $wp_admin_bar );
+	}
+
+	/**
+	 * Print admin bar styles.
+	 */
+	public function print_admin_bar_styles() {
+		?>
+		<style type="text/css">
+			#wpadminbar #wp-admin-bar-resume-customize-snapshot {
+				display: none;
+			}
+			#wpadminbar #wp-admin-bar-resume-customize-snapshot > .ab-item:before {
+				content: "\f531";
+				top: 2px;
+			}
+			#wpadminbar #wp-admin-bar-inspect-customize-snapshot > .ab-item:before {
+				content: "\f179";
+				top: 2px;
+			}
+			#wpadminbar #wp-admin-bar-exit-customize-snapshot > .ab-item:before {
+				content: "\f158";
+				top: 2px;
+			}
+		</style>
+		<?php
+	}
+
+	/**
+	 * Replaces the "Customize" link in the Toolbar.
+	 *
+	 * @param \WP_Admin_Bar $wp_admin_bar WP_Admin_Bar instance.
+	 */
+	public function replace_customize_link( $wp_admin_bar ) {
+		if ( empty( $this->snapshot ) ) {
+			return;
+		}
+
+		$customize_node = $wp_admin_bar->get_node( 'customize' );
+		if ( empty( $customize_node ) ) {
+			return;
+		}
+
+		// Remove customize_snapshot_uuuid query param from url param to be previewed in Customizer.
+		$preview_url_query_params = array();
+		$preview_url_parsed = wp_parse_url( $customize_node->href );
+		parse_str( $preview_url_parsed['query'], $preview_url_query_params );
+		if ( ! empty( $preview_url_query_params['url'] ) ) {
+			$preview_url_query_params['url'] = remove_query_arg( array( 'customize_snapshot_uuid' ), $preview_url_query_params['url'] );
+			$customize_node->href = preg_replace(
+				'/(?<=\?).*?(?=#|$)/',
+				build_query( $preview_url_query_params ),
+				$customize_node->href
+			);
+		}
+
+		// Add customize_snapshot_uuid param as param to customize.php itself.
+		$customize_node->href = add_query_arg(
+			array( 'customize_snapshot_uuid' => $this->current_snapshot_uuid ),
+			$customize_node->href
+		);
+
+		$customize_node->meta['class'] .= ' ab-customize-snapshots-item';
+		$wp_admin_bar->add_menu( (array) $customize_node );
+	}
+
+	/**
+	 * Adds a link to resume snapshot previewing.
+	 *
+	 * @param \WP_Admin_Bar $wp_admin_bar WP_Admin_Bar instance.
+	 */
+	public function add_resume_snapshot_link( $wp_admin_bar ) {
+		$wp_admin_bar->add_menu( array(
+			'id' => 'resume-customize-snapshot',
+			'title' => __( 'Resume Snapshot Preview', 'customize-snapshots' ),
+			'href' => '#',
+			'meta' => array(
+				'class' => 'ab-item ab-customize-snapshots-item',
+			),
+		) );
 	}
 
 	/**
@@ -1015,43 +1259,63 @@ class Customize_Snapshot_Manager {
 		if ( ! $post ) {
 			return;
 		}
-		$wp_admin_bar->add_node( array(
-			'parent' => 'customize',
-			'id' => 'snapshot-view-link',
+		$wp_admin_bar->add_menu( array(
+			'id' => 'inspect-customize-snapshot',
 			'title' => __( 'Inspect Snapshot', 'customize-snapshots' ),
 			'href' => get_edit_post_link( $post->ID, 'raw' ),
+			'meta' => array(
+				'class' => 'ab-item ab-customize-snapshots-item',
+			),
 		) );
 	}
 
 	/**
-	 * Replaces the "Customize" link in the Toolbar.
+	 * Adds an "Exit Snapshot" link to the Toolbar when in Snapshot mode.
 	 *
 	 * @param \WP_Admin_Bar $wp_admin_bar WP_Admin_Bar instance.
 	 */
-	public function replace_customize_link( $wp_admin_bar ) {
-		// Don't show for users who can't access the customizer or when in the admin.
-		if ( ! current_user_can( 'customize' ) || is_admin() ) {
+	public function add_snapshot_exit_link( $wp_admin_bar ) {
+		if ( ! $this->snapshot ) {
 			return;
 		}
+		$wp_admin_bar->add_menu( array(
+			'id' => 'exit-customize-snapshot',
+			'title' => __( 'Exit Snapshot Preview', 'customize-snapshots' ),
+			'href' => remove_query_arg( 'customize_snapshot_uuid' ),
+			'meta' => array(
+				'class' => 'ab-item ab-customize-snapshots-item',
+			),
+		) );
+	}
 
-		$args = array();
-		if ( $this->current_snapshot_uuid ) {
-			$args['customize_snapshot_uuid'] = $this->current_snapshot_uuid;
+	/**
+	 * Remove all admin bar nodes that have links and which aren't for snapshots.
+	 *
+	 * @param \WP_Admin_Bar $wp_admin_bar Admin bar.
+	 */
+	public function remove_all_non_snapshot_admin_bar_links( $wp_admin_bar ) {
+		if ( empty( $this->snapshot ) ) {
+			return;
 		}
+		$snapshot_admin_bar_node_ids = array( 'customize', 'exit-customize-snapshot', 'inspect-customize-snapshot' );
+		foreach ( $wp_admin_bar->get_nodes() as $node ) {
+			if ( in_array( $node->id, $snapshot_admin_bar_node_ids, true ) || '#' === substr( $node->href, 0, 1 ) ) {
+				continue;
+			}
 
-		$args['url'] = esc_url_raw( $this->remove_snapshot_uuid_from_current_url() );
-		$customize_url = add_query_arg( array_map( 'rawurlencode', $args ), wp_customize_url() );
-
-		$wp_admin_bar->add_menu(
-			array(
-				'id'     => 'customize',
-				'title'  => __( 'Customize', 'customize-snapshots' ),
-				'href'   => $customize_url,
-				'meta'   => array(
-					'class' => 'hide-if-no-customize',
-				),
-			)
-		);
+			$parsed_link_url = wp_parse_url( $node->href );
+			$parsed_home_url = wp_parse_url( home_url( '/' ) );
+			$is_external_link = (
+				isset( $parsed_link_url['host'] ) && $parsed_link_url['host'] !== $parsed_home_url['host']
+				||
+				isset( $parsed_link_url['path'] ) && 0 !== strpos( $parsed_link_url['path'], $parsed_home_url['path'] )
+				||
+				( ! isset( $parsed_link_url['query'] ) || ! preg_match( '#(^|&)customize_snapshot_uuid=#', $parsed_link_url['query'] ) )
+			);
+			if ( $is_external_link ) {
+				$wp_admin_bar->remove_node( $node->id );
+			}
+		}
 	}
 
 	/**

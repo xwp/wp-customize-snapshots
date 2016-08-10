@@ -49,7 +49,7 @@ class Test_Post_type extends \WP_UnitTestCase {
 		$this->assertTrue( post_type_exists( Post_Type::SLUG ) );
 
 		$this->assertEquals( 10, has_filter( 'post_type_link', array( $post_type, 'filter_post_type_link' ) ) );
-		$this->assertEquals( 100, has_action( 'add_meta_boxes_' . Post_Type::SLUG, array( $post_type, 'remove_publish_metabox' ) ) );
+		$this->assertEquals( 100, has_action( 'add_meta_boxes_' . Post_Type::SLUG, array( $post_type, 'remove_slug_metabox' ) ) );
 		$this->assertEquals( 10, has_action( 'load-revision.php', array( $post_type, 'suspend_kses_for_snapshot_revision_restore' ) ) );
 		$this->assertEquals( 10, has_filter( 'get_the_excerpt', array( $post_type, 'filter_snapshot_excerpt' ) ) );
 		$this->assertEquals( 10, has_filter( 'post_row_actions', array( $post_type, 'filter_post_row_actions' ) ) );
@@ -129,23 +129,9 @@ class Test_Post_type extends \WP_UnitTestCase {
 		$this->assertTrue( ! empty( $wp_meta_boxes[ Post_Type::SLUG ]['normal']['high'][ $metabox_id ] ) );
 	}
 
-	/**
-	 * Tests remove_publish_metabox.
-	 *
-	 * @covers Post_Type::remove_publish_metabox()
-	 */
-	public function test_remove_publish_metabox() {
-		$this->markTestIncomplete();
-	}
+	/* Note: Code coverage ignored on Post_Type::remove_publish_metabox(). */
 
-	/**
-	 * Tests suspend_kses_for_snapshot_revision_restore.
-	 *
-	 * @covers Post_Type::suspend_kses_for_snapshot_revision_restore()
-	 */
-	public function test_suspend_kses_for_snapshot_revision_restore() {
-		$this->markTestIncomplete();
-	}
+	/* Note: Code coverage ignored on Post_Type::suspend_kses_for_snapshot_revision_restore(). */
 
 	/**
 	 * Test include the setting IDs in the excerpt.
@@ -643,7 +629,18 @@ class Test_Post_type extends \WP_UnitTestCase {
 	 * @covers Post_Type::display_post_states()
 	 */
 	public function test_display_post_states() {
-		$this->markTestIncomplete();
+		$post_type = new Post_Type( $this->plugin->customize_snapshot_manager );
+
+		$post_id = $post_type->save( array(
+			'uuid' => self::UUID,
+			'data' => array( 'foo' => array( 'value' => 'bar' ) ),
+		) );
+		$states = $post_type->display_post_states( array(), get_post( $post_id ) );
+		$this->assertArrayNotHasKey( 'snapshot_error', $states );
+
+		update_post_meta( $post_id, 'snapshot_error_on_publish', true );
+		$states = $post_type->display_post_states( array(), get_post( $post_id ) );
+		$this->assertArrayHasKey( 'snapshot_error', $states );
 	}
 
 	/**
