@@ -388,18 +388,23 @@ class Post_Type {
 			}
 			if ( isset( $conflicts_keys[ $setting_id ] ) ) {
 				$setting_id_key = trim( str_replace( array( '][', '[', ']' ), '-', $setting_id ), '-' );
-				echo '<a href="#TB_inline?width=600&height=550&inlineId=snapshot-' . esc_attr( $setting_id_key ) . '" class="dashicons dashicons-warning thickbox snapshot-thickbox" title="' . esc_attr( $setting_id ) . ' ' . __( 'conflicts with following snapshot(click to expend)', 'customize-snapshots' ) . '"></a>'; ?>
+				$title_text = sprintf( esc_html__( '%s has potential Snapshot conflicts (click to expand)', 'customize-snapshots' ), $setting_id );
+				echo '<a href="#TB_inline?width=600&height=550&inlineId=snapshot-' . esc_attr( $setting_id_key ) . '" class="dashicons dashicons-warning thickbox snapshot-thickbox" title="' . $title_text . '"></a>'; ?>
 				<div id="snapshot-<?php echo esc_attr( $setting_id_key ); ?>" style="display:none;">
 					<?php foreach ( $conflicts_keys[ $setting_id ] as $data ) { ?>
-								<details>
-									<summary><code><?php echo $data['name'] ?></code><a href="<?php echo get_edit_post_link( $data['post_id'], 'raw' ); ?>">(<?php _e( 'edit', 'customize-snapshots' ); ?>)</a></summary>
-									<?php echo $this->get_printable_setting_value( $data['value'] ); ?>
-								</details>
-						<?php } ?>
+						<details>
+							<summary>
+								<code><?php echo $data['name'] ?></code>
+								<a href="<?php echo get_edit_post_link( $data['post_id'], 'raw' ); ?>">
+									(<?php _e( 'edit', 'customize-snapshots' ); ?>)
+								</a>
+							</summary>
+							<?php echo $this->get_printable_setting_value( $data['value'] ); ?>
+						</details>
+					<?php } ?>
 				</div>
 				<?php
 			}
-
 			echo '</summary>';
 
 			$preview = $this->get_printable_setting_value( $value );
@@ -717,7 +722,7 @@ class Post_Type {
 	public function get_conflicts_setting( $post ) {
 		global $wpdb;
 		$post = get_post( $post );
-		if ( ! $post || $post instanceof \WP_Error ) {
+		if ( ! $post || ! ( $post instanceof \WP_Post ) ) {
 			return array();
 		}
 		$return = array();
@@ -726,11 +731,15 @@ class Post_Type {
 			return $return;
 		}
 		$settings = array_keys( $content );
-		$query = $wpdb->prepare( "SELECT ID, post_name, post_status, post_content FROM $wpdb->posts WHERE post_type = %s AND post_status IN ( 'draft', 'pending', 'future' ) AND ID != %d AND ( 1 = 2 ", self::SLUG, $post->ID );
-
-		foreach ( $settings as $setting_id ) {
-			$query .= $wpdb->prepare( 'OR post_content LIKE %s', '%' . $wpdb->esc_like( wp_json_encode( $setting_id ) ) . '%' );
+		if ( empty( $settings ) ) {
+			return $return;
 		}
+		$query = $wpdb->prepare( "SELECT ID, post_name, post_status, post_content FROM $wpdb->posts WHERE post_type = %s AND post_status IN ( 'draft', 'pending', 'future' ) AND ID != %d AND ( ", self::SLUG, $post->ID );
+		$or = array();
+		foreach ( $settings as $setting_id ) {
+			$or[] = $wpdb->prepare( 'post_content LIKE %s', '%' . $wpdb->esc_like( wp_json_encode( $setting_id ) ) . '%' );
+		}
+		$query .= implode( ' OR ', $or );
 		$query .= ' )';
 
 		$results = $wpdb->get_results( $query, ARRAY_A ); // WPCS: unprepared SQL ok.
