@@ -1,0 +1,8 @@
+form[method="post"] button[type="submit"],
+form[method="post"] button[type=""],
+form[method="post"] input[type="submit"] {
+	cursor: not-allowed;
+}
+form[method="post"] button:not([type]) {
+	cursor: not-allowed;
+}

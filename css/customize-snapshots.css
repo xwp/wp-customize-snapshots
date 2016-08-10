@@ -15,11 +15,13 @@
 #snapshot-preview-link:active {
 	color: #191e23;
 }
+
 #snapshot-save {
 	float: right;
 	margin-top: 9px;
 	margin-right: 9px;
 }
+
 #customize-header-actions:not(.button-added) .button#save {
 	visibility: hidden;
 }
@@ -140,15 +142,22 @@
 	min-width: 10%;
 	width: auto;
 }
+
 .snapshot-schedule-control input.date-input {
 	-moz-appearance: textfield;
 }
+
 .snapshot-schedule-control input.date-input::-webkit-outer-spin-button,
 .snapshot-schedule-control input.date-input::-webkit-inner-spin-button {
 	-webkit-appearance: none;
 	margin: 0;
 }
-.wp-full-overlay-sidebar .wp-full-overlay-header{
-	padding-left: 15px !important;
-	z-index: 1000001 !important;
+
+.wp-full-overlay .wp-full-overlay-sidebar .wp-full-overlay-header {
+	padding-left: 15px;
+	z-index: 500101;
+}
+
+.select2-container {
+	z-index: 500100 !important;
 }
