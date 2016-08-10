@@ -921,7 +921,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	/**
 	 * Test render templates.
 	 *
-	 * @see Customize_Snapshot_Manager::render_templates()
+	 * @covers Customize_Snapshot_Manager::render_templates()
 	 */
 	public function test_render_templates() {
 		ob_start();
@@ -930,6 +930,21 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		ob_end_clean();
 		$this->assertContains( 'tmpl-snapshot-save', $templates );
 		$this->assertContains( 'tmpl-snapshot-dialog-error', $templates );
+		$this->assertContains( 'tmpl-snapshot-preview-link', $templates );
+		$this->assertContains( 'tmpl-snapshot-schedule-button', $templates );
+		$this->assertContains( 'tmpl-snapshot-schedule', $templates );
+		$this->assertContains( 'tmpl-snapshot-scheduled-countdown', $templates );
+		$this->assertContains( 'tmpl-snapshot-submit', $templates );
+	}
+
+	/**
+	 * Test format_gmt_offset
+	 *
+	 * @covers Customize_Snapshot_Manager::format_gmt_offset()
+	 */
+	public function test_format_gmt_offset() {
+		$offset = $this->manager->format_gmt_offset( 7.0 );
+		$this->assertEquals( '+7', $offset );
 	}
 
 	/**
