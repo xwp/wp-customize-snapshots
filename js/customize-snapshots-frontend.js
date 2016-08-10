@@ -314,7 +314,7 @@ var CustomizeSnapshotsFrontend = ( function( $ ) {
 	 */
 	component.injectSnapshotFormInput = function injectSnapshotFormInput( form ) {
 		var urlParser;
-		if ( form.querySelector( 'input[name=customize_snapshot_uuid]' ) ) {
+		if ( $( form ).find( 'input[name=customize_snapshot_uuid]' ).length > 0 ) {
 			return;
 		}
 		urlParser = document.createElement( 'a' );
