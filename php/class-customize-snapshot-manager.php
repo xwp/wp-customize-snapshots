@@ -1390,13 +1390,14 @@ class Customize_Snapshot_Manager {
 				<div class="snapshot-schedule-title">
 					<h3>
 						<?php esc_html_e( 'Schedule Snapshot', 'customize-snapshots' ); ?>
-						<span class="reset-time">(<a href="#"><?php esc_html_e( 'Reset', 'customize-snapshots' ) ?></a>)</span>
+						<span class="reset-time">(<a href="#" title="<?php esc_attr_e( 'Reset schedule date to original or current date', 'customize-snapshots' ); ?>"><?php esc_html_e( 'Reset', 'customize-snapshots' ) ?></a>)</span>
 					</h3>
 					<span class="snapshot-schedule-description">
 						<span class="snapshot-scheduled-countdown"></span>
 						<span class="timezone-info"><?php echo esc_html( $date_control_description ); ?></span>
 					</span>
-					<a href="{{ data.editLink }}" class="dashicons dashicons-edit snapshot-edit-link" aria-expanded="false"></a>
+					<?php $edit_snapshot_text = __( 'Edit Snapshot', 'customize-snapshots' ); ?>
+					<a href="{{ data.editLink }}" class="dashicons dashicons-edit snapshot-edit-link" title="<?php echo esc_attr( $edit_snapshot_text ); ?>" aria-expanded="false"><span class="screen-reader-text"><?php echo esc_html( $edit_snapshot_text ); ?></span></a>
 				</div>
 				<div class="snapshot-schedule-control">
 					<#
