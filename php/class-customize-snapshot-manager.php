@@ -1397,7 +1397,7 @@ class Customize_Snapshot_Manager {
 						<span class="timezone-info"><?php echo esc_html( $date_control_description ); ?></span>
 					</span>
 					<?php $edit_snapshot_text = __( 'Edit Snapshot', 'customize-snapshots' ); ?>
-					<a href="{{ data.editLink }}" class="dashicons dashicons-edit snapshot-edit-link" title="<?php echo esc_attr( $edit_snapshot_text ); ?>" aria-expanded="false"><span class="screen-reader-text"><?php echo esc_html( $edit_snapshot_text ); ?></span></a>
+					<a href="{{ data.editLink }}" class="dashicons dashicons-edit snapshot-edit-link" target="_blank" title="<?php echo esc_attr( $edit_snapshot_text ); ?>" aria-expanded="false"><span class="screen-reader-text"><?php echo esc_html( $edit_snapshot_text ); ?></span></a>
 				</div>
 				<div class="snapshot-schedule-control">
 					<#
