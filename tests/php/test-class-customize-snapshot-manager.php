@@ -353,6 +353,10 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		$this->assertEquals( 'foo=1&bar=2', $_SERVER['QUERY_STRING'] );
 		$this->assertArrayHasKey( 'foo', $_GET );
 		$this->assertArrayHasKey( 'bar', $_GET );
+
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_SERVER['HTTP_X_HTTP_METHOD_OVERRIDE'] = 'PUT';
+		$this->assertFalse( $manager->override_request_method() );
 	}
 
 	/**
