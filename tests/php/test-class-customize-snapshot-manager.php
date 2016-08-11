@@ -460,7 +460,6 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	/**
 	 * Tests preview_snapshot_settings.
 	 *
-	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::init()
 	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::preview_snapshot_settings()
 	 */
 	public function test_preview_snapshot_settings() {
@@ -481,7 +480,6 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		$manager->init();
 		$manager->ensure_customize_manager();
 		do_action( 'customize_register', $manager->customize_manager );
-		$manager->customize_manager->set_post_value( 'blogname', 'Hello' );
 		$this->assertFalse( $manager->is_previewing_settings() );
 		$this->assertFalse( $manager->customize_manager->get_setting( 'blogname' )->dirty );
 		$this->assertNotEquals( 'Hello', get_option( 'blogname' ) );
@@ -496,7 +494,34 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::import_snapshot_data()
 	 */
 	public function test_import_snapshot_data() {
-		$this->markTestIncomplete();
+		global $wp_actions;
+		$_REQUEST['customize_snapshot_uuid'] = self::UUID;
+		$this->manager->post_type->save( array(
+			'uuid' => self::UUID,
+			'data' => array(
+				'blogname' => array( 'value' => 'Hello' ),
+				'blogdescription' => array( 'value' => null ),
+			),
+			'status' => 'draft',
+		) );
+
+		// Prevent init from calling import_snapshot_data straight away.
+		unset( $wp_actions['setup_theme'] );
+
+		$manager = new Customize_Snapshot_Manager( $this->plugin );
+		$manager->init();
+		$manager->ensure_customize_manager();
+		do_action( 'customize_register', $manager->customize_manager );
+
+		$this->assertArrayNotHasKey( 'customized', $_POST );
+		$this->assertArrayNotHasKey( 'customized', $_REQUEST );
+		$this->assertArrayNotHasKey( 'blogname', $manager->customize_manager->unsanitized_post_values() );
+		$this->assertArrayNotHasKey( 'blogdescription', $manager->customize_manager->unsanitized_post_values() );
+		$manager->import_snapshot_data();
+		$this->assertArrayHasKey( 'customized', $_POST );
+		$this->assertArrayHasKey( 'customized', $_REQUEST );
+		$this->assertArrayHasKey( 'blogname', $manager->customize_manager->unsanitized_post_values() );
+		$this->assertArrayNotHasKey( 'blogdescription', $manager->customize_manager->unsanitized_post_values() );
 	}
 
 	/**
