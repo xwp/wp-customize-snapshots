@@ -748,7 +748,8 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::filter_customize_refresh_nonces()
 	 */
 	function test_filter_customize_refresh_nonces() {
-		$this->markTestIncomplete();
+		$manager = new Customize_Snapshot_Manager( $this->plugin );
+		$this->assertArrayHasKey( 'snapshot', $manager->filter_customize_refresh_nonces( array() ) );
 	}
 
 	/**
