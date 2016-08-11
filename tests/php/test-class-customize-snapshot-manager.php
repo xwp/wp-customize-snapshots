@@ -290,6 +290,36 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		$this->assertEquals( 5, has_action( 'parse_request', array( $manager, 'override_request_method' ) ) );
 	}
 
+
+	/**
+	 * Tests setup_preview_ajax_requests for admin_ajax.
+	 *
+	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::init()
+	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::setup_preview_ajax_requests()
+	 */
+	public function test_setup_preview_ajax_requests_for_admin_ajax() {
+		global $pagenow;
+		wp_set_current_user( $this->user_id );
+
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_SERVER['HTTP_X_HTTP_METHOD_OVERRIDE'] = 'GET';
+		$pagenow = 'admin-ajax.php'; // WPCS: Global override ok.
+		set_current_screen( 'admin-ajax' );
+		$this->assertTrue( is_admin() );
+
+		$_REQUEST['wp_customize_preview_ajax'] = 'true';
+		$_POST['customized'] = wp_slash( wp_json_encode( array( 'blogname' => 'Foo' ) ) );
+		$manager = new Customize_Snapshot_Manager( $this->plugin );
+		$manager->init();
+		do_action( 'admin_init' );
+		$this->do_customize_boot_actions( true );
+		$this->assertTrue( is_customize_preview() );
+		$this->assertFalse( has_action( 'shutdown', array( $this->wp_customize, 'customize_preview_signature' ) ) );
+		$this->assertFalse( has_action( 'parse_request', array( $manager, 'override_request_method' ) ) );
+		$this->assertEquals( 'GET', $_SERVER['REQUEST_METHOD'] );
+		$this->assertEquals( 'Foo', get_option( 'blogname' ) );
+	}
+
 	/**
 	 * Tests override_request_method.
 	 *
