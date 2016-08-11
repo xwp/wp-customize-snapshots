@@ -525,6 +525,17 @@ class Customize_Snapshot_Manager {
 			);
 			if ( $is_nav_menu_setting ) {
 				$setting->preview();
+
+				/*
+				 * The following is redundant because it will be done later in
+				 * Customize_Snapshot_Manager::preview_snapshot_settings().
+				 * Also note that the $setting instance here will likely be
+				 * blown away inside of WP_Customize_Nav_Menus::customize_register(),
+				 * when add_setting is called there. What matters here is that
+				 * preview() is called on the setting _before_ the logic inside
+				 * WP_Customize_Nav_Menus::customize_register() runs, so that
+				 * the nav menu sections will be created.
+				 */
 				$setting->dirty = true;
 			}
 		}

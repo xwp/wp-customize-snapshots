@@ -582,7 +582,36 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::preview_early_nav_menus_in_customizer()
 	 */
 	public function test_preview_early_nav_menus_in_customizer() {
-		$this->markTestIncomplete();
+		global $pagenow;
+		$pagenow = 'customize.php'; // WPCS: Global override ok.
+		set_current_screen( 'customize' );
+
+		$menu_id = -123;
+		$setting_id = sprintf( 'nav_menu[%d]', $menu_id );
+
+		$_REQUEST['customize_snapshot_uuid'] = self::UUID;
+		$this->manager->post_type->save( array(
+			'uuid' => self::UUID,
+			'data' => array(
+				$setting_id => array(
+					'value' => array(
+						'name' => 'Bar',
+					),
+				),
+			),
+			'status' => 'draft',
+		) );
+
+		$manager = new Customize_Snapshot_Manager( $this->plugin );
+		$manager->init();
+		do_action( 'customize_register', $manager->customize_manager );
+
+		$setting = $manager->customize_manager->get_setting( $setting_id );
+		$this->assertInstanceOf( 'WP_Customize_Nav_Menu_Setting', $setting );
+		$nav_menu = wp_get_nav_menu_object( $menu_id );
+		$this->assertEquals( 'Bar', $nav_menu->name );
+
+		$this->assertInstanceOf( 'WP_Customize_Nav_Menu_Section', $manager->customize_manager->get_section( $setting_id ) );
 	}
 
 	/**
