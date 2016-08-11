@@ -688,6 +688,39 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	}
 
 	/**
+	 * Test customize preview init.
+	 *
+	 * @see Customize_Snapshot_Manager::customize_preview_init()
+	 */
+	function test_customize_preview_init() {
+		$manager = new Customize_Snapshot_Manager( $this->plugin );
+		$this->assertFalse( has_action( 'wp_enqueue_scripts', array( $manager, 'enqueue_preview_scripts' ) ) );
+		$manager->customize_preview_init();
+		$this->assertEquals( 10, has_action( 'wp_enqueue_scripts', array( $manager, 'enqueue_preview_scripts' ) ) );
+	}
+
+	/**
+	 * Test enqueue preview scripts.
+	 *
+	 * @see Customize_Snapshot_Manager::enqueue_preview_scripts()
+	 */
+	function test_enqueue_preview_scripts() {
+		$manager = new Customize_Snapshot_Manager( $this->plugin );
+		$manager->ensure_customize_manager();
+		$manager->init();
+		$handle = 'customize-snapshots-preview';
+		$this->assertFalse( wp_scripts()->query( $handle, 'enqueued' ) );
+		$this->assertFalse( wp_styles()->query( $handle, 'enqueued' ) );
+		$manager->enqueue_preview_scripts();
+		$this->assertTrue( wp_scripts()->query( $handle, 'enqueued' ) );
+		$this->assertTrue( wp_styles()->query( $handle, 'enqueued' ) );
+
+		$after = wp_scripts()->get_data( $handle, 'after' );
+		$this->assertNotEmpty( $after );
+		$this->assertContains( 'CustomizeSnapshotsPreview', join( '', $after ) );
+	}
+
+	/**
 	 * Test enqueue frontend scripts.
 	 *
 	 * @see Customize_Snapshot_Manager::enqueue_frontend_scripts()
