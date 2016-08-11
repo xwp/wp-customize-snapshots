@@ -276,7 +276,9 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 
 		if ( $response['success'] ) {
 			$this->assertNotEmpty( $response['data']['edit_link'] );
+			$this->assertNotEmpty( $response['data']['snapshot_publish_date'] );
 			unset( $response['data']['edit_link'] );
+			unset( $response['data']['snapshot_publish_date'] );
 		}
 		$this->assertSame( $expected_results, $response );
 	}
@@ -416,5 +418,49 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 		} catch ( \WPAjaxDieContinueException $e ) {
 			unset( $e );
 		}
+	}
+
+	/**
+	 * Testing schedule Snapshot
+	 */
+	function test_ajax_update_snapshot_schedule() {
+		unset( $GLOBALS['wp_customize'] );
+		remove_all_actions( 'wp_ajax_' . Customize_Snapshot_Manager::AJAX_ACTION );
+
+		$setting_key = 'anyonecanedit';
+		$tomorrow = date( 'Y-m-d H:i:s', time() + 86400 );
+		$this->set_current_user( 'administrator' );
+		$this->set_input_vars( array(
+			'action' => Customize_Snapshot_Manager::AJAX_ACTION,
+			'nonce' => wp_create_nonce( Customize_Snapshot_Manager::AJAX_ACTION ),
+			'customize_snapshot_uuid' => self::UUID,
+			'customized' => wp_json_encode( array( $setting_key => 'Hello' ) ),
+			'status' => 'future',
+			'publish_date' => $tomorrow, // Tomorrow.
+		) );
+
+		$this->plugin = new Plugin();
+		$this->plugin->init();
+		$this->add_setting();
+
+		$this->make_ajax_call( Customize_Snapshot_Manager::AJAX_ACTION );
+		$post_id = get_plugin_instance()->customize_snapshot_manager->post_type->find_post( self::UUID );
+		$expected_results = array(
+			'success' => true,
+			'data' => array(
+				'errors' => null,
+				'setting_validities' => array( $setting_key => true ),
+				'edit_link' => get_edit_post_link( $post_id, 'raw' ),
+				'snapshot_publish_date' => $tomorrow,
+			),
+		);
+		require_once ABSPATH . WPINC . '/class-wp-customize-manager.php';
+		if ( ! method_exists( 'WP_Customize_Manager', 'prepare_setting_validity_for_js' ) ) {
+			unset( $expected_results['data']['setting_validities'] );
+		}
+		// Get the results.
+		$response = json_decode( $this->_last_response, true );
+		$this->assertSame( $expected_results, $response );
+		$this->assertEquals( 'future', get_post_status( $post_id ) );
 	}
 }

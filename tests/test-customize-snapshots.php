@@ -47,7 +47,7 @@ class Test_Customize_Snapshots extends \WP_UnitTestCase {
 	/**
 	 * Tests is_previewing_settings().
 	 *
-	 * @covers is_previewing_settings()
+	 * @see is_previewing_settings()
 	 */
 	public function test_is_previewing_settings() {
 		$this->assertFalse( is_previewing_settings() );
@@ -58,7 +58,7 @@ class Test_Customize_Snapshots extends \WP_UnitTestCase {
 	/**
 	 * Tests current_snapshot_uuid().
 	 *
-	 * @covers current_snapshot_uuid()
+	 * @see current_snapshot_uuid()
 	 */
 	public function test_current_snapshot_uuid() {
 		global $customize_snapshots_plugin;

@@ -525,6 +525,17 @@ class Customize_Snapshot_Manager {
 			);
 			if ( $is_nav_menu_setting ) {
 				$setting->preview();
+
+				/*
+				 * The following is redundant because it will be done later in
+				 * Customize_Snapshot_Manager::preview_snapshot_settings().
+				 * Also note that the $setting instance here will likely be
+				 * blown away inside of WP_Customize_Nav_Menus::customize_register(),
+				 * when add_setting is called there. What matters here is that
+				 * preview() is called on the setting _before_ the logic inside
+				 * WP_Customize_Nav_Menus::customize_register() runs, so that
+				 * the nav menu sections will be created.
+				 */
 				$setting->dirty = true;
 			}
 		}
@@ -634,16 +645,25 @@ class Customize_Snapshot_Manager {
 
 		wp_enqueue_style( 'customize-snapshots' );
 		wp_enqueue_script( 'customize-snapshots' );
+		if ( $this->snapshot ) {
+			$post = $this->snapshot->post();
+			$this->override_post_date_default_data( $post );
+		}
 
 		// Script data array.
 		$exports = apply_filters( 'customize_snapshots_export_data', array(
 			'action' => self::AJAX_ACTION,
 			'uuid' => $this->snapshot ? $this->snapshot->uuid() : self::generate_uuid(),
-			'editLink' => $this->snapshot ? get_edit_post_link( $this->snapshot->post(), 'raw' ) : '',
+			'editLink' => isset( $post ) ? get_edit_post_link( $post, 'raw' ) : '',
+			'publishDate' => isset( $post->post_date ) ? $post->post_date : '',
+			'postStatus' => isset( $post->post_status ) ? $post->post_status : '',
 			'currentUserCanPublish' => current_user_can( 'customize_publish' ),
+			'initialServerDate' => current_time( 'mysql', false ),
+			'initialServerTimestamp' => floor( microtime( true ) * 1000 ),
 			'i18n' => array(
 				'saveButton' => __( 'Save', 'customize-snapshots' ),
 				'updateButton' => __( 'Update', 'customize-snapshots' ),
+				'scheduleButton' => __( 'Schedule', 'customize-snapshots' ),
 				'submit' => __( 'Submit', 'customize-snapshots' ),
 				'submitted' => __( 'Submitted', 'customize-snapshots' ),
 				'publish' => __( 'Publish', 'customize-snapshots' ),
@@ -780,9 +800,18 @@ class Customize_Snapshot_Manager {
 		}
 
 		if ( ! $this->snapshot->post() || 'publish' !== $this->snapshot->post()->post_status ) {
-			$r = $this->snapshot->save( array(
+			$args = array(
 				'status' => 'publish',
-			) );
+			);
+
+			// Ensure a scheduled Snapshot is published.
+			if ( $this->snapshot->post() && 'future' === $this->snapshot->post()->post_status ) {
+				$args['edit_date'] = true;
+				$args['post_date'] = current_time( 'mysql', false );
+				$args['post_date_gmt'] = current_time( 'mysql', true );
+			}
+
+			$r = $this->snapshot->save( $args );
 			if ( is_wp_error( $r ) ) {
 				add_filter( 'customize_save_response', function( $response ) use ( $r, $that ) {
 					$response['snapshot_errors'] = $that->prepare_errors_for_response( $r );
@@ -1044,9 +1073,18 @@ class Customize_Snapshot_Manager {
 		} else {
 			$status = 'draft';
 		}
-		if ( ! in_array( $status, array( 'draft', 'pending' ), true ) ) {
+		if ( ! in_array( $status, array( 'draft', 'pending', 'future' ), true ) ) {
 			status_header( 400 );
 			wp_send_json_error( 'bad_status' );
+		}
+		$publish_date = isset( $_POST['publish_date'] ) ? $_POST['publish_date'] : '';
+		if ( 'future' === $status ) {
+			$publish_date_obj = new \DateTime( $publish_date );
+			$current_date = new \DateTime();
+			if ( empty( $publish_date ) || ! $publish_date_obj || $publish_date > $current_date ) {
+				status_header( 400 );
+				wp_send_json_error( 'bad_schedule_time' );
+			}
 		}
 
 		// Prevent attempting to modify a "locked" snapshot (a published one).
@@ -1093,14 +1131,23 @@ class Customize_Snapshot_Manager {
 			$data['errors'] = $this->prepare_errors_for_response( $r['errors'] );
 			wp_send_json_error( $data );
 		}
-
-		$r = $this->snapshot->save( array(
+		$args = array(
 			'status' => $status,
-		) );
+		);
+		$args['edit_date'] = current_time( 'mysql' );
+
+		if ( isset( $publish_date_obj ) && 'future' === $status ) {
+			$args['post_date'] = $publish_date_obj->format( 'Y-m-d H:i:s' );
+			$args['post_date_gmt'] = '0000-00-00 00:00:00';
+		} else {
+			$args['post_date_gmt'] = $args['post_date'] = '0000-00-00 00:00:00';
+		}
+		$r = $this->snapshot->save( $args );
 
 		$post = $this->snapshot->post();
 		if ( $post ) {
 			$data['edit_link'] = get_edit_post_link( $post, 'raw' );
+			$data['snapshot_publish_date'] = $post->post_date;
 		}
 
 		if ( is_wp_error( $r ) ) {
@@ -1322,6 +1369,22 @@ class Customize_Snapshot_Manager {
 	 * Underscore (JS) templates for dialog windows.
 	 */
 	public function render_templates() {
+		$data = $this->get_month_choices();
+
+		$tz_string = get_option( 'timezone_string' );
+		if ( $tz_string ) {
+			$tz = new \DateTimezone( $tz_string );
+			$formatted_gmt_offset = $this->format_gmt_offset( $tz->getOffset( new \DateTime() ) / 3600 );
+			$tz_name = str_replace( '_', ' ', $tz->getName() );
+
+			/* translators: 1: timezone name, 2: gmt offset  */
+			$date_control_description = sprintf( __( 'This site\'s dates are in the %1$s timezone (currently UTC%2$s).', 'customize-snapshots' ), $tz_name, $formatted_gmt_offset );
+		} else {
+			$formatted_gmt_offset = $this->format_gmt_offset( get_option( 'gmt_offset' ) );
+
+			/* translators: %s: gmt offset  */
+			$date_control_description = sprintf( __( 'Dates are in UTC%s.', 'customize-snapshots' ), $formatted_gmt_offset );
+		}
 		?>
 		<script type="text/html" id="tmpl-snapshot-preview-link">
 			<a href="#" target="frontend-preview" id="snapshot-preview-link" class="dashicons dashicons-welcome-view-site" title="<?php esc_attr_e( 'View on frontend', 'customize-snapshots' ) ?>">
@@ -1329,8 +1392,75 @@ class Customize_Snapshot_Manager {
 			</a>
 		</script>
 
-		<script type="text/html" id="tmpl-snapshot-edit-link">
-			<a href="{{ data.editLink }}" id="snapshot-edit-link" class="dashicons dashicons-calendar-alt" title="<?php esc_attr_e( 'Edit Snapshot','customize-snapshots' ); ?>"></a>
+		<script type="text/html" id="tmpl-snapshot-schedule-button">
+			<a href="#" id="snapshot-schedule-button" class="dashicons dashicons-calendar-alt" title="<?php esc_attr_e( 'Schedule Snapshot','customize-snapshots' ); ?>"></a>
+		</script>
+
+		<script type="text/html" id="tmpl-snapshot-schedule">
+			<div id="snapshot-schedule">
+				<div class="snapshot-schedule-title">
+					<h3>
+						<?php esc_html_e( 'Schedule Snapshot', 'customize-snapshots' ); ?>
+						<span class="reset-time">(<a href="#" title="<?php esc_attr_e( 'Reset schedule date to original or current date', 'customize-snapshots' ); ?>"><?php esc_html_e( 'Reset', 'customize-snapshots' ) ?></a>)</span>
+					</h3>
+					<span class="snapshot-schedule-description">
+						<span class="snapshot-scheduled-countdown"></span>
+						<span class="timezone-info"><?php echo esc_html( $date_control_description ); ?></span>
+					</span>
+					<?php $edit_snapshot_text = __( 'Edit Snapshot', 'customize-snapshots' ); ?>
+					<a href="{{ data.editLink }}" class="dashicons dashicons-edit snapshot-edit-link" target="_blank" title="<?php echo esc_attr( $edit_snapshot_text ); ?>" aria-expanded="false"><span class="screen-reader-text"><?php echo esc_html( $edit_snapshot_text ); ?></span></a>
+				</div>
+				<div class="snapshot-schedule-control">
+					<#
+					_.defaults( data, <?php echo wp_json_encode( $data ) ?> );
+					data.input_id_post_date = 'input-' + String( Math.random() );
+					data.input_id_post_date_gmt = 'input-' + String( Math.random() );
+					#>
+					<select id="{{ data.input_id }}" class="date-input month" data-date-input="month">
+					<# _.each( data.month_choices, function( choice ) { #>
+						<# if ( _.isObject( choice ) && ! _.isUndefined( choice.text ) && ! _.isUndefined( choice.value ) ) {
+							text = choice.text;
+							value = choice.value;
+						} #>
+						<option value="{{ value }}" 
+							<# if (choice.value == data.month) { #>
+								selected="selected"
+							<# } #>>
+							{{ text }}
+						</option>
+					<# } ); #>
+					</select>
+					<input type="number" size="2" maxlength="2" autocomplete="off" class="date-input day" data-date-input="day" min="1" max="31" value="{{ data.day }}" />,
+					<input type="number" size="4" maxlength="4" autocomplete="off" class="date-input year" data-date-input="year" min="<?php echo esc_attr( date( 'Y' ) ); ?>" value="{{ data.year }}" max="9999" /> @
+					<input type="number" size="2" maxlength="2" autocomplete="off" class="date-input hour" data-date-input="hour" min="0" max="23" value="{{ data.hour }}" />:<?php
+					?><input type="number" size="2" maxlength="2" autocomplete="off" class="date-input minute" data-date-input="minute" min="0" max="59" value="{{ data.minute }}" />
+				</div>
+			</div>
+		</script>
+
+		<script id="tmpl-snapshot-scheduled-countdown" type="text/html">
+			<# if ( data.remainingTime < 2 * 60 ) { #>
+				<?php esc_html_e( 'This is scheduled for publishing in about a minute.', 'customize-snapshots' ); ?>
+
+			<# } else if ( data.remainingTime < 60 * 60 ) { #>
+				<?php
+				/* translators: %s is a placeholder for the Underscore template var */
+				echo sprintf( esc_html__( 'This snapshot is scheduled for publishing in about %s minutes.', 'customize-snapshots' ), '{{ Math.ceil( data.remainingTime / 60 ) }}' );
+				?>
+
+			<# } else if ( data.remainingTime < 24 * 60 * 60 ) { #>
+				<?php
+				/* translators: %s is a placeholder for the Underscore template var */
+				echo sprintf( esc_html__( 'This snapshot is scheduled for publishing in about %s hours.', 'customize-snapshots' ), '{{ Math.round( data.remainingTime / 60 / 60 * 10 ) / 10 }}' );
+				?>
+
+			<# } else { #>
+				<?php
+				/* translators: %s is a placeholder for the Underscore template var */
+				echo sprintf( esc_html__( 'This snapshot is scheduled for publishing in about %s days.', 'customize-snapshots' ), '{{ Math.round( data.remainingTime / 60 / 60 / 24 * 10 ) / 10 }}' );
+				?>
+
+			<# } #>
 		</script>
 
 		<script type="text/html" id="tmpl-snapshot-save">
@@ -1351,5 +1481,76 @@ class Customize_Snapshot_Manager {
 			</div>
 		</script>
 		<?php
+	}
+
+
+	/**
+	 * Format GMT Offset.
+	 *
+	 * @see wp_timezone_choice()
+	 * @param float $offset Offset in hours.
+	 * @return string Formatted offset.
+	 */
+	public function format_gmt_offset( $offset ) {
+		if ( 0 <= $offset ) {
+			$formatted_offset = '+' . (string) $offset;
+		} else {
+			$formatted_offset = (string) $offset;
+		}
+		$formatted_offset = str_replace(
+			array( '.25', '.5', '.75' ),
+			array( ':15', ':30', ':45' ),
+			$formatted_offset
+		);
+		return $formatted_offset;
+	}
+
+	/**
+	 * Generate options for the month Select.
+	 *
+	 * Based on touch_time().
+	 *
+	 * @see touch_time()
+	 *
+	 * @return array
+	 */
+	public function get_month_choices() {
+		global $wp_locale;
+		$months = array();
+		for ( $i = 1; $i < 13; $i = $i + 1 ) {
+			$month_number = zeroise( $i, 2 );
+			$month_text = $wp_locale->get_month_abbrev( $wp_locale->get_month( $i ) );
+
+			/* translators: 1: month number (01, 02, etc.), 2: month abbreviation */
+			$months[ $i ]['text'] = sprintf( __( '%1$s-%2$s', 'customize-snapshots' ), $month_number, $month_text );
+			$months[ $i ]['value'] = $month_number;
+		}
+		return array( 'month_choices' => $months );
+	}
+
+	/**
+	 * Override default date values to a post.
+	 *
+	 * @param \WP_Post $post Post.
+	 * @return \WP_Post Object if the post data did not apply.
+	 */
+	public function override_post_date_default_data( \WP_Post &$post ) {
+		if ( ! is_array( $post ) ) {
+			// Make sure that empty dates are not used in case of setting invalidity.
+			$empty_date = '0000-00-00 00:00:00';
+			if ( $empty_date === $post->post_date ) {
+				$post->post_date = current_time( 'mysql', false );
+			}
+			if ( $empty_date === $post->post_date_gmt ) {
+				$post->post_date_gmt = current_time( 'mysql', true );
+			}
+			if ( $empty_date === $post->post_modified ) {
+				$post->post_modified = current_time( 'mysql', false );
+			}
+			if ( $empty_date === $post->post_modified_gmt ) {
+				$post->post_modified_gmt = current_time( 'mysql', true );
+			}
+		}
+		return $post;
 	}
 }

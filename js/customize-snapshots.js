@@ -1,5 +1,4 @@
 /* global jQuery, _customizeSnapshots */
-/* eslint-disable no-extra-parens */
 
 ( function( api, $ ) {
 	'use strict';
@@ -12,7 +11,21 @@
 
 	component = api.Snapshots;
 
-	component.data = {};
+	component.schedule = {};
+
+	component.data = {
+		action: '',
+		uuid: '',
+		editLink: '',
+		publishDate: '',
+		postStatus: '',
+		currentUserCanPublish: '',
+		initialServerDate: '',
+		initialServerTimestamp: 0,
+		initialClientTimestamp: 0,
+		i18n: {},
+		dirty: false
+	};
 
 	if ( 'undefined' !== typeof _customizeSnapshots ) {
 		_.extend( component.data, _customizeSnapshots );
@@ -27,6 +40,9 @@
 		window._wpCustomizeControlsL10n.save = component.data.i18n.publish;
 		window._wpCustomizeControlsL10n.saved = component.data.i18n.published;
 
+		// Set the initial client timestamp.
+		component.data.initialClientTimestamp = component.dateValueOf();
+
 		api.bind( 'ready', function() {
 			api.state.create( 'snapshot-exists', component.data.snapshotExists );
 			api.state.create( 'snapshot-saved', true );
@@ -40,10 +56,20 @@
 
 			component.extendPreviewerQuery();
 			component.addButtons();
+			component.addSchedule();
 
 			$( '#snapshot-save' ).on( 'click', function( event ) {
+				var scheduleDate;
 				event.preventDefault();
-				component.sendUpdateSnapshotRequest( { status: 'draft' } );
+				if ( ! _.isEmpty( component.schedule.template ) && component.isFutureDate() ) {
+					scheduleDate = component.getDateFromInputs();
+					component.sendUpdateSnapshotRequest( {
+						status: 'future',
+						publish_date: component.formatDate( scheduleDate )
+					} );
+				} else {
+					component.sendUpdateSnapshotRequest( { status: 'draft' } );
+				}
 			} );
 			$( '#snapshot-submit' ).on( 'click', function( event ) {
 				event.preventDefault();
@@ -159,13 +185,21 @@
 	component.addButtons = function() {
 		var header = $( '#customize-header-actions' ),
 			publishButton = header.find( '#save' ),
-			snapshotEditLinkTemplate = wp.template( 'snapshot-edit-link' ),
-			snapshotButton, submitButton, data, setPreviewLinkHref, snapshotEditLinkEl;
+			snapshotButton, scheduleButton, submitButton, data, setPreviewLinkHref, snapshotButtonText;
 
 		// Save/update button.
 		snapshotButton = wp.template( 'snapshot-save' );
+		if ( api.state( 'snapshot-exists' ).get() ) {
+			if ( 'future' === component.data.postStatus ) {
+				snapshotButtonText = component.data.i18n.scheduleButton;
+			} else {
+				snapshotButtonText = component.data.i18n.updateButton;
+			}
+		} else {
+			snapshotButtonText = component.data.i18n.saveButton;
+		}
 		data = {
-			buttonText: api.state( 'snapshot-exists' ).get() ? component.data.i18n.updateButton : component.data.i18n.saveButton
+			buttonText: snapshotButtonText
 		};
 		snapshotButton = $( $.trim( snapshotButton( data ) ) );
 		if ( ! component.data.currentUserCanPublish ) {
@@ -174,20 +208,25 @@
 		snapshotButton.prop( 'disabled', true );
 		snapshotButton.insertAfter( publishButton );
 
-		snapshotEditLinkEl = $( $.trim( snapshotEditLinkTemplate( component.data ) ) );
-		snapshotEditLinkEl.insertAfter( snapshotButton );
+		// Schedule button.
+		scheduleButton = wp.template( 'snapshot-schedule-button' );
+		scheduleButton = $( $.trim( scheduleButton( {} ) ) );
+		scheduleButton.insertAfter( snapshotButton );
+
 		if ( ! component.data.editLink ) {
-			snapshotEditLinkEl.hide();
+			scheduleButton.hide();
 		}
-		api.state.bind( 'change', function() {
-			snapshotEditLinkEl.toggle( api.state( 'snapshot-saved' ).get() && api.state( 'snapshot-exists' ).get() );
+
+		api.state( 'change', function() {
+			scheduleButton.toggle( api.state( 'snapshot-saved' ).get() && api.state( 'snapshot-exists' ).get() );
+		} );
+
+		api.state( 'snapshot-exists' ).bind( function( exist ) {
+			scheduleButton.toggle( exist );
 		} );
 
 		api.state( 'snapshot-saved' ).bind( function( saved ) {
 			snapshotButton.prop( 'disabled', saved );
-			if ( saved ) {
-				snapshotEditLinkEl.attr( 'href', component.data.editLink );
-			}
 		} );
 
 		api.state( 'saved' ).bind( function( saved ) {
@@ -204,9 +243,6 @@
 			if ( exists ) {
 				buttonText = component.data.i18n.updateButton;
 				permsMsg = component.data.i18n.permsMsg.update;
-				if ( component.data.editLink ) {
-					snapshotEditLinkEl.attr( 'href', component.data.editLink );
-				}
 			} else {
 				buttonText = component.data.i18n.saveButton;
 				permsMsg = component.data.i18n.permsMsg.save;
@@ -256,6 +292,158 @@
 	};
 
 	/**
+	 * Renders snapshot schedule and handles it's events.
+	 *
+	 * @returns {void}
+	 */
+	component.addSchedule = function addSchedule() {
+		var sliceBegin = 0,
+			sliceEnd = -2;
+
+		// Inject the UI.
+		if ( _.isEmpty( component.schedule.template ) ) {
+			if ( '0000-00-00 00:00:00' === component.data.publishDate ) {
+				component.data.publishDate = component.getCurrentTime();
+			}
+
+			// Normalize date with secs set as zeros removed.
+			component.data.publishDate = component.data.publishDate.slice( sliceBegin, sliceEnd ) + '00';
+
+			// Extend the components data object and add the parsed datetime strings.
+			component.data = _.extend( component.data, component.parseDateTime( component.data.publishDate ) );
+
+			// Add the template to the DOM.
+			component.schedule.template = $( $.trim( wp.template( 'snapshot-schedule' )( component.data ) ) );
+			component.schedule.template.hide().appendTo( $( '#customize-header-actions' ) );
+
+			// Store the date inputs.
+			component.schedule.inputs = component.schedule.template.find( '.date-input' );
+
+			component.schedule.inputs.on( 'input', function() {
+				component.populateSetting();
+			} );
+
+			component.schedule.inputs.on( 'blur', function() {
+				component.populateInputs();
+				component.populateSetting();
+			} );
+
+			component.updateCountdown();
+
+			component.schedule.template.find( '.reset-time a' ).on( 'click', function( event ) {
+				event.preventDefault();
+				component.updateSchedule();
+			} );
+		}
+
+		// Listen for click events.
+		$( '#snapshot-schedule-button' ).on( 'click', function( event ) {
+			event.preventDefault();
+			component.schedule.template.toggle();
+		} );
+
+		api.state( 'snapshot-saved' ).bind( function( saved ) {
+			if ( saved ) {
+				component.updateSchedule();
+			}
+		} );
+
+		api.bind( 'change', function() {
+			component.data.dirty = true;
+			component.schedule.template.find( 'a.snapshot-edit-link' ).hide();
+		} );
+
+		api.state( 'saved' ).bind( function( saved ) {
+			if ( saved && ! _.isEmpty( component.schedule.template ) ) {
+				component.data.publishDate = component.getCurrentTime();
+				component.updateSchedule();
+				component.schedule.template.hide();
+				component.data.dirty = false;
+			}
+		} );
+
+		api.state( 'snapshot-exists' ).bind( function( exists ) {
+			if ( exists && ! _.isEmpty( component.schedule.template ) ) {
+				component.updateSchedule();
+			} else {
+				component.schedule.template.hide();
+			}
+		} );
+	};
+
+	/**
+	 * Updates snapshot schedule with `component.data`.
+	 *
+	 * @return {void}
+	 */
+	component.updateSchedule = function updateSchedule() {
+		var parsed,
+			sliceBegin = 0,
+			sliceEnd = -2;
+
+		if ( _.isEmpty( component.schedule.template ) ) {
+			return;
+		}
+
+		if ( '0000-00-00 00:00:00' === component.data.publishDate ) {
+			component.data.publishDate = component.getCurrentTime();
+		}
+
+		// Normalize date with seconds removed.
+		component.data.publishDate = component.data.publishDate.slice( sliceBegin, sliceEnd ) + '00';
+
+		// Update date controls.
+		component.schedule.template.find( 'a.snapshot-edit-link' )
+			.attr( 'href', component.data.editLink )
+			.show();
+		parsed = component.parseDateTime( component.data.publishDate );
+
+		component.schedule.inputs.each( function() {
+			var input = $( this ),
+				fieldName = input.data( 'date-input' );
+
+			$( this ).val( parsed[fieldName] );
+		} );
+
+		component.populateSetting();
+	};
+
+	/**
+	 * Update the scheduled countdown text.
+	 *
+	 * Hides countdown if post_status is not already future.
+	 * Toggles the countdown if there is no remaining time.
+	 *
+	 * @returns {boolean} True if date inputs are valid.
+	 */
+	component.updateCountdown = function updateCountdown() {
+		var countdown = component.schedule.template.find( '.snapshot-scheduled-countdown' ),
+			countdownTemplate = wp.template( 'snapshot-scheduled-countdown' ),
+			dateTimeFromInput = component.getDateFromInputs(),
+			millisecondsDivider = 1000,
+			remainingTime;
+
+		if ( ! dateTimeFromInput ) {
+			return false;
+		}
+
+		remainingTime = dateTimeFromInput.valueOf();
+		remainingTime -= component.dateValueOf( component.getCurrentTime() );
+		remainingTime = Math.ceil( remainingTime / millisecondsDivider );
+
+		if ( 0 < remainingTime ) {
+			countdown.text( countdownTemplate( {
+				remainingTime: remainingTime
+			} ) );
+			countdown.show();
+		} else {
+			countdown.hide();
+		}
+
+		return true;
+	};
+
+	/**
 	 * Silently update the saved state to be true without triggering the
 	 * changed event so that the AYS beforeunload dialog won't appear
 	 * if no settings have been changed after saving a snapshot. Note
@@ -281,22 +469,17 @@
 	 */
 	component.sendUpdateSnapshotRequest = function( options ) {
 		var spinner = $( '#customize-header-actions .spinner' ),
-			request, data, args;
+			request, data;
 
-		args = _.extend(
+		data = _.extend(
 			{
 				status: 'draft'
 			},
-			options
-		);
-
-		data = _.extend(
-			{},
 			api.previewer.query(),
+			options,
 			{
 				nonce: api.settings.nonce.snapshot,
-				customize_snapshot_uuid: component.data.uuid,
-				status: args.status
+				customize_snapshot_uuid: component.data.uuid
 			}
 		);
 		request = wp.ajax.post( 'customize_update_snapshot', data );
@@ -307,6 +490,11 @@
 			if ( response.edit_link ) {
 				component.data.editLink = response.edit_link;
 			}
+			if ( response.snapshot_publish_date ) {
+				component.data.publishDate = response.snapshot_publish_date;
+			}
+			component.updateSchedule();
+			component.data.dirty = false;
 
 			// @todo Remove privateness from _handleSettingValidities in Core.
 			if ( api._handleSettingValidities && response.setting_validities ) {
@@ -320,9 +508,10 @@
 		request.done( function() {
 			var url = api.previewer.previewUrl(),
 				regex = new RegExp( '([?&])customize_snapshot_uuid=.*?(&|$)', 'i' ),
-				separator = url.indexOf( '?' ) !== -1 ? '&' : '?',
+				notFound = -1,
+				separator = url.indexOf( '?' ) !== notFound ? '&' : '?',
 				customizeUrl = window.location.href,
-				customizeSeparator = customizeUrl.indexOf( '?' ) !== -1 ? '&' : '?';
+				customizeSeparator = customizeUrl.indexOf( '?' ) !== notFound ? '&' : '?';
 
 			if ( url.match( regex ) ) {
 				url = url.replace( regex, '$1customize_snapshot_uuid=' + encodeURIComponent( component.data.uuid ) + '$2' );
@@ -340,7 +529,7 @@
 			}
 
 			api.state( 'snapshot-saved' ).set( true );
-			if ( 'pending' === args.status ) {
+			if ( 'pending' === data.status ) {
 				api.state( 'snapshot-submitted' ).set( true );
 			}
 			component.resetSavedStateQuietly();
@@ -397,6 +586,209 @@
 				modal: true
 			} );
 		} );
+	};
+
+	/**
+	 * Get date from inputs.
+	 *
+	 * @returns {Date|null} Date created from inputs or null if invalid date.
+	 */
+	component.getDateFromInputs = function getDateFromInputs() {
+		var template = component.schedule.template,
+			monthOffset = 1,
+			date;
+
+		date = new Date(
+			parseInt( template.find( '[data-date-input="year"]' ).val(), 10 ),
+			parseInt( template.find( '[data-date-input="month"]' ).val(), 10 ) - monthOffset,
+			parseInt( template.find( '[data-date-input="day"]' ).val(), 10 ),
+			parseInt( template.find( '[data-date-input="hour"]' ).val(), 10 ),
+			parseInt( template.find( '[data-date-input="minute"]' ).val(), 10 )
+		);
+
+		if ( isNaN( date.valueOf() ) ) {
+			return null;
+		}
+
+		date.setSeconds( 0 );
+
+		return date;
+	};
+
+	/**
+	 * Parse datetime string.
+	 *
+	 * @param {string} datetime Date/Time string.
+	 * @returns {object|null} Returns object containing date components or null if parse error.
+	 */
+	component.parseDateTime = function parseDateTime( datetime ) {
+		var matches = datetime.match( /^(\d\d\d\d)-(\d\d)-(\d\d) (\d\d):(\d\d):(\d\d)$/ );
+
+		if ( ! matches ) {
+			return null;
+		}
+
+		matches.shift();
+
+		return {
+			year: matches.shift(),
+			month: matches.shift(),
+			day: matches.shift(),
+			hour: matches.shift(),
+			minute: matches.shift(),
+			second: matches.shift()
+		};
+	};
+
+	/**
+	 * Format a Date Object. Returns 'Y-m-d H:i:s' format.
+	 *
+	 * @props http://stackoverflow.com/questions/10073699/pad-a-number-with-leading-zeros-in-javascript#comment33639551_10073699
+	 *
+	 * @param {Date} date A Date object.
+	 * @returns {string} A formatted date String.
+	 */
+	component.formatDate = function formatDate( date ) {
+		var formattedDate,
+			yearLength = 4,
+			nonYearLength = 2,
+			monthOffset = 1;
+
+		formattedDate = ( '0000' + date.getFullYear() ).substr( -yearLength, yearLength );
+		formattedDate += '-' + ( '00' + ( date.getMonth() + monthOffset ) ).substr( -nonYearLength, nonYearLength );
+		formattedDate += '-' + ( '00' + date.getDate() ).substr( -nonYearLength, nonYearLength );
+		formattedDate += ' ' + ( '00' + date.getHours() ).substr( -nonYearLength, nonYearLength );
+		formattedDate += ':' + ( '00' + date.getMinutes() ).substr( -nonYearLength, nonYearLength );
+		formattedDate += ':' + ( '00' + date.getSeconds() ).substr( -nonYearLength, nonYearLength );
+
+		return formattedDate;
+	};
+
+	/**
+	 * Populate inputs from the setting value, if none of them are currently focused.
+	 *
+	 * @returns {boolean} Whether the inputs were populated.
+	 */
+	component.populateInputs = function populateInputs() {
+		var parsed;
+
+		if ( component.schedule.inputs.is( ':focus' ) || '0000-00-00 00:00:00' === component.data.publishDate ) {
+			return false;
+		}
+
+		parsed = component.parseDateTime( component.data.publishDate );
+		if ( ! parsed ) {
+			return false;
+		}
+
+		component.schedule.inputs.each( function() {
+			var input = $( this ),
+				fieldName = input.data( 'date-input' );
+
+			if ( ! $( this ).is( 'select' ) && '' === $( this ).val() ) {
+				$( this ).val( parsed[fieldName] );
+			}
+		} );
+		return true;
+	};
+
+	/**
+	 * Populate setting value from the inputs.
+	 *
+	 * @returns {boolean} Whether the date inputs currently represent a valid date.
+	 */
+	component.populateSetting = function populateSetting() {
+		var date = component.getDateFromInputs(),
+			save = $( '#snapshot-save' ),
+			scheduled;
+
+		if ( ! date ) {
+			return false;
+		}
+
+		date.setSeconds( 0 );
+		scheduled = component.formatDate( date ) !== component.data.publishDate;
+
+		if ( save.length ) {
+
+			// Change update button to schedule.
+			if ( component.isFutureDate() ) {
+				save.html( component.data.i18n.scheduleButton );
+			} else {
+				save.html( component.data.i18n.updateButton );
+			}
+
+			if ( scheduled || component.data.dirty ) {
+				save.prop( 'disabled', false );
+			} else {
+				save.prop( 'disabled', true );
+			}
+		}
+
+		component.updateCountdown();
+		component.schedule.template.find( '.reset-time' ).toggle( scheduled );
+
+		return true;
+	};
+
+	/**
+	 * Check if the schedule date is in the future.
+	 *
+	 * @returns {boolean} True if future date.
+	 */
+	component.isFutureDate = function isFutureDate() {
+		var date = component.getDateFromInputs(),
+			millisecondsDivider = 1000,
+			remainingTime;
+
+		if ( ! date ) {
+			return false;
+		}
+
+		remainingTime = component.dateValueOf( date );
+		remainingTime -= component.dateValueOf( component.getCurrentTime() );
+		remainingTime = Math.ceil( remainingTime / millisecondsDivider );
+
+		return 0 < remainingTime;
+	};
+
+	/**
+	 * Get current date/time in the site's timezone.
+	 *
+	 * Same functionality as the `current_time( 'mysql', false )` function in PHP.
+	 *
+	 * @returns {string} Current datetime string.
+	 */
+	component.getCurrentTime = function getCurrentTime() {
+		var currentDate = new Date( component.data.initialServerDate ),
+			currentTimestamp = component.dateValueOf(),
+			timestampDifferential;
+
+		timestampDifferential = currentTimestamp - component.data.initialClientTimestamp;
+		timestampDifferential += component.data.initialClientTimestamp - component.data.initialServerTimestamp;
+		currentDate.setTime( currentDate.getTime() + timestampDifferential );
+
+		return component.formatDate( currentDate );
+	};
+
+	/**
+	 * Get the primitive value of a Date object.
+	 *
+	 * @param {string|Date} dateString The post status for the snapshot.
+	 * @returns {object|string} The primitive value or date object.
+	 */
+	component.dateValueOf = function( dateString ) {
+		var date;
+
+		if ( 'string' === typeof dateString ) {
+			date = new Date( dateString );
+		} else if ( dateString instanceof Date ) {
+			date = dateString;
+		} else {
+			date = new Date();
+		}
+
+		return date.valueOf();
 	};
 
 	component.init();

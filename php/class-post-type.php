@@ -508,6 +508,11 @@ class Post_Type {
 			),
 		);
 		if ( ! empty( $args['status'] ) ) {
+			if ( isset( $args['post_date'], $args['edit_date'], $args['post_date_gmt'] ) ) {
+				$post_arr['post_date'] = $args['post_date'];
+				$post_arr['edit_date'] = $args['edit_date'];
+				$post_arr['post_date_gmt'] = $args['post_date_gmt'];
+			}
 			if ( ! get_post_status_object( $args['status'] ) ) {
 				return new \WP_Error( 'bad_status' );
 			}
