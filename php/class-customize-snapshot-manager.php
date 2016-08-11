@@ -1472,10 +1472,10 @@ class Customize_Snapshot_Manager {
 		</script>
 
 		<script type="text/html" id="tmpl-snapshot-conflict">
-			<?php $title_text = sprintf( esc_html__( 'Potential Snapshot conflicts (click to expand)', 'customize-snapshots' ) );?>
+			<?php $title_text = esc_html__( 'Potential Snapshot conflicts (click to expand)', 'customize-snapshots' ); ?>
 			<# id= data.setting_id.replace( /]/g, '' ).split( '[' ).filter( Boolean ).join( '-' ); #>
 			<a href="#TB_inline?width=600&height=550&inlineId=snapshot-conflicts-{{id}}" class="dashicons dashicons-warning thickbox snapshot-conflicts-thickbox" title="<?php echo $title_text; ?>"></a>
-			<div id="snapshot-conflicts-{{id}}" style="display:none;">
+			<div id="snapshot-conflicts-{{id}}" class="snapshot-conflict-thickbox-content">
 				    <# _.each( data.conflicts, function( setting ) { #>
 						<details>
 							<summary>
