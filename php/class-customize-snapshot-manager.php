@@ -526,6 +526,17 @@ class Customize_Snapshot_Manager {
 			);
 			if ( $is_nav_menu_setting ) {
 				$setting->preview();
+
+				/*
+				 * The following is redundant because it will be done later in
+				 * Customize_Snapshot_Manager::preview_snapshot_settings().
+				 * Also note that the $setting instance here will likely be
+				 * blown away inside of WP_Customize_Nav_Menus::customize_register(),
+				 * when add_setting is called there. What matters here is that
+				 * preview() is called on the setting _before_ the logic inside
+				 * WP_Customize_Nav_Menus::customize_register() runs, so that
+				 * the nav menu sections will be created.
+				 */
 				$setting->dirty = true;
 			}
 		}
@@ -1398,7 +1409,7 @@ class Customize_Snapshot_Manager {
 						<span class="timezone-info"><?php echo esc_html( $date_control_description ); ?></span>
 					</span>
 					<?php $edit_snapshot_text = __( 'Edit Snapshot', 'customize-snapshots' ); ?>
-					<a href="{{ data.editLink }}" class="dashicons dashicons-edit snapshot-edit-link" title="<?php echo esc_attr( $edit_snapshot_text ); ?>" aria-expanded="false"><span class="screen-reader-text"><?php echo esc_html( $edit_snapshot_text ); ?></span></a>
+					<a href="{{ data.editLink }}" class="dashicons dashicons-edit snapshot-edit-link" target="_blank" title="<?php echo esc_attr( $edit_snapshot_text ); ?>" aria-expanded="false"><span class="screen-reader-text"><?php echo esc_html( $edit_snapshot_text ); ?></span></a>
 				</div>
 				<div class="snapshot-schedule-control">
 					<#

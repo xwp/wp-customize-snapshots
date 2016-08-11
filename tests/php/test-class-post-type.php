@@ -63,7 +63,7 @@ class Test_Post_type extends \WP_UnitTestCase {
 	/**
 	 * Test filter_post_type_link.
 	 *
-	 * @covers Post_Type::filter_post_type_link()
+	 * @covers CustomizeSnapshots\Post_Type::filter_post_type_link()
 	 */
 	function test_filter_post_type_link() {
 		$post_type = new Post_Type( $this->plugin->customize_snapshot_manager );
@@ -382,7 +382,7 @@ class Test_Post_type extends \WP_UnitTestCase {
 	/**
 	 * Test getting the snapshot array out of the post_content.
 	 *
-	 * @covers Post_Type::get_post_content()
+	 * @covers CustomizeSnapshots\Post_Type::get_post_content()
 	 * @expectedException \PHPUnit_Framework_Error_Warning
 	 */
 	public function test_get_post_content() {
@@ -626,7 +626,7 @@ class Test_Post_type extends \WP_UnitTestCase {
 	/**
 	 * Tests display_post_states.
 	 *
-	 * @covers Post_Type::display_post_states()
+	 * @covers CustomizeSnapshots\Post_Type::display_post_states()
 	 */
 	public function test_display_post_states() {
 		$post_type = new Post_Type( $this->plugin->customize_snapshot_manager );
@@ -646,7 +646,7 @@ class Test_Post_type extends \WP_UnitTestCase {
 	/**
 	 * Tests show_publish_error_admin_notice.
 	 *
-	 * @covers Post_Type::show_publish_error_admin_notice()
+	 * @covers CustomizeSnapshots\Post_Type::show_publish_error_admin_notice()
 	 */
 	public function test_show_publish_error_admin_notice() {
 		global $current_screen, $post;
@@ -687,7 +687,7 @@ class Test_Post_type extends \WP_UnitTestCase {
 	/**
 	 * Tests disable_revision_ui_for_published_posts.
 	 *
-	 * @covers Post_Type::disable_revision_ui_for_published_posts()
+	 * @covers CustomizeSnapshots\Post_Type::disable_revision_ui_for_published_posts()
 	 */
 	public function test_disable_revision_ui_for_published_posts() {
 		$post_type = new Post_Type( $this->plugin->customize_snapshot_manager );
@@ -716,7 +716,7 @@ class Test_Post_type extends \WP_UnitTestCase {
 	/**
 	 * Tests hide_disabled_publishing_actions.
 	 *
-	 * @covers Post_Type::hide_disabled_publishing_actions()
+	 * @covers CustomizeSnapshots\Post_Type::hide_disabled_publishing_actions()
 	 */
 	public function test_hide_disabled_publishing_actions() {
 		$post_type = new Post_Type( $this->plugin->customize_snapshot_manager );
