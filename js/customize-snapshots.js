@@ -300,6 +300,8 @@
 		var sliceBegin = 0,
 			sliceEnd = -2;
 
+		component.scheduleContainerDisplayed = new api.Value( false );
+
 		// Inject the UI.
 		if ( _.isEmpty( component.schedule.container ) ) {
 			if ( '0000-00-00 00:00:00' === component.data.publishDate ) {
@@ -336,14 +338,17 @@
 			} );
 		}
 
-		// Listen for click events.
+		// Set up toggling of the schedule container.
+		component.scheduleContainerDisplayed.bind( function( isDisplayed ) {
+			if ( isDisplayed ) {
+				component.schedule.container.stop().slideDown( 'fast' ).attr( 'aria-expanded', 'true' );
+			} else {
+				component.schedule.container.stop().slideUp( 'fast' ).attr( 'aria-expanded', 'false' );
+			}
+		} );
 		$( '#snapshot-schedule-button' ).on( 'click', function( event ) {
 			event.preventDefault();
-			if ( component.schedule.container.is( ':visible' ) ) {
-				component.schedule.container.slideUp( 'fast' ).attr( 'aria-expanded', 'false' );
-			} else {
-				component.schedule.container.slideDown( 'fast' ).attr( 'aria-expanded', 'true' );
-			}
+			component.scheduleContainerDisplayed.set( ! component.scheduleContainerDisplayed.get() );
 		} );
 
 		api.state( 'snapshot-saved' ).bind( function( saved ) {
@@ -361,7 +366,7 @@
 			if ( saved && ! _.isEmpty( component.schedule.container ) ) {
 				component.data.publishDate = component.getCurrentTime();
 				component.updateSchedule();
-				component.schedule.container.slideUp( 'fast' ).attr( 'aria-expanded', 'false' );
+				component.scheduleContainerDisplayed.set( false );
 				component.data.dirty = false;
 			}
 		} );
@@ -370,7 +375,7 @@
 			if ( exists && ! _.isEmpty( component.schedule.container ) ) {
 				component.updateSchedule();
 			} else {
-				component.schedule.container.hide();
+				component.scheduleContainerDisplayed.set( false );
 			}
 		} );
 	};
