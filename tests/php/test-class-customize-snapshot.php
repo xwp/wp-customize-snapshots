@@ -1,26 +1,40 @@
 <?php
+/**
+ * Test Customize_Snapshot.
+ *
+ * @package CustomizeSnapshots
+ */
 
 namespace CustomizeSnapshots;
 
+/**
+ * Test_Customize_Snapshot class.
+ *
+ * @group snapshot
+ */
 class Test_Customize_Snapshot extends \WP_UnitTestCase {
 
 	/**
+	 * Plugin.
+	 *
 	 * @var Plugin
 	 */
 	public $plugin;
 
 	/**
 	 * A valid UUID.
+	 *
 	 * @type string
 	 */
 	const UUID = '65aee1ff-af47-47df-9e14-9c69b3017cd3';
 
 	/**
 	 * Post type.
+	 *
 	 * @type string
 	 */
 	const POST_TYPE = 'customize_snapshot';
-	
+
 	/**
 	 * Instance of WP_Customize_Manager which is reset for each test.
 	 *
@@ -29,28 +43,34 @@ class Test_Customize_Snapshot extends \WP_UnitTestCase {
 	protected $wp_customize;
 
 	/**
+	 * Snapshot manager.
+	 *
 	 * @var Customize_Snapshot_Manager
 	 */
 	protected $snapshot_manager;
 
 	/**
+	 * Foo setting
+	 *
 	 * @var \WP_Customize_Setting
 	 */
 	protected $foo;
 
 	/**
+	 * Bar setting.
+	 *
 	 * @var \WP_Customize_Setting
 	 */
 	protected $bar;
 
 	/**
-	 * Boostrap the customizer.
+	 * Bootstrap the customizer.
 	 */
 	public static function setUpBeforeClass() {
 		$args = array(
 			'labels' => array(
-				'name' => __( 'Customize Snapshots' ),
-				'singular_name' => __( 'Customize Snapshot' ),
+				'name' => __( 'Customize Snapshots', 'customize-snapshots' ),
+				'singular_name' => __( 'Customize Snapshot', 'customize-snapshots' ),
 			),
 			'public' => false,
 			'capability_type' => 'post',
@@ -63,24 +83,33 @@ class Test_Customize_Snapshot extends \WP_UnitTestCase {
 		register_post_type( self::POST_TYPE, $args );
 	}
 
+	/**
+	 * Tear down after class.
+	 */
 	public static function tearDownAfterClass() {
 		_unregister_post_type( self::POST_TYPE );
 	}
-	
+
+	/**
+	 * Set up.
+	 */
 	function setUp() {
 		parent::setUp();
 		$this->plugin = get_plugin_instance();
 		require_once( ABSPATH . WPINC . '/class-wp-customize-manager.php' );
-		$GLOBALS['wp_customize'] = new \WP_Customize_Manager();
+		$GLOBALS['wp_customize'] = new \WP_Customize_Manager(); // WPCS: override ok.
 		$this->snapshot_manager = new Customize_Snapshot_Manager( $this->plugin );
 		$this->wp_customize = $GLOBALS['wp_customize'];
-		wp_set_current_user( $this->factory->user->create( array( 'role' => 'administrator' ) ) );
+		wp_set_current_user( $this->factory()->user->create( array( 'role' => 'administrator' ) ) );
 		$this->wp_customize->add_setting( 'foo', array( 'default' => 'foo_default' ) );
 		$this->wp_customize->add_setting( 'bar', array( 'default' => 'bar_default' ) );
 		$this->foo = $this->wp_customize->get_setting( 'foo' );
 		$this->bar = $this->wp_customize->get_setting( 'bar' );
 	}
 
+	/**
+	 * Tear down.
+	 */
 	function tearDown() {
 		$this->wp_customize = null;
 		unset( $GLOBALS['wp_customize'] );
@@ -89,30 +118,37 @@ class Test_Customize_Snapshot extends \WP_UnitTestCase {
 	}
 
 	/**
-	 * @see Customize_Snapshot::generate_uuid()
+	 * Test constructor.
+	 *
+	 * @see Customize_Snapshot::__construct()
 	 */
-	function test_generate_uuid() {
-		$snapshot = new Customize_Snapshot( $this->snapshot_manager, null );
-		$this->assertInternalType( 'string', $snapshot->generate_uuid() );
+	function test_construct() {
+		$manager = new Customize_Snapshot_Manager( $this->plugin );
+		$manager->init();
+		$data = array( 'foo' => array( 'value' => 'bar' ) );
+		$manager->post_type->save( array(
+			'uuid' => self::UUID,
+			'data' => $data,
+		) );
+		$snapshot = new Customize_Snapshot( $manager, self::UUID );
+		$this->assertEquals( $data, $snapshot->data() );
 	}
 
 	/**
-	 * @see Customize_Snapshot::is_valid_uuid()
-	 */
-	function test_is_valid_uuid() {
-		$snapshot = new Customize_Snapshot( $this->snapshot_manager, null );
-		$this->assertTrue( $snapshot->is_valid_uuid( self::UUID ) );
-	}
-
-	/**
+	 * Test UUID.
+	 *
 	 * @see Customize_Snapshot::uuid()
 	 */
 	function test_uuid() {
-		$snapshot = new Customize_Snapshot( $this->snapshot_manager, self::UUID );
-		$this->assertEquals( self::UUID, $snapshot->uuid() );
+		$_REQUEST['customize_snapshot_uuid'] = self::UUID;
+		$manager = new Customize_Snapshot_Manager( $this->plugin );
+		$manager->init();
+		$this->assertEquals( self::UUID, $manager->snapshot()->uuid() );
 	}
 
 	/**
+	 * Test bad UUID.
+	 *
 	 * @see Customize_Snapshot::uuid()
 	 */
 	function test_uuid_throws_exception() {
@@ -122,194 +158,169 @@ class Test_Customize_Snapshot extends \WP_UnitTestCase {
 			$this->assertContains( 'You\'ve entered an invalid snapshot UUID.', $e->getMessage() );
 			return;
 		}
-
 		$this->fail( 'An expected exception has not been raised.' );
 	}
 
 	/**
-	 * @see Customize_Snapshot::set_uuid()
-	 */
-	function test_set_uuid() {
-		$snapshot = new Customize_Snapshot( $this->snapshot_manager, null );
-		$this->assertNotEquals( self::UUID, $snapshot->uuid() );
-		$snapshot->set_uuid( self::UUID );
-		$this->assertEquals( self::UUID, $snapshot->uuid() );
-	}
-
-	/**
-	 * @see Customize_Snapshot::reset_uuid()
-	 */
-	function test_reset_uuid() {
-		$snapshot = new Customize_Snapshot( $this->snapshot_manager, null );
-		$uuid = $snapshot->uuid();
-		$new_uuid = $snapshot->reset_uuid();
-		$this->assertNotEquals( $uuid, $new_uuid );
-		$this->assertEquals( $new_uuid, $snapshot->uuid() );
-	}
-
-	/**
-	 * @see Customize_Snapshot::is_preview()
-	 */
-	function test_is_preview() {
-		// Trick to get `$this->wp_customize->is_theme_active()` to return true.
-		$_POST['customized'] = 'on';
-		$this->wp_customize->setup_theme();
-
-		$_GET['customize_snapshot_uuid'] = self::UUID;
-		$snapshot = new Customize_Snapshot( $this->snapshot_manager, self::UUID );
-		$this->assertTrue( $snapshot->is_preview() );
-	}
-
-	/**
-	 * @see Customize_Snapshot::is_preview()
-	 */
-	function test_is_preview_returns_false() {
-		$snapshot = new Customize_Snapshot( $this->snapshot_manager, null );
-		$this->assertFalse( $snapshot->is_preview() );
-	}
-
-	/**
-	 * @see Customize_Snapshot::post()
-	 */
-	function test_post() {
-		$snapshot = new Customize_Snapshot( $this->snapshot_manager, null );
-		$this->assertNull( $snapshot->post() );
-		$snapshot->save();
-		$snapshot = new Customize_Snapshot( $this->snapshot_manager, $snapshot->uuid() );
-		$this->assertNotNull( $snapshot->post() );
-	}
-
-	/**
-	 * @see Customize_Snapshot::values()
-	 */
-	function test_values() {
-		// Trick to get `$this->wp_customize->is_theme_active()` to return true.
-		$_POST['customized'] = 'on';
-		$this->wp_customize->setup_theme();
-
-		// Has dirty values.
-		$snapshot = new Customize_Snapshot( $this->snapshot_manager, null );
-		$snapshot->set( $this->bar, 'bar_custom' );
-		$this->assertNotEmpty( $snapshot->values() );
-	}
-
-	/**
+	 * Test data.
+	 *
 	 * @see Customize_Snapshot::data()
 	 */
 	function test_data() {
-		// Trick to get `$this->wp_customize->is_theme_active()` to return true.
-		$_POST['customized'] = 'on';
-		$this->wp_customize->setup_theme();
+		$_REQUEST['customize_snapshot_uuid'] = self::UUID;
+		$manager = new Customize_Snapshot_Manager( $this->plugin );
+		$manager->init();
 
-		$snapshot = new Customize_Snapshot( $this->snapshot_manager, null );
-		$snapshot->set( $this->foo, 'foo_default' );
-		$this->assertNotEmpty( $snapshot->data() );
-		$snapshot->set( $this->foo, 'foo_custom' );
+		$manager->snapshot()->set( array( 'foo' => array( 'value' => 'foo_default' ) ) );
+		$this->assertNotEmpty( $manager->snapshot()->data() );
+		$manager->snapshot()->set( array( 'foo' => array( 'value' => 'foo_custom' ) ) );
 		$expected = array(
 			'foo' => array(
 				'value' => 'foo_custom',
-				'sanitized' => false,
 			),
 		);
-		$this->assertEquals( $expected, $snapshot->data() );
+		$this->assertEquals( $expected, $manager->snapshot()->data() );
 	}
 
 	/**
+	 * Test snapshot settings.
+	 *
 	 * @see Customize_Snapshot::settings()
 	 */
 	function test_settings() {
-		$snapshot = new Customize_Snapshot( $this->snapshot_manager, null );
-		$this->assertEmpty( $snapshot->settings() );
-		$snapshot->set( $this->foo, 'foo_default' );
-		$this->assertNotEmpty( $snapshot->settings() );
+		$_REQUEST['customize_snapshot_uuid'] = self::UUID;
+		$manager = new Customize_Snapshot_Manager( $this->plugin );
+		$manager->init();
+
+		$this->assertEmpty( $manager->snapshot()->settings() );
+		$manager->snapshot()->set( array( 'foo' => array( 'value' => 'foo_default' ) ) );
+		$this->assertNotEmpty( $manager->snapshot()->settings() );
 	}
 
 	/**
-	 * @see Customize_Snapshot::set()
-	 * @see Customize_Snapshot::get()
+	 * Test status.
+	 *
+	 * @see Customize_Snapshot::settings()
 	 */
-	function test_set_and_get() {
-		$snapshot = new Customize_Snapshot( $this->snapshot_manager, null );
+	function test_status() {
+		$manager = new Customize_Snapshot_Manager( $this->plugin );
+		$manager->init();
 
-		$this->wp_customize->add_setting( 'biz' );
-		$this->assertEmpty( $snapshot->get( $this->wp_customize->get_setting( 'biz' ) ) );
-		$snapshot->set( $this->foo, 'foo_default' );
-		$this->assertNotEmpty( $snapshot->get( $this->foo ) );
-		$this->assertNotEmpty( $snapshot->get( 'foo' ) );
-		$this->assertEquals( 'bar_default', $snapshot->get( 'bar' ) );
-		$this->assertEquals( 'default', $snapshot->get( 'bar', 'default' ) );
-		$this->assertNull( $snapshot->get( 'baz' ) );
-	}
+		$snapshot = new Customize_Snapshot( $manager, self::UUID );
+		$this->assertNull( $snapshot->status() );
 
-	/**
-	 * @see Customize_Snapshot::save()
-	 */
-	function test_save() {
-		$snapshot = new Customize_Snapshot( $this->snapshot_manager, null );
+		$data = array( 'foo' => array( 'value' => 'bar' ) );
+		$manager->post_type->save( array(
+			'uuid' => self::UUID,
+			'data' => $data,
+			'status' => 'draft',
+		) );
 
-		$snapshot->set( $this->foo, 'foo_default' );
-		$snapshot->set( $this->bar, 'bar_default' );
-
-		$this->assertFalse( $snapshot->saved() );
-		$snapshot->save();
-		$this->assertTrue( $snapshot->saved() );
 		$this->assertEquals( 'draft', $snapshot->status() );
-
-		$decoded = json_decode( $snapshot->post()->post_content, true );
-		$this->assertEquals( $decoded['foo'], $snapshot->get( $this->foo ) );
-		$this->assertEquals( $decoded['bar'], $snapshot->get( $this->bar ) );
-
-		// Update the Snapshot content
-		$snapshot = new Customize_Snapshot( $this->snapshot_manager, $snapshot->uuid() );
-		$snapshot->set( $this->bar, 'bar_custom' );
-
-		$snapshot->save( 'publish' );
-		$decoded = json_decode( $snapshot->post()->post_content, true );
-		$this->assertEquals( $decoded['bar'], $snapshot->get( $this->bar ) );
+		$manager->post_type->save( array(
+			'uuid' => self::UUID,
+			'status' => 'publish',
+		) );
 		$this->assertEquals( 'publish', $snapshot->status() );
 	}
 
 	/**
-	 * @see Customize_Snapshot::save()
-	 */
-	function test_save_error() {
-		wp_set_current_user( $this->factory->user->create( array( 'role' => 'editor' ) ) );
-		$snapshot = new Customize_Snapshot( $this->snapshot_manager, null );
-		$error = $snapshot->save();
-		$this->assertTrue( is_wp_error( $error ) );
-	}
-
-	/**
-	 * @see Customize_Snapshot::save()
-	 */
-	function test_save_pending() {
-		global $wp_customize;
-		add_filter( 'user_has_cap', array( $this, 'grant_customize_capability' ), 10, 3 );
-		$contributor_id = $this->factory()->user->create( array( 'role' => 'contributor' ) );
-		wp_set_current_user( $contributor_id );
-		$this->snapshot_manager->customize_manager = $wp_customize;
-		$snapshot = new Customize_Snapshot( $this->snapshot_manager, null );
-		$snapshot->set( $this->foo, 'foo' );
-		$uuid = $snapshot->uuid();
-		$this->assertNotInstanceOf( 'WP_Error', $snapshot->save( 'pending' ) );
-		$post = get_post( $snapshot->post() );
-		$this->assertEquals( 'pending', $post->post_status );
-		$this->assertEquals( $uuid, $post->post_name );
-	}
-
-	/**
-	 * Let users who can edit posts also access the Customizer because there is something for them there.
+	 * Test set.
 	 *
-	 * @see https://core.trac.wordpress.org/ticket/28605
-	 * @param array $allcaps All capabilities.
-	 * @param array $caps    Capabilities.
-	 * @param array $args    Args.
-	 * @return array All capabilities.
+	 * @see Customize_Snapshot::set()
 	 */
-	function grant_customize_capability( $allcaps, $caps, $args ) {
-		if ( ! empty( $allcaps['edit_posts'] ) && ! empty( $args ) && 'customize' === $args[0] ) {
-			$allcaps = array_merge( $allcaps, array_fill_keys( $caps, true ) );
-		}
-		return $allcaps;
+	function test_set() {
+		$manager = new Customize_Snapshot_Manager( $this->plugin );
+		$manager->init();
+
+		$this->bar->capability = 'do_not_allow';
+		add_filter( 'customize_sanitize_foo', 'strtoupper' );
+
+		$snapshot = new Customize_Snapshot( $manager, self::UUID );
+		$result = $snapshot->set( array(
+			'foo' => array( 'value' => 'ok' ),
+			'bar' => array( 'value' => 'unauthorized' ),
+			'baz' => array( 'value' => 'unrecognized' ),
+		) );
+
+		$this->assertArrayHasKey( 'errors', $result );
+		$this->assertInstanceOf( 'WP_Error', $result['errors'] );
+		$wp_error = $result['errors'];
+		$this->assertArrayHasKey( 'unauthorized_settings', $wp_error->errors );
+		$this->assertArrayHasKey( 'unrecognized_settings', $wp_error->errors );
+
+		$this->assertArrayHasKey( 'sanitized', $result );
+		$this->assertArrayHasKey( 'foo', $result['sanitized'] );
+		$this->assertArrayNotHasKey( 'bar', $result['sanitized'] );
+		$this->assertArrayNotHasKey( 'baz', $result['sanitized'] );
+		$this->assertEquals( 'OK', $result['sanitized']['foo'] );
+
+		$this->assertArrayHasKey( 'validities', $result );
+		$this->assertArrayHasKey( 'foo', $result['validities'] );
+		$this->assertTrue( $result['validities']['foo'] );
+
+		$this->assertEmpty( $snapshot->data() );
+
+		// Success with populated value.
+		$result = $snapshot->set( array( 'foo' => array( 'value' => 'ok' ) ) );
+		$this->assertNull( $result['errors'] );
+		$resultant_data = $snapshot->data();
+		$this->assertEquals( 'ok', $resultant_data['foo']['value'] );
+	}
+
+	/**
+	 * Test set with varying setting params.
+	 *
+	 * @see Customize_Snapshot::set()
+	 */
+	function test_set_with_varying_setting_params() {
+		$manager = new Customize_Snapshot_Manager( $this->plugin );
+		$manager->init();
+		$snapshot = new Customize_Snapshot( $manager, self::UUID );
+
+		$result = $snapshot->set( array( 'foo' => array( 'value' => 'ok' ) ) );
+		$this->assertNull( $result['errors'] );
+		$resultant_data = $snapshot->data();
+		$this->assertEquals( 'ok', $resultant_data['foo']['value'] );
+
+		// Check setting a param without a value, ensuring that foo still remains but snapshot is amended.
+		$result = $snapshot->set( array( 'bar' => array( 'extra' => 'ok' ) ) );
+		$this->assertNull( $result['errors'] );
+		$resultant_data = $snapshot->data();
+		$this->assertEquals( 'ok', $resultant_data['foo']['value'] );
+		$this->assertArrayHasKey( 'extra', $resultant_data['bar'] );
+		$this->assertNull( $resultant_data['bar']['value'] );
+	}
+
+	/**
+	 * Test set with a non-array param.
+	 *
+	 * @see Customize_Snapshot::set()
+	 * @expectedException Exception
+	 */
+	function test_set_with_non_array_params() {
+		$manager = new Customize_Snapshot_Manager( $this->plugin );
+		$manager->ensure_customize_manager();
+		$manager->init();
+		$snapshot = new Customize_Snapshot( $manager, self::UUID );
+		$snapshot->set( array( 'foo' => 'bad' ) );
+	}
+
+	/**
+	 * Test saved.
+	 *
+	 * @see Customize_Snapshot::saved()
+	 */
+	function test_saved() {
+		$manager = new Customize_Snapshot_Manager( $this->plugin );
+		$manager->init();
+
+		$snapshot = new Customize_Snapshot( $manager, self::UUID );
+		$this->assertFalse( $snapshot->saved() );
+
+		$manager->post_type->save( array(
+			'uuid' => self::UUID,
+			'data' => array( 'foo' => array( 'value' => 'bar' ) ),
+		) );
 	}
 }

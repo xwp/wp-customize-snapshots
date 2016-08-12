@@ -185,6 +185,7 @@ abstract class Plugin_Base {
 	/**
 	 * Return whether we're on WordPress.com VIP production.
 	 *
+	 * @codeCoverageIgnore
 	 * @return bool
 	 */
 	public function is_wpcom_vip_prod() {
@@ -194,6 +195,7 @@ abstract class Plugin_Base {
 	/**
 	 * Call trigger_error() if not on VIP production.
 	 *
+	 * @codeCoverageIgnore
 	 * @param string $message Warning message.
 	 * @param int    $code    Warning code.
 	 */

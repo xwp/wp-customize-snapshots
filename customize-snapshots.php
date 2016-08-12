@@ -3,13 +3,12 @@
  * Plugin Name: Customize Snapshots
  * Plugin URI: https://github.com/xwp/wp-customize-snapshots
  * Description: Allow Customizer states to be drafted, and previewed with a private URL.
- * Version: 0.4.0
+ * Version: 0.5.0
  * Author:  XWP
  * Author URI: https://xwp.co/
  * License: GPLv2+
  * License URI: http://www.gnu.org/licenses/gpl-2.0.txt
  * Text Domain: customize-snapshots
- * Domain Path: /languages
  *
  * Copyright (c) 2015 XWP (https://xwp.co/)
  *
@@ -44,7 +43,7 @@ if ( version_compare( phpversion(), '5.3', '>=' ) ) {
  * Admin notice for incompatible versions of PHP.
  */
 function customize_snapshots_php_version_error() {
-	printf( '<div class="error"><p>%s</p></div>', customize_snapshots_php_version_text() );
+	printf( '<div class="error"><p>%s</p></div>', customize_snapshots_php_version_text() ); // WPCS: XSS OK.
 }
 
 /**

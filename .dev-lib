@@ -1,3 +1,8 @@
 PATH_INCLUDES='*.* php js css tests'
 WPCS_GIT_TREE=develop
 ASSETS_DIR=wp-assets
+
+function after_wp_install {
+    echo "Installing REST API..."
+    svn export -q https://plugins.svn.wordpress.org/rest-api/trunk/ "$WP_CORE_DIR/src/wp-content/plugins/rest-api"
+}

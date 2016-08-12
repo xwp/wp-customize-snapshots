@@ -1,8 +1,32 @@
+#snapshot-preview-link,
+#snapshot-schedule-button {
+	float: right;
+	margin-top: 13px;
+	margin-right: 4px;
+	color: #656a6f;
+}
+
+#snapshot-schedule-button {
+	display: block;
+}
+#snapshot-schedule-button:hover,
+#snapshot-schedule-button:focus,
+#snapshot-schedule-button:active {
+	color: #191e23;
+}
+
+#snapshot-preview-link:hover,
+#snapshot-preview-link:focus,
+#snapshot-preview-link:active {
+	color: #191e23;
+}
+
 #snapshot-save {
 	float: right;
 	margin-top: 9px;
 	margin-right: 9px;
 }
+
 #customize-header-actions:not(.button-added) .button#save {
 	visibility: hidden;
 }
@@ -38,4 +62,142 @@
 		margin-top: 6px;
 		margin-right: 6px;
 	}
+}
+
+#snapshot-schedule {
+	background: #fff !important;
+	border-bottom: 1px solid #ddd;
+	line-height: 1.5;
+	left: 0;
+	top: 46px;
+	position: absolute;
+	width: 100%;
+	box-shadow: 0 5px 0 0 rgba(0,0,0,0.05);
+	padding:10px;
+	box-sizing: border-box;
+}
+
+#snapshot-schedule .snapshot-schedule-title {
+	color: #555;
+}
+
+#snapshot-schedule .snapshot-schedule-title h3 {
+	margin: .2em 2em .75em 0;
+}
+
+#snapshot-schedule .snapshot-schedule-description {
+	margin-bottom: 0.5em;
+}
+#snapshot-schedule .timezone-info {
+	margin-top: 0.5em;
+	font-size: smaller;
+}
+
+#snapshot-schedule a.snapshot-edit-link {
+	position: absolute;
+	top: 4px;
+	right: 1px;
+	width: 20px;
+	height: 20px;
+	cursor: pointer;
+	-webkit-box-shadow: none;
+	box-shadow: none;
+	-webkit-appearance: none;
+	background: transparent;
+	color: #555;
+	border: none;
+	padding: 10px;
+}
+
+#snapshot-schedule a.snapshot-edit-link:focus,
+#snapshot-schedule a.snapshot-edit-link:hover {
+	color: #0073aa;
+}
+
+#snapshot-schedule a.snapshot-edit-link:before {
+	padding: 4px;
+	position: absolute;
+	top: 5px;
+	left: 6px;
+	-webkit-border-radius: 100%;
+	border-radius: 100%;
+}
+
+#snapshot-schedule a.snapshot-edit-link:focus:before {
+	-webkit-box-shadow:
+		0 0 0 1px #5b9dd9,
+		0 0 2px 1px rgba(30, 140, 190, .8);
+	box-shadow:
+		0 0 0 1px #5b9dd9,
+		0 0 2px 1px rgba(30, 140, 190, .8);
+}
+
+#snapshot-schedule .accordion-section-title {
+	padding: 10px;
+}
+
+#snapshot-schedule .reset-time {
+	font-weight: normal;
+	font-size: 80%;
+	display: none;
+}
+
+.snapshot-schedule-control.date-inputs {
+	display: flex;
+	display: -ms-flexbox;
+	align-items: center;
+	-webkit-box-align: center;
+	-ms-flex-align: center;
+	justify-content: flex-start;
+	-webkit-box-pack: start;
+	-ms-flex-pack: start;
+}
+
+.snapshot-schedule-control input.date-input {
+	-moz-appearance: textfield;
+	-webkit-appearance: textfield;
+	padding-left: 5px; /* 10px padding is not ideal for such small inputs */
+	padding-right: 5px;
+}
+
+.snapshot-schedule-control label {
+	display: inline-block; /* To align items when flex is not supported */
+}
+
+.snapshot-schedule-control .year.date-input {
+	min-width: 4em;
+}
+
+.snapshot-schedule-control input[type="number"]{
+	width:100%;
+}
+
+.snapshot-schedule-control .time-special-char {
+	padding-left:2px;
+	padding-right:2px;
+}
+
+.snapshot-schedule-control select {
+	height: 28px;
+}
+
+@media screen and ( max-width: 782px ) {
+	.snapshot-schedule-control select {
+		height: 40px;
+	}
+}
+
+.snapshot-schedule-control input.date-input::-webkit-outer-spin-button,
+.snapshot-schedule-control input.date-input::-webkit-inner-spin-button {
+	-webkit-appearance: none;
+	margin: 0;
+}
+
+.wp-full-overlay .wp-full-overlay-sidebar .wp-full-overlay-header {
+	padding-left: 15px;
+	z-index: 500101;
+}
+
+.select2-container {
+	z-index: 500100 !important;
 }
