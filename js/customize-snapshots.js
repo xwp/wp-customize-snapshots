@@ -339,7 +339,11 @@
 		// Listen for click events.
 		$( '#snapshot-schedule-button' ).on( 'click', function( event ) {
 			event.preventDefault();
-			component.schedule.container.toggle();
+			if ( component.schedule.container.is( ':visible' ) ) {
+				component.schedule.container.slideUp( 'fast' ).attr( 'aria-expanded', 'false' );
+			} else {
+				component.schedule.container.slideDown( 'fast' ).attr( 'aria-expanded', 'true' );
+			}
 		} );
 
 		api.state( 'snapshot-saved' ).bind( function( saved ) {
@@ -357,7 +361,7 @@
 			if ( saved && ! _.isEmpty( component.schedule.container ) ) {
 				component.data.publishDate = component.getCurrentTime();
 				component.updateSchedule();
-				component.schedule.container.hide();
+				component.schedule.container.slideUp( 'fast' ).attr( 'aria-expanded', 'false' );
 				component.data.dirty = false;
 			}
 		} );
