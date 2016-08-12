@@ -3,7 +3,7 @@
 ( function( api, $ ) {
 	'use strict';
 
-	var component;
+	var component, escKeyCode = 27;
 
 	if ( ! api.Snapshots ) {
 		api.Snapshots = {};
@@ -351,10 +351,39 @@
 				scheduleButton.prop( 'title', component.data.i18n.expandSnapshotScheduling );
 			}
 		} );
+
+		// Toggle schedule container when clicking the button.
 		scheduleButton.on( 'click', function( event ) {
 			event.preventDefault();
 			component.scheduleContainerDisplayed.set( ! component.scheduleContainerDisplayed.get() );
 		} );
+
+		// Collapse the schedule container when Esc is pressed while the button is focused.
+		scheduleButton.on( 'keydown', function( event ) {
+			if ( escKeyCode === event.which && component.scheduleContainerDisplayed.get() ) {
+				event.stopPropagation();
+				event.preventDefault();
+				component.scheduleContainerDisplayed.set( false );
+			}
+		});
+
+		// Collapse the schedule container when Esc is pressed inside of the schedule container.
+		component.schedule.container.on( 'keydown', function( event ) {
+			if ( escKeyCode === event.which && component.scheduleContainerDisplayed.get() ) {
+				event.stopPropagation();
+				event.preventDefault();
+				component.scheduleContainerDisplayed.set( false );
+				scheduleButton.focus();
+			}
+		});
+
+		// Collapse the schedule container interacting outside the schedule container.
+		$( 'body' ).on( 'mousedown', function( event ) {
+			if ( component.scheduleContainerDisplayed.get() && ! $.contains( component.schedule.container[0], event.target ) && ! scheduleButton.is( event.target ) ) {
+				component.scheduleContainerDisplayed.set( false );
+			}
+		});
+
 		component.scheduleContainerDisplayed.set( false );
 
 		api.state( 'snapshot-saved' ).bind( function( saved ) {
