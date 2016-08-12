@@ -1415,30 +1415,48 @@ class Customize_Snapshot_Manager {
 					<?php $edit_snapshot_text = __( 'Edit Snapshot', 'customize-snapshots' ); ?>
 					<a href="{{ data.editLink }}" class="dashicons dashicons-edit snapshot-edit-link" target="_blank" title="<?php echo esc_attr( $edit_snapshot_text ); ?>" aria-expanded="false"><span class="screen-reader-text"><?php echo esc_html( $edit_snapshot_text ); ?></span></a>
 				</div>
-				<div class="snapshot-schedule-control">
-					<#
-					_.defaults( data, <?php echo wp_json_encode( $data ) ?> );
-					data.input_id_post_date = 'input-' + String( Math.random() );
-					data.input_id_post_date_gmt = 'input-' + String( Math.random() );
-					#>
-					<select id="{{ data.input_id }}" class="date-input month" data-date-input="month">
-					<# _.each( data.month_choices, function( choice ) { #>
-						<# if ( _.isObject( choice ) && ! _.isUndefined( choice.text ) && ! _.isUndefined( choice.value ) ) {
-							text = choice.text;
-							value = choice.value;
-						} #>
-						<option value="{{ value }}" 
-							<# if (choice.value == data.month) { #>
-								selected="selected"
-							<# } #>>
-							{{ text }}
-						</option>
-					<# } ); #>
-					</select>
-					<input type="number" size="2" maxlength="2" autocomplete="off" class="date-input day" data-date-input="day" min="1" max="31" value="{{ data.day }}" />,
-					<input type="number" size="4" maxlength="4" autocomplete="off" class="date-input year" data-date-input="year" min="<?php echo esc_attr( date( 'Y' ) ); ?>" value="{{ data.year }}" max="9999" /> @
-					<input type="number" size="2" maxlength="2" autocomplete="off" class="date-input hour" data-date-input="hour" min="0" max="23" value="{{ data.hour }}" />:<?php
-					?><input type="number" size="2" maxlength="2" autocomplete="off" class="date-input minute" data-date-input="minute" min="0" max="59" value="{{ data.minute }}" />
+				<div class="snapshot-schedule-control date-inputs clear">
+					<label>
+						<span class="screen-reader-text"><?php esc_html_e( 'Month', 'customize-snapshots' ); ?></span>
+						<#
+						_.defaults( data, <?php echo wp_json_encode( $data ) ?> );
+						data.input_id_post_date = 'input-' + String( Math.random() );
+						data.input_id_post_date_gmt = 'input-' + String( Math.random() );
+						#>
+						<select id="{{ data.input_id }}" class="date-input month" data-date-input="month">
+						<# _.each( data.month_choices, function( choice ) { #>
+							<# if ( _.isObject( choice ) && ! _.isUndefined( choice.text ) && ! _.isUndefined( choice.value ) ) {
+								text = choice.text;
+								value = choice.value;
+							} #>
+							<option value="{{ value }}"
+								<# if (choice.value == data.month) { #>
+									selected="selected"
+								<# } #>>
+								{{ text }}
+							</option>
+						<# } ); #>
+						</select>
+					</label>
+					<label>
+						<span class="screen-reader-text"><?php esc_html_e( 'Day', 'customize-snapshots' ); ?></span>
+						<input type="number" size="2" maxlength="2" autocomplete="off" class="date-input day" data-date-input="day" min="1" max="31" value="{{ data.day }}" />
+					</label>
+					<span class="time-special-char">,</span>
+					<label>
+						<span class="screen-reader-text"><?php esc_html_e( 'Year', 'customize-snapshots' ); ?></span>
+						<input type="number" size="4" maxlength="4" autocomplete="off" class="date-input year" data-date-input="year" min="<?php echo esc_attr( date( 'Y' ) ); ?>" value="{{ data.year }}" max="9999" />
+					</label>
+					<span class="time-special-char">@</span>
+					<label>
+						<span class="screen-reader-text"><?php esc_html_e( 'Hour', 'customize-snapshots' ); ?></span>
+						<input type="number" size="2" maxlength="2" autocomplete="off" class="date-input hour" data-date-input="hour" min="0" max="23" value="{{ data.hour }}" />
+					</label>
+					<span class="time-special-char">:</span>
+					<label>
+						<span class="screen-reader-text"><?php esc_html_e( 'Minute', 'customize-snapshots' ); ?></span>
+						<input type="number" size="2" maxlength="2" autocomplete="off" class="date-input minute" data-date-input="minute" min="0" max="59" value="{{ data.minute }}" />
+					</label>
 				</div>
 			</div>
 		</script>
