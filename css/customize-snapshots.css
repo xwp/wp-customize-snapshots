@@ -9,6 +9,11 @@
 #snapshot-schedule-button {
 	display: block;
 }
+#snapshot-schedule-button:hover,
+#snapshot-schedule-button:focus,
+#snapshot-schedule-button:active {
+	color: #191e23;
+}
 
 #snapshot-preview-link:hover,
 #snapshot-preview-link:focus,
