@@ -1374,22 +1374,6 @@ class Customize_Snapshot_Manager {
 		$data = $this->get_month_choices();
 
 		$description = __( 'Schedule your changes to publish (go live) at a future date.', 'customize-snapshots' );
-		$description .= ' ';
-
-		$tz_string = get_option( 'timezone_string' );
-		if ( $tz_string ) {
-			$tz = new \DateTimezone( $tz_string );
-			$formatted_gmt_offset = $this->format_gmt_offset( $tz->getOffset( new \DateTime() ) / 3600 );
-			$tz_name = str_replace( '_', ' ', $tz->getName() );
-
-			/* translators: 1: timezone name, 2: gmt offset  */
-			$description .= sprintf( __( 'This site\'s dates are in the %1$s timezone (currently UTC%2$s).', 'customize-snapshots' ), $tz_name, $formatted_gmt_offset );
-		} else {
-			$formatted_gmt_offset = $this->format_gmt_offset( get_option( 'gmt_offset' ) );
-
-			/* translators: %s: gmt offset  */
-			$description .= sprintf( __( 'Dates are in UTC%s.', 'customize-snapshots' ), $formatted_gmt_offset );
-		}
 		?>
 		<script type="text/html" id="tmpl-snapshot-preview-link">
 			<a href="#" target="frontend-preview" id="snapshot-preview-link" class="dashicons dashicons-welcome-view-site" title="<?php esc_attr_e( 'View on frontend', 'customize-snapshots' ) ?>">
@@ -1408,10 +1392,9 @@ class Customize_Snapshot_Manager {
 						<?php esc_html_e( 'Snapshot Scheduling', 'customize-snapshots' ); ?>
 						<span class="reset-time">(<a href="#" title="<?php esc_attr_e( 'Reset scheduled date to original or current date', 'customize-snapshots' ); ?>"><?php esc_html_e( 'Reset', 'customize-snapshots' ) ?></a>)</span>
 					</h3>
-					<span class="snapshot-schedule-description">
-						<span class="snapshot-scheduled-countdown"></span>
-						<span class="timezone-info"><?php echo esc_html( $description ); ?></span>
-					</span>
+					<p class="snapshot-schedule-description">
+						<?php echo esc_html( $description ); ?>
+					</p>
 					<?php $edit_snapshot_text = __( 'Edit Snapshot', 'customize-snapshots' ); ?>
 					<a href="{{ data.editLink }}" class="dashicons dashicons-edit snapshot-edit-link" target="_blank" title="<?php echo esc_attr( $edit_snapshot_text ); ?>" aria-expanded="false"><span class="screen-reader-text"><?php echo esc_html( $edit_snapshot_text ); ?></span></a>
 				</div>
@@ -1457,6 +1440,26 @@ class Customize_Snapshot_Manager {
 						<span class="screen-reader-text"><?php esc_html_e( 'Minute', 'customize-snapshots' ); ?></span>
 						<input type="number" size="2" maxlength="2" autocomplete="off" class="date-input minute" data-date-input="minute" min="0" max="59" value="{{ data.minute }}" />
 					</label>
+				</div>
+				<div class="timezone-info">
+					<span class="snapshot-scheduled-countdown" role="timer"></span>
+					<?php
+					$tz_string = get_option( 'timezone_string' );
+					if ( $tz_string ) {
+						$tz = new \DateTimezone( $tz_string );
+						$formatted_gmt_offset = $this->format_gmt_offset( $tz->getOffset( new \DateTime() ) / 3600 );
+						$tz_name = str_replace( '_', ' ', $tz->getName() );
+
+						/* translators: 1: timezone name, 2: gmt offset  */
+						$timezone_description = sprintf( __( 'This site\'s dates are in the %1$s timezone (currently UTC%2$s).', 'customize-snapshots' ), $tz_name, $formatted_gmt_offset );
+					} else {
+						$formatted_gmt_offset = $this->format_gmt_offset( get_option( 'gmt_offset' ) );
+
+						/* translators: %s: gmt offset  */
+						$timezone_description = sprintf( __( 'Dates are in UTC%s.', 'customize-snapshots' ), $formatted_gmt_offset );
+					}
+					echo esc_html( $timezone_description );
+					?>
 				</div>
 			</div>
 		</script>

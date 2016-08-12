@@ -85,6 +85,14 @@
 	margin: .2em 2em .75em 0;
 }
 
+#snapshot-schedule .snapshot-schedule-description {
+	margin-bottom: 0.5em;
+}
+#snapshot-schedule .timezone-info {
+	margin-top: 0.5em;
+	font-size: smaller;
+}
+
 #snapshot-schedule a.snapshot-edit-link {
 	position: absolute;
 	top: 4px;
