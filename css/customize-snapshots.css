@@ -73,11 +73,12 @@
 	position: absolute;
 	width: 100%;
 	box-shadow: 0 5px 0 0 rgba(0,0,0,0.05);
+	padding:10px;
+	box-sizing: border-box;
 }
 
 #snapshot-schedule .snapshot-schedule-title {
 	color: #555;
-	padding: 10px 10px 0;
 }
 
 #snapshot-schedule .snapshot-schedule-title h3 {
@@ -123,10 +124,6 @@
 		0 0 2px 1px rgba(30, 140, 190, .8);
 }
 
-#snapshot-schedule .snapshot-schedule-control {
-	padding: 10px;
-}
-
 #snapshot-schedule .accordion-section-title {
 	padding: 10px;
 }
@@ -163,9 +160,17 @@
 	min-width: 4em;
 }
 
+.snapshot-schedule-control input[type="number"]{
+	width:100%;
+}
+
 .snapshot-schedule-control .time-special-char {
 	padding-left:2px;
 	padding-right:2px;
+}
+
+.snapshot-schedule-control select {
+	height: 28px;
 }
 
 @media screen and ( max-width: 782px ) {
