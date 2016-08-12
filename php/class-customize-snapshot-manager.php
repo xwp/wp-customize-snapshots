@@ -1371,6 +1371,9 @@ class Customize_Snapshot_Manager {
 	public function render_templates() {
 		$data = $this->get_month_choices();
 
+		$description = __( 'Schedule your changes to publish (go live) at a future date.', 'customize-snapshots' );
+		$description .= ' ';
+
 		$tz_string = get_option( 'timezone_string' );
 		if ( $tz_string ) {
 			$tz = new \DateTimezone( $tz_string );
@@ -1378,12 +1381,12 @@ class Customize_Snapshot_Manager {
 			$tz_name = str_replace( '_', ' ', $tz->getName() );
 
 			/* translators: 1: timezone name, 2: gmt offset  */
-			$date_control_description = sprintf( __( 'This site\'s dates are in the %1$s timezone (currently UTC%2$s).', 'customize-snapshots' ), $tz_name, $formatted_gmt_offset );
+			$description .= sprintf( __( 'This site\'s dates are in the %1$s timezone (currently UTC%2$s).', 'customize-snapshots' ), $tz_name, $formatted_gmt_offset );
 		} else {
 			$formatted_gmt_offset = $this->format_gmt_offset( get_option( 'gmt_offset' ) );
 
 			/* translators: %s: gmt offset  */
-			$date_control_description = sprintf( __( 'Dates are in UTC%s.', 'customize-snapshots' ), $formatted_gmt_offset );
+			$description .= sprintf( __( 'Dates are in UTC%s.', 'customize-snapshots' ), $formatted_gmt_offset );
 		}
 		?>
 		<script type="text/html" id="tmpl-snapshot-preview-link">
@@ -1393,19 +1396,19 @@ class Customize_Snapshot_Manager {
 		</script>
 
 		<script type="text/html" id="tmpl-snapshot-schedule-button">
-			<a href="#" id="snapshot-schedule-button" class="dashicons dashicons-calendar-alt" title="<?php esc_attr_e( 'Schedule Snapshot','customize-snapshots' ); ?>"></a>
+			<a href="#" id="snapshot-schedule-button" class="dashicons dashicons-calendar-alt" title="<?php esc_attr_e( 'Snapshot scheduling','customize-snapshots' ); ?>"></a>
 		</script>
 
 		<script type="text/html" id="tmpl-snapshot-schedule">
 			<div id="snapshot-schedule">
 				<div class="snapshot-schedule-title">
 					<h3>
-						<?php esc_html_e( 'Schedule Snapshot', 'customize-snapshots' ); ?>
-						<span class="reset-time">(<a href="#" title="<?php esc_attr_e( 'Reset schedule date to original or current date', 'customize-snapshots' ); ?>"><?php esc_html_e( 'Reset', 'customize-snapshots' ) ?></a>)</span>
+						<?php esc_html_e( 'Snapshot Scheduling', 'customize-snapshots' ); ?>
+						<span class="reset-time">(<a href="#" title="<?php esc_attr_e( 'Reset scheduled date to original or current date', 'customize-snapshots' ); ?>"><?php esc_html_e( 'Reset', 'customize-snapshots' ) ?></a>)</span>
 					</h3>
 					<span class="snapshot-schedule-description">
 						<span class="snapshot-scheduled-countdown"></span>
-						<span class="timezone-info"><?php echo esc_html( $date_control_description ); ?></span>
+						<span class="timezone-info"><?php echo esc_html( $description ); ?></span>
 					</span>
 					<?php $edit_snapshot_text = __( 'Edit Snapshot', 'customize-snapshots' ); ?>
 					<a href="{{ data.editLink }}" class="dashicons dashicons-edit snapshot-edit-link" target="_blank" title="<?php echo esc_attr( $edit_snapshot_text ); ?>" aria-expanded="false"><span class="screen-reader-text"><?php echo esc_html( $edit_snapshot_text ); ?></span></a>
