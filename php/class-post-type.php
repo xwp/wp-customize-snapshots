@@ -719,23 +719,29 @@ class Post_Type {
 	 *
 	 * @return array
 	 */
-	public function get_conflicts_setting( $post ) {
+	public function get_conflicts_setting( $post, $settings = array() ) {
 		global $wpdb;
-		$post = get_post( $post );
-		if ( ! $post || ! ( $post instanceof \WP_Post ) ) {
-			return array();
+		if ( $post ) {
+			$post = get_post( $post );
+		}
+		if ( empty( $settings ) ) {
+			$content = $this->get_post_content( $post );
+			$return = array();
+			if ( empty( $content ) || ! is_array( $content ) ) {
+				return $return;
+			}
+			$settings = array_keys( $content );
+			if ( empty( $settings ) ) {
+				return $return;
+			}
 		}
 		$return = array();
-		$content = $this->get_post_content( $post );
-		if ( empty( $content ) || ! is_array( $content ) ) {
-			return $return;
-		}
-		$settings = array_keys( $content );
-		if ( empty( $settings ) ) {
-			return $return;
-		}
-		$query = $wpdb->prepare( "SELECT ID, post_name, post_status, post_content FROM $wpdb->posts WHERE post_type = %s AND post_status IN ( 'draft', 'pending', 'future' ) AND ID != %d AND ( ", self::SLUG, $post->ID );
+		$query = $wpdb->prepare( "SELECT ID, post_name, post_status, post_content FROM $wpdb->posts WHERE post_type = %s AND post_status IN ( 'draft', 'pending', 'future' ) ", static::SLUG );
 		// Todo: finalize post_status to check in.
+		if ( $post instanceof \WP_Post ) {
+			$query .= $wpdb->prepare( 'AND ID != %d ', $post->ID );
+		}
+		$query .= 'AND ( ';
 		$or = array();
 		foreach ( $settings as $setting_id ) {
 			$or[] = $wpdb->prepare( 'post_content LIKE %s', '%' . $wpdb->esc_like( wp_json_encode( $setting_id ) ) . '%' );

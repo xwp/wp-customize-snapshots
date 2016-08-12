@@ -1616,40 +1616,10 @@ class Customize_Snapshot_Manager {
 			status_header( 400 );
 			wp_send_json_error( 'no_setting_to_check' );
 		}
-		global $wpdb;
-		$query = $wpdb->prepare( "SELECT ID, post_name, post_status, post_content FROM $wpdb->posts WHERE post_type = %s AND post_status IN ( 'draft', 'pending', 'future' ) ", Post_Type::SLUG );
-		if ( $post instanceof \WP_Post ) {
-			$query .= $wpdb->prepare( 'AND ID != %d ', $post->ID );
-		}
-		$query .= 'AND ( ';
-		$or = array();
-		foreach ( $settings as $setting_id ) {
-			$or[] = $wpdb->prepare( 'post_content LIKE %s', '%' . $wpdb->esc_like( wp_json_encode( $setting_id ) ) . '%' );
-		}
-		$query .= implode( ' OR ', $or );
-		$query .= ' )';
-		// Todo: finalize post_status to check in.
-		// Todo: ignore saved snapshot settings post.
-		$results = $wpdb->get_results( $query, ARRAY_A ); // WPCS: unprepared SQL ok.
-		$return = array();
-		if ( ! empty( $results ) ) {
-			foreach ( $results as $item ) {
-				$data = json_decode( $item['post_content'], true );
-				$snapshot_content_keys = array_keys( $data );
-				$conflicts_keys = array_intersect( $snapshot_content_keys, $settings );
-				if ( empty( $conflicts_keys ) ) {
-					continue;
-				}
-				foreach ( $conflicts_keys as $conflicts_key ) {
-					if ( ! isset( $return[ $conflicts_key ] ) ) {
-						$return[ $conflicts_key ] = array();
-					}
-					$return[ $conflicts_key ][] = array(
-						'post_id' => $item['ID'],
-						'value' => $this->post_type->get_printable_setting_value( $data[ $conflicts_key ]['value'] ),
-						'name' => $item['post_name'],
-					);
-				}
+		$return = $this->post_type->get_conflicts_setting( $post, $settings );
+		foreach ( $return as $setting_key => &$items ) {
+			foreach ( $items as &$item ) {
+				$item['value'] = $this->post_type->get_printable_setting_value( $item['value'] );
 			}
 		}
 		wp_send_json_success( $return );
