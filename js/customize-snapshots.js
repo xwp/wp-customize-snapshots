@@ -58,7 +58,7 @@
 			component.extendPreviewerQuery();
 			component.addButtons();
 			component.addSchedule();
-			component.addConflictCheck();
+			component.handleEventForConflicts();
 
 			$( '#snapshot-save' ).on( 'click', function( event ) {
 				var scheduleDate;
@@ -802,11 +802,11 @@
 	};
 
 	/**
-	 * Handles snapshot conflict UI and events.
+	 * Handles snapshot conflict events.
 	 *
 	 * @return {void}
 	 */
-	component.addConflictCheck = function() {
+	component.handleEventForConflicts = function() {
 		api.state( 'saved' ).bind(function( saved ) {
 			if ( saved ) {
 				_.each( component.conflict.controls, function( control ) {
@@ -817,6 +817,9 @@
 					component.conflict._currentRequest.abort();
 					component.conflict._currentRequest = null;
 				}
+				component.conflict.controls = {};
+				component.conflict.pendingRequest = {};
+
 				wp.customize.control.each( function( control ) {
 					_.each( control.settings, function( setting ) {
 						setting.unbind( component.onConflictFirstChange );
