@@ -298,9 +298,10 @@
 	 */
 	component.addSchedule = function addSchedule() {
 		var sliceBegin = 0,
-			sliceEnd = -2;
+			sliceEnd = -2,
+			scheduleButton = $( '#snapshot-schedule-button' );
 
-		component.scheduleContainerDisplayed = new api.Value( false );
+		component.scheduleContainerDisplayed = new api.Value();
 
 		// Inject the UI.
 		if ( _.isEmpty( component.schedule.container ) ) {
@@ -342,14 +343,19 @@
 		component.scheduleContainerDisplayed.bind( function( isDisplayed ) {
 			if ( isDisplayed ) {
 				component.schedule.container.stop().slideDown( 'fast' ).attr( 'aria-expanded', 'true' );
+				scheduleButton.attr( 'aria-pressed', 'true' );
+				scheduleButton.prop( 'title', component.data.i18n.collapseSnapshotScheduling );
 			} else {
 				component.schedule.container.stop().slideUp( 'fast' ).attr( 'aria-expanded', 'false' );
+				scheduleButton.attr( 'aria-pressed', 'false' );
+				scheduleButton.prop( 'title', component.data.i18n.expandSnapshotScheduling );
 			}
 		} );
-		$( '#snapshot-schedule-button' ).on( 'click', function( event ) {
+		scheduleButton.on( 'click', function( event ) {
 			event.preventDefault();
 			component.scheduleContainerDisplayed.set( ! component.scheduleContainerDisplayed.get() );
 		} );
+		component.scheduleContainerDisplayed.set( false );
 
 		api.state( 'snapshot-saved' ).bind( function( saved ) {
 			if ( saved ) {

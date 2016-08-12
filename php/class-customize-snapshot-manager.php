@@ -674,6 +674,8 @@ class Customize_Snapshot_Manager {
 				),
 				'errorMsg' => __( 'The snapshot could not be saved.', 'customize-snapshots' ),
 				'errorTitle' => __( 'Error', 'customize-snapshots' ),
+				'collapseSnapshotScheduling' => __( 'Collapse snapshot scheduling', 'customize-snapshots' ),
+				'expandSnapshotScheduling' => __( 'Expand snapshot scheduling', 'customize-snapshots' ),
 			),
 			'snapshotExists' => ( $this->snapshot && $this->snapshot->saved() ),
 		) );
@@ -1396,7 +1398,7 @@ class Customize_Snapshot_Manager {
 		</script>
 
 		<script type="text/html" id="tmpl-snapshot-schedule-button">
-			<a href="#" id="snapshot-schedule-button" class="dashicons dashicons-calendar-alt" title="<?php esc_attr_e( 'Snapshot scheduling','customize-snapshots' ); ?>"></a>
+			<a href="javascript:void(0)" id="snapshot-schedule-button" role="button" aria-controls="snapshot-schedule" aria-pressed="false" class="dashicons dashicons-calendar-alt"></a>
 		</script>
 
 		<script type="text/html" id="tmpl-snapshot-schedule">
