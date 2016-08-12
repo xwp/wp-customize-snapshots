@@ -103,9 +103,8 @@
 #snapshot-schedule a.snapshot-edit-link:focus,
 #snapshot-schedule a.snapshot-edit-link:hover {
 	color: #0073aa;
-	
 }
-			
+
 #snapshot-schedule a.snapshot-edit-link:before {
 	padding: 4px;
 	position: absolute;

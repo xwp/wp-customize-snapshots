@@ -61,7 +61,7 @@
 			$( '#snapshot-save' ).on( 'click', function( event ) {
 				var scheduleDate;
 				event.preventDefault();
-				if ( ! _.isEmpty( component.schedule.template ) && component.isFutureDate() ) {
+				if ( ! _.isEmpty( component.schedule.container ) && component.isFutureDate() ) {
 					scheduleDate = component.getDateFromInputs();
 					component.sendUpdateSnapshotRequest( {
 						status: 'future',
@@ -301,7 +301,7 @@
 			sliceEnd = -2;
 
 		// Inject the UI.
-		if ( _.isEmpty( component.schedule.template ) ) {
+		if ( _.isEmpty( component.schedule.container ) ) {
 			if ( '0000-00-00 00:00:00' === component.data.publishDate ) {
 				component.data.publishDate = component.getCurrentTime();
 			}
@@ -313,11 +313,11 @@
 			component.data = _.extend( component.data, component.parseDateTime( component.data.publishDate ) );
 
 			// Add the template to the DOM.
-			component.schedule.template = $( $.trim( wp.template( 'snapshot-schedule' )( component.data ) ) );
-			component.schedule.template.hide().appendTo( $( '#customize-header-actions' ) );
+			component.schedule.container = $( $.trim( wp.template( 'snapshot-schedule' )( component.data ) ) );
+			component.schedule.container.hide().appendTo( $( '#customize-header-actions' ) );
 
 			// Store the date inputs.
-			component.schedule.inputs = component.schedule.template.find( '.date-input' );
+			component.schedule.inputs = component.schedule.container.find( '.date-input' );
 
 			component.schedule.inputs.on( 'input', function() {
 				component.populateSetting();
@@ -330,7 +330,7 @@
 
 			component.updateCountdown();
 
-			component.schedule.template.find( '.reset-time a' ).on( 'click', function( event ) {
+			component.schedule.container.find( '.reset-time a' ).on( 'click', function( event ) {
 				event.preventDefault();
 				component.updateSchedule();
 			} );
@@ -339,7 +339,7 @@
 		// Listen for click events.
 		$( '#snapshot-schedule-button' ).on( 'click', function( event ) {
 			event.preventDefault();
-			component.schedule.template.toggle();
+			component.schedule.container.toggle();
 		} );
 
 		api.state( 'snapshot-saved' ).bind( function( saved ) {
@@ -350,23 +350,23 @@
 
 		api.bind( 'change', function() {
 			component.data.dirty = true;
-			component.schedule.template.find( 'a.snapshot-edit-link' ).hide();
+			component.schedule.container.find( 'a.snapshot-edit-link' ).hide();
 		} );
 
 		api.state( 'saved' ).bind( function( saved ) {
-			if ( saved && ! _.isEmpty( component.schedule.template ) ) {
+			if ( saved && ! _.isEmpty( component.schedule.container ) ) {
 				component.data.publishDate = component.getCurrentTime();
 				component.updateSchedule();
-				component.schedule.template.hide();
+				component.schedule.container.hide();
 				component.data.dirty = false;
 			}
 		} );
 
 		api.state( 'snapshot-exists' ).bind( function( exists ) {
-			if ( exists && ! _.isEmpty( component.schedule.template ) ) {
+			if ( exists && ! _.isEmpty( component.schedule.container ) ) {
 				component.updateSchedule();
 			} else {
-				component.schedule.template.hide();
+				component.schedule.container.hide();
 			}
 		} );
 	};
@@ -381,7 +381,7 @@
 			sliceBegin = 0,
 			sliceEnd = -2;
 
-		if ( _.isEmpty( component.schedule.template ) ) {
+		if ( _.isEmpty( component.schedule.container ) ) {
 			return;
 		}
 
@@ -393,7 +393,7 @@
 		component.data.publishDate = component.data.publishDate.slice( sliceBegin, sliceEnd ) + '00';
 
 		// Update date controls.
-		component.schedule.template.find( 'a.snapshot-edit-link' )
+		component.schedule.container.find( 'a.snapshot-edit-link' )
 			.attr( 'href', component.data.editLink )
 			.show();
 		parsed = component.parseDateTime( component.data.publishDate );
@@ -417,7 +417,7 @@
 	 * @returns {boolean} True if date inputs are valid.
 	 */
 	component.updateCountdown = function updateCountdown() {
-		var countdown = component.schedule.template.find( '.snapshot-scheduled-countdown' ),
+		var countdown = component.schedule.container.find( '.snapshot-scheduled-countdown' ),
 			countdownTemplate = wp.template( 'snapshot-scheduled-countdown' ),
 			dateTimeFromInput = component.getDateFromInputs(),
 			millisecondsDivider = 1000,
@@ -594,7 +594,7 @@
 	 * @returns {Date|null} Date created from inputs or null if invalid date.
 	 */
 	component.getDateFromInputs = function getDateFromInputs() {
-		var template = component.schedule.template,
+		var template = component.schedule.container,
 			monthOffset = 1,
 			date;
 
@@ -726,7 +726,7 @@
 		}
 
 		component.updateCountdown();
-		component.schedule.template.find( '.reset-time' ).toggle( scheduled );
+		component.schedule.container.find( '.reset-time' ).toggle( scheduled );
 
 		return true;
 	};
