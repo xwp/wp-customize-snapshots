@@ -9,7 +9,6 @@
  * License: GPLv2+
  * License URI: http://www.gnu.org/licenses/gpl-2.0.txt
  * Text Domain: customize-snapshots
- * Domain Path: /languages
  *
  * Copyright (c) 2015 XWP (https://xwp.co/)
  *
