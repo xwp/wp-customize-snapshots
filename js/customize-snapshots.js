@@ -813,8 +813,16 @@
 					control.remove();
 				} );
 				$( '.snapshot-conflicts-button' ).hide();
-
-				// Todo: addConflictButton on controls?
+				if ( component.conflict._currentRequest ) {
+					component.conflict._currentRequest.abort();
+					component.conflict._currentRequest = null;
+				}
+				wp.customize.control.each( function( control ) {
+					_.each( control.settings, function( setting ) {
+						setting.unbind( component.onConflictFirstChange );
+					} );
+					component.addConflictButton( control );
+				} );
 			}
 		});
 	};
@@ -834,14 +842,16 @@
 				return;
 			}
 
-			onFirstChange = function() {
+			onFirstChange = component.onConflictFirstChange = function() {
 				_.each( control.settings, function( setting ) {
 					setting.unbind( onFirstChange );
-					buttonTemplate = $( $.trim( component.conflict.icon( {
-						setting_id: setting.id
-					} ) ) );
-					buttonTemplate.hide();
-					buttonTemplate.insertAfter( control.container.find( '.customize-control-title' ) );
+					if ( ! control.container.find( '.snapshot-conflicts-button' ).length ) {
+						buttonTemplate = $( $.trim( component.conflict.icon( {
+							setting_id: setting.id
+						} ) ) );
+						buttonTemplate.hide();
+						buttonTemplate.insertAfter( control.container.find( '.customize-control-title' ) );
+					}
 					component.handleConflictRequest( setting );
 				} );
 			};
