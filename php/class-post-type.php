@@ -716,6 +716,7 @@ class Post_Type {
 	 * Get conflicts settings
 	 *
 	 * @param \WP_Post $post post to compare conflict values.
+	 * @param array    $settings setting to search for optional.
 	 *
 	 * @return array
 	 */
