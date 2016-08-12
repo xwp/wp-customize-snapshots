@@ -1482,10 +1482,14 @@ class Customize_Snapshot_Manager {
 			</div>
 		</script>
 
-		<script type="text/html" id="tmpl-snapshot-conflict">
+		<script type="text/html" id="tmpl-snapshot-conflict-button">
 			<?php $title_text = esc_html__( 'Potential Snapshot conflicts (click to expand)', 'customize-snapshots' ); ?>
 			<# id= data.setting_id.replace( /]/g, '' ).split( '[' ).filter( Boolean ).join( '-' ); #>
-			<a href="#TB_inline?width=600&height=550&inlineId=snapshot-conflicts-{{id}}" class="dashicons dashicons-warning thickbox snapshot-conflicts-thickbox" title="<?php echo $title_text; ?>"></a>
+			<a href="#TB_inline?width=600&height=550&inlineId=snapshot-conflicts-{{id}}" class="dashicons dashicons-warning thickbox snapshot-conflicts-button" title="<?php echo $title_text; ?>"></a>
+		</script>
+
+		<script type="text/html" id="tmpl-snapshot-conflict">
+			<# id= data.setting_id.replace( /]/g, '' ).split( '[' ).filter( Boolean ).join( '-' ); #>
 			<div id="snapshot-conflicts-{{id}}" class="snapshot-conflict-thickbox-content">
 				    <# _.each( data.conflicts, function( setting ) { #>
 						<details>
@@ -1599,8 +1603,31 @@ class Customize_Snapshot_Manager {
 			status_header( 400 );
 			wp_send_json_error( 'required_param_missing' );
 		}
+		$post = $this->snapshot->post();
+		if ( empty( $control ) && $post ) {
+			$content = $this->post_type->get_post_content( $post );
+			$settings = array_keys( $content );
+		} elseif ( ! is_array( $control ) ) {
+			$settings = array( $control );
+		} else {
+			$settings = $control;
+		}
+		if ( empty( $settings ) ) {
+			status_header( 400 );
+			wp_send_json_error( 'no_setting_to_check' );
+		}
 		global $wpdb;
-		$query = $wpdb->prepare( "SELECT ID, post_name, post_status, post_content FROM $wpdb->posts WHERE post_type = %s AND post_status IN ( 'draft', 'pending', 'future' ) AND  post_content LIKE %s", Post_Type::SLUG, '%' . $wpdb->esc_like( $control ) . '%' );
+		$query = $wpdb->prepare( "SELECT ID, post_name, post_status, post_content FROM $wpdb->posts WHERE post_type = %s AND post_status IN ( 'draft', 'pending', 'future' ) ", Post_Type::SLUG );
+		if ( $post instanceof \WP_Post ) {
+			$query .= $wpdb->prepare( 'AND ID != %d ', $post->ID );
+		}
+		$query .= 'AND ( ';
+		$or = array();
+		foreach ( $settings as $setting_id ) {
+			$or[] = $wpdb->prepare( 'post_content LIKE %s', '%' . $wpdb->esc_like( wp_json_encode( $setting_id ) ) . '%' );
+		}
+		$query .= implode( ' OR ', $or );
+		$query .= ' )';
 		// Todo: finalize post_status to check in.
 		// Todo: ignore saved snapshot settings post.
 		$results = $wpdb->get_results( $query, ARRAY_A ); // WPCS: unprepared SQL ok.
@@ -1608,18 +1635,21 @@ class Customize_Snapshot_Manager {
 		if ( ! empty( $results ) ) {
 			foreach ( $results as $item ) {
 				$data = json_decode( $item['post_content'], true );
-				if ( empty( $data[ $control ] ) ) {
+				$snapshot_content_keys = array_keys( $data );
+				$conflicts_keys = array_intersect( $snapshot_content_keys, $settings );
+				if ( empty( $conflicts_keys ) ) {
 					continue;
 				}
-				if ( ! isset( $return[ $control ] ) ) {
-					$return[ $control ] = array();
+				foreach ( $conflicts_keys as $conflicts_key ) {
+					if ( ! isset( $return[ $conflicts_key ] ) ) {
+						$return[ $conflicts_key ] = array();
+					}
+					$return[ $conflicts_key ][] = array(
+						'post_id' => $item['ID'],
+						'value' => $this->post_type->get_printable_setting_value( $data[ $conflicts_key ]['value'] ),
+						'name' => $item['post_name'],
+					);
 				}
-				$return[ $control ][] = array(
-					'post_id' => $item['ID'],
-					'value' => $this->post_type->get_printable_setting_value( $data[ $control ]['value'] ),
-					'name' => $item['post_name'],
-					'editLink' => get_edit_post_link( $item['ID'], 'raw' ),
-				);
 			}
 		}
 		wp_send_json_success( $return );

@@ -161,7 +161,7 @@
 .select2-container {
 	z-index: 500100 !important;
 }
-a.snapshot-conflicts-thickbox {
+a.snapshot-conflicts-button {
 	color: #FFC107;
 	padding: 2px;
 }

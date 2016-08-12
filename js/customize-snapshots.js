@@ -1,4 +1,5 @@
 /* global jQuery, _customizeSnapshots */
+/*eslint max-nested-callbacks: ["error", 4]*/
 
 ( function( api, $ ) {
 	'use strict';
@@ -792,7 +793,13 @@
 		return date.valueOf();
 	};
 
-	component.conflict = {};
+	component.conflict = {
+		warningTemplate: wp.template( 'snapshot-conflict' ),
+		icon: wp.template( 'snapshot-conflict-button' ),
+		refreshBuffer: 250,
+		controls: {},
+		pendingRequest: {}
+	};
 
 	/**
 	 * Handles snapshot conflict UI and events.
@@ -800,64 +807,114 @@
 	 * @return {void}
 	 */
 	component.addConflictCheck = function() {
-		component.conflict.warningTemplate = wp.template( 'snapshot-conflict' );
-		component.conflict.controls = [];
-		api.bind( 'change', function( setting ) { // Todo: confirm event.
-			component.sendControlConflictRequest( setting );
-		} );
+		api.state( 'saved' ).bind(function( saved ) {
+			if ( saved ) {
+				_.each( component.conflict.controls, function( control ) {
+					control.remove();
+				} );
+				$( '.snapshot-conflicts-button' ).hide();
 
-		// Todo: handle removing of conflict icon on publish.
+				// Todo: addConflictButton on controls?
+			}
+		});
 	};
 
 	/**
-	 * Send request for conflict check.
+	 * Add conflict button icon on first change and trigger handleConflictRequest.
 	 *
-	 * @param {object} setting to check conflicts for.
-	 * @return {void} false in case of fail.
+	 * @param {object} control where conflict button will be added.
+	 *
+	 * @return {void}
 	 */
-	component.sendControlConflictRequest = function( setting ) {
-		var request, data, controls, multiple;
-		if ( ! setting.id ) {
-			return;
-		}
-		if ( component.conflict.doingConflictAjax || component.conflict.controls[setting.id] ) {
-			return;
-		}
-		component.conflict.doingConflictAjax = true;
-		data = {
-			control: setting.id,
-			nonce: api.settings.nonce.snapshot,
-			customize_snapshot_uuid: component.data.uuid
-		};
-		request = wp.ajax.post( 'customize_snapshot_conflict_check', data );
-		request.done( function( returnData ) {
-			if ( ! _.isEmpty( returnData ) && returnData[setting.id] ) {
-				component.conflict.controls[setting.id] = $( $.trim( component.conflict.warningTemplate( {
-					setting_id: setting.id,
-					conflicts: returnData[setting.id]
-				} ) ) );
+	component.addConflictButton = function addConflictButton( control ) {
+		control.deferred.embedded.done( function() {
+			var onFirstChange, hasDirty, buttonTemplate;
 
-				controls = setting.findControls();
-				_.each( controls, function( control ) {
-					if ( multiple ) {
-						component.conflict.controls[setting.id]
-							.first()
-							.clone()
-							.insertAfter( control.container.find( '.customize-control-title' ) );
+			if ( ! control.setting ) {
+				return;
+			}
 
-						// Just add the Anchor in case of multiple controls.
-					} else {
-						component.conflict.controls[setting.id].insertAfter( control.container.find( '.customize-control-title' ) );
-					}
-					multiple = true;
+			onFirstChange = function() {
+				_.each( control.settings, function( setting ) {
+					setting.unbind( onFirstChange );
+					buttonTemplate = $( $.trim( component.conflict.icon( {
+						setting_id: setting.id
+					} ) ) );
+					buttonTemplate.hide();
+					buttonTemplate.insertAfter( control.container.find( '.customize-control-title' ) );
+					component.handleConflictRequest( setting );
+				} );
+			};
+
+			hasDirty = _.find( control.settings, function( setting ) {
+				return setting._dirty;
+			} );
+			if ( hasDirty ) {
+				onFirstChange();
+			} else {
+				_.each( control.settings, function( setting ) {
+					setting.bind( onFirstChange );
 				} );
 			}
 		} );
-		request.always( function() {
-			component.conflict.doingConflictAjax = false;
-		} );
+	};
+
+	/**
+	 * Handles the snapshot conflict request
+	 *
+	 * @param {object} setting to check conflicts
+	 *
+	 * @return {void}
+	 */
+	component.handleConflictRequest = function conflictRequest( setting ) {
+		if ( component.conflict._currentRequest ) {
+			component.conflict._currentRequest.abort();
+			component.conflict._currentRequest = null;
+		}
+		if ( component.conflict._debouncedTimeoutId ) {
+			clearTimeout( component.conflict._debouncedTimeoutId );
+			component.conflict._debouncedTimeoutId = null;
+		}
+		component.conflict.pendingRequest[setting.id] = setting.findControls();
+
+		component.conflict._debouncedTimeoutId = setTimeout(
+			function sendConflictRequest() {
+				var data;
+				data = {
+					control: _.keys( component.conflict.pendingRequest ),
+					nonce: api.settings.nonce.snapshot,
+					customize_snapshot_uuid: component.data.uuid
+				};
+				component.conflict._currentRequest = wp.ajax.post( 'customize_snapshot_conflict_check', data );
+
+				component.conflict._currentRequest.done( function( returnData ) {
+					var multiple, controls;
+					if ( ! _.isEmpty( returnData ) ) {
+						_.each( returnData, function( value, key ) {
+							component.conflict.controls[key] = $( $.trim( component.conflict.warningTemplate( {
+								setting_id: key,
+								conflicts: value
+							} ) ) );
+							multiple = false;
+							controls = component.conflict.pendingRequest[key];
+							_.each( controls, function( control ) {
+								if ( ! multiple ) {
+									component.conflict.controls[key].insertAfter( control.container.find( '.customize-control-title' ) );
+								}
+								control.container.find( '.snapshot-conflicts-button' ).show();
+								multiple = true;
+							} );
+						} );
+						component.conflict.pendingRequest = {};
+					}
+				} );
+			},
+			component.conflict.refreshBuffer
+		);
 	};
 
 	component.init();
+	wp.customize.control.bind( 'add', component.addConflictButton );
+	wp.customize.control.each( component.addConflictButton );
 
 } )( wp.customize, jQuery );
