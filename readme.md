@@ -120,7 +120,7 @@ See full commit log: [`0.4.0...0.5.0`](https://github.com/xwp/wp-customize-posts
 
 Issues in milestone: [`milestone:0.5.0`](https://github.com/xwp/wp-customize-snapshots/issues?q=milestone%3A0.5.0)
 
-Props: Weston Ruter (<a href="https://github.com/westonruter" class="user-mention">@westonruter</a>), Utkarsh Patel (<a href="https://github.com/PatelUtkarsh" class="user-mention">@PatelUtkarsh</a>), Derek Herman (<a href="https://github.com/valendesigns" class="user-mention">@valendesigns</a>), Miina Sikk (<a href="https://github.com/miina" class="user-mention">@miina</a>)
+Props: Weston Ruter (<a href="https://github.com/westonruter" class="user-mention">@westonruter</a>), Utkarsh Patel (<a href="https://github.com/PatelUtkarsh" class="user-mention">@PatelUtkarsh</a>), Derek Herman (<a href="https://github.com/valendesigns" class="user-mention">@valendesigns</a>), Miina Sikk (<a href="https://github.com/miina" class="user-mention">@miina</a>), Sayed Taqui (<a href="https://github.com/sayedwp" class="user-mention">@sayedwp</a>)
 
 ### 0.4.0 - 2016-06-11 ###
 Added:
