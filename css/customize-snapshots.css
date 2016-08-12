@@ -161,14 +161,11 @@
 .select2-container {
 	z-index: 500100 !important;
 }
+
 a.snapshot-conflicts-button {
 	color: #FFC107;
 	padding: 2px;
 }
-
-span.customize-control-title {
-	display: inline-block;
-} /* Todo handle control which comes in single line after this change like dropdown */
 
 .snapshot-conflict-thickbox-content {
 	display: none;

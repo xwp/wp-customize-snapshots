@@ -850,7 +850,7 @@
 							setting_id: setting.id
 						} ) ) );
 						buttonTemplate.hide();
-						buttonTemplate.insertAfter( control.container.find( '.customize-control-title' ) );
+						control.container.find( '.customize-control-title' ).append( buttonTemplate );
 					}
 					component.handleConflictRequest( setting );
 				} );
@@ -915,8 +915,8 @@
 								multiple = true;
 							} );
 						} );
-						component.conflict.pendingRequest = {};
 					}
+					component.conflict.pendingRequest = {};
 				} );
 			},
 			component.conflict.refreshBuffer
