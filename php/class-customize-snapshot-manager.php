@@ -1079,6 +1079,10 @@ class Customize_Snapshot_Manager {
 			status_header( 400 );
 			wp_send_json_error( 'bad_status' );
 		}
+		if ( 'future' === $status && ! current_user_can( 'customize_publish' ) ) {
+			status_header( 400 );
+			wp_send_json_error( 'customize_not_allowed' );
+		}
 		$publish_date = isset( $_POST['publish_date'] ) ? $_POST['publish_date'] : '';
 		if ( 'future' === $status ) {
 			$publish_date_obj = new \DateTime( $publish_date );
