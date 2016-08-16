@@ -317,11 +317,11 @@ class Post_Type {
 	public function render_data_metabox( $post ) {
 		$snapshot_content = $this->get_post_content( $post );
 		if ( 'publish' !== get_post_status( $post ) ) {
-			$conflicts_keys = $this->get_conflicts_setting( $post );
+			$conflicts_settings = $this->get_conflicts_setting( $post );
 			add_thickbox();
 			wp_enqueue_style( 'snapshot-admin' );
 		} else {
-			$conflicts_keys = array();
+			$conflicts_settings = array();
 		}
 		echo '<p>';
 		echo esc_html__( 'UUID:', 'customize-snapshots' ) . ' <code>' . esc_html( $post->post_name ) . '</code><br>';
@@ -386,16 +386,16 @@ class Post_Type {
 				}
 				echo '</span>';
 			}
-			if ( isset( $conflicts_keys[ $setting_id ] ) ) {
+			if ( isset( $conflicts_settings[ $setting_id ] ) ) {
 				$setting_id_key = trim( str_replace( array( '][', '[', ']' ), '-', $setting_id ), '-' );
 				$title_text = sprintf( esc_html__( '%s has potential Snapshot conflicts (click to expand)', 'customize-snapshots' ), $setting_id );
 				echo '<a href="#TB_inline?width=600&height=550&inlineId=snapshot-' . esc_attr( $setting_id_key ) . '" class="dashicons dashicons-warning thickbox snapshot-thickbox" title="' . $title_text . '"></a>'; ?>
 				<div id="snapshot-<?php echo esc_attr( $setting_id_key ); ?>" style="display:none;">
-					<?php foreach ( $conflicts_keys[ $setting_id ] as $data ) { ?>
+					<?php foreach ( $conflicts_settings[ $setting_id ] as $data ) { ?>
 						<details>
 							<summary>
 								<code><?php echo $data['name'] ?></code>
-								<a href="<?php echo get_edit_post_link( $data['post_id'], 'raw' ); ?>">
+								<a href="<?php echo esc_url( $data['editLink'] ); ?>">
 									(<?php _e( 'edit', 'customize-snapshots' ); ?>)
 								</a>
 							</summary>
@@ -765,9 +765,10 @@ class Post_Type {
 						$return[ $conflicts_key ] = array();
 					}
 					$return[ $conflicts_key ][] = array(
-						'post_id' => $item['ID'],
+						'ID' => $item['ID'],
 						'value' => $data[ $conflicts_key ]['value'],
 						'name' => $item['post_name'],
+						'editLink' => get_edit_post_link( $item['ID'], 'raw' ),
 					);
 				}
 			}
