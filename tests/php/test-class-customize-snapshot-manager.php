@@ -168,8 +168,6 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		$this->assertInstanceOf( 'CustomizeSnapshots\Post_Type', $manager->post_type );
 		$this->assertInstanceOf( 'CustomizeSnapshots\Customize_Snapshot', $manager->snapshot() );
 		$this->assertEquals( 0, has_action( 'init', array( $manager, 'create_post_type' ) ) );
-		$this->assertEquals( 10, has_action( 'customize_controls_enqueue_scripts', array( $manager, 'enqueue_controls_scripts' ) ) );
-		$this->assertEquals( 10, has_action( 'wp_ajax_customize_update_snapshot', array( $manager, 'handle_update_snapshot_request' ) ) );
 	}
 
 	/**
