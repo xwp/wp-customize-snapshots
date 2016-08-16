@@ -214,6 +214,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		$this->assertEquals( 10, has_action( 'customize_save_after', array( $manager, 'publish_snapshot_with_customize_save_after' ) ) );
 		$this->assertEquals( 10, has_action( 'transition_post_status', array( $manager, 'save_settings_with_publish_snapshot' ) ) );
 		$this->assertEquals( 10, has_action( 'wp_ajax_customize_update_snapshot', array( $manager, 'handle_update_snapshot_request' ) ) );
+		$this->assertEquals( 10, has_action( 'wp_ajax_customize_snapshot_conflict_check', array( $manager, 'handle_conflicts_snapshot_request' ) ) );
 	}
 
 	/**
@@ -1081,6 +1082,8 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		$this->assertContains( 'tmpl-snapshot-schedule', $templates );
 		$this->assertContains( 'tmpl-snapshot-scheduled-countdown', $templates );
 		$this->assertContains( 'tmpl-snapshot-submit', $templates );
+		$this->assertContains( 'tmpl-snapshot-conflict-button', $templates );
+		$this->assertContains( 'tmpl-snapshot-conflict', $templates );
 	}
 
 	/**

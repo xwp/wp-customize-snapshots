@@ -740,4 +740,49 @@ class Test_Post_type extends \WP_UnitTestCase {
 		$this->assertNotEmpty( $output );
 		$this->assertContains( 'misc-pub-post-status', $output );
 	}
+
+	/**
+	 * Test get_conflicts_setting
+	 *
+	 * @covers CustomizeSnapshots\Post_Type::get_conflicts_setting()
+	 */
+	public function test_get_conflicts_setting() {
+		$post_type = new Post_Type( $this->plugin->customize_snapshot_manager );
+
+		$post_id1 = $post_type->save( array(
+			'uuid' => self::UUID,
+			'data' => array( 'foo' => array( 'value' => 'bar' ) ),
+			'status' => 'future',
+		) );
+		$post1 = get_post( $post_id1 );
+
+		$post_id2 = $post_type->save( array(
+			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
+			'data' => array( 'foo' => array( 'value' => 'baz' ) ),
+			'status' => 'future',
+		) );
+		$post2 = get_post( $post_id2 );
+
+		$conflict = $post_type->get_conflicts_setting( get_post( $post_id2 ) );
+		$match_first = array(
+			'ID' => (string) $post_id1,
+			'value' => 'bar',
+			'name' => $post1->post_name,
+			'editLink' => get_edit_post_link( $post_id1, 'raw' ),
+		);
+		$this->assertSame( array( 'foo' => array( $match_first ) ), $conflict );
+		$conflict = $post_type->get_conflicts_setting( null, array( 'foo' ) );
+		$match = array(
+			'foo' => array(
+				$match_first,
+				array(
+					'ID' => (string) $post_id2,
+					'value' => 'baz',
+					'name' => $post2->post_name,
+					'editLink' => get_edit_post_link( $post_id2, 'raw' ),
+				),
+			),
+		);
+		$this->assertSame( $match, $conflict );
+	}
 }
