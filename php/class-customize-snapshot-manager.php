@@ -1522,7 +1522,7 @@ class Customize_Snapshot_Manager {
 							<summary>
 								<code>{{setting.name}}</code>
 								<a href="{{setting.editLink}}">
-									(<?php _e( 'edit', 'customize-snapshots' ); ?>)
+									<?php esc_html_e( '(inspect)', 'customize-snapshots' ); ?>
 								</a>
 							</summary>
 							<!-- Todo handle displaying value in js? Filter? -->
