@@ -56,7 +56,9 @@
 
 			component.extendPreviewerQuery();
 			component.addButtons();
-			component.addSchedule();
+			if ( component.data.currentUserCanPublish ) {
+				component.addSchedule();
+			}
 
 			$( '#snapshot-save' ).on( 'click', function( event ) {
 				var scheduleDate;
@@ -209,34 +211,36 @@
 		snapshotButton.insertAfter( publishButton );
 
 		// Schedule button.
-		scheduleButton = wp.template( 'snapshot-schedule-button' );
-		scheduleButton = $( $.trim( scheduleButton( {} ) ) );
-		scheduleButton.insertAfter( snapshotButton );
+		if ( component.data.currentUserCanPublish ) {
+			scheduleButton = wp.template( 'snapshot-schedule-button' );
+			scheduleButton = $( $.trim( scheduleButton( {} ) ) );
+			scheduleButton.insertAfter( snapshotButton );
 
-		if ( ! component.data.editLink ) {
-			scheduleButton.hide();
-		}
-
-		api.state( 'change', function() {
-			scheduleButton.toggle( api.state( 'snapshot-saved' ).get() && api.state( 'snapshot-exists' ).get() );
-		} );
-
-		api.state( 'snapshot-exists' ).bind( function( exist ) {
-			scheduleButton.toggle( exist );
-		} );
-
-		api.state( 'snapshot-saved' ).bind( function( saved ) {
-			snapshotButton.prop( 'disabled', saved );
-		} );
-
-		api.state( 'saved' ).bind( function( saved ) {
-			if ( saved ) {
-				snapshotButton.prop( 'disabled', true );
+			if ( ! component.data.editLink ) {
+				scheduleButton.hide();
 			}
-		} );
-		api.bind( 'change', function() {
-			snapshotButton.prop( 'disabled', false );
-		} );
+
+			api.state( 'change', function() {
+				scheduleButton.toggle( api.state( 'snapshot-saved' ).get() && api.state( 'snapshot-exists' ).get() );
+			} );
+
+			api.state( 'snapshot-exists' ).bind( function( exist ) {
+				scheduleButton.toggle( exist );
+			} );
+
+			api.state( 'snapshot-saved' ).bind( function( saved ) {
+				snapshotButton.prop( 'disabled', saved );
+			} );
+
+			api.state( 'saved' ).bind( function( saved ) {
+				if ( saved ) {
+					snapshotButton.prop( 'disabled', true );
+				}
+			} );
+			api.bind( 'change', function() {
+				snapshotButton.prop( 'disabled', false );
+			} );
+		}
 
 		api.state( 'snapshot-exists' ).bind( function( exists ) {
 			var buttonText, permsMsg;
@@ -302,6 +306,10 @@
 			scheduleButton = $( '#snapshot-schedule-button' );
 
 		component.scheduleContainerDisplayed = new api.Value();
+
+		if ( ! component.data.currentUserCanPublish ) {
+			return;
+		}
 
 		// Inject the UI.
 		if ( _.isEmpty( component.schedule.container ) ) {
@@ -425,7 +433,7 @@
 			sliceBegin = 0,
 			sliceEnd = -2;
 
-		if ( _.isEmpty( component.schedule.container ) ) {
+		if ( _.isEmpty( component.schedule.container ) || ! component.data.currentUserCanPublish ) {
 			return;
 		}
 
