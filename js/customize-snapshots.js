@@ -842,7 +842,9 @@
 		icon: wp.template( 'snapshot-conflict-button' ),
 		refreshBuffer: 250,
 		controls: {},
-		pendingRequest: {}
+		pendingRequest: {},
+		notificationCode: 'snapshot_conflict',
+		notificationTemplate: wp.template( 'snapshot-notification-template' )
 	};
 
 	/**
@@ -851,12 +853,11 @@
 	 * @return {void}
 	 */
 	component.handleEventForConflicts = function() {
-		api.state( 'saved' ).bind(function( saved ) {
+		api.state( 'saved' ).bind( function( saved ) {
 			if ( saved ) {
 				_.each( component.conflict.controls, function( control ) {
 					control.remove();
 				} );
-				$( '.snapshot-conflicts-button' ).hide();
 				if ( component.conflict._currentRequest ) {
 					component.conflict._currentRequest.abort();
 					component.conflict._currentRequest = null;
@@ -868,10 +869,11 @@
 					_.each( control.settings, function( setting ) {
 						setting.unbind( component.onConflictFirstChange );
 					} );
+					control.notifications.remove( component.conflict.notificationCode );
 					component.addConflictButton( control );
 				} );
 			}
-		});
+		} );
 	};
 
 	/**
@@ -883,7 +885,7 @@
 	 */
 	component.addConflictButton = function addConflictButton( control ) {
 		control.deferred.embedded.done( function() {
-			var onFirstChange, hasDirty, buttonTemplate;
+			var onFirstChange, hasDirty;
 
 			if ( ! control.setting ) {
 				return;
@@ -892,13 +894,6 @@
 			onFirstChange = component.onConflictFirstChange = function() {
 				_.each( control.settings, function( setting ) {
 					setting.unbind( onFirstChange );
-					if ( ! control.container.find( '.snapshot-conflicts-button' ).length ) {
-						buttonTemplate = $( $.trim( component.conflict.icon( {
-							setting_id: setting.id
-						} ) ) );
-						buttonTemplate.hide();
-						control.container.find( '.customize-control-title' ).append( buttonTemplate );
-					}
 					component.handleConflictRequest( setting );
 				} );
 			};
@@ -937,6 +932,9 @@
 		component.conflict._debouncedTimeoutId = setTimeout(
 			function sendConflictRequest() {
 				var data;
+				if ( _.isEmpty( _.keys( component.conflict.pendingRequest ) ) ) {
+					return;
+				}
 				data = {
 					control: _.keys( component.conflict.pendingRequest ),
 					nonce: api.settings.nonce.snapshot,
@@ -945,7 +943,7 @@
 				component.conflict._currentRequest = wp.ajax.post( 'customize_snapshot_conflict_check', data );
 
 				component.conflict._currentRequest.done( function( returnData ) {
-					var multiple, controls;
+					var multiple, controls, buttonTemplate, notification;
 					if ( ! _.isEmpty( returnData ) ) {
 						_.each( returnData, function( value, key ) {
 							component.conflict.controls[key] = $( $.trim( component.conflict.warningTemplate( {
@@ -954,9 +952,18 @@
 							} ) ) );
 							multiple = false;
 							controls = component.conflict.pendingRequest[key];
+							buttonTemplate = $( $.trim( component.conflict.icon( {
+								setting_id: key
+							} ) ) );
 							_.each( controls, function( control ) {
+								control.notificationsTemplate = component.conflict.notificationTemplate;
+								notification = new wp.customize.Notification( component.conflict.notificationCode, {
+									type: 'warning',
+									message: $.trim( buttonTemplate.html() )
+								} );
+								control.notifications.add( component.conflict.notificationCode, notification );
 								if ( ! multiple ) {
-									component.conflict.controls[key].insertAfter( control.container.find( '.customize-control-title' ) );
+									component.conflict.controls[key].insertAfter( control.container.find( '.customize-control-notifications-container' ) );
 								}
 								control.container.find( '.snapshot-conflicts-button' ).show();
 								multiple = true;

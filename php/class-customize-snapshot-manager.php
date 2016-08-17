@@ -677,6 +677,7 @@ class Customize_Snapshot_Manager {
 				'errorTitle' => __( 'Error', 'customize-snapshots' ),
 				'collapseSnapshotScheduling' => __( 'Collapse snapshot scheduling', 'customize-snapshots' ),
 				'expandSnapshotScheduling' => __( 'Expand snapshot scheduling', 'customize-snapshots' ),
+				'conflictNotification' => __( 'Potential Snapshot conflicts', 'customize-snapshots' ),
 			),
 			'snapshotExists' => ( $this->snapshot && $this->snapshot->saved() ),
 		) );
@@ -1509,9 +1510,20 @@ class Customize_Snapshot_Manager {
 		</script>
 
 		<script type="text/html" id="tmpl-snapshot-conflict-button">
-			<?php $title_text = esc_html__( 'Potential Snapshot conflicts (click to expand)', 'customize-snapshots' ); ?>
+			<?php $title_text = __( 'click to expand', 'customize-snapshots' ); ?>
 			<# id= data.setting_id.replace( /]/g, '' ).split( '[' ).filter( Boolean ).join( '-' ); #>
-			<a href="#TB_inline?width=600&height=550&inlineId=snapshot-conflicts-{{id}}" class="dashicons dashicons-warning thickbox snapshot-conflicts-button" title="<?php echo $title_text; ?>"></a>
+			<span>
+				<?php esc_html_e( 'Snapshot conflicts', 'customize-snapshots' ); ?>
+				<a href="#TB_inline?width=600&height=550&inlineId=snapshot-conflicts-{{id}}" class="dashicons dashicons-warning thickbox snapshot-conflicts-button" title="<?php echo esc_attr( $title_text ); ?>"></a>
+			</span>
+		</script>
+
+		<script type="text/html" id="tmpl-snapshot-notification-template">
+			<ul>
+				<# _.each( data.notifications, function( notification ) { #>
+					<li class="notice notice-{{ notification.type || 'info' }} {{ data.altNotice ? 'notice-alt' : '' }}" data-code="{{ notification.code }}" data-type="{{ notification.type }}">{{{ notification.message || notification.code }}}</li>
+				<# } ); #>
+			</ul>
 		</script>
 
 		<script type="text/html" id="tmpl-snapshot-conflict">
@@ -1624,7 +1636,10 @@ class Customize_Snapshot_Manager {
 		}
 
 		if ( isset( $_POST['control'] ) ) { // WPCS: input var ok.
-			$control = $_POST['control']; // Todo validate setting id.
+			$control = array_map( function( $key ) {
+				// Credit: http://stackoverflow.com/a/1176923/1138341.
+				return preg_replace( '/[\x00-\x1F\x80-\xFF]/', '', $key );
+			}, $_POST['control'] );
 		} else {
 			status_header( 400 );
 			wp_send_json_error( 'required_param_missing' );
@@ -1633,8 +1648,6 @@ class Customize_Snapshot_Manager {
 		if ( empty( $control ) && $post ) {
 			$content = $this->post_type->get_post_content( $post );
 			$settings = array_keys( $content );
-		} elseif ( ! is_array( $control ) ) {
-			$settings = array( $control );
 		} else {
 			$settings = $control;
 		}

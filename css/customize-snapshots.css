@@ -204,7 +204,7 @@
 
 a.snapshot-conflicts-button {
 	color: #FFC107;
-	padding: 2px;
+	float: right;
 }
 
 .snapshot-conflict-thickbox-content {
