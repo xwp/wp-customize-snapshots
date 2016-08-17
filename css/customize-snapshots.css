@@ -9,6 +9,11 @@
 #snapshot-schedule-button {
 	display: block;
 }
+#snapshot-schedule-button:hover,
+#snapshot-schedule-button:focus,
+#snapshot-schedule-button:active {
+	color: #191e23;
+}
 
 #snapshot-preview-link:hover,
 #snapshot-preview-link:focus,
@@ -68,15 +73,24 @@
 	position: absolute;
 	width: 100%;
 	box-shadow: 0 5px 0 0 rgba(0,0,0,0.05);
+	padding:10px;
+	box-sizing: border-box;
 }
 
 #snapshot-schedule .snapshot-schedule-title {
 	color: #555;
-	padding: 10px 10px 0;
 }
 
 #snapshot-schedule .snapshot-schedule-title h3 {
 	margin: .2em 2em .75em 0;
+}
+
+#snapshot-schedule .snapshot-schedule-description {
+	margin-bottom: 0.5em;
+}
+#snapshot-schedule .timezone-info {
+	margin-top: 0.5em;
+	font-size: smaller;
 }
 
 #snapshot-schedule a.snapshot-edit-link {
@@ -98,9 +112,8 @@
 #snapshot-schedule a.snapshot-edit-link:focus,
 #snapshot-schedule a.snapshot-edit-link:hover {
 	color: #0073aa;
-	
 }
-			
+
 #snapshot-schedule a.snapshot-edit-link:before {
 	padding: 4px;
 	position: absolute;
@@ -119,10 +132,6 @@
 		0 0 2px 1px rgba(30, 140, 190, .8);
 }
 
-#snapshot-schedule .snapshot-schedule-control {
-	padding: 10px;
-}
-
 #snapshot-schedule .accordion-section-title {
 	padding: 10px;
 }
@@ -133,18 +142,49 @@
 	display: none;
 }
 
-.snapshot-schedule-control select.date-input {
-	height: 28px;
-}
-
-.snapshot-schedule-control select,
-.snapshot-schedule-control input.date-input {
-	min-width: 10%;
-	width: auto;
+.snapshot-schedule-control.date-inputs {
+	display: flex;
+	display: -ms-flexbox;
+	align-items: center;
+	-webkit-box-align: center;
+	-ms-flex-align: center;
+	justify-content: flex-start;
+	-webkit-box-pack: start;
+	-ms-flex-pack: start;
 }
 
 .snapshot-schedule-control input.date-input {
 	-moz-appearance: textfield;
+	-webkit-appearance: textfield;
+	padding-left: 5px; /* 10px padding is not ideal for such small inputs */
+	padding-right: 5px;
+}
+
+.snapshot-schedule-control label {
+	display: inline-block; /* To align items when flex is not supported */
+}
+
+.snapshot-schedule-control .year.date-input {
+	min-width: 4em;
+}
+
+.snapshot-schedule-control input[type="number"]{
+	width:100%;
+}
+
+.snapshot-schedule-control .time-special-char {
+	padding-left:2px;
+	padding-right:2px;
+}
+
+.snapshot-schedule-control select {
+	height: 28px;
+}
+
+@media screen and ( max-width: 782px ) {
+	.snapshot-schedule-control select {
+		height: 40px;
+	}
 }
 
 .snapshot-schedule-control input.date-input::-webkit-outer-spin-button,

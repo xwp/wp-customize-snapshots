@@ -675,6 +675,8 @@ class Customize_Snapshot_Manager {
 				),
 				'errorMsg' => __( 'The snapshot could not be saved.', 'customize-snapshots' ),
 				'errorTitle' => __( 'Error', 'customize-snapshots' ),
+				'collapseSnapshotScheduling' => __( 'Collapse snapshot scheduling', 'customize-snapshots' ),
+				'expandSnapshotScheduling' => __( 'Expand snapshot scheduling', 'customize-snapshots' ),
 			),
 			'snapshotExists' => ( $this->snapshot && $this->snapshot->saved() ),
 		) );
@@ -1372,20 +1374,7 @@ class Customize_Snapshot_Manager {
 	public function render_templates() {
 		$data = $this->get_month_choices();
 
-		$tz_string = get_option( 'timezone_string' );
-		if ( $tz_string ) {
-			$tz = new \DateTimezone( $tz_string );
-			$formatted_gmt_offset = $this->format_gmt_offset( $tz->getOffset( new \DateTime() ) / 3600 );
-			$tz_name = str_replace( '_', ' ', $tz->getName() );
-
-			/* translators: 1: timezone name, 2: gmt offset  */
-			$date_control_description = sprintf( __( 'This site\'s dates are in the %1$s timezone (currently UTC%2$s).', 'customize-snapshots' ), $tz_name, $formatted_gmt_offset );
-		} else {
-			$formatted_gmt_offset = $this->format_gmt_offset( get_option( 'gmt_offset' ) );
-
-			/* translators: %s: gmt offset  */
-			$date_control_description = sprintf( __( 'Dates are in UTC%s.', 'customize-snapshots' ), $formatted_gmt_offset );
-		}
+		$description = __( 'Schedule your changes to publish (go live) at a future date.', 'customize-snapshots' );
 		?>
 		<script type="text/html" id="tmpl-snapshot-preview-link">
 			<a href="#" target="frontend-preview" id="snapshot-preview-link" class="dashicons dashicons-welcome-view-site" title="<?php esc_attr_e( 'View on frontend', 'customize-snapshots' ) ?>">
@@ -1394,47 +1383,84 @@ class Customize_Snapshot_Manager {
 		</script>
 
 		<script type="text/html" id="tmpl-snapshot-schedule-button">
-			<a href="#" id="snapshot-schedule-button" class="dashicons dashicons-calendar-alt" title="<?php esc_attr_e( 'Schedule Snapshot','customize-snapshots' ); ?>"></a>
+			<a href="javascript:void(0)" id="snapshot-schedule-button" role="button" aria-controls="snapshot-schedule" aria-pressed="false" class="dashicons dashicons-calendar-alt"></a>
 		</script>
 
 		<script type="text/html" id="tmpl-snapshot-schedule">
 			<div id="snapshot-schedule">
 				<div class="snapshot-schedule-title">
 					<h3>
-						<?php esc_html_e( 'Schedule Snapshot', 'customize-snapshots' ); ?>
-						<span class="reset-time">(<a href="#" title="<?php esc_attr_e( 'Reset schedule date to original or current date', 'customize-snapshots' ); ?>"><?php esc_html_e( 'Reset', 'customize-snapshots' ) ?></a>)</span>
+						<?php esc_html_e( 'Snapshot Scheduling', 'customize-snapshots' ); ?>
+						<span class="reset-time">(<a href="#" title="<?php esc_attr_e( 'Reset scheduled date to original or current date', 'customize-snapshots' ); ?>"><?php esc_html_e( 'Reset', 'customize-snapshots' ) ?></a>)</span>
 					</h3>
-					<span class="snapshot-schedule-description">
-						<span class="snapshot-scheduled-countdown"></span>
-						<span class="timezone-info"><?php echo esc_html( $date_control_description ); ?></span>
-					</span>
+					<p class="snapshot-schedule-description">
+						<?php echo esc_html( $description ); ?>
+					</p>
 					<?php $edit_snapshot_text = __( 'Edit Snapshot', 'customize-snapshots' ); ?>
 					<a href="{{ data.editLink }}" class="dashicons dashicons-edit snapshot-edit-link" target="_blank" title="<?php echo esc_attr( $edit_snapshot_text ); ?>" aria-expanded="false"><span class="screen-reader-text"><?php echo esc_html( $edit_snapshot_text ); ?></span></a>
 				</div>
-				<div class="snapshot-schedule-control">
-					<#
-					_.defaults( data, <?php echo wp_json_encode( $data ) ?> );
-					data.input_id_post_date = 'input-' + String( Math.random() );
-					data.input_id_post_date_gmt = 'input-' + String( Math.random() );
-					#>
-					<select id="{{ data.input_id }}" class="date-input month" data-date-input="month">
-					<# _.each( data.month_choices, function( choice ) { #>
-						<# if ( _.isObject( choice ) && ! _.isUndefined( choice.text ) && ! _.isUndefined( choice.value ) ) {
-							text = choice.text;
-							value = choice.value;
-						} #>
-						<option value="{{ value }}" 
-							<# if (choice.value == data.month) { #>
-								selected="selected"
-							<# } #>>
-							{{ text }}
-						</option>
-					<# } ); #>
-					</select>
-					<input type="number" size="2" maxlength="2" autocomplete="off" class="date-input day" data-date-input="day" min="1" max="31" value="{{ data.day }}" />,
-					<input type="number" size="4" maxlength="4" autocomplete="off" class="date-input year" data-date-input="year" min="<?php echo esc_attr( date( 'Y' ) ); ?>" value="{{ data.year }}" max="9999" /> @
-					<input type="number" size="2" maxlength="2" autocomplete="off" class="date-input hour" data-date-input="hour" min="0" max="23" value="{{ data.hour }}" />:<?php
-					?><input type="number" size="2" maxlength="2" autocomplete="off" class="date-input minute" data-date-input="minute" min="0" max="59" value="{{ data.minute }}" />
+				<div class="snapshot-schedule-control date-inputs clear">
+					<label>
+						<span class="screen-reader-text"><?php esc_html_e( 'Month', 'customize-snapshots' ); ?></span>
+						<#
+						_.defaults( data, <?php echo wp_json_encode( $data ) ?> );
+						data.input_id_post_date = 'input-' + String( Math.random() );
+						data.input_id_post_date_gmt = 'input-' + String( Math.random() );
+						#>
+						<select id="{{ data.input_id }}" class="date-input month" data-date-input="month">
+						<# _.each( data.month_choices, function( choice ) { #>
+							<# if ( _.isObject( choice ) && ! _.isUndefined( choice.text ) && ! _.isUndefined( choice.value ) ) {
+								text = choice.text;
+								value = choice.value;
+							} #>
+							<option value="{{ value }}"
+								<# if (choice.value == data.month) { #>
+									selected="selected"
+								<# } #>>
+								{{ text }}
+							</option>
+						<# } ); #>
+						</select>
+					</label>
+					<label>
+						<span class="screen-reader-text"><?php esc_html_e( 'Day', 'customize-snapshots' ); ?></span>
+						<input type="number" size="2" maxlength="2" autocomplete="off" class="date-input day" data-date-input="day" min="1" max="31" value="{{ data.day }}" />
+					</label>
+					<span class="time-special-char">,</span>
+					<label>
+						<span class="screen-reader-text"><?php esc_html_e( 'Year', 'customize-snapshots' ); ?></span>
+						<input type="number" size="4" maxlength="4" autocomplete="off" class="date-input year" data-date-input="year" min="<?php echo esc_attr( date( 'Y' ) ); ?>" value="{{ data.year }}" max="9999" />
+					</label>
+					<span class="time-special-char">@</span>
+					<label>
+						<span class="screen-reader-text"><?php esc_html_e( 'Hour', 'customize-snapshots' ); ?></span>
+						<input type="number" size="2" maxlength="2" autocomplete="off" class="date-input hour" data-date-input="hour" min="0" max="23" value="{{ data.hour }}" />
+					</label>
+					<span class="time-special-char">:</span>
+					<label>
+						<span class="screen-reader-text"><?php esc_html_e( 'Minute', 'customize-snapshots' ); ?></span>
+						<input type="number" size="2" maxlength="2" autocomplete="off" class="date-input minute" data-date-input="minute" min="0" max="59" value="{{ data.minute }}" />
+					</label>
+				</div>
+				<div class="timezone-info">
+					<span class="snapshot-scheduled-countdown" role="timer"></span>
+					<?php
+					$tz_string = get_option( 'timezone_string' );
+					if ( $tz_string ) {
+						$tz = new \DateTimezone( $tz_string );
+						$formatted_gmt_offset = $this->format_gmt_offset( $tz->getOffset( new \DateTime() ) / 3600 );
+						$tz_name = str_replace( '_', ' ', $tz->getName() );
+
+						/* translators: 1: timezone name, 2: gmt offset  */
+						$timezone_description = sprintf( __( 'This site\'s dates are in the %1$s timezone (currently UTC%2$s).', 'customize-snapshots' ), $tz_name, $formatted_gmt_offset );
+					} else {
+						$formatted_gmt_offset = $this->format_gmt_offset( get_option( 'gmt_offset' ) );
+
+						/* translators: %s: gmt offset  */
+						$timezone_description = sprintf( __( 'Dates are in UTC%s.', 'customize-snapshots' ), $formatted_gmt_offset );
+					}
+					echo esc_html( $timezone_description );
+					?>
 				</div>
 			</div>
 		</script>

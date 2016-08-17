@@ -38,6 +38,8 @@ class Plugin extends Plugin_Base {
 			$this->version = $matches[1];
 		}
 
+		load_plugin_textdomain( 'customize-snapshots' );
+
 		parent::__construct();
 	}
 
