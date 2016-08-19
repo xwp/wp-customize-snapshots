@@ -1400,7 +1400,7 @@ class Customize_Snapshot_Manager {
 			<a href="javascript:void(0)" id="snapshot-expand-button" role="button" aria-controls="snapshot-schedule" aria-pressed="false" class="dashicons dashicons-edit"></a>
 		</script>
 
-		<script type="text/html" id="tmpl-snapshot-schedule">
+		<script type="text/html" id="tmpl-snapshot-edit-container">
 			<div id="customize-snapshot">
 				<div class="snapshot-schedule-title">
 					<h3>
