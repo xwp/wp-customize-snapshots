@@ -501,7 +501,7 @@ class Post_Type {
 
 		$post_arr = array(
 			'post_name' => $args['uuid'],
-			'post_title' => isset( $args['post_title'] ) ? $args['post_title'] : $args['uuid'],
+			'post_title' => ! empty( $args['post_title'] ) ? $args['post_title'] : $args['uuid'],
 			'post_type' => static::SLUG,
 			'meta_input' => array(
 				'_snapshot_version' => $this->snapshot_manager->plugin->version,

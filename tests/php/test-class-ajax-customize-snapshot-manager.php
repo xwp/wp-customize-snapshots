@@ -277,8 +277,10 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 		if ( $response['success'] ) {
 			$this->assertNotEmpty( $response['data']['edit_link'] );
 			$this->assertNotEmpty( $response['data']['snapshot_publish_date'] );
+			$this->assertNotEmpty( $response['data']['title'] );
 			unset( $response['data']['edit_link'] );
 			unset( $response['data']['snapshot_publish_date'] );
+			unset( $response['data']['title'] );
 		}
 		$this->assertSame( $expected_results, $response );
 	}
@@ -452,6 +454,7 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 				'setting_validities' => array( $setting_key => true ),
 				'edit_link' => get_edit_post_link( $post_id, 'raw' ),
 				'snapshot_publish_date' => $tomorrow,
+				'title' => self::UUID,
 			),
 		);
 		require_once ABSPATH . WPINC . '/class-wp-customize-manager.php';

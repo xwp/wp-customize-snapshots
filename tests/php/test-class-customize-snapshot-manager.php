@@ -1077,7 +1077,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		$this->assertContains( 'tmpl-snapshot-save', $templates );
 		$this->assertContains( 'tmpl-snapshot-dialog-error', $templates );
 		$this->assertContains( 'tmpl-snapshot-preview-link', $templates );
-		$this->assertContains( 'tmpl-snapshot-schedule-button', $templates );
+		$this->assertContains( 'tmpl-snapshot-expand-button', $templates );
 		$this->assertContains( 'tmpl-snapshot-schedule', $templates );
 		$this->assertContains( 'tmpl-snapshot-scheduled-countdown', $templates );
 		$this->assertContains( 'tmpl-snapshot-submit', $templates );
