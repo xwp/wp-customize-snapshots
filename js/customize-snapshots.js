@@ -227,20 +227,20 @@
 			api.state( 'snapshot-exists' ).bind( function( exist ) {
 				scheduleButton.toggle( exist );
 			} );
-
-			api.state( 'snapshot-saved' ).bind( function( saved ) {
-				snapshotButton.prop( 'disabled', saved );
-			} );
-
-			api.state( 'saved' ).bind( function( saved ) {
-				if ( saved ) {
-					snapshotButton.prop( 'disabled', true );
-				}
-			} );
-			api.bind( 'change', function() {
-				snapshotButton.prop( 'disabled', false );
-			} );
 		}
+
+		api.state( 'snapshot-saved' ).bind( function( saved ) {
+			snapshotButton.prop( 'disabled', saved );
+		} );
+
+		api.state( 'saved' ).bind( function( saved ) {
+			if ( saved ) {
+				snapshotButton.prop( 'disabled', true );
+			}
+		} );
+		api.bind( 'change', function() {
+			snapshotButton.prop( 'disabled', false );
+		} );
 
 		api.state( 'snapshot-exists' ).bind( function( exists ) {
 			var buttonText, permsMsg;
@@ -285,7 +285,7 @@
 			submitButton = $( $.trim( submitButton( {
 				buttonText: component.data.i18n.submit
 			} ) ) );
-			submitButton.prop( 'disabled', true );
+			submitButton.prop( 'disabled', ! api.state( 'snapshot-exists' ).get() );
 			submitButton.insertBefore( snapshotButton );
 			api.state( 'snapshot-submitted' ).bind( function( submitted ) {
 				submitButton.prop( 'disabled', submitted );
