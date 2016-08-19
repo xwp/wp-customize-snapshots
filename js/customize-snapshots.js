@@ -309,7 +309,7 @@
 	 *
 	 * @returns {void}
 	 */
-	component.editSnapshotUI = function addSchedule() {
+	component.editSnapshotUI = function editSnapshotUI() {
 		var sliceBegin = 0,
 			sliceEnd = -2, updateUI;
 
@@ -440,7 +440,7 @@
 	 *
 	 * @return {void}
 	 */
-	component.updateSnapshotEditControls = function updateSchedule() {
+	component.updateSnapshotEditControls = function updateSnapshotEditControls() {
 		var parsed,
 			sliceBegin = 0,
 			sliceEnd = -2;
