@@ -323,4 +323,25 @@ class Test_Customize_Snapshot extends \WP_UnitTestCase {
 			'data' => array( 'foo' => array( 'value' => 'bar' ) ),
 		) );
 	}
+
+	/**
+	 * Test that the snapshot object is passed as the second filter param.
+	 *
+	 * @see Customize_Snapshot::save()
+	 */
+	function test_filter_customize_snapshot_save() {
+		$manager = new Customize_Snapshot_Manager( $this->plugin );
+		$manager->init();
+
+		$snapshot = new Customize_Snapshot( $manager, self::UUID );
+
+		add_filter ( 'customize_snapshot_save', function( $data, $test_snapshot ) use ( $snapshot ) {
+			$this->assertEquals( $test_snapshot, $snapshot );
+		}, 10, 2 );
+
+		$snapshot->save( array(
+			'uuid' => self::UUID,
+			'data' => array( 'foo' => array( 'value' => 'bar' ) ),
+		) );
+	}
 }
