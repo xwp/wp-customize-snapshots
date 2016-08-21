@@ -335,7 +335,7 @@ class Test_Customize_Snapshot extends \WP_UnitTestCase {
 
 		$snapshot = new Customize_Snapshot( $manager, self::UUID );
 
-		add_filter ( 'customize_snapshot_save', function( $data, $test_snapshot ) use ( $snapshot ) {
+		add_filter( 'customize_snapshot_save', function( $data, $test_snapshot ) use ( $snapshot ) {
 			$this->assertEquals( $test_snapshot, $snapshot );
 		}, 10, 2 );
 
