@@ -1015,6 +1015,11 @@ class Customize_Snapshot_Manager {
 			);
 			wp_update_post( wp_slash( $update_setting_args ) );
 			update_post_meta( $post->ID, 'snapshot_error_on_publish', $publish_error_count );
+
+			add_filter( 'redirect_post_location', function( $location ) {
+				$location = add_query_arg( 'snapshot_error_on_publish', '1', $location );
+				return $location;
+			} );
 			return false;
 		}
 

@@ -427,10 +427,11 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 		unset( $GLOBALS['wp_customize'] );
 		remove_all_actions( 'wp_ajax_' . Customize_Snapshot_Manager::AJAX_ACTION );
 
+		$post_type_obj = get_post_type_object( Post_Type::SLUG );
 		$setting_key = 'anyonecanedit';
 		$tomorrow = date( 'Y-m-d H:i:s', time() + 86400 );
 		$this->set_current_user( 'administrator' );
-		$this->assertTrue( current_user_can( 'publish_customize_snapshots' ) );
+		$this->assertTrue( current_user_can( $post_type_obj->cap->publish_posts ) );
 		$this->set_input_vars( array(
 			'action' => Customize_Snapshot_Manager::AJAX_ACTION,
 			'nonce' => wp_create_nonce( Customize_Snapshot_Manager::AJAX_ACTION ),
@@ -474,6 +475,7 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 		unset( $GLOBALS['wp_customize'] );
 		remove_all_actions( 'wp_ajax_' . Customize_Snapshot_Manager::AJAX_ACTION );
 
+		$post_type_obj = get_post_type_object( Post_Type::SLUG );
 		$setting_key = 'anyonecanedit';
 		add_filter( 'user_has_cap', function( $allcaps, $caps, $args ) {
 			$allcaps['customize'] = true;
@@ -484,7 +486,7 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 		}, 10, 3 );
 		$tomorrow = date( 'Y-m-d H:i:s', time() + 86400 );
 		$this->set_current_user( 'contributor' );
-		$this->assertFalse( current_user_can( 'publish_customize_snapshots' ) );
+		$this->assertFalse( current_user_can( $post_type_obj->cap->publish_posts ) );
 		$post_vars = array(
 			'action' => Customize_Snapshot_Manager::AJAX_ACTION,
 			'nonce' => wp_create_nonce( Customize_Snapshot_Manager::AJAX_ACTION ),
