@@ -888,7 +888,21 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::prepare_errors_for_response()
 	 */
 	public function test_prepare_errors_for_response() {
-		$this->markTestIncomplete();
+		$error = new \WP_Error();
+		$error->add( 'foo', 'Foo message', array( 'foo_data' ) );
+		$error->add( 'bar', 'Bar message', array( 'bar_data' ) );
+		$data = $this->manager->prepare_errors_for_response( $error );
+		$validate = array(
+			'foo' => array(
+				'message' => 'Foo message',
+				'data' => array( 'foo_data' ),
+			),
+			'bar' => array(
+				'message' => 'Bar message',
+				'data' => array( 'bar_data' ),
+			),
+		);
+		$this->assertSame( $validate, $data );
 	}
 
 	/**
@@ -897,7 +911,9 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::generate_uuid()
 	 */
 	public function test_generate_uuid() {
-		$this->markTestIncomplete();
+		$uuid = Customize_Snapshot_Manager::generate_uuid();
+		$this->assertTrue( 0 !== preg_match( '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/', $uuid ) );
+		// Above line's logic is copied from : CustomizeSnapshots\Customize_Snapshot_Manager::is_valid_uuid().
 	}
 
 	/**
@@ -906,7 +922,9 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::is_valid_uuid()
 	 */
 	public function test_is_valid_uuid() {
-		$this->markTestIncomplete();
+		$this->assertTrue( Customize_Snapshot_Manager::is_valid_uuid( self::UUID ) );
+		$this->assertFalse( Customize_Snapshot_Manager::is_valid_uuid( '65aee1ffd-af47d-47dfd-9e14d-9c69b3017cd3d' ) ); // Every Last char d is extra and should not be acceptable.
+		$this->assertFalse( Customize_Snapshot_Manager::is_valid_uuid( '65aee1fg-af47-47dg-9e1g-9c69b3017cdg' ) ); // Every last char g should not be acceptable.
 	}
 
 	/**
