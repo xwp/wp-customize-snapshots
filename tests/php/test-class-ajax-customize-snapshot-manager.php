@@ -430,6 +430,7 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 		$setting_key = 'anyonecanedit';
 		$tomorrow = date( 'Y-m-d H:i:s', time() + 86400 );
 		$this->set_current_user( 'administrator' );
+		$this->assertTrue( current_user_can( 'publish_customize_snapshots' ) );
 		$this->set_input_vars( array(
 			'action' => Customize_Snapshot_Manager::AJAX_ACTION,
 			'nonce' => wp_create_nonce( Customize_Snapshot_Manager::AJAX_ACTION ),
@@ -483,12 +484,12 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 		}, 10, 3 );
 		$tomorrow = date( 'Y-m-d H:i:s', time() + 86400 );
 		$this->set_current_user( 'contributor' );
+		$this->assertFalse( current_user_can( 'publish_customize_snapshots' ) );
 		$post_vars = array(
 			'action' => Customize_Snapshot_Manager::AJAX_ACTION,
 			'nonce' => wp_create_nonce( Customize_Snapshot_Manager::AJAX_ACTION ),
 			'customize_snapshot_uuid' => self::UUID,
 			'customized' => wp_json_encode( array( $setting_key => 'Hello' ) ),
-			'status' => 'draft',
 			'publish_date' => $tomorrow, // Tomorrow.
 		);
 
@@ -497,7 +498,7 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 		$this->add_setting();
 
 		// Draft pass.
-		$post_vars['status'] = 'pending';
+		$post_vars['status'] = 'draft';
 		$this->set_input_vars( $post_vars );
 		$this->make_ajax_call( Customize_Snapshot_Manager::AJAX_ACTION );
 		$response = json_decode( $this->_last_response, true );
