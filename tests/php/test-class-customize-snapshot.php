@@ -330,7 +330,7 @@ class Test_Customize_Snapshot extends \WP_UnitTestCase {
 	 *
 	 * @var Customize_Snapshot
 	 */
-	protected $filtered_snapshot;
+	public $filtered_snapshot;
 
 	/**
 	 * Test that the snapshot object is passed as the second filter param.
