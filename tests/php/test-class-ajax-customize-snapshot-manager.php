@@ -421,7 +421,7 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 	}
 
 	/**
-	 * Testing schedule Snapshot
+	 * Test schedule Snapshot
 	 */
 	function test_ajax_update_snapshot_schedule() {
 		unset( $GLOBALS['wp_customize'] );
@@ -462,5 +462,53 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 		$response = json_decode( $this->_last_response, true );
 		$this->assertSame( $expected_results, $response );
 		$this->assertEquals( 'future', get_post_status( $post_id ) );
+	}
+
+	/**
+	 * Test ajax handle conflict snapshots request
+	 *
+	 * @see Customize_Snapshot_Manager::handle_conflicts_snapshot_request()
+	 */
+	function test_ajax_handle_conflicts_snapshot_request() {
+		unset( $GLOBALS['wp_customize'] );
+		remove_all_actions( 'wp_ajax_customize_snapshot_conflict_check' );
+		$this->set_current_user( 'administrator' );
+		$uuid = Customize_Snapshot_Manager::generate_uuid();
+		$this->set_input_vars( array(
+			'action' => 'customize_snapshot_conflict_check',
+			'nonce' => wp_create_nonce( Customize_Snapshot_Manager::AJAX_ACTION ),
+			'customize_snapshot_uuid' => $uuid,
+			'control' => array( 'foo' ),
+		) );
+
+		$this->plugin = new Plugin();
+		$this->plugin->init();
+		$post_type = new Post_Type( $this->plugin->customize_snapshot_manager );
+		$post_type->save( array(
+			'uuid' => $uuid,
+			'data' => array( 'foo' => array( 'value' => 'bar' ) ),
+			'status' => 'future',
+		) );
+		$post_id = $post_type->save( array(
+			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
+			'data' => array( 'foo' => array( 'value' => 'baz' ) ),
+			'status' => 'future',
+		) );
+		$post = get_post( $post_id );
+		$this->make_ajax_call( 'customize_snapshot_conflict_check' );
+		$response = json_decode( $this->_last_response, true );
+		$this->assertSame( array(
+			'success' => true,
+			'data' => array(
+				'foo' => array(
+					array(
+						'ID' => (string) $post->ID,
+						'value' => $post_type->get_printable_setting_value( 'baz' ),
+						'name' => $post->post_title,
+						'editLink' => get_edit_post_link( $post, 'raw' ),
+					),
+				),
+			),
+		), $response );
 	}
 }
