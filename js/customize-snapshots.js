@@ -19,7 +19,7 @@
 		editLink: '',
 		publishDate: '',
 		postStatus: '',
-		currentUserCanPublish: '',
+		currentUserCanPublish: true,
 		initialServerDate: '',
 		initialServerTimestamp: 0,
 		initialClientTimestamp: 0,
