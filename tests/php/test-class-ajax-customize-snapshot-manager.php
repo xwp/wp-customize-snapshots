@@ -478,7 +478,7 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 			'action' => 'customize_snapshot_conflict_check',
 			'nonce' => wp_create_nonce( Customize_Snapshot_Manager::AJAX_ACTION ),
 			'customize_snapshot_uuid' => $uuid,
-			'control' => array( 'foo' ),
+			'setting_ids' => array( 'foo' ),
 		) );
 
 		$this->plugin = new Plugin();

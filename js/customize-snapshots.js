@@ -931,12 +931,13 @@
 
 		component.conflict._debouncedTimeoutId = setTimeout(
 			function sendConflictRequest() {
-				var data;
-				if ( _.isEmpty( _.keys( component.conflict.pendingRequest ) ) ) {
+				var data, settingIds;
+				settingIds = _.keys( component.conflict.pendingRequest );
+				if ( _.isEmpty( settingIds ) ) {
 					return;
 				}
 				data = {
-					control: _.keys( component.conflict.pendingRequest ),
+					setting_ids: settingIds,
 					nonce: api.settings.nonce.snapshot,
 					customize_snapshot_uuid: component.data.uuid
 				};

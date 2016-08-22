@@ -1635,21 +1635,21 @@ class Customize_Snapshot_Manager {
 			wp_send_json_error( 'invalid_customize_snapshot_uuid' );
 		}
 
-		if ( isset( $_POST['control'] ) ) { // WPCS: input var ok.
-			$control = array_map( function( $key ) {
+		if ( isset( $_POST['setting_ids'] ) ) { // WPCS: input var ok.
+			$setting_ids = array_map( function( $key ) {
 				// Credit: http://stackoverflow.com/a/1176923/1138341.
 				return preg_replace( '/[\x00-\x1F\x80-\xFF]/', '', $key );
-			}, $_POST['control'] );
+			}, $_POST['setting_ids'] );
 		} else {
 			status_header( 400 );
 			wp_send_json_error( 'required_param_missing' );
 		}
 		$post = $this->snapshot->post();
-		if ( empty( $control ) && $post ) {
+		if ( empty( $setting_ids ) && $post ) {
 			$content = $this->post_type->get_post_content( $post );
 			$settings = array_keys( $content );
 		} else {
-			$settings = $control;
+			$settings = $setting_ids;
 		}
 		if ( empty( $settings ) ) {
 			status_header( 400 );
