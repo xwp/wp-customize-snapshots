@@ -585,6 +585,9 @@ class Post_Type {
 				$allcaps[ $granted_cap ] = current_user_can( 'customize' );
 			}
 
+			if ( ! current_user_can( 'customize_publish' ) || empty( $allcaps['customize_publish'] ) ) {
+				$allcaps[ $post_type_obj->cap->publish_posts ] = false;
+			}
 			if ( ! current_user_can( 'edit_others_posts' ) ) {
 				$allcaps[ $post_type_obj->cap->edit_others_posts ] = false;
 			}
