@@ -2,7 +2,7 @@
 Contributors: westonruter, valendesigns, xwp, newscorpau
 Requires at least: 4.5.3
 Tested up to: 4.6
-Stable tag: 0.5.0
+Stable tag: 0.5.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 Tags: customizer, customize, snapshots
@@ -63,6 +63,15 @@ if ( ! $bypass_object_cache ) {
 7. Changes to snapshots are captured in revisions.
 
 == Changelog ==
+
+* Fixed: Restrict user from scheduling a snapshot unless they can `customize_publish`. See [#74](https://github.com/xwp/wp-customize-snapshots/pull/74).
+* Added: Pass `Customize_Snapshot` instance as second param to `customize_snapshot_save` filter. See [#77](https://github.com/xwp/wp-customize-snapshots/pull/77).
+
+See full commit log: [`0.5.0...0.5.1`](https://github.com/xwp/wp-customize-posts/compare/0.5.0...0.5.1)
+
+Issues in milestone: [`milestone:0.5.1`](https://github.com/xwp/wp-customize-snapshots/issues?q=milestone%3A0.5.1)
+
+Props: Utkarsh Patel (<a href="https://github.com/PatelUtkarsh" class="user-mention">@PatelUtkarsh</a>), Luke Gedeon (<a href="https://github.com/lgedeon" class="user-mention">@lgedeon</a>), Weston Ruter (<a href="https://github.com/westonruter" class="user-mention">@westonruter</a>)
 
 = 0.5.0 - 2016-08-11 =
 
