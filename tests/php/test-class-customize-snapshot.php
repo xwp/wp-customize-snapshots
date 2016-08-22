@@ -114,6 +114,7 @@ class Test_Customize_Snapshot extends \WP_UnitTestCase {
 		$this->wp_customize = null;
 		unset( $GLOBALS['wp_customize'] );
 		unset( $GLOBALS['wp_scripts'] );
+		$this->filtered_snapshot = null;
 		parent::tearDown();
 	}
 
@@ -325,23 +326,35 @@ class Test_Customize_Snapshot extends \WP_UnitTestCase {
 	}
 
 	/**
+	 * Snapshot object passed in customize_snapshot_save filter.
+	 *
+	 * @var Customize_Snapshot
+	 */
+	protected $filtered_snapshot;
+
+	/**
 	 * Test that the snapshot object is passed as the second filter param.
 	 *
 	 * @see Customize_Snapshot::save()
 	 */
 	function test_filter_customize_snapshot_save() {
 		$manager = new Customize_Snapshot_Manager( $this->plugin );
+		$manager->ensure_customize_manager();
 		$manager->init();
 
 		$snapshot = new Customize_Snapshot( $manager, self::UUID );
 
-		add_filter( 'customize_snapshot_save', function( $data, $test_snapshot ) use ( $snapshot ) {
-			$this->assertEquals( $test_snapshot, $snapshot );
+		$that = $this; // For PHP 5.3.
+		add_filter( 'customize_snapshot_save', function( $data, $test_snapshot ) use ( $that ) {
+			$that->filtered_snapshot = $test_snapshot;
+			return $data;
 		}, 10, 2 );
 
 		$snapshot->save( array(
 			'uuid' => self::UUID,
 			'data' => array( 'foo' => array( 'value' => 'bar' ) ),
 		) );
+
+		$this->assertEquals( $snapshot, $this->filtered_snapshot );
 	}
 }
