@@ -708,12 +708,13 @@ class Customize_Snapshot_Manager {
 		wp_enqueue_script( $handle );
 		wp_enqueue_style( $handle );
 
+		$rest_api_path = $this->get_queried_object_rest_api_path();
 		$exports = array(
 			'home_url' => wp_parse_url( home_url( '/' ) ),
 			'rest_api_url' => wp_parse_url( rest_url( '/' ) ),
 			'admin_ajax_url' => wp_parse_url( admin_url( 'admin-ajax.php' ) ),
 			'initial_dirty_settings' => array_keys( $wp_customize->unsanitized_post_values() ),
-			'queried_object_rest_api_url' => rest_url( $this->get_queried_object_rest_api_path() ),
+			'queried_object_rest_api_url' => $rest_api_path ? rest_url( $rest_api_path ) : null,
 		);
 		wp_add_inline_script(
 			$handle,
