@@ -92,7 +92,7 @@ if ( ! $bypass_object_cache ) {
 * Fixed: Restrict user from publishing or scheduling a snapshot unless they can `customize_publish`. See [#74](https://github.com/xwp/wp-customize-snapshots/pull/74).
 * Fixed: Fix logic for when to show the snapshot publish error admin notice and show underlying error codes when there are validity errors. See [#79](https://github.com/xwp/wp-customize-snapshots/pull/79).
 
-See full commit log: [`0.5.0...0.5.1`](https://github.com/xwp/wp-customize-posts/compare/0.5.0...0.5.1)
+See full commit log: [`0.5.0...0.5.1`](https://github.com/xwp/wp-customize-snapshots/compare/0.5.0...0.5.1)
 
 Issues in milestone: [`milestone:0.5.1`](https://github.com/xwp/wp-customize-snapshots/issues?q=milestone%3A0.5.1)
 
@@ -127,7 +127,7 @@ Removed:
 
 * The <code>scope</code> parameter has been removed, as has storing non-<code>dirty</code> settings in a snapshot. (<a href="https://github.com/xwp/wp-customize-snapshots/pull/59" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/59" data-id="164943805"   >#59</a>)
 
-See full commit log: [`0.4.0...0.5.0`](https://github.com/xwp/wp-customize-posts/compare/0.4.0...0.5.0)
+See full commit log: [`0.4.0...0.5.0`](https://github.com/xwp/wp-customize-snapshots/compare/0.4.0...0.5.0)
 
 Issues in milestone: [`milestone:0.5.0`](https://github.com/xwp/wp-customize-snapshots/issues?q=milestone%3A0.5.0)
 
