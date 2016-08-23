@@ -26,7 +26,8 @@ var CustomizeSnapshotsPreview = (function( api, $ ) {
 				host: '',
 				path: ''
 			},
-			initial_dirty_settings: []
+			initial_dirty_settings: [],
+			queried_object_rest_api_url: null
 		}
 	};
 
@@ -42,6 +43,7 @@ var CustomizeSnapshotsPreview = (function( api, $ ) {
 
 		component.injectSnapshotIntoAjaxRequests();
 		component.handleFormSubmissions();
+		component.setupSendingQueriedObjectRestApiUrl();
 	};
 
 	/**
@@ -195,6 +197,19 @@ var CustomizeSnapshotsPreview = (function( api, $ ) {
 			// Now preventDefault as is done on the normal submit.preview handler in customize-preview.js.
 			event.preventDefault();
 		});
+	};
+
+	/**
+	 * Setup the sending of the queried object REST API URL to the pane.
+	 *
+	 * @returns {void}
+	 */
+	component.setupSendingQueriedObjectRestApiUrl = function setupSendingQueriedObjectRestApiUrl() {
+		api.bind( 'preview-ready', function onPreviewReady() {
+			api.preview.bind( 'active', function onPaneActive() {
+				api.preview.send( 'queried-object-rest-api-url', component.data.queried_object_rest_api_url );
+			} );
+		} );
 	};
 
 	return component;

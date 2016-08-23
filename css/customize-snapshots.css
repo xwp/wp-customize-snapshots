@@ -201,3 +201,54 @@
 .select2-container {
 	z-index: 500100 !important;
 }
+
+/*
+ * REST API Previewing.
+ */
+#rest-api-preview {
+	position:absolute;
+	height: 0;
+	left: 0;
+	right: 0;
+	bottom: -46px;
+	background: #eee;
+	border-top: 1px solid #ddd;
+	line-height: 45px;
+	padding-left: 10px;
+
+	-webkit-transition-property: top, height, bottom;
+	transition-property: top, height, bottom;
+	-webkit-transition-duration: 0.2s;
+	transition-duration: 0.2s;
+}
+body.rest-api-preview-enabled #rest-api-preview {
+	height: 45px;
+	bottom: 0;
+}
+
+body.rest-api-preview-enabled #customize-preview {
+	bottom: 46px;
+}
+
+#rest-api-preview .rest-api-response {
+	display: none;
+}
+
+#rest-api-preview .rest-api-url-label,
+#rest-api-preview .rest-api-url-link,
+#rest-api-preview .rest-api-log-response {
+	vertical-align: middle;
+}
+#rest-api-preview .rest-api-log-response code {
+	background: transparent;
+}
+
+body.rest-api-preview-enabled.rest-api-preview-expanded #rest-api-preview {
+	top: 0;
+	bottom: 0;
+	height: auto;
+}
+body.rest-api-preview-enabled.rest-api-preview-expanded #rest-api-preview .rest-api-response {
+	display: block;
+	overflow: auto;
+}
