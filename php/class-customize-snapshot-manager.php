@@ -1532,12 +1532,13 @@ class Customize_Snapshot_Manager {
 				    <# _.each( data.conflicts, function( setting ) { #>
 						<details>
 							<summary>
-								<code>{{setting.name}}</code>
-								<a href="{{setting.editLink}}">
-									<?php esc_html_e( '(inspect)', 'customize-snapshots' ); ?>
-								</a>
+								<code>{{setting.uuid}}
+									<# if ( ! _.isEmpty( setting.name ) ) { #>
+										- {{setting.name}}
+									<# } #>
+								</code>
+								<a href="{{setting.editLink}}" class="dashicons dashicons-external"></a>
 							</summary>
-							<!-- Todo handle displaying value in js? Filter? -->
 							{{{setting.value}}}
 						</details>
 				    <# }); #>

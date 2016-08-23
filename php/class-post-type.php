@@ -737,7 +737,7 @@ class Post_Type {
 			}
 		}
 		$return = array();
-		$query = $wpdb->prepare( "SELECT ID, post_title, post_status, post_content FROM $wpdb->posts WHERE post_type = %s AND post_status IN ( 'draft', 'pending', 'future' ) ", static::SLUG );
+		$query = $wpdb->prepare( "SELECT ID, post_name, post_title, post_status, post_content FROM $wpdb->posts WHERE post_type = %s AND post_status IN ( 'draft', 'pending', 'future' ) ", static::SLUG );
 		// Todo: finalize post_status to check in.
 		if ( $post instanceof \WP_Post ) {
 			$query .= $wpdb->prepare( 'AND ID != %d ', $post->ID );
@@ -767,7 +767,8 @@ class Post_Type {
 					$return[ $conflicts_key ][] = array(
 						'ID' => $item['ID'],
 						'value' => $data[ $conflicts_key ]['value'],
-						'name' => $item['post_title'],
+						'name' => ( $item['post_title'] === $item['post_name'] ) ? '' : $item['post_title'],
+						'uuid' => $item['post_name'],
 						'editLink' => get_edit_post_link( $item['ID'], 'raw' ),
 					);
 				}

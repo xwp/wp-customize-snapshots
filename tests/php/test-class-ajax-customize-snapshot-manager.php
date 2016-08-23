@@ -504,7 +504,8 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 					array(
 						'ID' => (string) $post->ID,
 						'value' => $post_type->get_printable_setting_value( 'baz' ),
-						'name' => $post->post_title,
+						'name' => $post->post_title === $post->post_name ? '' : $post->post_title,
+						'uuid' => $post->post_name,
 						'editLink' => get_edit_post_link( $post, 'raw' ),
 					),
 				),

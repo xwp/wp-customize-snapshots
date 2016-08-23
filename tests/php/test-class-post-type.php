@@ -767,7 +767,8 @@ class Test_Post_type extends \WP_UnitTestCase {
 		$match_first = array(
 			'ID' => (string) $post_id1,
 			'value' => 'bar',
-			'name' => $post1->post_name,
+			'name' => $post1->post_name === $post1->post_title ? '' : $post1->post_title,
+			'uuid' => $post1->post_name,
 			'editLink' => get_edit_post_link( $post_id1, 'raw' ),
 		);
 		$this->assertSame( array( 'foo' => array( $match_first ) ), $conflict );
@@ -778,7 +779,8 @@ class Test_Post_type extends \WP_UnitTestCase {
 				array(
 					'ID' => (string) $post_id2,
 					'value' => 'baz',
-					'name' => $post2->post_name,
+					'name' => $post2->post_name === $post2->post_title ? '' : $post2->post_title,
+					'uuid' => $post2->post_name,
 					'editLink' => get_edit_post_link( $post_id2, 'raw' ),
 				),
 			),
