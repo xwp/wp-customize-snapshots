@@ -629,10 +629,7 @@ class Post_Type {
 		if ( ! $current_screen || 'customize_snapshot' !== $current_screen->id || 'post' !== $current_screen->base ) {
 			return;
 		}
-		if ( ! isset( $_REQUEST['message'] ) || 8 !== intval( $_REQUEST['message'] ) ) {
-			return;
-		}
-		if ( 'pending' !== get_post_status() ) {
+		if ( ! isset( $_REQUEST['snapshot_error_on_publish'] ) ) {
 			return;
 		}
 		?>
