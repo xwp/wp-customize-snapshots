@@ -585,6 +585,9 @@ class Post_Type {
 				$allcaps[ $granted_cap ] = current_user_can( 'customize' );
 			}
 
+			if ( ! current_user_can( 'customize_publish' ) || empty( $allcaps['customize_publish'] ) ) {
+				$allcaps[ $post_type_obj->cap->publish_posts ] = false;
+			}
 			if ( ! current_user_can( 'edit_others_posts' ) ) {
 				$allcaps[ $post_type_obj->cap->edit_others_posts ] = false;
 			}
@@ -626,10 +629,7 @@ class Post_Type {
 		if ( ! $current_screen || 'customize_snapshot' !== $current_screen->id || 'post' !== $current_screen->base ) {
 			return;
 		}
-		if ( ! isset( $_REQUEST['message'] ) || 8 !== intval( $_REQUEST['message'] ) ) {
-			return;
-		}
-		if ( 'pending' !== get_post_status() ) {
+		if ( ! isset( $_REQUEST['snapshot_error_on_publish'] ) ) {
 			return;
 		}
 		?>

@@ -8,7 +8,7 @@ Allow Customizer states to be drafted, and previewed with a private URL.
 **Tags:** [customizer](https://wordpress.org/plugins/tags/customizer), [customize](https://wordpress.org/plugins/tags/customize), [snapshots](https://wordpress.org/plugins/tags/snapshots)  
 **Requires at least:** 4.5.3  
 **Tested up to:** 4.6  
-**Stable tag:** 0.5.0  
+**Stable tag:** 0.5.1  
 **License:** [GPLv2 or later](http://www.gnu.org/licenses/gpl-2.0.html)  
 
 [![Build Status](https://travis-ci.org/xwp/wp-customize-snapshots.svg?branch=master)](https://travis-ci.org/xwp/wp-customize-snapshots) [![Coverage Status](https://coveralls.io/repos/xwp/wp-customize-snapshots/badge.svg?branch=master)](https://coveralls.io/github/xwp/wp-customize-snapshots) [![Built with Grunt](https://cdn.gruntjs.com/builtwith.svg)](http://gruntjs.com) [![devDependency Status](https://david-dm.org/xwp/wp-customize-snapshots/dev-status.svg)](https://david-dm.org/xwp/wp-customize-snapshots#info=devDependencies) 
@@ -87,6 +87,15 @@ if ( ! $bypass_object_cache ) {
 
 ## Changelog ##
 
+* Added: Pass `Customize_Snapshot` instance as second param to `customize_snapshot_save` filter. See [#77](https://github.com/xwp/wp-customize-snapshots/pull/77).
+* Fixed: Restrict user from publishing or scheduling a snapshot unless they can `customize_publish`. See [#74](https://github.com/xwp/wp-customize-snapshots/pull/74).
+* Fixed: Fix logic for when to show the snapshot publish error admin notice and show underlying error codes when there are validity errors. See [#79](https://github.com/xwp/wp-customize-snapshots/pull/79).
+
+See full commit log: [`0.5.0...0.5.1`](https://github.com/xwp/wp-customize-posts/compare/0.5.0...0.5.1)
+
+Issues in milestone: [`milestone:0.5.1`](https://github.com/xwp/wp-customize-snapshots/issues?q=milestone%3A0.5.1)
+
+Props: Utkarsh Patel (<a href="https://github.com/PatelUtkarsh" class="user-mention">@PatelUtkarsh</a>), Luke Gedeon (<a href="https://github.com/lgedeon" class="user-mention">@lgedeon</a>), Weston Ruter (<a href="https://github.com/westonruter" class="user-mention">@westonruter</a>)
 ### 0.5.0 - 2016-08-11 ###
 Added:
 
