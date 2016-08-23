@@ -859,7 +859,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		);
 
 		if ( method_exists( 'WP_Customize_Setting', 'validate' ) ) {
-			$validate_data['foo']['publish_error'] = 'invalid_value';
+			$validate_data['foo']['publish_error'] = 'you_shell_not_pass';
 			add_filter( 'customize_validate_foo', function( $validity ) {
 				$validity->add( 'you_shell_not_pass', 'Testing invalid setting while publishing snapshot' );
 				return $validity;

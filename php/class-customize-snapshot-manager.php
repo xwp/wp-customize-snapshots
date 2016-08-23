@@ -1000,16 +1000,19 @@ class Customize_Snapshot_Manager {
 			}
 
 			// Validate setting value.
-			if ( method_exists( $setting, 'validate' ) && is_wp_error( $setting->validate( $setting_params['value'] ) ) ) {
-				$setting_params['publish_error'] = 'invalid_value';
-				$publish_error_count += 1;
-				continue;
+			if ( method_exists( $setting, 'validate' ) ) {
+				$validity = $setting->validate( $setting_params['value'] );
+				if ( is_wp_error( $validity ) ) {
+					$setting_params['publish_error'] = $validity->get_error_code();
+					$publish_error_count += 1;
+					continue;
+				}
 			}
 
 			// Validate sanitized setting value.
 			$sanitized_value = $setting->sanitize( $setting_params['value'] );
 			if ( is_null( $sanitized_value ) || is_wp_error( $sanitized_value ) ) {
-				$setting_params['publish_error'] = 'invalid_value';
+				$setting_params['publish_error'] = is_wp_error( $sanitized_value ) ? $sanitized_value->get_error_code() : 'invalid_value';
 				$publish_error_count += 1;
 				continue;
 			}
