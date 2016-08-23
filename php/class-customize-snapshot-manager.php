@@ -725,7 +725,7 @@ class Customize_Snapshot_Manager {
 	 * Enqueue Customizer frontend scripts.
 	 */
 	public function enqueue_frontend_scripts() {
-		if ( ! $this->snapshot ) {
+		if ( ! $this->snapshot || is_customize_preview() ) {
 			return;
 		}
 		$handle = 'customize-snapshots-frontend';
