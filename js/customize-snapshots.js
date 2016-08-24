@@ -407,10 +407,10 @@
 
 		api.state( 'saved' ).bind( function( saved ) {
 			if ( saved && ! _.isEmpty( component.schedule.container ) ) {
-				component.data.publishDate = component.getCurrentTime();
-				component.updateSchedule();
-				component.scheduleContainerDisplayed.set( false );
 				component.data.dirty = false;
+				component.data.publishDate = component.getCurrentTime();
+				component.scheduleContainerDisplayed.set( false );
+				component.updateSchedule();
 			}
 		} );
 
