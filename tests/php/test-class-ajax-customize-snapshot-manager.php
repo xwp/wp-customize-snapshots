@@ -497,11 +497,13 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 		$post = get_post( $post_id );
 		$this->make_ajax_call( 'customize_snapshot_conflict_check' );
 		$response = json_decode( $this->_last_response, true );
+		$this->assertNotEmpty( $response['data']['foo'][0] );
+		unset( $response['data']['foo'][0] );
 		$this->assertSame( array(
 			'success' => true,
 			'data' => array(
 				'foo' => array(
-					array(
+					1 => array(
 						'ID' => (string) $post->ID,
 						'value' => $post_type->get_printable_setting_value( 'baz' ),
 						'name' => $post->post_title === $post->post_name ? '' : $post->post_title,
