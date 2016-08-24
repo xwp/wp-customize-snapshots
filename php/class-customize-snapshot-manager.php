@@ -1533,16 +1533,37 @@ class Customize_Snapshot_Manager {
 						<details>
 							<summary>
 								<code>{{setting.uuid}}
-									<# if ( ! _.isEmpty( setting.name ) ) { #>
-										- {{setting.name}}
+									<# if ( ! _.isEmpty( setting.name ) ) {
+										if ( ! _.isEmpty( setting.uuid ) ){ #>
+											-
+										<# } #>
+										{{setting.name}}
 									<# } #>
 								</code>
-								<a href="{{setting.editLink}}" class="dashicons dashicons-external"></a>
+								<# if (!_.isEmpty(setting.editLink)){ #>
+									<a href="{{setting.editLink}}" class="dashicons dashicons-external"></a>
+								<# } #>
 							</summary>
-							{{{setting.value}}}
+							<div class="snapshot-value">
+								{{{setting.value}}}
+							</div>
 						</details>
 				    <# }); #>
 			</div>
+		</script>
+
+		<script type="text/html" id="tmpl-snapshot-conflict-value">
+			<# if ( _.isEmpty( data.value ) ) { #>
+					<em><?php esc_html_e( '(Empty String)', 'customize-snapshots' ); ?></em>
+			<# } else if ( _.isString( data.value ) ||  _.isNumber( data.value ) ) { #>
+					<p>{{data.value}}</p>
+			<# } else if ( _.isBoolean(data.value) ) {
+				var temp = JSON.stringify(data.value); #>
+					<p>{{temp}}</p>
+			<# } else {
+				var temp = JSON.stringify( data.value, null, 4 ); #>
+				<pre class="pre">{{temp}}</pre>
+			<# } #>
 		</script>
 		<?php
 	}
@@ -1661,6 +1682,13 @@ class Customize_Snapshot_Manager {
 			foreach ( $items as &$item ) {
 				$item['value'] = $this->post_type->get_printable_setting_value( $item['value'] );
 			}
+			array_unshift( $items, array(
+				'ID' => '',
+				'value' => '',
+				'name' => __( 'Current Change', 'customize-snapshots' ),
+				'uuid' => '',
+				'editLink' => '',
+			) );
 		}
 		wp_send_json_success( $return );
 	}

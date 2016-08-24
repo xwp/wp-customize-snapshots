@@ -844,7 +844,8 @@
 		controls: {},
 		pendingRequest: {},
 		notificationCode: 'snapshot_conflict',
-		notificationTemplate: wp.template( 'snapshot-notification-template' )
+		notificationTemplate: wp.template( 'snapshot-notification-template' ),
+		conflictValueTemplate: wp.template( 'snapshot-conflict-value' )
 	};
 
 	/**
@@ -885,7 +886,7 @@
 	 */
 	component.addConflictButton = function addConflictButton( control ) {
 		control.deferred.embedded.done( function() {
-			var onFirstChange, hasDirty;
+			var onFirstChange, hasDirty, updateCurrentValue, bindFirstChange = false;
 
 			if ( ! control.setting ) {
 				return;
@@ -898,16 +899,26 @@
 				} );
 			};
 
+			updateCurrentValue = function() {
+				_.each( control.settings, function( setting ) {
+					component.updateConflictValueMarkup( setting.id, control.container );
+				} );
+			};
+
 			hasDirty = _.find( control.settings, function( setting ) {
 				return setting._dirty;
 			} );
 			if ( hasDirty ) {
 				onFirstChange();
 			} else {
-				_.each( control.settings, function( setting ) {
-					setting.bind( onFirstChange );
-				} );
+				bindFirstChange = true;
 			}
+			_.each( control.settings, function( setting ) {
+				if ( bindFirstChange ) {
+					setting.bind( onFirstChange );
+				}
+				setting.bind( updateCurrentValue );
+			} );
 		} );
 	};
 
@@ -965,6 +976,7 @@
 								control.notifications.add( component.conflict.notificationCode, notification );
 								if ( ! multiple ) {
 									component.conflict.controls[key].insertAfter( control.container.find( '.customize-control-notifications-container' ) );
+									component.updateConflictValueMarkup( key, component.conflict.controls[key] );
 								}
 								control.container.find( '.snapshot-conflicts-button' ).show();
 								multiple = true;
@@ -976,6 +988,21 @@
 			},
 			component.conflict.refreshBuffer
 		);
+	};
+	/**
+	 * Update markup with current value
+	 *
+	 * @param {string} settingID setting id.
+	 * @param {object} selector control container or conflict markup container.
+	 *
+	 * @return {void}
+	 */
+	component.updateConflictValueMarkup = function updateConflictValueMarkup( settingID, selector ) {
+		var snapshotCurrentValueSelector = selector.find( 'details:first .snapshot-value' ), newCurrentValueMarkup;
+		if ( snapshotCurrentValueSelector.length ) {
+			newCurrentValueMarkup = component.conflict.conflictValueTemplate( { value: api( settingID ).get() } );
+			snapshotCurrentValueSelector.html( newCurrentValueMarkup );
+		}
 	};
 
 	component.init();
