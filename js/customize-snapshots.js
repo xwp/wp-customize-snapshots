@@ -765,9 +765,11 @@
 
 			// Change update button to schedule.
 			if ( component.isFutureDate() ) {
-				save.html( component.data.i18n.scheduleButton );
+				save.text( component.data.i18n.scheduleButton );
+			} else if ( api.state( 'snapshot-exists' ).get() ) {
+				save.text( component.data.i18n.updateButton );
 			} else {
-				save.html( component.data.i18n.updateButton );
+				save.text( component.data.i18n.saveButton );
 			}
 
 			if ( scheduled || component.data.dirty ) {
