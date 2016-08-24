@@ -1,4 +1,5 @@
 ( function( $ ) {
+	'use strict';
 
 	$( function() {
 		var $link, linkText, linkActions, dataSlug, initializeLink;
@@ -26,18 +27,18 @@
 			settingId = $( this ).attr( 'id' );
 
 			this.isLinkSetToRemoveSetting = function() {
-				return ( linkActions[ 0 ] === clickedLinkAction );
+				return linkActions[ 0 ] === clickedLinkAction;
 			};
 
 			this.hideSettingAndChangeLinkText = function() {
 				$clickedLink.text( linkText[ 1 ] )
 					.data( dataSlug, linkActions[ 1 ] )
-					.after( this.constructHiddenInputWithValue( settingId ) );
+					.after( this.constructHiddenInputWithValue() );
 				$settingDisplay.removeAttr( 'open' )
 					.addClass( 'cs-removed' );
 			};
 
-			this.constructHiddenInputWithValue = function( settingId ) {
+			this.constructHiddenInputWithValue = function() {
 				return $( '<input>' ).attr( {
 					'name': 'customize_snapshot_remove_settings[]',
 					'type': 'hidden'
@@ -46,7 +47,7 @@
 			};
 
 			this.isLinkSetToRestoreSetting = function() {
-				return ( linkActions[ 1 ] === clickedLinkAction );
+				return linkActions[ 1 ] === clickedLinkAction;
 			};
 
 			this.showSettingAndChangeLinkText = function() {
@@ -69,4 +70,4 @@
 		} );
 
 	} );
-}( jQuery ) );
+} )( jQuery );
