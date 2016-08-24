@@ -207,6 +207,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		$this->assertEquals( 41, has_action( 'admin_bar_menu', array( $manager, 'customize_menu' ) ) );
 		$this->assertEquals( 100000, has_action( 'admin_bar_menu', array( $manager, 'remove_all_non_snapshot_admin_bar_links' ) ) );
 		$this->assertEquals( 10, has_action( 'wp_before_admin_bar_render', array( $manager, 'print_admin_bar_styles' ) ) );
+		$this->assertEquals( 10, has_filter( 'removable_query_args', array( $manager, 'filter_removable_query_args' ) ) );
 
 		$this->assertEquals( 10, has_filter( 'wp_insert_post_data', array( $manager, 'prepare_snapshot_post_content_for_publish' ) ) );
 		$this->assertEquals( 10, has_action( 'customize_save_after', array( $manager, 'publish_snapshot_with_customize_save_after' ) ) );
@@ -819,6 +820,16 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	}
 
 	/**
+	 * Test adding snapshot_error_on_publish to removable_query_args.
+	 *
+	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::filter_removable_query_args()
+	 */
+	public function test_filter_removable_query_args() {
+		$manager = new Customize_Snapshot_Manager( $this->plugin );
+		$this->assertContains( 'snapshot_error_on_publish', $manager->filter_removable_query_args( array() ) );
+	}
+
+	/**
 	 * Test save_settings_with_publish_snapshot.
 	 *
 	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::save_settings_with_publish_snapshot()
@@ -847,7 +858,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		);
 
 		if ( method_exists( 'WP_Customize_Setting', 'validate' ) ) {
-			$validate_data['foo']['publish_error'] = 'invalid_value';
+			$validate_data['foo']['publish_error'] = 'you_shell_not_pass';
 			add_filter( 'customize_validate_foo', function( $validity ) {
 				$validity->add( 'you_shell_not_pass', 'Testing invalid setting while publishing snapshot' );
 				return $validity;
