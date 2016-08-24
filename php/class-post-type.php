@@ -114,6 +114,7 @@ class Post_Type {
 		add_filter( 'display_post_states', array( $this, 'display_post_states' ), 10, 2 );
 		add_action( 'admin_notices', array( $this, 'show_publish_error_admin_notice' ) );
 		add_action( 'post_submitbox_minor_actions', array( $this, 'hide_disabled_publishing_actions' ) );
+		add_filter( 'content_save_pre', array( $this, 'filter_out_settings_if_removed_in_metabox' ), 10 );
 		add_action( 'admin_print_scripts-revision.php', array( $this, 'disable_revision_ui_for_published_posts' ) );
 	}
 
@@ -351,6 +352,7 @@ class Post_Type {
 		echo '<hr>';
 
 		ksort( $snapshot_content );
+		wp_nonce_field( static::SLUG . '_settings', static::SLUG );
 		echo '<ul id="snapshot-settings">';
 		foreach ( $snapshot_content as $setting_id => $setting_params ) {
 			if ( ! isset( $setting_params['value'] ) && ! isset( $setting_params['publish_error'] ) ) {
@@ -360,6 +362,7 @@ class Post_Type {
 			echo '<li>';
 			echo '<details open>';
 			echo '<summary><code>' . esc_html( $setting_id ) . '</code> ';
+			echo '<a href="#" id="' . esc_attr( $setting_id ) . '" class="cs-toggle-action remove"></a>';
 
 			// Show error message when there was a publishing error.
 			if ( isset( $setting_params['publish_error'] ) ) {
@@ -674,5 +677,52 @@ class Post_Type {
 			}
 		</style>
 		<?php
+	}
+
+	/**
+	 * Filter settings out of post content, if they were removed in the meta box.
+	 *
+	 * In each snapshot's edit page, there are JavaScript-controlled links to remove each setting.
+	 * On clicking a setting, the JS sets a hidden input field with that setting's ID.
+	 * And these settings appear in $_REQUEST as the array 'customize_snapshot_remove_settings.'
+	 * So look for these removed settings in that array, on saving.
+	 * And possibly filter out those settings from the post content.
+	 *
+	 * @param String $content Post content to filter.
+	 * @return String $content Post content, possibly filtered.
+	 */
+	public function filter_out_settings_if_removed_in_metabox( $content ) {
+		global $post;
+		$key_for_settings = static::SLUG . '_remove_settings';
+		$post_type_object = get_post_type_object( static::SLUG );
+
+		$should_filter_content = (
+			( 'publish' !== $post->post_status )
+			&&
+			current_user_can( $post_type_object->cap->edit_post, $post->ID )
+			&&
+			( static::SLUG === $post->post_type )
+			&&
+			! empty( $_REQUEST[ $key_for_settings ] )
+			&&
+			isset( $_REQUEST[ static::SLUG ] )
+			&&
+			wp_verify_nonce( $_REQUEST[ static::SLUG ], static::SLUG . '_settings' )
+			&&
+			! ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE )
+		);
+
+		if ( ! $should_filter_content ) {
+			return $content;
+		}
+
+		$setting_ids_to_unset = $_REQUEST[ $key_for_settings ];
+		$data = json_decode( $post->post_content );
+		foreach ( $setting_ids_to_unset as $setting_id ) {
+			unset( $data->{ $setting_id } );
+		}
+		$content = Customize_Snapshot_Manager::encode_json( $data );
+
+		return $content;
 	}
 }

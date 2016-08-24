@@ -1,0 +1,12 @@
+details.cs-removed summary::-webkit-details-marker {
+	display:none;
+}
+details:not(.cs-removed) .cs-toggle-action {
+	color: #a00
+}
+details:not(.cs-removed) .cs-toggle-action:hover {
+	color: #f00
+}
+details .cs-toggle-action {
+	float: right;
+}
