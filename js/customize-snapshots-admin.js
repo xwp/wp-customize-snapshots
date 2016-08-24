@@ -53,11 +53,11 @@
 			this.showSettingAndChangeLinkText = function() {
 				$clickedLink.text( linkText[ 0 ] )
 					.data( dataSlug, linkActions[ 0 ] );
-				this.removeHiddenInputWithValue( settingId );
+				this.removeHiddenInputWithValue();
 				$settingDisplay.removeClass( 'cs-removed' );
 			};
 
-			this.removeHiddenInputWithValue = function( settingId ) {
+			this.removeHiddenInputWithValue = function() {
 				$( 'input[value="' + settingId + '"]' ).remove();
 			};
 
