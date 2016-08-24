@@ -697,6 +697,8 @@ class Post_Type {
 		$post_type_object = get_post_type_object( static::SLUG );
 
 		$should_filter_content = (
+			isset( $post->post_status )
+			&&
 			( 'publish' !== $post->post_status )
 			&&
 			current_user_can( $post_type_object->cap->edit_post, $post->ID )
