@@ -115,6 +115,7 @@ class Post_Type {
 		add_action( 'admin_notices', array( $this, 'show_publish_error_admin_notice' ) );
 		add_action( 'post_submitbox_minor_actions', array( $this, 'hide_disabled_publishing_actions' ) );
 		add_action( 'admin_print_scripts-revision.php', array( $this, 'disable_revision_ui_for_published_posts' ) );
+		add_action( 'admin_enqueue_scripts', array( $this, 'add_snapshot_script' ), 10 , 1 );
 	}
 
 	/**
@@ -317,9 +318,7 @@ class Post_Type {
 	public function render_data_metabox( $post ) {
 		$snapshot_content = $this->get_post_content( $post );
 		if ( 'publish' !== get_post_status( $post ) ) {
-			$conflicts_settings = $this->get_conflicts_setting( $post );
-			add_thickbox();
-			wp_enqueue_style( 'snapshot-admin' );
+			$conflicts_settings = $this->get_conflicted_settings( $post );
 		} else {
 			$conflicts_settings = array();
 		}
@@ -394,12 +393,15 @@ class Post_Type {
 					<?php foreach ( $conflicts_settings[ $setting_id ] as $data ) { ?>
 						<details>
 							<summary>
-								<code><?php echo $data['name'] ?></code>
-								<a href="<?php echo esc_url( $data['editLink'] ); ?>">
-									(<?php _e( 'edit', 'customize-snapshots' ); ?>)
-								</a>
+								<code>
+									<?php echo esc_html( $data['uuid'] );
+									if ( ! empty( $data['name'] ) ) {
+										echo ' - ' . esc_html( $data['name'] );
+									} ?>
+									</code>
+								<a target="_blank" href="<?php echo esc_url( $data['edit_link'] ); ?>" class="dashicons dashicons-external"></a>
 							</summary>
-							<?php echo $this->get_printable_setting_value( $data['value'] ); ?>
+							<?php echo $this->get_printable_setting_value( $data['value'], $setting_id, $data['setting_param'], get_post( $data['id'] ) ); ?>
 						</details>
 					<?php } ?>
 				</div>
@@ -407,23 +409,7 @@ class Post_Type {
 			}
 			echo '</summary>';
 
-			$preview = $this->get_printable_setting_value( $value );
-
-			/**
-			 * Filters the previewed value for a snapshot.
-			 *
-			 * @param string $preview HTML markup.
-			 * @param array  $context {
-			 *     Context.
-			 *
-			 *     @type mixed    $value          Value being previewed.
-			 *     @type string   $setting_id     Setting args, including value.
-			 *     @type array    $setting_params Setting args, including value.
-			 *     @type \WP_Post $post           Snapshot post.
-			 * }
-			 */
-			$preview = apply_filters( 'customize_snapshot_value_preview', $preview, compact( 'value', 'setting_id', 'setting_params', 'post' ) );
-
+			$preview = $this->get_printable_setting_value( $value, $setting_id, $setting_params, $post );
 			echo $preview; // WPCS: xss ok.
 			echo '</details>';
 			echo '</li>';
@@ -434,11 +420,16 @@ class Post_Type {
 	/**
 	 * Get printable setting value
 	 *
-	 * @param mixed $value Setting value.
+	 * @param mixed         $value Value to be printed.
+	 * @param string        $setting_id setting id.
+	 * @param array         $setting_params param raw array.
+	 * @param /WP_Post|null $post Post object of where setting belongs.
 	 *
 	 * @return string
+	 * @internal param $data
+	 * @internal param mixed $value Setting value.
 	 */
-	public function get_printable_setting_value( $value ) {
+	public function get_printable_setting_value( $value, $setting_id = '', $setting_params = array(), $post = null ) {
 		if ( '' === $value ) {
 			$preview = '<p><em>' . esc_html__( '(Empty string)', 'customize-snapshots' ) . '</em></p>';
 		} elseif ( is_string( $value ) || is_numeric( $value ) ) {
@@ -448,6 +439,20 @@ class Post_Type {
 		} else {
 			$preview = sprintf( '<pre class="pre">%s</pre>', esc_html( Customize_Snapshot_Manager::encode_json( $value ) ) );
 		}
+		/**
+		 * Filters the previewed value for a snapshot.
+		 *
+		 * @param string $preview HTML markup.
+		 * @param array  $context {
+		 *     Context.
+		 *
+		 *     @type mixed    $value          Value being previewed.
+		 *     @type string   $setting_id     Setting args.
+		 *     @type array    $setting_params Setting args, including value.
+		 *     @type \WP_Post $post           Snapshot post.
+		 * }
+		 */
+		$preview = apply_filters( 'customize_snapshot_value_preview', $preview, compact( 'value', 'setting_id', 'setting_params', 'post' ) );
 		return $preview;
 	}
 
@@ -720,24 +725,23 @@ class Post_Type {
 	 *
 	 * @return array
 	 */
-	public function get_conflicts_setting( $post, $settings = array() ) {
+	public function get_conflicted_settings( $post, $settings = array() ) {
 		global $wpdb;
-		if ( $post ) {
+		if ( $post && self::SLUG === get_post_type( $post ) ) {
 			$post = get_post( $post );
 		}
+		$conflicted_settings = array();
 		if ( empty( $settings ) ) {
 			$content = $this->get_post_content( $post );
-			$return = array();
 			if ( empty( $content ) || ! is_array( $content ) ) {
-				return $return;
+				return $conflicted_settings;
 			}
 			$settings = array_keys( $content );
 			if ( empty( $settings ) ) {
-				return $return;
+				return $conflicted_settings;
 			}
 		}
-		$return = array();
-		$query = $wpdb->prepare( "SELECT ID, post_name, post_title, post_status, post_content FROM $wpdb->posts WHERE post_type = %s AND post_status IN ( 'draft', 'pending', 'future' ) ", static::SLUG );
+		$query = $wpdb->prepare( "SELECT ID, post_name, post_title, post_status, post_content FROM $wpdb->posts WHERE post_type = %s AND post_status IN ( 'pending', 'future' ) ", static::SLUG );
 		// Todo: finalize post_status to check in.
 		if ( $post instanceof \WP_Post ) {
 			$query .= $wpdb->prepare( 'AND ID != %d ', $post->ID );
@@ -761,19 +765,33 @@ class Post_Type {
 					continue;
 				}
 				foreach ( $conflicts_keys as $conflicts_key ) {
-					if ( ! isset( $return[ $conflicts_key ] ) ) {
-						$return[ $conflicts_key ] = array();
+					if ( ! isset( $conflicted_settings[ $conflicts_key ] ) ) {
+						$conflicted_settings[ $conflicts_key ] = array();
 					}
-					$return[ $conflicts_key ][] = array(
-						'ID' => $item['ID'],
+					$conflicted_settings[ $conflicts_key ][] = array(
+						'id' => $item['ID'],
 						'value' => $data[ $conflicts_key ]['value'],
 						'name' => ( $item['post_title'] === $item['post_name'] ) ? '' : $item['post_title'],
 						'uuid' => $item['post_name'],
-						'editLink' => get_edit_post_link( $item['ID'], 'raw' ),
+						'edit_link' => get_edit_post_link( $item['ID'], 'raw' ),
+						'setting_param' => $data[ $conflicts_key ],
 					);
 				}
 			}
 		}
-		return $return;
+		return $conflicted_settings;
+	}
+
+	/**
+	 * Enqueue scripts and style for snapshot edit admin page.
+	 *
+	 * @param string $hook current page.
+	 */
+	public function add_snapshot_script( $hook ) {
+		global $post;
+		if ( 'post.php' === $hook && self::SLUG === $post->post_type && 'publish' !== $post->post_status ) {
+			add_thickbox();
+			wp_enqueue_style( 'snapshot-admin' );
+		}
 	}
 }

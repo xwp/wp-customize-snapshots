@@ -874,7 +874,7 @@
 				component.conflict.controls = {};
 				component.conflict.pendingRequest = {};
 
-				wp.customize.control.each( function( control ) {
+				api.control.each( function( control ) {
 					_.each( control.settings, function( setting ) {
 						setting.unbind( component.onConflictFirstChange );
 					} );
@@ -977,7 +977,7 @@
 							} ) ) );
 							_.each( controls, function( control ) {
 								control.notificationsTemplate = component.conflict.notificationTemplate;
-								notification = new wp.customize.Notification( component.conflict.notificationCode, {
+								notification = new api.Notification( component.conflict.notificationCode, {
 									type: 'warning',
 									message: $.trim( buttonTemplate.html() )
 								} );
@@ -1014,7 +1014,7 @@
 	};
 
 	component.init();
-	wp.customize.control.bind( 'add', component.addConflictButton );
-	wp.customize.control.each( component.addConflictButton );
+	api.control.bind( 'add', component.addConflictButton );
+	api.control.each( component.addConflictButton );
 
 } )( wp.customize, jQuery );

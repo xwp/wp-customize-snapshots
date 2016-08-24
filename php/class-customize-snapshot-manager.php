@@ -1538,7 +1538,7 @@ class Customize_Snapshot_Manager {
 			<# id= data.setting_id.replace( /]/g, '' ).split( '[' ).filter( Boolean ).join( '-' ); #>
 			<span>
 				<?php esc_html_e( 'Snapshot conflicts', 'customize-snapshots' ); ?>
-				<a href="#TB_inline?width=600&height=550&inlineId=snapshot-conflicts-{{id}}" class="dashicons dashicons-warning thickbox snapshot-conflicts-button" title="<?php echo esc_attr( $title_text ); ?>"></a>
+				<a href="<?php echo esc_url( '#TB_inline?width=600&height=550&inlineId=snapshot-conflicts-' ); ?>{{id}}" class="dashicons dashicons-warning thickbox snapshot-conflicts-button" title="<?php echo esc_attr( $title_text ); ?>"></a>
 			</span>
 		</script>
 
@@ -1564,8 +1564,8 @@ class Customize_Snapshot_Manager {
 										{{setting.name}}
 									<# } #>
 								</code>
-								<# if (!_.isEmpty(setting.editLink)){ #>
-									<a href="{{setting.editLink}}" class="dashicons dashicons-external"></a>
+								<# if ( ! _.isEmpty( setting.edit_link ) ) { #>
+									<a target="_blank" href="{{setting.edit_link}}" class="dashicons dashicons-external"></a>
 								<# } #>
 							</summary>
 							<div class="snapshot-value">
@@ -1685,7 +1685,7 @@ class Customize_Snapshot_Manager {
 			$setting_ids = array_map( function( $key ) {
 				// Credit: http://stackoverflow.com/a/1176923/1138341.
 				return preg_replace( '/[\x00-\x1F\x80-\xFF]/', '', $key );
-			}, $_POST['setting_ids'] );
+			}, wp_unslash( $_POST['setting_ids'] ) );
 		} else {
 			status_header( 400 );
 			wp_send_json_error( 'required_param_missing' );
@@ -1701,17 +1701,18 @@ class Customize_Snapshot_Manager {
 			status_header( 400 );
 			wp_send_json_error( 'no_setting_to_check' );
 		}
-		$return = $this->post_type->get_conflicts_setting( $post, $settings );
+		$return = $this->post_type->get_conflicted_settings( $post, $settings );
 		foreach ( $return as $setting_key => &$items ) {
 			foreach ( $items as &$item ) {
-				$item['value'] = $this->post_type->get_printable_setting_value( $item['value'] );
+				$item['value'] = $this->post_type->get_printable_setting_value( $item['value'], $setting_key, $item['setting_param'], get_post( $item['id'] ) );
+				unset( $item['setting_param'] );
 			}
 			array_unshift( $items, array(
-				'ID' => '',
+				'id' => '',
 				'value' => '',
 				'name' => __( 'Current Change', 'customize-snapshots' ),
 				'uuid' => '',
-				'editLink' => '',
+				'edit_link' => '',
 			) );
 		}
 		wp_send_json_success( $return );
