@@ -198,7 +198,10 @@
 	component.addButtons = function() {
 		var header = $( '#customize-header-actions' ),
 			publishButton = header.find( '#save' ),
-			submitButton, data, setPreviewLinkHref, snapshotButtonText;
+			submitButton, data, setPreviewLinkHref, snapshotButtonText, changeButtonText;
+
+		component.dirtySnapshotPostSetting = new api.Value();
+		component.dirtyScheduleDate = new api.Value();
 
 		// Save/update button.
 		component.snapshotButton = wp.template( 'snapshot-save' );
@@ -264,6 +267,36 @@
 			component.snapshotButton.text( buttonText );
 			if ( ! component.data.currentUserCanPublish ) {
 				component.snapshotButton.attr( 'title', permsMsg );
+			}
+		} );
+
+		changeButtonText = function() {
+			var date = component.getDateFromInputs();
+			if ( component.isFutureDate() && date && component.data.currentUserCanPublish ) {
+				component.snapshotButton.text( component.data.i18n.scheduleButton );
+			} else {
+				component.snapshotButton.text( api.state( 'snapshot-exists' ).get() ? component.data.i18n.updateButton : component.data.i18n.saveButton );
+			}
+		};
+
+		component.dirtySnapshotPostSetting.bind( function( dirty ) {
+			if ( dirty ) {
+				component.snapshotButton.prop( 'disabled', false );
+			} else {
+				component.snapshotButton.prop( 'disabled', ! component.data.dirty );
+			}
+			changeButtonText();
+		} );
+		component.dirtyScheduleDate.bind( function( dirty ) {
+			var date;
+			if ( dirty ) {
+				date = component.getDateFromInputs();
+				if ( ! date || ! component.data.currentUserCanPublish ) {
+					return;
+				}
+				component.snapshotButton.text( component.data.i18n.scheduleButton );
+			} else {
+				changeButtonText();
 			}
 		} );
 
@@ -772,32 +805,25 @@
 		var date = component.getDateFromInputs(),
 			scheduled;
 
-		if ( ! date ) {
-			component.snapshotButton.prop( 'disabled', component.data.title === component.snapshotTitle.val() );
+		if ( ! date || ! component.data.currentUserCanPublish ) {
+			component.dirtySnapshotPostSetting.set( component.data.title !== component.snapshotTitle.val() );
 			return;
 		}
 
 		date.setSeconds( 0 );
 		scheduled = component.formatDate( date ) !== component.data.publishDate;
 
-		if ( component.snapshotButton.length ) {
-
-			// Change update button to schedule.
-			if ( component.isFutureDate() ) {
-				component.snapshotButton.text( component.data.i18n.scheduleButton );
-			} else if ( api.state( 'snapshot-exists' ).get() ) {
-				component.snapshotButton.text( component.data.i18n.updateButton );
-			} else {
-				component.snapshotButton.text( component.data.i18n.updateButton );
-			}
-
-			if ( scheduled || component.data.dirty || component.data.title !== component.snapshotTitle.val() ) {
-				component.snapshotButton.prop( 'disabled', false );
-			} else {
-				component.snapshotButton.prop( 'disabled', true );
-			}
+		if ( component.data.title !== component.snapshotTitle.val() || scheduled ) {
+			component.dirtySnapshotPostSetting.set( true );
+		} else {
+			component.dirtySnapshotPostSetting.set( false );
 		}
 
+		if ( scheduled && component.isFutureDate() ) {
+			component.dirtyScheduleDate.set( true );
+		} else {
+			component.dirtyScheduleDate.set( false );
+		}
 		component.updateCountdown();
 		component.editContainer.find( '.reset-time' ).toggle( scheduled );
 	};
