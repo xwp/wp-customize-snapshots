@@ -20,7 +20,7 @@
 		title: '',
 		publishDate: '',
 		postStatus: '',
-		currentUserCanPublish: '',
+		currentUserCanPublish: true,
 		initialServerDate: '',
 		initialServerTimestamp: 0,
 		initialClientTimestamp: 0,
@@ -419,10 +419,10 @@
 
 		api.state( 'saved' ).bind( function( saved ) {
 			if ( saved && ! _.isEmpty( component.editContainer ) ) {
-				component.data.publishDate = component.getCurrentTime();
-				component.updateSnapshotEditControls();
-				component.snapshotEditContainerDisplayed.set( false );
 				component.data.dirty = false;
+				component.data.publishDate = component.getCurrentTime();
+				component.snapshotEditContainerDisplayed.set( false );
+				component.updateSnapshotEditControls();
 			}
 		} );
 
@@ -784,9 +784,11 @@
 
 			// Change update button to schedule.
 			if ( component.isFutureDate() ) {
-				component.snapshotButton.html( component.data.i18n.scheduleButton );
+				component.snapshotButton.text( component.data.i18n.scheduleButton );
+			} else if ( api.state( 'snapshot-exists' ).get() ) {
+				component.snapshotButton.text( component.data.i18n.updateButton );
 			} else {
-				component.snapshotButton.html( component.data.i18n.updateButton );
+				component.snapshotButton.text( component.data.i18n.updateButton );
 			}
 
 			if ( scheduled || component.data.dirty || component.data.title !== component.snapshotTitle.val() ) {

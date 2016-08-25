@@ -429,9 +429,11 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 		unset( $GLOBALS['wp_customize'] );
 		remove_all_actions( 'wp_ajax_' . Customize_Snapshot_Manager::AJAX_ACTION );
 
+		$post_type_obj = get_post_type_object( Post_Type::SLUG );
 		$setting_key = 'anyonecanedit';
 		$tomorrow = date( 'Y-m-d H:i:s', time() + 86400 );
 		$this->set_current_user( 'administrator' );
+		$this->assertTrue( current_user_can( $post_type_obj->cap->publish_posts ) );
 		$this->set_input_vars( array(
 			'action' => Customize_Snapshot_Manager::AJAX_ACTION,
 			'nonce' => wp_create_nonce( Customize_Snapshot_Manager::AJAX_ACTION ),
@@ -465,5 +467,66 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 		$response = json_decode( $this->_last_response, true );
 		$this->assertSame( $expected_results, $response );
 		$this->assertEquals( 'future', get_post_status( $post_id ) );
+	}
+
+	/**
+	 * Test updating a snapshot when the user does not have the customize_publish capability.
+	 *
+	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::handle_update_snapshot_request()
+	 */
+	function test_ajax_update_snapshot_ok_for_draft_and_pending_but_not_future() {
+		unset( $GLOBALS['wp_customize'] );
+		remove_all_actions( 'wp_ajax_' . Customize_Snapshot_Manager::AJAX_ACTION );
+
+		$post_type_obj = get_post_type_object( Post_Type::SLUG );
+		$setting_key = 'anyonecanedit';
+		add_filter( 'user_has_cap', function( $allcaps, $caps, $args ) {
+			$allcaps['customize'] = true;
+			if ( ! empty( $allcaps['edit_posts'] ) && ! empty( $args ) && 'customize' === $args[0] ) {
+				$allcaps = array_merge( $allcaps, array_fill_keys( $caps, true ) );
+			}
+			return $allcaps;
+		}, 10, 3 );
+		$tomorrow = date( 'Y-m-d H:i:s', time() + 86400 );
+		$this->set_current_user( 'contributor' );
+		$this->assertFalse( current_user_can( $post_type_obj->cap->publish_posts ) );
+		$post_vars = array(
+			'action' => Customize_Snapshot_Manager::AJAX_ACTION,
+			'nonce' => wp_create_nonce( Customize_Snapshot_Manager::AJAX_ACTION ),
+			'customize_snapshot_uuid' => self::UUID,
+			'customized' => wp_json_encode( array( $setting_key => 'Hello' ) ),
+			'publish_date' => $tomorrow, // Tomorrow.
+		);
+
+		$this->plugin = new Plugin();
+		$this->plugin->init();
+		$this->add_setting();
+
+		// Draft pass.
+		$post_vars['status'] = 'draft';
+		$this->set_input_vars( $post_vars );
+		$this->make_ajax_call( Customize_Snapshot_Manager::AJAX_ACTION );
+		$response = json_decode( $this->_last_response, true );
+		$this->_last_response = '';
+		$this->assertTrue( $response['success'] );
+
+		// Pending pass.
+		$post_vars['status'] = 'pending';
+		$this->set_input_vars( $post_vars );
+		$this->make_ajax_call( Customize_Snapshot_Manager::AJAX_ACTION );
+		$response = json_decode( $this->_last_response, true );
+		$this->_last_response = '';
+		$this->assertTrue( $response['success'] );
+
+		// Future fail.
+		$post_vars['status'] = 'future';
+		$this->set_input_vars( $post_vars );
+		$this->make_ajax_call( Customize_Snapshot_Manager::AJAX_ACTION );
+		$response = json_decode( $this->_last_response, true );
+		$expected_results = array(
+			'success' => false,
+			'data' => 'customize_not_allowed',
+		);
+		$this->assertSame( $expected_results, $response );
 	}
 }
