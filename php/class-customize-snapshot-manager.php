@@ -1125,6 +1125,11 @@ class Customize_Snapshot_Manager {
 			) );
 		}
 
+		/**
+		 * Add any additional checks before saving snapshot.
+		 */
+		do_action( 'customize_snapshot_save_before', $this->snapshot, $this->customize_manager );
+
 		// Set the snapshot UUID.
 		$post_type = get_post_type_object( Post_Type::SLUG );
 		$authorized = ( $post ?
@@ -1181,6 +1186,8 @@ class Customize_Snapshot_Manager {
 			wp_send_json_error( $data );
 		}
 
+		/** This filter is documented in wp-includes/class-wp-customize-manager.php */
+		$data = apply_filters( 'customize_save_response', $data, $this );
 		wp_send_json_success( $data );
 	}
 
