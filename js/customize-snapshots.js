@@ -407,10 +407,10 @@
 
 		api.state( 'saved' ).bind( function( saved ) {
 			if ( saved && ! _.isEmpty( component.schedule.container ) ) {
-				component.data.publishDate = component.getCurrentTime();
-				component.updateSchedule();
-				component.scheduleContainerDisplayed.set( false );
 				component.data.dirty = false;
+				component.data.publishDate = component.getCurrentTime();
+				component.scheduleContainerDisplayed.set( false );
+				component.updateSchedule();
 			}
 		} );
 
@@ -765,9 +765,11 @@
 
 			// Change update button to schedule.
 			if ( component.isFutureDate() ) {
-				save.html( component.data.i18n.scheduleButton );
+				save.text( component.data.i18n.scheduleButton );
+			} else if ( api.state( 'snapshot-exists' ).get() ) {
+				save.text( component.data.i18n.updateButton );
 			} else {
-				save.html( component.data.i18n.updateButton );
+				save.text( component.data.i18n.saveButton );
 			}
 
 			if ( scheduled || component.data.dirty ) {
