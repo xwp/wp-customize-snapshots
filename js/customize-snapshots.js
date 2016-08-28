@@ -609,7 +609,7 @@
 			}
 		} );
 
-		request.done( function() {
+		request.done( function( response ) {
 			var url = api.previewer.previewUrl(),
 				regex = new RegExp( '([?&])customize_snapshot_uuid=.*?(&|$)', 'i' ),
 				notFound = -1,
@@ -642,7 +642,8 @@
 			api.trigger( 'customize-snapshots-update', {
 				previewUrl: url,
 				customizeUrl: customizeUrl,
-				uuid: component.data.uuid
+				uuid: component.data.uuid,
+				response: response
 			} );
 		} );
 
