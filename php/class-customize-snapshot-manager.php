@@ -1127,8 +1127,11 @@ class Customize_Snapshot_Manager {
 
 		/**
 		 * Add any additional checks before saving snapshot.
+		 *
+		 * @param Customize_Snapshot         $snapshot         Snapshot to be saved.
+		 * @param Customize_Snapshot_Manager $snapshot_manager Snapshot manager.
 		 */
-		do_action( 'customize_snapshot_save_before', $this->snapshot, $this->customize_manager );
+		do_action( 'customize_snapshot_save_before', $this->snapshot, $this );
 
 		// Set the snapshot UUID.
 		$post_type = get_post_type_object( Post_Type::SLUG );
@@ -1187,7 +1190,7 @@ class Customize_Snapshot_Manager {
 		}
 
 		/** This filter is documented in wp-includes/class-wp-customize-manager.php */
-		$data = apply_filters( 'customize_save_response', $data, $this );
+		$data = apply_filters( 'customize_save_response', $data, $this->customize_manager );
 		wp_send_json_success( $data );
 	}
 

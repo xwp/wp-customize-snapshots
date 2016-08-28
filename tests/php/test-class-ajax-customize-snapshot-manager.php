@@ -41,6 +41,27 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 	protected $manager;
 
 	/**
+	 * Test snapshot for test_handle_update_snapshot_request_actions_and_filters().
+	 *
+	 * @var Customize_Snapshot
+	 */
+	public $actioned_snapshot;
+
+	/**
+	 * Test snapshot manager for test_handle_update_snapshot_request_actions_and_filters().
+	 *
+	 * @var Customize_Snapshot_Manager
+	 */
+	public $actioned_snapshot_manager;
+
+	/**
+	 * Test customize manager for test_handle_update_snapshot_request_actions_and_filters().
+	 *
+	 * @var \WP_Customize_Manager
+	 */
+	public $filtered_customizer;
+
+	/**
 	 * Set up before class.
 	 */
 	public static function setUpBeforeClass() {
@@ -555,12 +576,12 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 		$this->add_setting();
 
 		$that = $this; // For PHP 5.3.
-		add_action( 'customize_snapshot_save_before', function( $test_snapshot, $test_customizer ) use ( $that ) {
+		add_action( 'customize_snapshot_save_before', function( $test_snapshot, $test_snapshot_manager ) use ( $that ) {
 			$that->actioned_snapshot = $test_snapshot;
-			$that->actioned_customizer = $test_customizer;
+			$that->actioned_snapshot_manager = $test_snapshot_manager;
 		}, 10, 2 );
-		add_filter( 'customize_save_response', function( $data, $test_snapshot_manager ) use ( $that ) {
-			$that->filtered_snapshot_manager = $test_snapshot_manager;
+		add_filter( 'customize_save_response', function( $data, $test_customizer ) use ( $that ) {
+			$that->filtered_customizer = $test_customizer;
 			return $data;
 		}, 10, 2 );
 
@@ -572,7 +593,7 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 		$manager->init();
 
 		$this->assertEquals( $manager->snapshot(), $this->actioned_snapshot );
-		$this->assertEquals( $manager->customize_manager, $this->actioned_customizer );
-		$this->assertEquals( $manager, $this->filtered_snapshot_manager );
+		$this->assertEquals( $manager, $this->actioned_snapshot_manager );
+		$this->assertEquals( $manager->customize_manager, $this->filtered_customizer );
 	}
 }
