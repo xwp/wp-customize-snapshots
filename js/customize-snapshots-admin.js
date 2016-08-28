@@ -4,7 +4,7 @@
 	$( function() {
 		var $link, linkText, linkActions, dataSlug, initializeLink;
 
-		$link = $( '.cs-toggle-action' );
+		$link = $( '.snapshot-toggle-setting-removal' );
 		linkText = [ 'Remove setting', 'Restore setting' ];
 		linkActions = [ 'remove', 'restore' ];
 		dataSlug = 'cs-action';
@@ -35,7 +35,7 @@
 					.data( dataSlug, linkActions[ 1 ] )
 					.after( this.constructHiddenInputWithValue() );
 				$settingDisplay.removeAttr( 'open' )
-					.addClass( 'cs-removed' );
+					.addClass( 'snapshot-setting-removed' );
 			};
 
 			this.constructHiddenInputWithValue = function() {
@@ -54,7 +54,7 @@
 				$clickedLink.text( linkText[ 0 ] )
 					.data( dataSlug, linkActions[ 0 ] );
 				this.removeHiddenInputWithValue();
-				$settingDisplay.removeClass( 'cs-removed' );
+				$settingDisplay.removeClass( 'snapshot-setting-removed' );
 			};
 
 			this.removeHiddenInputWithValue = function() {

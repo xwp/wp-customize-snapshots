@@ -1,12 +1,12 @@
-details.cs-removed summary::-webkit-details-marker {
-	display:none;
+details.snapshot-setting-removed summary {
+	text-decoration: line-through;
 }
-details:not(.cs-removed) .cs-toggle-action {
+details:not(.snapshot-setting-removed) .snapshot-toggle-setting-removal {
 	color: #a00
 }
-details:not(.cs-removed) .cs-toggle-action:hover {
+details:not(.snapshot-setting-removed) .snapshot-toggle-setting-removal:hover {
 	color: #f00
 }
-details .cs-toggle-action {
+details .snapshot-toggle-setting-removal {
 	float: right;
 }

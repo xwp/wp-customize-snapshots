@@ -362,7 +362,7 @@ class Post_Type {
 			echo '<li>';
 			echo '<details open>';
 			echo '<summary><code>' . esc_html( $setting_id ) . '</code> ';
-			echo '<a href="#" id="' . esc_attr( $setting_id ) . '" class="cs-toggle-action remove"></a>';
+			echo '<a href="#" id="' . esc_attr( $setting_id ) . '" class="snapshot-toggle-setting-removal remove"></a>';
 
 			// Show error message when there was a publishing error.
 			if ( isset( $setting_params['publish_error'] ) ) {
