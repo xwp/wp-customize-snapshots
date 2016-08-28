@@ -198,26 +198,22 @@
 	component.addButtons = function() {
 		var header = $( '#customize-header-actions' ),
 			publishButton = header.find( '#save' ),
-			submitButton, data, setPreviewLinkHref, snapshotButtonText, changeButtonText;
+			submitButton, templateData = {}, setPreviewLinkHref;
 
 		component.dirtySnapshotPostSetting = new api.Value();
 		component.dirtyScheduleDate = new api.Value();
 
 		// Save/update button.
-		component.snapshotButton = wp.template( 'snapshot-save' );
 		if ( api.state( 'snapshot-exists' ).get() ) {
 			if ( 'future' === component.data.postStatus ) {
-				snapshotButtonText = component.data.i18n.scheduleButton;
+				templateData.buttonText = component.data.i18n.scheduleButton;
 			} else {
-				snapshotButtonText = component.data.i18n.updateButton;
+				templateData.buttonText = component.data.i18n.updateButton;
 			}
 		} else {
-			snapshotButtonText = component.data.i18n.saveButton;
+			templateData.buttonText = component.data.i18n.saveButton;
 		}
-		data = {
-			buttonText: snapshotButtonText
-		};
-		component.snapshotButton = $( $.trim( component.snapshotButton( data ) ) );
+		component.snapshotButton = $( $.trim( wp.template( 'snapshot-save' )( templateData ) ) );
 		if ( ! component.data.currentUserCanPublish ) {
 			component.snapshotButton.attr( 'title', api.state( 'snapshot-exists' ).get() ? component.data.i18n.permsMsg.update : component.data.i18n.permsMsg.save );
 		}
@@ -225,8 +221,7 @@
 		component.snapshotButton.insertAfter( publishButton );
 
 		// Schedule button.
-		component.snapshotExpandButton = wp.template( 'snapshot-expand-button' );
-		component.snapshotExpandButton = $( $.trim( component.snapshotExpandButton( {} ) ) );
+		component.snapshotExpandButton = $( $.trim( wp.template( 'snapshot-expand-button' )( {} ) ) );
 		component.snapshotExpandButton.insertAfter( component.snapshotButton );
 
 		if ( ! component.data.editLink ) {
@@ -270,22 +265,13 @@
 			}
 		} );
 
-		changeButtonText = function() {
-			var date = component.getDateFromInputs();
-			if ( component.isFutureDate() && date && component.data.currentUserCanPublish ) {
-				component.snapshotButton.text( component.data.i18n.scheduleButton );
-			} else {
-				component.snapshotButton.text( api.state( 'snapshot-exists' ).get() ? component.data.i18n.updateButton : component.data.i18n.saveButton );
-			}
-		};
-
 		component.dirtySnapshotPostSetting.bind( function( dirty ) {
 			if ( dirty ) {
 				component.snapshotButton.prop( 'disabled', false );
 			} else {
 				component.snapshotButton.prop( 'disabled', ! component.data.dirty );
 			}
-			changeButtonText();
+			component.updateButtonText();
 		} );
 		component.dirtyScheduleDate.bind( function( dirty ) {
 			var date;
@@ -296,7 +282,7 @@
 				}
 				component.snapshotButton.text( component.data.i18n.scheduleButton );
 			} else {
-				changeButtonText();
+				component.updateButtonText();
 			}
 		} );
 
@@ -335,6 +321,20 @@
 		}
 
 		header.addClass( 'button-added' );
+	};
+
+	/**
+	 * Update button text.
+	 *
+	 * @returns {void}
+	 */
+	component.updateButtonText = function updateButtonText() {
+		var date = component.getDateFromInputs();
+		if ( component.isFutureDate() && date && component.data.currentUserCanPublish ) {
+			component.snapshotButton.text( component.data.i18n.scheduleButton );
+		} else {
+			component.snapshotButton.text( api.state( 'snapshot-exists' ).get() ? component.data.i18n.updateButton : component.data.i18n.saveButton );
+		}
 	};
 
 	/**
