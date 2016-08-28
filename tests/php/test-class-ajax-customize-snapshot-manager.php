@@ -434,8 +434,10 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 		$tomorrow = date( 'Y-m-d H:i:s', time() + 86400 );
 		$this->set_current_user( 'administrator' );
 		$this->assertTrue( current_user_can( $post_type_obj->cap->publish_posts ) );
+		$title = 'Hello World! \o/';
 		$this->set_input_vars( array(
 			'action' => Customize_Snapshot_Manager::AJAX_ACTION,
+			'title' => $title,
 			'nonce' => wp_create_nonce( Customize_Snapshot_Manager::AJAX_ACTION ),
 			'customize_snapshot_uuid' => self::UUID,
 			'customized' => wp_json_encode( array( $setting_key => 'Hello' ) ),
@@ -456,7 +458,7 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 				'setting_validities' => array( $setting_key => true ),
 				'edit_link' => get_edit_post_link( $post_id, 'raw' ),
 				'snapshot_publish_date' => $tomorrow,
-				'title' => self::UUID,
+				'title' => $title,
 			),
 		);
 		require_once ABSPATH . WPINC . '/class-wp-customize-manager.php';
@@ -467,6 +469,7 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 		$response = json_decode( $this->_last_response, true );
 		$this->assertSame( $expected_results, $response );
 		$this->assertEquals( 'future', get_post_status( $post_id ) );
+		$this->assertEquals( $title, get_the_title( $post_id ) );
 	}
 
 	/**
