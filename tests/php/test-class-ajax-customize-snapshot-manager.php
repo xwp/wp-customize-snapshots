@@ -526,4 +526,53 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 		);
 		$this->assertSame( $expected_results, $response );
 	}
+
+	/**
+	 * Test actions and filters to make sure they are passing correct params.
+	 *
+	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::handle_update_snapshot_request()
+	 */
+	function test_handle_update_snapshot_request_actions_and_filters() {
+		unset( $GLOBALS['wp_customize'] );
+		remove_all_actions( 'wp_ajax_' . Customize_Snapshot_Manager::AJAX_ACTION );
+
+		add_filter( 'user_has_cap', function( $allcaps, $caps, $args ) {
+			$allcaps['customize'] = true;
+			if ( ! empty( $allcaps['edit_posts'] ) && ! empty( $args ) && 'customize' === $args[0] ) {
+				$allcaps = array_merge( $allcaps, array_fill_keys( $caps, true ) );
+			}
+			return $allcaps;
+		}, 10, 3 );
+		$this->set_current_user( 'contributor' );
+		$post_vars = array(
+			'action' => Customize_Snapshot_Manager::AJAX_ACTION,
+			'nonce' => wp_create_nonce( Customize_Snapshot_Manager::AJAX_ACTION ),
+			'customize_snapshot_uuid' => self::UUID,
+		);
+
+		$this->plugin = new Plugin();
+		$this->plugin->init();
+		$this->add_setting();
+
+		$that = $this; // For PHP 5.3.
+		add_action( 'customize_snapshot_save_before', function( $test_snapshot, $test_customizer ) use ( $that ) {
+			$that->actioned_snapshot = $test_snapshot;
+			$that->actioned_customizer = $test_customizer;
+		}, 10, 2 );
+		add_filter( 'customize_save_response', function( $data, $test_snapshot_manager ) use ( $that ) {
+			$that->filtered_snapshot_manager = $test_snapshot_manager;
+			return $data;
+		}, 10, 2 );
+
+		$this->set_input_vars( $post_vars );
+		$this->make_ajax_call( Customize_Snapshot_Manager::AJAX_ACTION );
+
+		$manager = new Customize_Snapshot_Manager( $this->plugin );
+		$manager->ensure_customize_manager();
+		$manager->init();
+
+		$this->assertEquals( $manager->snapshot(), $this->actioned_snapshot );
+		$this->assertEquals( $manager->customize_manager, $this->actioned_customizer );
+		$this->assertEquals( $manager, $this->filtered_snapshot_manager );
+	}
 }
