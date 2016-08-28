@@ -2,7 +2,7 @@
 Contributors: westonruter, valendesigns, xwp, newscorpau
 Requires at least: 4.5.3
 Tested up to: 4.6
-Stable tag: 0.5.1
+Stable tag: 0.5.2
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 Tags: customizer, customize, snapshots
@@ -63,6 +63,17 @@ if ( ! $bypass_object_cache ) {
 7. Changes to snapshots are captured in revisions.
 
 == Changelog ==
+
+= 0.5.2 - 2016-08-17 =
+
+* Fixed: Prevent enqueueing frontend JS in the customizer preview. This was erroneously causing the customize_snapshot_uuid param to get injected into links in the preview. See [#80](https://github.com/xwp/wp-customize-snapshots/pull/80).
+* Fixed: Ensure that Update button gets disabled and reset to Save once changes have been published. See [#83](https://github.com/xwp/wp-customize-snapshots/pull/83).
+
+See full commit log: [`0.5.1...0.5.2`](https://github.com/xwp/wp-customize-snapshots/compare/0.5.0...0.5.1)
+
+Issues in milestone: [`milestone:0.5.2`](https://github.com/xwp/wp-customize-snapshots/issues?q=milestone%3A0.5.2)
+
+Props: Weston Ruter (<a href="https://github.com/westonruter" class="user-mention">@westonruter</a>), Utkarsh Patel (<a href="https://github.com/PatelUtkarsh" class="user-mention">@PatelUtkarsh</a>)
 
 = 0.5.1 - 2016-08-23 =
 
