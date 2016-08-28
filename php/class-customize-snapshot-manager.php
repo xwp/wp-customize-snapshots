@@ -1406,7 +1406,7 @@ class Customize_Snapshot_Manager {
 	public function render_templates() {
 		$data = $this->get_month_choices();
 
-		$description = __( 'Schedule your changes to publish (go live) at a future date.', 'customize-snapshots' );
+		$description = __( 'Schedule changes to publish (go live) at a future date.', 'customize-snapshots' );
 		?>
 		<script type="text/html" id="tmpl-snapshot-preview-link">
 			<a href="#" target="frontend-preview" id="snapshot-preview-link" class="dashicons dashicons-welcome-view-site" title="<?php esc_attr_e( 'View on frontend', 'customize-snapshots' ) ?>">
@@ -1430,17 +1430,17 @@ class Customize_Snapshot_Manager {
 
 				<ul class="snapshot-controls">
 					<li class="snapshot-control">
-						<span class="customize-control-title snapshot-control-title">
-							<?php esc_html_e( 'Snapshot Title', 'customize-snapshots' ); ?>
-						</span>
+						<label for="snapshot-title" class="customize-control-title snapshot-control-title">
+							<?php esc_html_e( 'Title', 'customize-snapshots' ); ?>
+						</label>
 						<input id="snapshot-title" type="text" value="{{data.title}}">
 					</li>
 					<# if ( data.currentUserCanPublish ) { #>
 						<li class="snapshot-control">
-							<span class="customize-control-title snapshot-control-title">
-								<?php esc_html_e( 'Snapshot Scheduling', 'customize-snapshots' ); ?>
+							<label for="snapshot-date-month" class="customize-control-title snapshot-control-title">
+								<?php esc_html_e( 'Scheduling', 'customize-snapshots' ); ?>
 								<span class="reset-time">(<a href="#" title="<?php esc_attr_e( 'Reset scheduled date to original or current date', 'customize-snapshots' ); ?>"><?php esc_html_e( 'Reset', 'customize-snapshots' ) ?></a>)</span>
-							</span>
+							</label>
 							<p class="snapshot-schedule-description">
 								<?php echo esc_html( $description ); ?>
 							</p>
@@ -1449,10 +1449,8 @@ class Customize_Snapshot_Manager {
 									<span class="screen-reader-text"><?php esc_html_e( 'Month', 'customize-snapshots' ); ?></span>
 									<#
 									_.defaults( data, <?php echo wp_json_encode( $data ) ?> );
-									data.input_id_post_date = 'input-' + String( Math.random() );
-									data.input_id_post_date_gmt = 'input-' + String( Math.random() );
 									#>
-									<select id="{{ data.input_id }}" class="date-input month" data-date-input="month">
+									<select id="snapshot-date-month" class="date-input month" data-date-input="month">
 									<# _.each( data.month_choices, function( choice ) { #>
 										<# if ( _.isObject( choice ) && ! _.isUndefined( choice.text ) && ! _.isUndefined( choice.value ) ) {
 											text = choice.text;
