@@ -87,7 +87,7 @@ class Post_Type {
 			'hierarchical' => false,
 			'delete_with_user' => false,
 			'menu_position' => null,
-			'supports' => array( 'author', 'revisions' ),
+			'supports' => array( 'title', 'author', 'revisions' ),
 			'capability_type' => static::SLUG,
 			'capabilities' => array(
 				'create_posts' => 'do_not_allow',
@@ -542,7 +542,7 @@ class Post_Type {
 
 		$post_arr = array(
 			'post_name' => $args['uuid'],
-			'post_title' => $args['uuid'],
+			'post_title' => ! empty( $args['post_title'] ) ? $args['post_title'] : $args['uuid'],
 			'post_type' => static::SLUG,
 			'meta_input' => array(
 				'_snapshot_version' => $this->snapshot_manager->plugin->version,
