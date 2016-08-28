@@ -815,9 +815,8 @@ class Customize_Snapshot_Manager {
 				$args['post_date_gmt'] = current_time( 'mysql', true );
 			}
 
-			if ( ! empty( $_POST['title'] ) ) {
-				$title = sanitize_text_field( $_POST['title'] );
-				$args['post_title'] = $title;
+			if ( isset( $_POST['title'] ) && '' !== trim( $_POST['title'] ) ) {
+				$args['post_title'] = sanitize_text_field( wp_unslash( $_POST['title'] ) );
 			}
 
 			$r = $this->snapshot->save( $args );
@@ -1166,9 +1165,8 @@ class Customize_Snapshot_Manager {
 		$args = array(
 			'status' => $status,
 		);
-		if ( ! empty( $_POST['title'] ) ) {
-			$title = sanitize_text_field( $_POST['title'] );
-			$args['post_title'] = $title;
+		if ( isset( $_POST['title'] ) && '' !== trim( $_POST['title'] ) ) {
+			$args['post_title'] = sanitize_text_field( wp_unslash( $_POST['title'] ) );
 		}
 
 		$args['edit_date'] = current_time( 'mysql' );
