@@ -145,6 +145,9 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 	function tearDown() {
 		$this->plugin->customize_snapshot_manager->customize_manager = null;
 		$this->manager = null;
+		$this->actioned_snapshot = null;
+		$this->actioned_snapshot_manager = null;
+		$this->filtered_customizer = null;
 		unset( $GLOBALS['wp_customize'] );
 		unset( $GLOBALS['wp_scripts'] );
 		unset( $_SERVER['REQUEST_METHOD'] );
