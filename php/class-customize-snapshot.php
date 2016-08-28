@@ -294,10 +294,11 @@ class Customize_Snapshot {
 		/**
 		 * Filter the snapshot's data before it's saved to 'post_content'.
 		 *
-		 * @param array $data Customizer snapshot data, with setting IDs mapped to an array
-		 *                    containing a `value` array item and potentially other metadata.
+		 * @param array              $data Customizer snapshot data, with setting IDs mapped to an array
+		 *                                 containing a `value` array item and potentially other metadata.
+		 * @param Customize_Snapshot $this Snapshot object.
 		 */
-		$this->data = apply_filters( 'customize_snapshot_save', $this->data );
+		$this->data = apply_filters( 'customize_snapshot_save', $this->data, $this );
 
 		$result = $this->snapshot_manager->post_type->save( array_merge(
 			$args,

@@ -111,6 +111,7 @@ class Customize_Snapshot_Manager {
 		add_action( 'admin_bar_menu', array( $this, 'customize_menu' ), 41 );
 		add_action( 'admin_bar_menu', array( $this, 'remove_all_non_snapshot_admin_bar_links' ), 100000 );
 		add_action( 'wp_before_admin_bar_render', array( $this, 'print_admin_bar_styles' ) );
+		add_filter( 'removable_query_args', array( $this, 'filter_removable_query_args' ) );
 
 		add_filter( 'wp_insert_post_data', array( $this, 'prepare_snapshot_post_content_for_publish' ) );
 		add_action( 'customize_save_after', array( $this, 'publish_snapshot_with_customize_save_after' ) );
@@ -725,7 +726,7 @@ class Customize_Snapshot_Manager {
 	 * Enqueue Customizer frontend scripts.
 	 */
 	public function enqueue_frontend_scripts() {
-		if ( ! $this->snapshot ) {
+		if ( ! $this->snapshot || is_customize_preview() ) {
 			return;
 		}
 		$handle = 'customize-snapshots-frontend';
@@ -895,6 +896,17 @@ class Customize_Snapshot_Manager {
 	}
 
 	/**
+	 * Add snapshot_error_on_publish to removable_query_args.
+	 *
+	 * @param array $query_args Query args.
+	 * @return array Removable query args.
+	 */
+	public function filter_removable_query_args( $query_args ) {
+		$query_args[] = 'snapshot_error_on_publish';
+		return $query_args;
+	}
+
+	/**
 	 * Publish snapshot changes when snapshot post is being published.
 	 *
 	 * The logic in here is the inverse of to publish_snapshot_with_customize_save_after.
@@ -1004,16 +1016,19 @@ class Customize_Snapshot_Manager {
 			}
 
 			// Validate setting value.
-			if ( method_exists( $setting, 'validate' ) && is_wp_error( $setting->validate( $setting_params['value'] ) ) ) {
-				$setting_params['publish_error'] = 'invalid_value';
-				$publish_error_count += 1;
-				continue;
+			if ( method_exists( $setting, 'validate' ) ) {
+				$validity = $setting->validate( $setting_params['value'] );
+				if ( is_wp_error( $validity ) ) {
+					$setting_params['publish_error'] = $validity->get_error_code();
+					$publish_error_count += 1;
+					continue;
+				}
 			}
 
 			// Validate sanitized setting value.
 			$sanitized_value = $setting->sanitize( $setting_params['value'] );
 			if ( is_null( $sanitized_value ) || is_wp_error( $sanitized_value ) ) {
-				$setting_params['publish_error'] = 'invalid_value';
+				$setting_params['publish_error'] = is_wp_error( $sanitized_value ) ? $sanitized_value->get_error_code() : 'invalid_value';
 				$publish_error_count += 1;
 				continue;
 			}
@@ -1031,6 +1046,11 @@ class Customize_Snapshot_Manager {
 			);
 			wp_update_post( wp_slash( $update_setting_args ) );
 			update_post_meta( $post->ID, 'snapshot_error_on_publish', $publish_error_count );
+
+			add_filter( 'redirect_post_location', function( $location ) {
+				$location = add_query_arg( 'snapshot_error_on_publish', '1', $location );
+				return $location;
+			} );
 			return false;
 		}
 
@@ -1094,6 +1114,10 @@ class Customize_Snapshot_Manager {
 		if ( ! in_array( $status, array( 'draft', 'pending', 'future' ), true ) ) {
 			status_header( 400 );
 			wp_send_json_error( 'bad_status' );
+		}
+		if ( 'future' === $status && ! current_user_can( 'customize_publish' ) ) {
+			status_header( 400 );
+			wp_send_json_error( 'customize_not_allowed' );
 		}
 		$publish_date = isset( $_POST['publish_date'] ) ? $_POST['publish_date'] : '';
 		if ( 'future' === $status ) {

@@ -526,6 +526,7 @@ class Test_Post_type extends \WP_UnitTestCase {
 		$admin_user_id = $this->factory()->user->create( array( 'role' => 'administrator' ) );
 		wp_set_current_user( $admin_user_id );
 		$post_type = get_plugin_instance()->customize_snapshot_manager->post_type;
+		$post_type->register();
 		$tag_line = 'Snapshot blog';
 
 		$data = array(
@@ -572,6 +573,7 @@ class Test_Post_type extends \WP_UnitTestCase {
 		 * Ensure that attempting to publish a snapshot with invalid settings
 		 * will get the publish_errors added as well as kick it back to pending.
 		 */
+		remove_all_filters( 'redirect_post_location' );
 		$post_id = $post_type->save( array(
 			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
 			'data' => $data,
@@ -582,10 +584,15 @@ class Test_Post_type extends \WP_UnitTestCase {
 		$content = $post_type->get_post_content( $snapshot_post );
 		$this->assertEquals( 'pending', $snapshot_post->post_status );
 		$this->assertEquals( $validated_content, $content );
+		$this->assertContains(
+			'snapshot_error_on_publish=1',
+			apply_filters( 'redirect_post_location', get_edit_post_link( $snapshot_post->ID ), $snapshot_post->ID )
+		);
 
 		/*
 		 * Remove invalid settings and now attempt publish.
 		 */
+		remove_all_filters( 'redirect_post_location' );
 		unset( $data['foo'] );
 		unset( $data['baz'] );
 		$post_id = $post_type->save( array(
@@ -599,6 +606,10 @@ class Test_Post_type extends \WP_UnitTestCase {
 		$this->assertEquals( 'publish', $snapshot_post->post_status );
 		$this->assertEquals( $data, $content );
 		$this->assertEquals( $tag_line, get_bloginfo( 'description' ) );
+		$this->assertNotContains(
+			'snapshot_error_on_publish=1',
+			apply_filters( 'redirect_post_location', get_edit_post_link( $snapshot_post->ID ), $snapshot_post->ID )
+		);
 	}
 
 	/**
@@ -650,7 +661,9 @@ class Test_Post_type extends \WP_UnitTestCase {
 	 */
 	public function test_show_publish_error_admin_notice() {
 		global $current_screen, $post;
+		wp_set_current_user( $this->factory()->user->create( array( 'role' => 'administrator' ) ) );
 		$post_type = new Post_Type( $this->plugin->customize_snapshot_manager );
+		$post_type->register();
 		$post_id = $post_type->save( array(
 			'uuid' => self::UUID,
 			'data' => array(),
@@ -672,11 +685,7 @@ class Test_Post_type extends \WP_UnitTestCase {
 		$post_type->show_publish_error_admin_notice();
 		$this->assertEmpty( ob_get_clean() );
 
-		$_REQUEST['message'] = 8;
-		ob_start();
-		$post_type->show_publish_error_admin_notice();
-		$this->assertEmpty( ob_get_clean() );
-
+		$_REQUEST['snapshot_error_on_publish'] = '1';
 		wp_update_post( array( 'ID' => $post_id, 'post_status' => 'pending' ) );
 		$post = get_post( $post_id ); // WPCS: override ok.
 		ob_start();
