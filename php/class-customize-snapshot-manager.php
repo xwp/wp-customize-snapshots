@@ -1405,8 +1405,6 @@ class Customize_Snapshot_Manager {
 	 */
 	public function render_templates() {
 		$data = $this->get_month_choices();
-
-		$description = __( 'Schedule changes to publish (go live) at a future date.', 'customize-snapshots' );
 		?>
 		<script type="text/html" id="tmpl-snapshot-preview-link">
 			<a href="#" target="frontend-preview" id="snapshot-preview-link" class="dashicons dashicons-welcome-view-site" title="<?php esc_attr_e( 'View on frontend', 'customize-snapshots' ) ?>">
@@ -1442,7 +1440,7 @@ class Customize_Snapshot_Manager {
 								<span class="reset-time">(<a href="#" title="<?php esc_attr_e( 'Reset scheduled date to original or current date', 'customize-snapshots' ); ?>"><?php esc_html_e( 'Reset', 'customize-snapshots' ) ?></a>)</span>
 							</label>
 							<p class="snapshot-schedule-description">
-								<?php echo esc_html( $description ); ?>
+								<?php esc_html_e( 'Schedule changes to publish (go live) at a future date.', 'customize-snapshots' ); ?>
 							</p>
 							<div class="snapshot-schedule-control date-inputs clear">
 								<label>

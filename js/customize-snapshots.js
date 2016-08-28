@@ -220,7 +220,27 @@
 		component.snapshotButton.prop( 'disabled', true );
 		component.snapshotButton.insertAfter( publishButton );
 
-		// Schedule button.
+		// Preview link.
+		component.previewLink = $( $.trim( wp.template( 'snapshot-preview-link' )() ) );
+		component.previewLink.toggle( api.state( 'snapshot-saved' ).get() );
+		component.previewLink.attr( 'target', component.data.uuid );
+		setPreviewLinkHref = _.debounce( function() {
+			if ( api.state( 'snapshot-exists' ).get() ) {
+				component.previewLink.attr( 'href', component.getSnapshotFrontendPreviewUrl() );
+			} else {
+				component.previewLink.attr( 'href', component.frontendPreviewUrl.get() );
+			}
+		} );
+		component.frontendPreviewUrl.bind( setPreviewLinkHref );
+		setPreviewLinkHref();
+		api.state.bind( 'change', setPreviewLinkHref );
+		api.bind( 'saved', setPreviewLinkHref );
+		component.snapshotButton.after( component.previewLink );
+		api.state( 'snapshot-saved' ).bind( function( saved ) {
+			component.previewLink.toggle( saved );
+		} );
+
+		// Edit button.
 		component.snapshotExpandButton = $( $.trim( wp.template( 'snapshot-expand-button' )( {} ) ) );
 		component.snapshotExpandButton.insertAfter( component.snapshotButton );
 
@@ -284,26 +304,6 @@
 			} else {
 				component.updateButtonText();
 			}
-		} );
-
-		// Preview link.
-		component.previewLink = $( $.trim( wp.template( 'snapshot-preview-link' )() ) );
-		component.previewLink.toggle( api.state( 'snapshot-saved' ).get() );
-		component.previewLink.attr( 'target', component.data.uuid );
-		setPreviewLinkHref = _.debounce( function() {
-			if ( api.state( 'snapshot-exists' ).get() ) {
-				component.previewLink.attr( 'href', component.getSnapshotFrontendPreviewUrl() );
-			} else {
-				component.previewLink.attr( 'href', component.frontendPreviewUrl.get() );
-			}
-		} );
-		component.frontendPreviewUrl.bind( setPreviewLinkHref );
-		setPreviewLinkHref();
-		api.state.bind( 'change', setPreviewLinkHref );
-		api.bind( 'saved', setPreviewLinkHref );
-		component.snapshotButton.after( component.previewLink );
-		api.state( 'snapshot-saved' ).bind( function( saved ) {
-			component.previewLink.toggle( saved );
 		} );
 
 		// Submit for review button.
