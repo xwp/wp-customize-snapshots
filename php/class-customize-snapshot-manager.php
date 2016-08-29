@@ -1566,7 +1566,7 @@ class Customize_Snapshot_Manager {
 
 		<script type="text/html" id="tmpl-snapshot-conflict-button">
 			<?php $title_text = __( 'click to expand', 'customize-snapshots' ); ?>
-			<# id= data.setting_id.replace( /]/g, '' ).split( '[' ).filter( Boolean ).join( '-' ); #>
+			<# id= data.setting_id.replace( /\]/g, '\\]' ).replace( /\[/g, '\\[' ); #>
 			<span>
 				<?php esc_html_e( 'Snapshot conflicts', 'customize-snapshots' ); ?>
 				<a href="<?php echo esc_url( '#TB_inline?width=600&height=550&inlineId=snapshot-conflicts-' ); ?>{{id}}" class="dashicons dashicons-warning thickbox snapshot-conflicts-button" title="<?php echo esc_attr( $title_text ); ?>"></a>
@@ -1582,8 +1582,7 @@ class Customize_Snapshot_Manager {
 		</script>
 
 		<script type="text/html" id="tmpl-snapshot-conflict">
-			<# id= data.setting_id.replace( /]/g, '' ).split( '[' ).filter( Boolean ).join( '-' ); #>
-			<div id="snapshot-conflicts-{{id}}" class="snapshot-conflict-thickbox-content">
+			<div id="snapshot-conflicts-{{data.setting_id}}" class="snapshot-conflict-thickbox-content">
 				    <# _.each( data.conflicts, function( setting ) { #>
 						<details>
 							<summary>
