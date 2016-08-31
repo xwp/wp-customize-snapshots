@@ -794,7 +794,7 @@ class Customize_Snapshot_Manager {
 			},
 			$this->customize_manager->unsanitized_post_values()
 		);
-		$result = $this->snapshot->set( $settings_data );
+		$result = $this->snapshot->set( $settings_data, array( 'skip_validation' => true ) );
 		if ( ! empty( $result['errors'] ) ) {
 			add_filter( 'customize_save_response', function( $response ) use ( $result, $that ) {
 				$response['snapshot_errors'] = $that->prepare_errors_for_response( $result['errors'] );
@@ -1299,7 +1299,7 @@ class Customize_Snapshot_Manager {
 			return;
 		}
 
-		// Remove customize_snapshot_uuuid query param from url param to be previewed in Customizer.
+		// Remove customize_snapshot_uuid query param from url param to be previewed in Customizer.
 		$preview_url_query_params = array();
 		$preview_url_parsed = wp_parse_url( $customize_node->href );
 		parse_str( $preview_url_parsed['query'], $preview_url_query_params );
