@@ -141,7 +141,11 @@ class Customize_Snapshot {
 	 * @throws Exception When $settings_data is not an array of arrays.
 	 *
 	 * @param array $settings_data Settings data, mapping setting IDs to arrays containing `value` and optionally additional params.
-	 * @param array $args extra optional param to tweak.
+	 * @param array $options {
+	 *     Additional options.
+	 *
+	 *     @type bool $skip_validation Whether to skip validation. Optional, defaults to false.
+	 * }
 	 * @return array {
 	 *     Result.
 	 *
@@ -150,7 +154,7 @@ class Customize_Snapshot {
 	 *     @type array          $validities Setting validities.
 	 * }
 	 */
-	public function set( array $settings_data, array $args = array() ) {
+	public function set( array $settings_data, array $options = array() ) {
 		$error = new \WP_Error();
 		$result = array(
 			'errors' => null,
@@ -190,7 +194,7 @@ class Customize_Snapshot {
 		);
 
 		$invalid_setting_ids = array();
-		if ( empty( $args['skip_validation'] ) ) {
+		if ( empty( $options['skip_validation'] ) ) {
 			// Validate.
 			if ( method_exists( $customize_manager, 'validate_setting_values' ) ) {
 				$result['validities'] = $customize_manager->validate_setting_values( $unsanitized_values );

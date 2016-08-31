@@ -1299,7 +1299,7 @@ class Customize_Snapshot_Manager {
 			return;
 		}
 
-		// Remove customize_snapshot_uuuid query param from url param to be previewed in Customizer.
+		// Remove customize_snapshot_uuid query param from url param to be previewed in Customizer.
 		$preview_url_query_params = array();
 		$preview_url_parsed = wp_parse_url( $customize_node->href );
 		parse_str( $preview_url_parsed['query'], $preview_url_query_params );
