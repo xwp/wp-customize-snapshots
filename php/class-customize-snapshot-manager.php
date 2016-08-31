@@ -800,7 +800,7 @@ class Customize_Snapshot_Manager {
 				$response['snapshot_errors'] = $that->prepare_errors_for_response( $result['errors'] );
 				return $response;
 			} );
-			return false; // Todo should remove?
+			return false;
 		}
 
 		if ( ! $this->snapshot->post() || 'publish' !== $this->snapshot->post()->post_status ) {
