@@ -794,13 +794,13 @@ class Customize_Snapshot_Manager {
 			},
 			$this->customize_manager->unsanitized_post_values()
 		);
-		$result = $this->snapshot->set( $settings_data );
+		$result = $this->snapshot->set( $settings_data, array( 'skip_validation' => true ) );
 		if ( ! empty( $result['errors'] ) ) {
 			add_filter( 'customize_save_response', function( $response ) use ( $result, $that ) {
 				$response['snapshot_errors'] = $that->prepare_errors_for_response( $result['errors'] );
 				return $response;
 			} );
-			return false;
+			return false; // Todo should remove?
 		}
 
 		if ( ! $this->snapshot->post() || 'publish' !== $this->snapshot->post()->post_status ) {
