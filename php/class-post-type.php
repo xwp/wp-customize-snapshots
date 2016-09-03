@@ -719,7 +719,7 @@ class Post_Type {
 		}
 
 		$setting_ids_to_unset = $_REQUEST[ $key_for_settings ];
-		$data = json_decode( $post->post_content, true );
+		$data = json_decode( wp_unslash( $content ), true );
 		foreach ( $setting_ids_to_unset as $setting_id ) {
 			unset( $data[ $setting_id ] );
 		}
