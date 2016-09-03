@@ -2,71 +2,87 @@
 	'use strict';
 
 	$( function() {
-		var $link, linkText, linkActions, dataSlug, initializeLink;
+		var component, linkSelector, linkText, linkActions, dataSlug, inputName;
 
-		$link = $( '.snapshot-toggle-setting-removal' );
+		component = {};
+		linkSelector = '.snapshot-toggle-setting-removal';
 		linkText = [ 'Remove setting', 'Restore setting' ];
 		linkActions = [ 'remove', 'restore' ];
 		dataSlug = 'cs-action';
+		inputName = 'customize_snapshot_remove_settings[]';
 
-		initializeLink = function() {
-			$link.text( linkText[ 0 ] )
+		component.initializeLink = function() {
+			$( linkSelector ).text( linkText[ 0 ] )
 				.data( dataSlug, linkActions[ 0 ] );
 		};
 
-		initializeLink();
+		component.initializeLink();
 
-		$link.on( 'click', function( event ) {
-			var $clickedLink, $settingDisplay, clickedLinkAction, settingId;
+		component.isLinkSetToRemoveSetting = function( $link ) {
+			return linkActions[ 0 ] === component.getClickedLinkAction( $link );
+		};
+
+		component.isLinkSetToRestoreSetting = function( $link ) {
+			return linkActions[ 1 ] === component.getClickedLinkAction( $link );
+		};
+
+		component.getClickedLinkAction = function( $link ) {
+			return $link.data( dataSlug );
+		};
+
+		component.hideSettingAndChangeLinkText = function( $link ) {
+			var $settingDisplay, settingId;
+			$settingDisplay = component.getSettingDisplay( $link );
+			settingId = component.getSettingId( $link );
+
+			$link.text( linkText[ 1 ] )
+				.data( dataSlug, linkActions[ 1 ] )
+				.after( component.constructHiddenInputWithValue( settingId ) );
+			$settingDisplay.removeAttr( 'open' )
+				.addClass( 'snapshot-setting-removed' );
+		};
+
+		component.getSettingDisplay = function( $link ) {
+			return $link.parents( 'details' );
+		};
+
+		component.getSettingId = function( $link ) {
+			return $link.attr( 'id' );
+		};
+
+		component.constructHiddenInputWithValue = function( settingId ) {
+			return $( '<input>' ).attr( {
+				'name': inputName,
+				'type': 'hidden'
+			} )
+			.val( settingId );
+		};
+
+		component.showSettingAndChangeLinkText = function( $link ) {
+			var $settingDisplay, settingId;
+			$settingDisplay = component.getSettingDisplay( $link );
+			settingId = component.getSettingId( $link );
+
+			$link.text( linkText[ 0 ] )
+				.data( dataSlug, linkActions[ 0 ] );
+			component.removeHiddenInputWithValue( settingId );
+			$settingDisplay.removeClass( 'snapshot-setting-removed' );
+		};
+
+		component.removeHiddenInputWithValue = function( settingId ) {
+			$( 'input[name="' + inputName + '"][value="' + settingId + '"]' ).remove();
+		};
+
+		$( linkSelector ).on( 'click', function( event ) {
+			var $clickedLink = $( this );
 
 			event.preventDefault();
 
-			$clickedLink = $( this );
-			$settingDisplay = $( this ).parents( 'details' );
-			clickedLinkAction = $( this ).data( dataSlug );
-			settingId = $( this ).attr( 'id' );
-
-			this.isLinkSetToRemoveSetting = function() {
-				return linkActions[ 0 ] === clickedLinkAction;
-			};
-
-			this.hideSettingAndChangeLinkText = function() {
-				$clickedLink.text( linkText[ 1 ] )
-					.data( dataSlug, linkActions[ 1 ] )
-					.after( this.constructHiddenInputWithValue() );
-				$settingDisplay.removeAttr( 'open' )
-					.addClass( 'snapshot-setting-removed' );
-			};
-
-			this.constructHiddenInputWithValue = function() {
-				return $( '<input>' ).attr( {
-					'name': 'customize_snapshot_remove_settings[]',
-					'type': 'hidden'
-				})
-				.val( settingId );
-			};
-
-			this.isLinkSetToRestoreSetting = function() {
-				return linkActions[ 1 ] === clickedLinkAction;
-			};
-
-			this.showSettingAndChangeLinkText = function() {
-				$clickedLink.text( linkText[ 0 ] )
-					.data( dataSlug, linkActions[ 0 ] );
-				this.removeHiddenInputWithValue();
-				$settingDisplay.removeClass( 'snapshot-setting-removed' );
-			};
-
-			this.removeHiddenInputWithValue = function() {
-				$( 'input[value="' + settingId + '"]' ).remove();
-			};
-
-			if ( this.isLinkSetToRemoveSetting() ) {
-				this.hideSettingAndChangeLinkText();
-			} else if ( this.isLinkSetToRestoreSetting() ) {
-				this.showSettingAndChangeLinkText();
+			if ( component.isLinkSetToRemoveSetting( $clickedLink ) ) {
+				component.hideSettingAndChangeLinkText( $clickedLink );
+			} else if ( component.isLinkSetToRestoreSetting( $clickedLink ) ) {
+				component.showSettingAndChangeLinkText( $clickedLink );
 			}
-
 		} );
 
 	} );
