@@ -719,9 +719,9 @@ class Post_Type {
 		}
 
 		$setting_ids_to_unset = $_REQUEST[ $key_for_settings ];
-		$data = json_decode( $post->post_content );
+		$data = json_decode( $post->post_content, true );
 		foreach ( $setting_ids_to_unset as $setting_id ) {
-			unset( $data->{ $setting_id } );
+			unset( $data[ $setting_id ] );
 		}
 		$content = Customize_Snapshot_Manager::encode_json( $data );
 
