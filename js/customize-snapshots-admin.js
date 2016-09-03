@@ -2,18 +2,16 @@
 	'use strict';
 
 	$( function() {
-		var component, linkSelector, linkText, linkActions, dataSlug, inputName;
+		var component, $linkToRemoveOrRestore, linkActions, dataSlug, inputName;
 
 		component = {};
-		linkSelector = '.snapshot-toggle-setting-removal';
-		linkText = [ 'Remove setting', 'Restore setting' ];
+		$linkToRemoveOrRestore = $( '.snapshot-toggle-setting-removal' );
 		linkActions = [ 'remove', 'restore' ];
 		dataSlug = 'cs-action';
 		inputName = 'customize_snapshot_remove_settings[]';
 
 		component.initializeLink = function() {
-			$( linkSelector ).text( linkText[ 0 ] )
-				.data( dataSlug, linkActions[ 0 ] );
+			$linkToRemoveOrRestore.data( dataSlug, linkActions[ 0 ] );
 		};
 
 		component.initializeLink();
@@ -35,9 +33,9 @@
 			$settingDisplay = component.getSettingDisplay( $link );
 			settingId = component.getSettingId( $link );
 
-			$link.text( linkText[ 1 ] )
-				.data( dataSlug, linkActions[ 1 ] )
+			$link.data( dataSlug, linkActions[ 1 ] )
 				.after( component.constructHiddenInputWithValue( settingId ) );
+			component.changeLinkText( $link );
 			$settingDisplay.removeAttr( 'open' )
 				.addClass( 'snapshot-setting-removed' );
 		};
@@ -58,13 +56,22 @@
 			.val( settingId );
 		};
 
+		component.changeLinkText = function( $link ) {
+			var oldLinkText, newLinkText;
+			oldLinkText = $link.text();
+			newLinkText = $link.data( 'text-restore' );
+
+			$link.data( 'text-restore', oldLinkText )
+				.text( newLinkText );
+		};
+
 		component.showSettingAndChangeLinkText = function( $link ) {
 			var $settingDisplay, settingId;
 			$settingDisplay = component.getSettingDisplay( $link );
 			settingId = component.getSettingId( $link );
 
-			$link.text( linkText[ 0 ] )
-				.data( dataSlug, linkActions[ 0 ] );
+			$link.data( dataSlug, linkActions[ 0 ] );
+			component.changeLinkText( $link );
 			component.removeHiddenInputWithValue( settingId );
 			$settingDisplay.removeClass( 'snapshot-setting-removed' );
 		};
@@ -73,7 +80,7 @@
 			$( 'input[name="' + inputName + '"][value="' + settingId + '"]' ).remove();
 		};
 
-		$( linkSelector ).on( 'click', function( event ) {
+		$linkToRemoveOrRestore.on( 'click', function( event ) {
 			var $clickedLink = $( this );
 
 			event.preventDefault();
