@@ -707,6 +707,8 @@ class Post_Type {
 			&&
 			! empty( $_REQUEST[ $key_for_settings ] )
 			&&
+			is_array( $_REQUEST[ $key_for_settings ] )
+			&&
 			isset( $_REQUEST[ static::SLUG ] )
 			&&
 			wp_verify_nonce( $_REQUEST[ static::SLUG ], static::SLUG . '_settings' )
