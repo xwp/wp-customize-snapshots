@@ -115,6 +115,8 @@ class Post_Type {
 		add_action( 'admin_notices', array( $this, 'show_publish_error_admin_notice' ) );
 		add_action( 'post_submitbox_minor_actions', array( $this, 'hide_disabled_publishing_actions' ) );
 		add_action( 'admin_print_scripts-revision.php', array( $this, 'disable_revision_ui_for_published_posts' ) );
+		add_action( 'wp_ajax_snapshot_fork', array( $this, 'handle_snapshot_fork' ) );
+		add_action( 'admin_print_footer_scripts-post.php', array( $this, 'snapshot_admin_script_template' ) );
 	}
 
 	/**
@@ -168,6 +170,14 @@ class Post_Type {
 		$screen = static::SLUG;
 		$context = 'normal';
 		$priority = 'high';
+		add_meta_box( $id, $title, $callback, $screen, $context, $priority );
+
+		$id = static::SLUG . '-fork';
+		$title = __( 'Forked/Copied Snapshots', 'customize-snapshots' );
+		$callback = array( $this, 'render_forked_metabox' );
+		$screen = static::SLUG;
+		$context = 'normal';
+		$priority = 'default';
 		add_meta_box( $id, $title, $callback, $screen, $context, $priority );
 	}
 
@@ -341,10 +351,15 @@ class Post_Type {
 
 			$frontend_view_url = get_permalink( $post->ID );
 			echo sprintf(
-				'<a href="%s" class="button button-secondary">%s</a>',
+				'<a href="%s" class="button button-secondary">%s</a> ',
 				esc_url( $frontend_view_url ),
 				esc_html__( 'Preview Snapshot', 'customize-snapshots' )
 			);
+
+			if ( 'draft' === $post->post_status ) {
+				echo '<a href="#" id="snapshot-fork" class="button button-secondary" data-post-id="' . $post->ID . '" data-nonce="' . wp_create_nonce( 'snapshot-fork' ) . '">' . esc_html__( 'Fork/Copy', 'customize-snapshots' ) . '</a>';
+				echo '<span class="spinner snapshot-fork-spinner"></span>';
+			}
 			echo '</p>';
 		}
 
@@ -413,6 +428,26 @@ class Post_Type {
 			echo '</li>';
 		}
 		echo '</ul>';
+	}
+
+	/**
+	 * Renders Forked snapshot metabox.
+	 *
+	 * @param \WP_Post $post current post object.
+	 */
+	public function render_forked_metabox( $post ) {
+		$post = new \WP_Query( array(
+			'post_parent' => $post->ID,
+			'posts_per_page' => 20, // Todo 20 looks fine i don't think people would have that many forks.
+			'post_type' => array( static::SLUG ),
+		) ); ?>
+		<ul id="snapshot-fork-list"><?php
+		if ( $post->have_posts() ) {
+			foreach ( $post->get_posts() as $p ) {
+				echo '<li><a href="' . esc_url( get_edit_post_link( $p ), 'raw' ) . '">' . get_the_title( $p ) . '</a></li>';
+			}
+		} ?>
+		</ul><?php
 	}
 
 	/**
@@ -674,5 +709,61 @@ class Post_Type {
 			}
 		</style>
 		<?php
+	}
+
+	/**
+	 * Prints admin underscore templates.
+	 */
+	public function snapshot_admin_script_template() {
+		global $post;
+		if ( isset( $post->post_type, $post->post_status ) && static::SLUG === $post->post_type && 'draft' === $post->post_status ) { ?>
+			<script type="text/html" id="tmpl-snapshot-fork-item">
+				<li><a href="{{data.edit_link}}">{{data.post_title}}</a></li>
+			</script>
+		<?php }
+	}
+
+	/**
+	 * Handles snapshot fork ajax request.
+	 */
+	public function handle_snapshot_fork() {
+		if ( ! check_ajax_referer( 'snapshot-fork', 'nonce', false ) ) {
+			status_header( 400 );
+			wp_send_json_error( 'bad_nonce' );
+		}
+		$post_id = 0;
+		if ( ! isset( $_POST['ID'] ) || ! $post_id = intval( $_POST['ID'] ) ) {
+			wp_send_json_error( 'invalid_post-id' );
+		}
+		$parent_post = get_post( $post_id );
+		if ( self::SLUG !== $parent_post->post_status && 'draft' !== $parent_post->post_status ) {
+			wp_send_json_error( 'invalid-post' );
+		}
+
+		$uuid = Customize_Snapshot_Manager::generate_uuid();
+		$new_post_arr = array(
+			'menu_order' => $parent_post->menu_order,
+			'comment_status' => $parent_post->comment_status,
+			'ping_status' => $parent_post->ping_status,
+			'post_author' => get_current_user_id(),
+			'post_content' => $parent_post->post_content,
+			'post_excerpt' => $parent_post->post_excerpt,
+			'post_mime_type' => $parent_post->post_mime_type,
+			'post_parent' => $parent_post->ID,
+			'post_password' => $parent_post->post_password,
+			'post_status' => $parent_post->post_status,
+			'post_title' => ( $parent_post->post_name === $parent_post->post_title ) ? $uuid : $parent_post->post_title,
+			'post_type' => self::SLUG,
+			'post_date' => $parent_post->post_date,
+			'post_date_gmt' => $parent_post->post_date_gmt,
+			'post_name' => $uuid,
+		);
+		// $new_post_arr['post_title'] .= __( ' (Forked)', 'customize-snapshot' );
+		$this->suspend_kses();
+		$forked_post_id = wp_insert_post( $new_post_arr );
+		$this->restore_kses();
+		$forked_post = get_post( $forked_post_id, ARRAY_A );
+		$forked_post['edit_link'] = get_edit_post_link( $forked_post_id, 'raw' );
+		wp_send_json_success( $forked_post );
 	}
 }

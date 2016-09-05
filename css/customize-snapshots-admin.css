@@ -1,0 +1,9 @@
+.snapshot-fork-spinner{
+	float: inherit;
+	text-align: center;
+	vertical-align: top;
+}
+#snapshot-fork-list{
+	list-style: inherit;
+	padding-left: 2em;
+}
