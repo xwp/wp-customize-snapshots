@@ -758,6 +758,16 @@ class Post_Type {
 			'post_date_gmt' => $parent_post->post_date_gmt,
 			'post_name' => $uuid,
 		);
+		$all_meta = get_post_meta( $post_id );
+		if ( ! empty( $all_meta ) ) {
+			$ignore = array( '_edit_lock', '_edit_last' );
+			$new_post_arr['meta_input'] = array();
+			foreach ( $all_meta as $key => $val ) {
+				if ( ! in_array( $key, $ignore, true ) ) {
+					$new_post_arr['meta_input'][ $key ] = array_shift( $val );
+				}
+			}
+		}
 		// $new_post_arr['post_title'] .= __( ' (Forked)', 'customize-snapshot' );
 		$this->suspend_kses();
 		$forked_post_id = wp_insert_post( $new_post_arr );
