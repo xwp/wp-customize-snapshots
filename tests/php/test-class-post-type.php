@@ -127,6 +127,12 @@ class Test_Post_type extends \WP_UnitTestCase {
 		$this->assertFalse( ! empty( $wp_meta_boxes[ Post_Type::SLUG ]['normal']['high'][ $metabox_id ] ) );
 		do_action( 'add_meta_boxes_' . Post_Type::SLUG, $post_id );
 		$this->assertTrue( ! empty( $wp_meta_boxes[ Post_Type::SLUG ]['normal']['high'][ $metabox_id ] ) );
+
+		$wp_meta_boxes = array(); // WPCS: global override ok.
+		$metabox_id = Post_Type::SLUG . '-fork';
+		$this->assertFalse( ! empty( $wp_meta_boxes[ Post_Type::SLUG ]['normal']['default'][ $metabox_id ] ) );
+		do_action( 'add_meta_boxes_' . Post_Type::SLUG, $post_id );
+		$this->assertTrue( ! empty( $wp_meta_boxes[ Post_Type::SLUG ]['normal']['default'][ $metabox_id ] ) );
 	}
 
 	/* Note: Code coverage ignored on Post_Type::remove_publish_metabox(). */
@@ -278,6 +284,8 @@ class Test_Post_type extends \WP_UnitTestCase {
 
 		$this->assertContains( 'UUID:', $metabox_content );
 		$this->assertContains( 'button-secondary', $metabox_content );
+		$this->assertContains( 'id="snapshot-fork"', $metabox_content );
+		$this->assertContains( 'snapshot-fork-spinner', $metabox_content );
 		$this->assertContains( '<ul id="snapshot-settings">', $metabox_content );
 		foreach ( $data as $setting_id => $setting_args ) {
 			$this->assertContains( $setting_id, $metabox_content );
@@ -304,6 +312,8 @@ class Test_Post_type extends \WP_UnitTestCase {
 
 		$this->assertContains( 'UUID:', $metabox_content );
 		$this->assertNotContains( 'button-secondary', $metabox_content );
+		$this->assertNotContains( 'id="snapshot-fork"', $metabox_content );
+		$this->assertNotContains( 'snapshot-fork-spinner', $metabox_content );
 		$this->assertContains( '<ul id="snapshot-settings">', $metabox_content );
 		foreach ( $data as $setting_id => $setting_args ) {
 			$this->assertContains( $setting_id, $metabox_content );
@@ -321,6 +331,29 @@ class Test_Post_type extends \WP_UnitTestCase {
 		$post_type->render_data_metabox( get_post( $post_id ) );
 		$metabox_content = ob_get_clean();
 		$this->assertContains( 'snapshot was made when a different theme was active', $metabox_content );
+	}
+
+	/**
+	 * Test render_forked_metabox.
+	 *
+	 * @see Post_Type::render_forked_metabox()
+	 */
+	function test_render_forked_metabox() {
+		$post_type = new Post_Type( $this->plugin->customize_snapshot_manager );
+		$post_type->register();
+		$data = array(
+			'knoa8sdhpasidg0apbdpahcas' => array( 'value' => 'a09sad0as9hdgw22dutacs' ),
+			'n0nee8fa9s7ap9sdga9sdas9c' => array( 'value' => 'lasdbaosd81vvajgcaf22k' ),
+		);
+		$post_id = $post_type->save( array(
+			'uuid' => self::UUID,
+			'data' => $data,
+			'status' => 'draft',
+		) );
+		ob_start();
+		$post_type->render_forked_metabox( get_post( $post_id ) );
+		$metabox_content = ob_get_clean();
+		$this->assertContains( 'id="snapshot-fork-list"', $metabox_content );
 	}
 
 	/**
@@ -652,6 +685,11 @@ class Test_Post_type extends \WP_UnitTestCase {
 		update_post_meta( $post_id, 'snapshot_error_on_publish', true );
 		$states = $post_type->display_post_states( array(), get_post( $post_id ) );
 		$this->assertArrayHasKey( 'snapshot_error', $states );
+
+		$fork_post = get_post( $post_id );
+		$fork_post->post_parent = 100;
+		$states = $post_type->display_post_states( array(), $fork_post );
+		$this->assertArrayHasKey( 'forked', $states );
 	}
 
 	/**
