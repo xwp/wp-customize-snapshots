@@ -635,7 +635,7 @@ class Post_Type {
 	}
 
 	/**
-	 * Display snapshot save error on post list table.
+	 * Display snapshot states post list table.
 	 *
 	 * @param array    $states Display states.
 	 * @param \WP_Post $post   Post object.
@@ -649,6 +649,9 @@ class Post_Type {
 		$maybe_error = get_post_meta( $post->ID, 'snapshot_error_on_publish', true );
 		if ( $maybe_error ) {
 			$states['snapshot_error'] = __( 'Error on publish', 'customize-snapshots' );
+		}
+		if ( $post->post_parent ) {
+			$states['forked'] = __( 'Forked', 'customize-snapshots' );
 		}
 		return $states;
 	}
@@ -768,7 +771,6 @@ class Post_Type {
 				}
 			}
 		}
-		// $new_post_arr['post_title'] .= __( ' (Forked)', 'customize-snapshot' );
 		$this->suspend_kses();
 		$forked_post_id = wp_insert_post( $new_post_arr );
 		$this->restore_kses();
