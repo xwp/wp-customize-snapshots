@@ -448,6 +448,10 @@ class Post_Type {
 			}
 		} ?>
 		</ul><?php
+		if ( $post->post_parent ) {
+			$parent = get_post( $post->post_parent );
+			echo '<h2>' . __( 'Parent:', 'customize-snapshots' ) . '&nbsp;<a href="' . esc_url( get_edit_post_link( $parent, 'raw' ) ) . '">' . get_the_title( $parent ) . '</a></h2>';
+		}
 	}
 
 	/**
