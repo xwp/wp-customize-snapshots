@@ -436,14 +436,14 @@ class Post_Type {
 	 * @param \WP_Post $post current post object.
 	 */
 	public function render_forked_metabox( $post ) {
-		$post = new \WP_Query( array(
+		$post_query = new \WP_Query( array(
 			'post_parent' => $post->ID,
 			'posts_per_page' => 20, // Todo 20 looks fine i don't think people would have that many forks.
 			'post_type' => array( static::SLUG ),
 		) ); ?>
 		<ul id="snapshot-fork-list"><?php
-		if ( $post->have_posts() ) {
-			foreach ( $post->get_posts() as $p ) {
+		if ( $post_query->have_posts() ) {
+			foreach ( $post_query->get_posts() as $p ) {
 				echo '<li><a href="' . esc_url( get_edit_post_link( $p ), 'raw' ) . '">' . get_the_title( $p ) . '</a></li>';
 			}
 		} ?>
