@@ -173,7 +173,7 @@ class Post_Type {
 		add_meta_box( $id, $title, $callback, $screen, $context, $priority );
 
 		$id = static::SLUG . '-fork';
-		$title = __( 'Forked/Copied Snapshots', 'customize-snapshots' );
+		$title = __( 'Forked Snapshots', 'customize-snapshots' );
 		$callback = array( $this, 'render_forked_metabox' );
 		$screen = static::SLUG;
 		$context = 'normal';
@@ -357,7 +357,7 @@ class Post_Type {
 			);
 
 			if ( 'draft' === $post->post_status ) {
-				echo '<a href="#" id="snapshot-fork" class="button button-secondary" data-post-id="' . $post->ID . '" data-nonce="' . wp_create_nonce( 'snapshot-fork' ) . '">' . esc_html__( 'Fork/Copy', 'customize-snapshots' ) . '</a>';
+				echo '<a href="#" id="snapshot-fork" class="button button-secondary" data-post-id="' . $post->ID . '" data-nonce="' . wp_create_nonce( 'snapshot-fork' ) . '">' . esc_html__( 'Fork', 'customize-snapshots' ) . '</a>';
 				echo '<span class="spinner snapshot-fork-spinner"></span>';
 			}
 			echo '</p>';
