@@ -58,6 +58,8 @@ class Test_Post_type extends \WP_UnitTestCase {
 		$this->assertEquals( 10, has_action( 'transition_post_status', array( $post_type->snapshot_manager, 'save_settings_with_publish_snapshot' ) ) );
 		$this->assertEquals( 10, has_filter( 'wp_insert_post_data', array( $post_type->snapshot_manager, 'prepare_snapshot_post_content_for_publish' ) ) );
 		$this->assertEquals( 10, has_action( 'display_post_states', array( $post_type, 'display_post_states' ) ) );
+		$this->assertEquals( 10, has_action( 'wp_ajax_snapshot_fork', array( $post_type, 'handle_snapshot_fork' ) ) );
+		$this->assertEquals( 10, has_action( 'admin_print_footer_scripts-post.php', array( $post_type, 'snapshot_admin_script_template' ) ) );
 	}
 
 	/**
@@ -786,5 +788,22 @@ class Test_Post_type extends \WP_UnitTestCase {
 		$output = ob_get_clean();
 		$this->assertNotEmpty( $output );
 		$this->assertContains( 'misc-pub-post-status', $output );
+	}
+
+	/**
+	 * Test snapshot_admin_script_template.
+	 */
+	function test_snapshot_admin_script_template() {
+		$post_type = new Post_Type( $this->plugin->customize_snapshot_manager );
+		ob_start();
+		global $post;
+		$id = $post_type->save( array(
+			'uuid' => self::UUID,
+			'status' => 'draft',
+		) );
+		$post = get_post( $id );
+		$post_type->snapshot_admin_script_template();
+		$contains = ob_get_clean();
+		$this->assertContains( 'id="tmpl-snapshot-fork-item"', $contains );
 	}
 }
