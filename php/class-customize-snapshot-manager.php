@@ -752,11 +752,13 @@ class Customize_Snapshot_Manager {
 	 *
 	 * These files control the behavior and styling of links to remove settings.
 	 * Published snapshots can't be edited, so these files are not needed on those pages.
+	 *
+	 * @param String $hook Current page.
 	 */
 	public function enqueue_admin_scripts( $hook ) {
 		global $post;
 		$handle = 'customize-snapshots-admin';
-		if ( 'post.php' === $hook && isset( $post->post_type ) && ( Post_Type::SLUG === $post->post_type ) && ( 'publish' !== $post->post_status ) ) {
+		if ( 'post.php' === $hook && isset( $post->post_type ) && ( Post_Type::SLUG === $post->post_type ) ) {
 			wp_enqueue_script( $handle );
 			wp_enqueue_style( $handle );
 		}

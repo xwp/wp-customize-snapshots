@@ -640,7 +640,7 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 		$this->assertEquals( $data, $post_type->get_post_content( get_post( $response['ID'] ) ) );
 		$post = get_post( $post_id, ARRAY_A );
 		$fork_post = get_post( $response['ID'], ARRAY_A );
-		$key = array( 'ID', 'post_title', 'post_parent', 'post_name', 'guid', 'ancestors','tags_input','post_category' );
+		$key = array( 'ID', 'post_title', 'post_parent', 'post_name', 'guid', 'ancestors','tags_input','post_category', 'post_date', 'post_date_gmt', 'post_modified_gmt', 'post_modified' );
 		foreach ( $key as $item ) {
 			unset( $fork_post[ $item ], $post[ $item ] );
 		}

@@ -313,9 +313,9 @@ class Test_Post_type extends \WP_UnitTestCase {
 		remove_filter( 'customize_snapshot_value_preview', array( $this, 'filter_customize_snapshot_value_preview' ), 10 );
 
 		$this->assertContains( 'UUID:', $metabox_content );
-		$this->assertNotContains( 'button-secondary', $metabox_content );
-		$this->assertNotContains( 'id="snapshot-fork"', $metabox_content );
-		$this->assertNotContains( 'snapshot-fork-spinner', $metabox_content );
+		$this->assertNotContains( 'customize_snapshot_uuid', $metabox_content );
+		$this->assertContains( 'id="snapshot-fork"', $metabox_content );
+		$this->assertContains( 'snapshot-fork-spinner', $metabox_content );
 		$this->assertContains( '<ul id="snapshot-settings">', $metabox_content );
 		foreach ( $data as $setting_id => $setting_args ) {
 			$this->assertContains( $setting_id, $metabox_content );

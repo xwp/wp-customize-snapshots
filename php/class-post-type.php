@@ -332,6 +332,8 @@ class Post_Type {
 		echo sprintf( '%1$s %2$s %3$s', esc_html__( 'Modified:', 'customize-snapshots' ), esc_html( get_the_modified_date( '' ) ), esc_html( get_the_modified_time( '' ) ) ) . '<br>';
 		echo '</p>';
 
+		$fork_markup = '<a href="#" id="snapshot-fork" class="button button-secondary" data-post-id="' . $post->ID . '" data-nonce="' . wp_create_nonce( 'snapshot-fork' ) . '">' . esc_html__( 'Fork', 'customize-snapshots' ) . '</a>';
+		$fork_markup .= '<span class="spinner snapshot-fork-spinner"></span>';
 		$snapshot_theme = get_post_meta( $post->ID, '_snapshot_theme', true );
 		if ( ! empty( $snapshot_theme ) && get_stylesheet() !== $snapshot_theme ) {
 			echo '<p>';
@@ -356,11 +358,10 @@ class Post_Type {
 				esc_html__( 'Preview Snapshot', 'customize-snapshots' )
 			);
 
-			if ( 'draft' === $post->post_status ) {
-				echo '<a href="#" id="snapshot-fork" class="button button-secondary" data-post-id="' . $post->ID . '" data-nonce="' . wp_create_nonce( 'snapshot-fork' ) . '">' . esc_html__( 'Fork', 'customize-snapshots' ) . '</a>';
-				echo '<span class="spinner snapshot-fork-spinner"></span>';
-			}
+			echo $fork_markup;
 			echo '</p>';
+		} else {
+			echo "<p>$fork_markup</p>";
 		}
 
 		echo '<hr>';
@@ -723,7 +724,7 @@ class Post_Type {
 	 */
 	public function snapshot_admin_script_template() {
 		global $post;
-		if ( isset( $post->post_type, $post->post_status ) && static::SLUG === $post->post_type && 'draft' === $post->post_status ) { ?>
+		if ( isset( $post->post_type, $post->post_status ) && static::SLUG === $post->post_type ) { ?>
 			<script type="text/html" id="tmpl-snapshot-fork-item">
 				<li><a href="{{data.edit_link}}">{{data.post_title}}</a></li>
 			</script>
@@ -743,7 +744,7 @@ class Post_Type {
 			wp_send_json_error( 'invalid_post-id' );
 		}
 		$parent_post = get_post( $post_id );
-		if ( self::SLUG !== $parent_post->post_status && 'draft' !== $parent_post->post_status ) {
+		if ( self::SLUG !== $parent_post->post_type ) {
 			wp_send_json_error( 'invalid-post' );
 		}
 
@@ -758,11 +759,13 @@ class Post_Type {
 			'post_mime_type' => $parent_post->post_mime_type,
 			'post_parent' => $parent_post->ID,
 			'post_password' => $parent_post->post_password,
-			'post_status' => $parent_post->post_status,
+			'post_status' => 'draft',
 			'post_title' => ( $parent_post->post_name === $parent_post->post_title ) ? $uuid : $parent_post->post_title,
 			'post_type' => self::SLUG,
-			'post_date' => $parent_post->post_date,
-			'post_date_gmt' => $parent_post->post_date_gmt,
+			'post_date' => current_time( 'mysql', false ),
+			'post_date_gmt' => current_time( 'mysql', true ),
+			'post_modified' => current_time( 'mysql', false ),
+			'post_modified_gmt' => current_time( 'mysql', true ),
 			'post_name' => $uuid,
 		);
 		$all_meta = get_post_meta( $post_id );
