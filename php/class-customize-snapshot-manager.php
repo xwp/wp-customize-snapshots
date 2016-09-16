@@ -757,8 +757,9 @@ class Customize_Snapshot_Manager {
 	 */
 	public function enqueue_admin_scripts( $hook ) {
 		global $post;
-		$handle = 'customize-snapshots-admin';
+
 		if ( 'post.php' === $hook && isset( $post->post_type ) && ( Post_Type::SLUG === $post->post_type ) ) {
+			$handle = 'customize-snapshots-admin';
 			wp_enqueue_script( $handle );
 			wp_enqueue_style( $handle );
 		}

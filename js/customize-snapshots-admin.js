@@ -5,24 +5,28 @@
 
 	component.forkClick = function() {
 		var $forkButton = $( '#snapshot-fork' ),
-			$forkSnipper = $( '.snapshot-fork-spinner' ),
+			$forkSpinner = $( '.snapshot-fork-spinner' ),
 			$forkList = $( '#snapshot-fork-list' ),
 			forkItemTemplate = wp.template( 'snapshot-fork-item' );
+
 		$forkButton.on( 'click', function( e ) {
 			var request;
-			$forkSnipper.addClass( 'is-active' );
+			$forkSpinner.addClass( 'is-active' );
 			request = wp.ajax.post( 'snapshot_fork', {
 				ID: $forkButton.data( 'post-id' ),
 				nonce: $forkButton.data( 'nonce' )
 			} );
+
 			request.always( function() {
-				$forkSnipper.removeClass( 'is-active' );
+				$forkSpinner.removeClass( 'is-active' );
 			} );
+
 			request.done( function( data ) {
 				var item;
 				item = $( $.trim( forkItemTemplate( data ) ) );
 				$forkList.append( item );
 			} );
+
 			e.preventDefault();
 		} );
 	};

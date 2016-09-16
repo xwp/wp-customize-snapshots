@@ -332,9 +332,10 @@ class Post_Type {
 		echo sprintf( '%1$s %2$s %3$s', esc_html__( 'Modified:', 'customize-snapshots' ), esc_html( get_the_modified_date( '' ) ), esc_html( get_the_modified_time( '' ) ) ) . '<br>';
 		echo '</p>';
 
-		$fork_markup = '<a href="#" id="snapshot-fork" class="button button-secondary" data-post-id="' . $post->ID . '" data-nonce="' . wp_create_nonce( 'snapshot-fork' ) . '">' . esc_html__( 'Fork', 'customize-snapshots' ) . '</a>';
+		$fork_markup = sprintf( '<button id="snapshot-fork" class="button button-secondary" data-post-id="%s" data-nonce="%s">%s</button>', esc_attr( $post->ID ), wp_create_nonce( 'snapshot-fork' ), esc_html__( 'Fork', 'customize-snapshots' ) );
 		$fork_markup .= '<span class="spinner snapshot-fork-spinner"></span>';
 		$snapshot_theme = get_post_meta( $post->ID, '_snapshot_theme', true );
+
 		if ( ! empty( $snapshot_theme ) && get_stylesheet() !== $snapshot_theme ) {
 			echo '<p>';
 			echo sprintf( esc_html__( 'This snapshot was made when a different theme was active (%1$s), so currently it cannot be edited.', 'customize-snapshots' ), esc_html( $snapshot_theme ) );
@@ -353,7 +354,7 @@ class Post_Type {
 
 			$frontend_view_url = get_permalink( $post->ID );
 			echo sprintf(
-				'<a href="%s" class="button button-secondary">%s</a> ',
+				'<a href="%s" class="button button-secondary">%s</a>',
 				esc_url( $frontend_view_url ),
 				esc_html__( 'Preview Snapshot', 'customize-snapshots' )
 			);
@@ -451,7 +452,7 @@ class Post_Type {
 		</ul><?php
 		if ( $post->post_parent ) {
 			$parent = get_post( $post->post_parent );
-			echo '<h2>' . __( 'Parent:', 'customize-snapshots' ) . '&nbsp;<a href="' . esc_url( get_edit_post_link( $parent, 'raw' ) ) . '">' . get_the_title( $parent ) . '</a></h2>';
+			echo '<h2>' . __( 'Parent:', 'customize-snapshots' ) . ' <a href="' . esc_url( get_edit_post_link( $parent, 'raw' ) ) . '">' . get_the_title( $parent ) . '</a></h2>';
 		}
 	}
 
