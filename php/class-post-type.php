@@ -354,7 +354,7 @@ class Post_Type {
 
 			$frontend_view_url = get_permalink( $post->ID );
 			echo sprintf(
-				'<a href="%s" class="button button-secondary">%s</a>',
+				'<a href="%s" class="button button-secondary">%s</a> ',
 				esc_url( $frontend_view_url ),
 				esc_html__( 'Preview Snapshot', 'customize-snapshots' )
 			);
