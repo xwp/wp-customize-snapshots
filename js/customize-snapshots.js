@@ -949,7 +949,7 @@
 			onFirstChange = component.onConflictFirstChange = function() {
 				_.each( control.settings, function( setting ) {
 					setting.unbind( onFirstChange );
-					component.handleConflictRequest( setting );
+					component.handleConflictRequest( setting, control );
 				} );
 			};
 
@@ -980,10 +980,14 @@
 	 * Handles the snapshot conflict request
 	 *
 	 * @param {object} setting to check conflicts
+	 * @param {object} control
 	 *
 	 * @return {void}
 	 */
-	component.handleConflictRequest = function conflictRequest( setting ) {
+	component.handleConflictRequest = function handleConflictRequest( setting, control ) {
+		if ( _.isUndefined( control ) || _.isUndefined( control.notifications ) ) {
+			return;
+		}
 		if ( component.conflict._currentRequest ) {
 			component.conflict._currentRequest.abort();
 			component.conflict._currentRequest = null;
@@ -1009,7 +1013,7 @@
 				component.conflict._currentRequest = wp.ajax.post( 'customize_snapshot_conflict_check', data );
 
 				component.conflict._currentRequest.done( function( returnData ) {
-					var multiple, controls, buttonTemplate, notification;
+					var multiple, controls, buttonTemplate, notification, notificationsContainer;
 					if ( ! _.isEmpty( returnData ) ) {
 						_.each( returnData, function( value, key ) {
 							component.conflict.controls[key] = $( $.trim( component.conflict.warningTemplate( {
@@ -1022,18 +1026,23 @@
 								setting_id: key
 							} ) ) );
 							_.each( controls, function( control ) {
-								control.notificationsTemplate = component.conflict.notificationTemplate;
-								notification = new api.Notification( component.conflict.notificationCode, {
-									type: 'warning',
-									message: $.trim( buttonTemplate.html() )
-								} );
-								control.notifications.add( component.conflict.notificationCode, notification );
-								if ( ! multiple ) {
-									component.conflict.controls[key].insertAfter( control.container.find( '.customize-control-notifications-container' ) );
-									component.updateConflictValueMarkup( key, component.conflict.controls[key] );
+								if ( control && control.notifications && api.Notification && control.container ) {
+									control.notificationsTemplate = component.conflict.notificationTemplate;
+									notification = new api.Notification( component.conflict.notificationCode, {
+										type: 'warning',
+										message: $.trim( buttonTemplate.html() )
+									} );
+									control.notifications.add( component.conflict.notificationCode, notification );
+									if ( ! multiple ) {
+										notificationsContainer = control.container.find( '.customize-control-notifications-container' );
+										if ( notificationsContainer.length ) {
+											component.conflict.controls[key].insertAfter( notificationsContainer );
+											component.updateConflictValueMarkup( key, component.conflict.controls[key] );
+										}
+									}
+									control.container.find( '.snapshot-conflicts-button' ).show();
+									multiple = true;
 								}
-								control.container.find( '.snapshot-conflicts-button' ).show();
-								multiple = true;
 							} );
 						} );
 					}
@@ -1043,6 +1052,7 @@
 			component.conflict.refreshBuffer
 		);
 	};
+
 	/**
 	 * Update markup with current value
 	 *
