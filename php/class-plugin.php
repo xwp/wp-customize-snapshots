@@ -34,7 +34,7 @@ class Plugin extends Plugin_Base {
 	public function __construct() {
 
 		// Parse plugin version.
-		if ( preg_match( '/Version:\s*(\S+)/', file_get_contents( dirname( __FILE__ ) . '/../customize-snapshots.php' ), $matches ) ) {
+		if ( preg_match( '/Version:\s*(\S+)/', file_get_contents( __DIR__ . '/../customize-snapshots.php' ), $matches ) ) {
 			$this->version = $matches[1];
 		}
 
@@ -66,7 +66,8 @@ class Plugin extends Plugin_Base {
 	 * @param \WP_Scripts $wp_scripts Instance of \WP_Scripts.
 	 */
 	public function register_scripts( \WP_Scripts $wp_scripts ) {
-		$min = ( SCRIPT_DEBUG ? '' : '.min' );
+		$is_git_repo = file_exists( dirname( __DIR__ ) . '/.git' );
+		$min = ( SCRIPT_DEBUG || $is_git_repo ? '' : '.min' );
 
 		$handle = 'customize-snapshots';
 		$src = $this->dir_url . 'js/customize-snapshots' . $min . '.js';
@@ -92,7 +93,8 @@ class Plugin extends Plugin_Base {
 	 * @param \WP_Styles $wp_styles Instance of \WP_Styles.
 	 */
 	public function register_styles( \WP_Styles $wp_styles ) {
-		$min = ( SCRIPT_DEBUG ? '' : '.min' );
+		$is_git_repo = file_exists( dirname( __DIR__ ) . '/.git' );
+		$min = ( SCRIPT_DEBUG || $is_git_repo ? '' : '.min' );
 
 		$handle = 'customize-snapshots';
 		$src = $this->dir_url . 'css/customize-snapshots' . $min . '.css';
