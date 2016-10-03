@@ -980,12 +980,12 @@
 	 * Handles the snapshot conflict request
 	 *
 	 * @param {object} setting to check conflicts
-	 * @param {object} control
+	 * @param {object} controlObj object
 	 *
 	 * @return {void}
 	 */
-	component.handleConflictRequest = function handleConflictRequest( setting, control ) {
-		if ( _.isUndefined( control ) || _.isUndefined( control.notifications ) ) {
+	component.handleConflictRequest = function handleConflictRequest( setting, controlObj ) {
+		if ( _.isUndefined( controlObj ) || _.isUndefined( controlObj.notifications ) ) {
 			return;
 		}
 		if ( component.conflict._currentRequest ) {
