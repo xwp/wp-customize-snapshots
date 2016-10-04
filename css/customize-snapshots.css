@@ -1,17 +1,17 @@
 #snapshot-preview-link,
-#snapshot-schedule-button {
+#snapshot-expand-button {
 	float: right;
 	margin-top: 13px;
 	margin-right: 4px;
 	color: #656a6f;
 }
 
-#snapshot-schedule-button {
+#snapshot-expand-button {
 	display: block;
 }
-#snapshot-schedule-button:hover,
-#snapshot-schedule-button:focus,
-#snapshot-schedule-button:active {
+#snapshot-expand-button:hover,
+#snapshot-expand-button:focus,
+#snapshot-expand-button:active {
 	color: #191e23;
 }
 
@@ -64,7 +64,7 @@
 	}
 }
 
-#snapshot-schedule {
+#customize-snapshot {
 	background: #fff !important;
 	border-bottom: 1px solid #ddd;
 	line-height: 1.5;
@@ -77,23 +77,24 @@
 	box-sizing: border-box;
 }
 
-#snapshot-schedule .snapshot-schedule-title {
+#customize-snapshot .snapshot-schedule-title {
 	color: #555;
 }
 
-#snapshot-schedule .snapshot-schedule-title h3 {
+#customize-snapshot .snapshot-schedule-title h3 {
 	margin: .2em 2em .75em 0;
 }
 
-#snapshot-schedule .snapshot-schedule-description {
+#customize-snapshot .snapshot-schedule-description {
 	margin-bottom: 0.5em;
+	margin-top: 0;
 }
-#snapshot-schedule .timezone-info {
+#customize-snapshot .timezone-info {
 	margin-top: 0.5em;
 	font-size: smaller;
 }
 
-#snapshot-schedule a.snapshot-edit-link {
+#customize-snapshot a.snapshot-edit-link {
 	position: absolute;
 	top: 4px;
 	right: 1px;
@@ -109,12 +110,12 @@
 	padding: 10px;
 }
 
-#snapshot-schedule a.snapshot-edit-link:focus,
-#snapshot-schedule a.snapshot-edit-link:hover {
+#customize-snapshot a.snapshot-edit-link:focus,
+#customize-snapshot a.snapshot-edit-link:hover {
 	color: #0073aa;
 }
 
-#snapshot-schedule a.snapshot-edit-link:before {
+#customize-snapshot a.snapshot-edit-link:before {
 	padding: 4px;
 	position: absolute;
 	top: 5px;
@@ -123,7 +124,7 @@
 	border-radius: 100%;
 }
 
-#snapshot-schedule a.snapshot-edit-link:focus:before {
+#customize-snapshot a.snapshot-edit-link:focus:before {
 	-webkit-box-shadow:
 		0 0 0 1px #5b9dd9,
 		0 0 2px 1px rgba(30, 140, 190, .8);
@@ -132,11 +133,11 @@
 		0 0 2px 1px rgba(30, 140, 190, .8);
 }
 
-#snapshot-schedule .accordion-section-title {
+#customize-snapshot .accordion-section-title {
 	padding: 10px;
 }
 
-#snapshot-schedule .reset-time {
+#customize-snapshot .reset-time {
 	font-weight: normal;
 	font-size: 80%;
 	display: none;
@@ -200,6 +201,21 @@
 
 .select2-container {
 	z-index: 500100 !important;
+}
+
+.snapshot-control input[type="text"]{
+	width: 100%;
+	line-height: 18px;
+	margin: 0;
+}
+
+#customize-snapshot .snapshot-schedule-title h3{
+	font-size: 16px;
+}
+
+#customize-snapshot .snapshot-controls{
+	list-style: none;
+	margin: 0;
 }
 
 /*
