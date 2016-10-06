@@ -776,6 +776,7 @@ class Test_Post_type extends \WP_UnitTestCase {
 	 */
 	public function test_handle_snapshot_bulk_actions() {
 		$post_type = new Post_Type( $this->plugin->customize_snapshot_manager );
+		$date1 = gmdate( 'Y-m-d H:i:s', ( time() + ( get_option( 'gmt_offset' ) * HOUR_IN_SECONDS ) ) );
 		$post_1 = $post_type->save( array(
 			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
 			'status' => 'draft',
@@ -784,8 +785,9 @@ class Test_Post_type extends \WP_UnitTestCase {
 					'value' => 'bar',
 				),
 			),
-			'post_date' => current_time( 'mysql', false ),
-			'post_date_gmt' => current_time( 'mysql', true ),
+			'post_date' => $date1,
+			'post_date_gmt' => $date1,
+			'edit_date' => $date1,
 		) );
 		$value = array(
 			'foo' => array(
@@ -795,12 +797,14 @@ class Test_Post_type extends \WP_UnitTestCase {
 				'value' => 'zab',
 			),
 		);
-
+		$date2 = gmdate( 'Y-m-d H:i:s', ( time() + 60 + ( get_option( 'gmt_offset' ) * HOUR_IN_SECONDS ) ) );
 		$post_2 = $post_type->save( array(
 			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
 			'status' => 'draft',
 			'data' => $value,
-			'post_date' => gmdate( 'Y-m-d H:i:s', ( time() + 60 + ( get_option( 'gmt_offset' ) * HOUR_IN_SECONDS ) ) ),
+			'post_date' => $date2,
+			'post_date_gmt' => $date2,
+			'edit_date' => $date2,
 		) );
 
 		$post_type->handle_snapshot_bulk_actions( '', 'merge_snapshot', array( $post_1, $post_2 ) );
