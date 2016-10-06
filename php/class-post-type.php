@@ -124,6 +124,7 @@ class Post_Type {
 			add_action( 'admin_print_footer_scripts-edit.php', array( $this, 'snapshot_merge_print_script' ) );
 			add_action( 'load-edit.php', array( $this, 'handle_snapshot_bulk_actions_workaround' ) );
 		}
+		add_action( 'admin_notices', array( $this, 'admin_show_merge_error' ) );
 	}
 
 	/**
@@ -711,8 +712,19 @@ class Post_Type {
 			return $redirect_to;
 		}
 		$posts = array_map( 'get_post', $post_ids );
+		if ( count( $posts ) <= 1 ) {
+			return empty( $redirect_to ) ? add_query_arg( array( 'merge-error' => 1 ) ) : add_query_arg( array( 'merge-error' => 1 ), $redirect_to );
+		}
 
-		// @Todo filter post status.
+		$allowed_status = array( 'draft', 'future' );
+		$posts = array_filter( $posts, function( $p ) use ( $allowed_status ) {
+			return in_array( $p->post_status, $allowed_status, true );
+		} );
+
+		if ( count( $posts ) <= 1 ) {
+			return empty( $redirect_to ) ? add_query_arg( array( 'merge-error' => 2 ) ) : add_query_arg( array( 'merge-error' => 2 ), $redirect_to );
+		}
+
 		usort( $posts, function( $a, $b ) {
 			$compare_a = $a->post_modified;
 			$compare_b = $b->post_modified;
@@ -784,10 +796,29 @@ class Post_Type {
 		if ( empty( $post_ids ) ) {
 			return;
 		}
-		$redirect_url = $this->handle_snapshot_bulk_actions( '', 'merge_snapshot', $post_ids );
+		$redirect_url = $this->handle_snapshot_bulk_actions( wp_get_referer(), 'merge_snapshot', $post_ids );
 		if ( ! empty( $redirect_url ) ) {
 			wp_safe_redirect( $redirect_url );
 			exit;
 		}
+	}
+
+	/**
+	 * Show admin notice in case of merge error
+	 */
+	public function admin_show_merge_error() {
+		if ( ! isset( $_REQUEST['merge-error'] ) ) {
+			return;
+		}
+		$error = array(
+			1 => __( 'At-least two snapshot required for merge.', 'customize-snapshots' ),
+			2 => __( 'Only draft and future(scheduled) snapshots are allowed to be merged.', 'customize-snapshots' ),
+			3 => __( 'Some snapshot are skipped from merge which are not draft or future', 'customize-snapshots' ),
+		);
+		$error_code = intval( $_REQUEST['merge-error'] );
+		if ( ! isset( $error[ $error_code ] ) ) {
+			return;
+		}
+		printf( '<div class="notice notice-error is-dismissible"><p>%s</p></div>', esc_html( $error[ $error_code ] ) );
 	}
 }
