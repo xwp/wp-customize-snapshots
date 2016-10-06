@@ -800,18 +800,16 @@ class Test_Post_type extends \WP_UnitTestCase {
 			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
 			'status' => 'draft',
 			'data' => $value,
-			'post_date' => current_time( 'mysql', false ),
-			'post_date_gmt' => current_time( 'mysql', true ),
+			'post_date' => gmdate( 'Y-m-d H:i:s', ( time() + 60 + ( get_option( 'gmt_offset' ) * HOUR_IN_SECONDS ) ) ),
 		) );
 
 		$post_type->handle_snapshot_bulk_actions( '', 'merge_snapshot', array( $post_1, $post_2 ) );
 		$merged_post = get_post( $post_2 + 1 );
 		$value['foo']['merge_conflict'] = array(
 			array(
-				'value' => 'baz',
+				'value' => 'bar',
 			),
 		);
-		$value['foo']['value'] = 'bar';
 		$this->assertSame( $value, $post_type->get_post_content( $merged_post ) );
 	}
 
