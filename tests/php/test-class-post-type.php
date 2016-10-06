@@ -58,6 +58,14 @@ class Test_Post_type extends \WP_UnitTestCase {
 		$this->assertEquals( 10, has_action( 'transition_post_status', array( $post_type->snapshot_manager, 'save_settings_with_publish_snapshot' ) ) );
 		$this->assertEquals( 10, has_filter( 'wp_insert_post_data', array( $post_type->snapshot_manager, 'prepare_snapshot_post_content_for_publish' ) ) );
 		$this->assertEquals( 10, has_action( 'display_post_states', array( $post_type, 'display_post_states' ) ) );
+
+		if ( version_compare( get_bloginfo( 'version' ), '4.7', '>=' ) ) {
+			$this->assertEquals( 10, has_filter( 'bulk_actions-edit-' . Post_Type::SLUG, array( $post_type, 'add_snapshot_bulk_actions' ) ) );
+			$this->assertEquals( 10, has_filter( 'handle_bulk_actions-edit-' . Post_Type::SLUG, array( $post_type, 'handle_snapshot_bulk_actions' ) ) );
+		} else {
+			$this->assertEquals( 10, has_action( 'admin_print_footer_scripts-edit.php', array( $post_type, 'snapshot_merge_print_script' ) ) );
+			$this->assertEquals( 10, has_action( 'load-edit.php', array( $post_type, 'handle_snapshot_bulk_actions_workaround' ) ) );
+		}
 	}
 
 	/**
@@ -748,5 +756,80 @@ class Test_Post_type extends \WP_UnitTestCase {
 		$output = ob_get_clean();
 		$this->assertNotEmpty( $output );
 		$this->assertContains( 'misc-pub-post-status', $output );
+	}
+
+	/**
+	 * Tests add_snapshot_bulk_actions
+	 *
+	 * @see Post_Type::add_snapshot_bulk_actions()
+	 */
+	public function test_add_snapshot_bulk_actions() {
+		$post_type = new Post_Type( $this->plugin->customize_snapshot_manager );
+		$data = $post_type->add_snapshot_bulk_actions( array() );
+		$this->assertArrayHasKey( 'merge_snapshot', $data );
+	}
+
+	/**
+	 * Test handle_snapshot_bulk_actions
+	 *
+	 * @see Post_Type::handle_snapshot_bulk_actions()
+	 */
+	public function test_handle_snapshot_bulk_actions() {
+		$post_type = new Post_Type( $this->plugin->customize_snapshot_manager );
+		$post_1 = $post_type->save( array(
+			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
+			'status' => 'draft',
+			'data' => array(
+				'foo' => array(
+					'value' => 'bar',
+				),
+			),
+			'post_date' => current_time( 'mysql', false ),
+			'post_date_gmt' => current_time( 'mysql', true ),
+		) );
+		$value = array(
+			'foo' => array(
+				'value' => 'baz',
+			),
+			'baz' => array(
+				'value' => 'zab',
+			),
+		);
+
+		$post_2 = $post_type->save( array(
+			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
+			'status' => 'draft',
+			'data' => $value,
+			'post_date' => current_time( 'mysql', false ),
+			'post_date_gmt' => current_time( 'mysql', true ),
+		) );
+
+		$post_type->handle_snapshot_bulk_actions( '', 'merge_snapshot', array( $post_1, $post_2 ) );
+		$merged_post = get_post( $post_2 + 1 );
+		$value['foo']['merge_conflict'] = array(
+			array(
+				'value' => 'baz',
+			),
+		);
+		$value['foo']['value'] = 'bar';
+		$this->assertSame( $value, $post_type->get_post_content( $merged_post ) );
+	}
+
+	/**
+	 * Test snapshot_merge_print_script
+	 *
+	 * @see Post_Type::snapshot_merge_print_script()
+	 */
+	public function test_snapshot_merge_print_script() {
+		$this->markTestIncomplete();
+	}
+
+	/**
+	 * Test handle_snapshot_bulk_actions_workaround
+	 *
+	 * @see Post_Type::handle_snapshot_bulk_actions_workaround()
+	 */
+	public function test_handle_snapshot_bulk_actions_workaround() {
+		$this->markTestIncomplete();
 	}
 }
