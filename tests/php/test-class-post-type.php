@@ -66,6 +66,7 @@ class Test_Post_type extends \WP_UnitTestCase {
 			$this->assertEquals( 10, has_action( 'admin_print_footer_scripts-edit.php', array( $post_type, 'snapshot_merge_print_script' ) ) );
 			$this->assertEquals( 10, has_action( 'load-edit.php', array( $post_type, 'handle_snapshot_bulk_actions_workaround' ) ) );
 		}
+		$this->assertEquals( 10, has_action( 'admin_notices', array( $post_type, 'admin_show_merge_error' ) ) );
 	}
 
 	/**
@@ -833,12 +834,12 @@ class Test_Post_type extends \WP_UnitTestCase {
 		$post_type_obj = new Post_Type( $this->plugin->customize_snapshot_manager );
 		ob_start();
 		$post_type_obj->snapshot_merge_print_script();
-		$metabox_content = ob_get_clean();
+		$script_content = ob_get_clean();
 
-		$this->assertContains( 'select[name="action"]', $metabox_content );
-		$this->assertContains( 'select[name="action2"]', $metabox_content );
-		$this->assertContains( 'merge_snapshot', $metabox_content );
-		$this->assertContains( 'text/javascript', $metabox_content );
+		$this->assertContains( 'select[name="action"]', $script_content );
+		$this->assertContains( 'select[name="action2"]', $script_content );
+		$this->assertContains( 'merge_snapshot', $script_content );
+		$this->assertContains( 'text/javascript', $script_content );
 	}
 
 	/**
@@ -848,5 +849,28 @@ class Test_Post_type extends \WP_UnitTestCase {
 	 */
 	public function test_handle_snapshot_bulk_actions_workaround() {
 		$this->markTestIncomplete();
+	}
+
+	/**
+	 * Test admin_show_merge_error
+	 *
+	 * @see Post_Type::admin_show_merge_error()
+	 */
+	public function test_admin_show_merge_error() {
+		$post_type_obj = new Post_Type( $this->plugin->customize_snapshot_manager );
+		ob_start();
+		$post_type_obj->admin_show_merge_error();
+		$notice_content = ob_get_clean();
+		$this->assertEmpty( $notice_content );
+		ob_start();
+		$_POST['merge-error'] = $_REQUEST['merge-error'] = $_GET['merge-error'] = 1;
+		$post_type_obj->admin_show_merge_error();
+		$notice_content = ob_get_clean();
+		$this->assertContains( 'notice-error', $notice_content );
+		$_POST['merge-error'] = $_REQUEST['merge-error'] = $_GET['merge-error'] = 5;
+		ob_start();
+		$post_type_obj->admin_show_merge_error();
+		$notice_content = ob_get_clean();
+		$this->assertEmpty( $notice_content );
 	}
 }
