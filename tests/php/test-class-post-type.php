@@ -811,7 +811,12 @@ class Test_Post_type extends \WP_UnitTestCase {
 		$merged_post = get_post( $post_2 + 1 );
 		$value['foo']['merge_conflict'] = array(
 			array(
+				'uuid' => get_post( $post_1 )->post_name,
 				'value' => 'bar',
+			),
+			array(
+				'uuid' => get_post( $post_2 )->post_name,
+				'value' => 'baz',
 			),
 		);
 		$this->assertSame( $value, $post_type->get_post_content( $merged_post ) );
