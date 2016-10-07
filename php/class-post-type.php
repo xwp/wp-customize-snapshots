@@ -716,15 +716,6 @@ class Post_Type {
 			return empty( $redirect_to ) ? add_query_arg( array( 'merge-error' => 1 ) ) : add_query_arg( array( 'merge-error' => 1 ), $redirect_to );
 		}
 
-		$allowed_status = array( 'draft', 'future' );
-		$posts = array_filter( $posts, function( $p ) use ( $allowed_status ) {
-			return in_array( $p->post_status, $allowed_status, true );
-		} );
-
-		if ( count( $posts ) <= 1 ) {
-			return empty( $redirect_to ) ? add_query_arg( array( 'merge-error' => 2 ) ) : add_query_arg( array( 'merge-error' => 2 ), $redirect_to );
-		}
-
 		usort( $posts, function( $a, $b ) {
 			$compare_a = $a->post_modified;
 			$compare_b = $b->post_modified;
@@ -823,8 +814,6 @@ class Post_Type {
 		}
 		$error = array(
 			1 => __( 'At-least two snapshot required for merge.', 'customize-snapshots' ),
-			2 => __( 'Only draft and future(scheduled) snapshots are allowed to be merged.', 'customize-snapshots' ),
-			3 => __( 'Some snapshot are skipped from merge which are not draft or future', 'customize-snapshots' ),
 		);
 		$error_code = intval( $_REQUEST['merge-error'] );
 		if ( ! isset( $error[ $error_code ] ) ) {
