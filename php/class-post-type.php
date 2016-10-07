@@ -737,27 +737,33 @@ class Post_Type {
 			return strtotime( $compare_a ) - strtotime( $compare_b );
 		} );
 
+		$snapshot_post_data = array();
 		foreach ( $posts as $post ) {
-			$post->post_content = $this->get_post_content( $post );
+			$snapshot_post_data[] = array(
+				'data' => $this->get_post_content( $post ),
+				'uuid' => $post->post_name,
+			);
 		}
-		$content = wp_list_pluck( $posts, 'post_content' );
-		$conflict_keys = call_user_func_array( 'array_intersect_key', $content );
-		$merge_value = call_user_func_array( 'array_merge', $content );
+		$snapshots_data = wp_list_pluck( $snapshot_post_data, 'data' );
+		$conflict_keys = call_user_func_array( 'array_intersect_key', $snapshots_data );
+		$merged_snapshot_data = call_user_func_array( 'array_merge', $snapshots_data );
 
 		foreach ( $conflict_keys as $key => $conflict_val ) {
 			$original_values = array();
-			foreach ( $posts as $post ) {
-				if ( isset( $post->post_content[ $key ] ) ) {
-					$original_values[] = $post->post_content[ $key ];
+			foreach ( $snapshot_post_data as $post_data ) {
+				if ( isset( $post_data['data'][ $key ] ) ) {
+					$original_values[] = array(
+						'uuid' => $post_data['uuid'],
+						'value' => $post_data['data'][ $key ]['value'],
+					);
 				}
 			}
-			array_pop( $original_values );
-			$merge_value[ $key ]['merge_conflict'] = $original_values;
+			$merged_snapshot_data[ $key ]['merge_conflict'] = $original_values;
 		}
 		$post_id = $this->save( array(
 			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
 			'status' => 'draft',
-			'data' => $merge_value,
+			'data' => $merged_snapshot_data,
 			'post_date' => current_time( 'mysql', false ),
 			'post_date_gmt' => current_time( 'mysql', true ),
 		) );
@@ -773,11 +779,16 @@ class Post_Type {
 		if ( self::SLUG === $post_type ) {
 			?>
 			<script type="text/javascript">
-		      jQuery(document).ready(function() {
-			      jQuery('<option>').val('merge_snapshot').text('<?php esc_html_e( 'Merge Snapshot', 'customize-snapshots' ); ?>').appendTo("select[name='action']");
-			      jQuery('<option>').val('merge_snapshot').text('<?php esc_html_e( 'Merge Snapshot', 'customize-snapshots' ); ?>').appendTo("select[name='action2']");
-		      });
-		    </script>
+				jQuery( function( $ ) {
+					var optionText = <?php echo wp_json_encode( __( 'Merge Snapshot', 'customize-snapshots' ) ); ?>;
+					$( 'select[name="action"], select[name="action2"]' ).each( function() {
+						var option = $( '<option>', {
+							text: optionText,
+							value: 'merge_snapshot'
+						} );
+						$( this ).append( option );
+					} );
+			</script>
 			<?php
 		}
 	}
