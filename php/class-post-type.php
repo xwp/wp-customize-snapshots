@@ -779,6 +779,7 @@ class Post_Type {
 						} );
 						$( this ).append( option );
 					} );
+				} );
 			</script>
 			<?php
 		}
