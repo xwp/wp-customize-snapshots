@@ -828,7 +828,17 @@ class Test_Post_type extends \WP_UnitTestCase {
 	 * @see Post_Type::snapshot_merge_print_script()
 	 */
 	public function test_snapshot_merge_print_script() {
-		$this->markTestIncomplete();
+		global $post_type;
+		$post_type = Post_Type::SLUG; // WPCS: global override ok.
+		$post_type_obj = new Post_Type( $this->plugin->customize_snapshot_manager );
+		ob_start();
+		$post_type_obj->snapshot_merge_print_script();
+		$metabox_content = ob_get_clean();
+
+		$this->assertContains( 'select[name="action"]', $metabox_content );
+		$this->assertContains( 'select[name="action2"]', $metabox_content );
+		$this->assertContains( 'merge_snapshot', $metabox_content );
+		$this->assertContains( 'text/javascript', $metabox_content );
 	}
 
 	/**
