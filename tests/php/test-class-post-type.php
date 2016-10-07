@@ -848,7 +848,20 @@ class Test_Post_type extends \WP_UnitTestCase {
 	 * @see Post_Type::handle_snapshot_bulk_actions_workaround()
 	 */
 	public function test_handle_snapshot_bulk_actions_workaround() {
-		$this->markTestIncomplete();
+		$GLOBALS['hook_suffix'] = 'posts-' . Post_Type::SLUG; // WPCS: global override ok.
+		$_POST['action'] = $_REQUEST['action'] = $_GET['action'] = 'merge_snapshot';
+		$_POST['post_type'] = $_REQUEST['post_type'] = $_GET['post_type'] = Post_Type::SLUG;
+		$_POST['post'] = $_REQUEST['post'] = $_GET['post'] = array( 1, 2 );
+		$_POST['_wpnonce'] = $_REQUEST['_wpnonce'] = $_GET['_wpnonce'] = wp_create_nonce( 'bulk-posts' );
+		$_POST['_wp_http_referer'] = $_REQUEST['_wp_http_referer'] = $_GET['_wp_http_referer'] = admin_url();
+		$post_type_obj = $this->getMockBuilder( 'CustomizeSnapshots\Post_Type' )
+		                      ->setConstructorArgs( array( $this->plugin->customize_snapshot_manager ) )
+		                      ->setMethods( array( 'handle_snapshot_bulk_actions' ) )
+		                      ->getMock();
+		$post_type_obj->expects( $this->once() )
+		              ->method( 'handle_snapshot_bulk_actions' )
+		              ->will( $this->returnValue( null ) );
+		$post_type_obj->handle_snapshot_bulk_actions_workaround();
 	}
 
 	/**
