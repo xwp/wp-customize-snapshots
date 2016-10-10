@@ -723,7 +723,7 @@ class Post_Type {
 				$compare_a = $a->post_date;
 			}
 			if ( '0000-00-00 00:00:00' === $compare_b ) {
-				$compare_a = $b->post_date;
+				$compare_b = $b->post_date;
 			}
 			return strtotime( $compare_a ) - strtotime( $compare_b );
 		} );
