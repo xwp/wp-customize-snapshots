@@ -58,6 +58,15 @@ class Test_Post_type extends \WP_UnitTestCase {
 		$this->assertEquals( 10, has_action( 'transition_post_status', array( $post_type->snapshot_manager, 'save_settings_with_publish_snapshot' ) ) );
 		$this->assertEquals( 10, has_filter( 'wp_insert_post_data', array( $post_type->snapshot_manager, 'prepare_snapshot_post_content_for_publish' ) ) );
 		$this->assertEquals( 10, has_action( 'display_post_states', array( $post_type, 'display_post_states' ) ) );
+
+		if ( version_compare( get_bloginfo( 'version' ), '4.7', '>=' ) ) {
+			$this->assertEquals( 10, has_filter( 'bulk_actions-edit-' . Post_Type::SLUG, array( $post_type, 'add_snapshot_bulk_actions' ) ) );
+			$this->assertEquals( 10, has_filter( 'handle_bulk_actions-edit-' . Post_Type::SLUG, array( $post_type, 'handle_snapshot_bulk_actions' ) ) );
+		} else {
+			$this->assertEquals( 10, has_action( 'admin_print_footer_scripts-edit.php', array( $post_type, 'snapshot_merge_print_script' ) ) );
+			$this->assertEquals( 10, has_action( 'load-edit.php', array( $post_type, 'handle_snapshot_bulk_actions_workaround' ) ) );
+		}
+		$this->assertEquals( 10, has_action( 'admin_notices', array( $post_type, 'admin_show_merge_error' ) ) );
 	}
 
 	/**
@@ -748,5 +757,133 @@ class Test_Post_type extends \WP_UnitTestCase {
 		$output = ob_get_clean();
 		$this->assertNotEmpty( $output );
 		$this->assertContains( 'misc-pub-post-status', $output );
+	}
+
+	/**
+	 * Tests add_snapshot_bulk_actions
+	 *
+	 * @see Post_Type::add_snapshot_bulk_actions()
+	 */
+	public function test_add_snapshot_bulk_actions() {
+		$post_type = new Post_Type( $this->plugin->customize_snapshot_manager );
+		$data = $post_type->add_snapshot_bulk_actions( array() );
+		$this->assertArrayHasKey( 'merge_snapshot', $data );
+	}
+
+	/**
+	 * Test handle_snapshot_bulk_actions
+	 *
+	 * @see Post_Type::handle_snapshot_bulk_actions()
+	 */
+	public function test_handle_snapshot_bulk_actions() {
+		$post_type = new Post_Type( $this->plugin->customize_snapshot_manager );
+		$date1 = gmdate( 'Y-m-d H:i:s', ( time() + ( get_option( 'gmt_offset' ) * HOUR_IN_SECONDS ) ) );
+		$post_1 = $post_type->save( array(
+			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
+			'status' => 'draft',
+			'data' => array(
+				'foo' => array(
+					'value' => 'bar',
+				),
+			),
+			'post_date' => $date1,
+			'post_date_gmt' => $date1,
+			'edit_date' => $date1,
+		) );
+		$value = array(
+			'foo' => array(
+				'value' => 'baz',
+			),
+			'baz' => array(
+				'value' => 'zab',
+			),
+		);
+		$date2 = gmdate( 'Y-m-d H:i:s', ( time() + 60 + ( get_option( 'gmt_offset' ) * HOUR_IN_SECONDS ) ) );
+		$post_2 = $post_type->save( array(
+			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
+			'status' => 'draft',
+			'data' => $value,
+			'post_date' => $date2,
+			'post_date_gmt' => $date2,
+			'edit_date' => $date2,
+		) );
+
+		$post_type->handle_snapshot_bulk_actions( '', 'merge_snapshot', array( $post_1, $post_2 ) );
+		$merged_post = get_post( $post_2 + 1 );
+		$value['foo']['merge_conflict'] = array(
+			array(
+				'uuid' => get_post( $post_1 )->post_name,
+				'value' => 'bar',
+			),
+			array(
+				'uuid' => get_post( $post_2 )->post_name,
+				'value' => 'baz',
+			),
+		);
+		$this->assertSame( $value, $post_type->get_post_content( $merged_post ) );
+	}
+
+	/**
+	 * Test snapshot_merge_print_script
+	 *
+	 * @see Post_Type::snapshot_merge_print_script()
+	 */
+	public function test_snapshot_merge_print_script() {
+		global $post_type;
+		$post_type = Post_Type::SLUG; // WPCS: global override ok.
+		$post_type_obj = new Post_Type( $this->plugin->customize_snapshot_manager );
+		ob_start();
+		$post_type_obj->snapshot_merge_print_script();
+		$script_content = ob_get_clean();
+
+		$this->assertContains( 'select[name="action"]', $script_content );
+		$this->assertContains( 'select[name="action2"]', $script_content );
+		$this->assertContains( 'merge_snapshot', $script_content );
+		$this->assertContains( 'text/javascript', $script_content );
+	}
+
+	/**
+	 * Test handle_snapshot_bulk_actions_workaround
+	 *
+	 * @see Post_Type::handle_snapshot_bulk_actions_workaround()
+	 */
+	public function test_handle_snapshot_bulk_actions_workaround() {
+		$GLOBALS['hook_suffix'] = 'posts-' . Post_Type::SLUG; // WPCS: global override ok.
+		$_POST['action'] = $_REQUEST['action'] = $_GET['action'] = 'merge_snapshot';
+		$_POST['post_type'] = $_REQUEST['post_type'] = $_GET['post_type'] = Post_Type::SLUG;
+		$_POST['post'] = $_REQUEST['post'] = $_GET['post'] = array( 1, 2 );
+		$_POST['_wpnonce'] = $_REQUEST['_wpnonce'] = $_GET['_wpnonce'] = wp_create_nonce( 'bulk-posts' );
+		$_POST['_wp_http_referer'] = $_REQUEST['_wp_http_referer'] = $_GET['_wp_http_referer'] = admin_url();
+		$post_type_obj = $this->getMockBuilder( 'CustomizeSnapshots\Post_Type' )
+		                      ->setConstructorArgs( array( $this->plugin->customize_snapshot_manager ) )
+		                      ->setMethods( array( 'handle_snapshot_bulk_actions' ) )
+		                      ->getMock();
+		$post_type_obj->expects( $this->once() )
+		              ->method( 'handle_snapshot_bulk_actions' )
+		              ->will( $this->returnValue( null ) );
+		$post_type_obj->handle_snapshot_bulk_actions_workaround();
+	}
+
+	/**
+	 * Test admin_show_merge_error
+	 *
+	 * @see Post_Type::admin_show_merge_error()
+	 */
+	public function test_admin_show_merge_error() {
+		$post_type_obj = new Post_Type( $this->plugin->customize_snapshot_manager );
+		ob_start();
+		$post_type_obj->admin_show_merge_error();
+		$notice_content = ob_get_clean();
+		$this->assertEmpty( $notice_content );
+		ob_start();
+		$_POST['merge-error'] = $_REQUEST['merge-error'] = $_GET['merge-error'] = 1;
+		$post_type_obj->admin_show_merge_error();
+		$notice_content = ob_get_clean();
+		$this->assertContains( 'notice-error', $notice_content );
+		$_POST['merge-error'] = $_REQUEST['merge-error'] = $_GET['merge-error'] = 5;
+		ob_start();
+		$post_type_obj->admin_show_merge_error();
+		$notice_content = ob_get_clean();
+		$this->assertEmpty( $notice_content );
 	}
 }
