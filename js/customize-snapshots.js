@@ -1,4 +1,5 @@
-/* global jQuery, _customizeSnapshots */
+/* global jQuery, _customizeSnapshots, console */
+/* eslint no-magic-numbers: [ "error", { "ignore": [0,1] } ] */
 
 ( function( api, $ ) {
 	'use strict';
@@ -93,6 +94,8 @@
 				api.state( 'saved' ).set( false );
 				component.resetSavedStateQuietly();
 			}
+
+			component.setupPreviewingRestApi();
 
 			api.trigger( 'snapshots-ready', component );
 		} );
@@ -691,6 +694,80 @@
 				modal: true
 			} );
 		} );
+	};
+
+	/**
+	 * Listen for queried object REST API URL.
+	 *
+	 * @returns {void}
+	 */
+	component.setupPreviewingRestApi = function setupPreviewingRestApi() {
+		var restApiPreviewWait = 250;
+		component.previewRestApiUrl = new api.Value( '' );
+
+		api.previewer.bind( 'queried-object-rest-api-url', function( restUrl ) {
+			component.previewRestApiUrl.set( restUrl || '' );
+		} );
+
+		component.previewRestApiContainer = $( $.trim( wp.template( 'customize-rest-api-preview' )() ) );
+		component.previewRestApiContainer.insertAfter( '#customize-preview' );
+
+		component.previewRestApiContainer.find( '.rest-api-log-response' ).on( 'click', function() {
+			var requestUrl = component.previewRestApiContainer.find( '.rest-api-url-link' ).prop( 'href' );
+			if ( ! requestUrl ) {
+				return;
+			}
+			component.previewRestApiRequest = $.getJSON( requestUrl );
+			component.previewRestApiRequest.done( function( data ) {
+				console.log( '[GET %s] %O', requestUrl, data );
+			} );
+		} );
+
+		component.updateRestApiUrlPreview = _.debounce( component.updateRestApiUrlPreview, restApiPreviewWait );
+		component.previewRestApiUrl.bind( component.updateRestApiUrlPreview );
+		api.state.bind( 'change', component.updateRestApiUrlPreview );
+		api.bind( 'change', component.updateRestApiUrlPreview );
+	};
+
+	/**
+	 * Update queried object REST API URL preview.
+	 *
+	 * @returns {void}
+	 */
+	component.updateRestApiUrlPreview = function updateRestApiUrlPreview() {
+		var restApiUrl, urlParser, isSavedState, requestUrl;
+
+		if ( component.previewRestApiRequest ) {
+			component.previewRestApiRequest.abort();
+			component.previewRestApiRequest = null;
+		}
+
+		restApiUrl = component.previewRestApiUrl.get();
+		isSavedState = api.state( 'saved' ).get() || api.state( 'snapshot-saved' ).get();
+		urlParser = document.createElement( 'a' );
+
+		urlParser.href = restApiUrl;
+		if ( urlParser.search.length > 1 ) {
+			urlParser.search += '&';
+		}
+		urlParser.search += 'context=edit';
+
+		if ( api.state( 'snapshot-exists' ).get() && component.data.uuid ) {
+			urlParser.search += '&customize_snapshot_uuid=' + component.data.uuid;
+		}
+		restApiUrl = urlParser.href;
+
+		urlParser.search += '&_wpnonce=' + api.settings.nonce['rest-api'];
+		requestUrl = urlParser.href;
+
+		if ( restApiUrl && isSavedState ) {
+			component.previewRestApiContainer.find( '.rest-api-url-link' ).text( restApiUrl ).prop( 'href', requestUrl );
+			$( document.body ).addClass( 'rest-api-preview-enabled' );
+		} else {
+			$( document.body ).removeClass( 'rest-api-preview-enabled' );
+		}
+
+		// http://src.wordpress-develop.dev/wp-json/wp/v2/posts/?context=edit&_wpnonce=9dcb874897
 	};
 
 	/**

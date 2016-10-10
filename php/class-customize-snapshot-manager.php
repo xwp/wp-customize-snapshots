@@ -709,17 +709,72 @@ class Customize_Snapshot_Manager {
 		wp_enqueue_script( $handle );
 		wp_enqueue_style( $handle );
 
+		$rest_api_path = $this->get_queried_object_rest_api_path();
 		$exports = array(
 			'home_url' => wp_parse_url( home_url( '/' ) ),
 			'rest_api_url' => wp_parse_url( rest_url( '/' ) ),
 			'admin_ajax_url' => wp_parse_url( admin_url( 'admin-ajax.php' ) ),
 			'initial_dirty_settings' => array_keys( $wp_customize->unsanitized_post_values() ),
+			'queried_object_rest_api_url' => $rest_api_path ? rest_url( $rest_api_path ) : null,
 		);
 		wp_add_inline_script(
 			$handle,
-			sprintf( 'CustomizeSnapshotsPreview.init( %s )', wp_json_encode( $exports ) ),
+			sprintf( 'CustomizeSnapshotsPreview.init( %s );', wp_json_encode( $exports ) ),
 			'after'
 		);
+	}
+
+	/**
+	 * Get REST API endpoint for queried object.
+	 *
+	 * @return string|null
+	 */
+	public function get_queried_object_rest_api_path() {
+
+		$namespace = 'wp/v2'; // Assumed because WP_REST_Controller::$namespace is protected.
+
+		$leaf = '/';
+
+		$rest_api_path = null;
+		$rest_base = null;
+
+		$queried_object = get_queried_object();
+		if ( $queried_object instanceof \WP_Post_Type ) {
+			if ( ! empty( $queried_object->show_in_rest ) ) {
+				$rest_base = isset( $queried_object->rest_base ) ? $queried_object->rest_base : $queried_object->name;
+			}
+		} elseif ( $queried_object instanceof \WP_Post ) {
+			$post_type_object = get_post_type_object( $queried_object->post_type );
+			if ( ! empty( $post_type_object->show_in_rest ) ) {
+				$rest_base = isset( $post_type_object->rest_base ) ? $post_type_object->rest_base : $post_type_object->name;
+				$leaf .= $queried_object->ID . '/';
+			}
+		} elseif ( $queried_object instanceof \WP_Term ) {
+			$taxonomy_object = get_taxonomy( $queried_object->taxonomy );
+			if ( ! empty( $taxonomy_object->show_in_rest ) ) {
+				$rest_base = isset( $taxonomy_object->rest_base ) ? $taxonomy_object->rest_base : $taxonomy_object->name;
+				$leaf .= $queried_object->term_id . '/';
+			}
+		} elseif ( is_home() ) {
+			$post_type_object = get_post_type_object( 'post' );
+			if ( ! empty( $post_type_object->show_in_rest ) ) {
+				$rest_base = isset( $post_type_object->rest_base ) ? $post_type_object->rest_base : $post_type_object->name;
+			}
+		}
+
+		if ( $rest_base ) {
+			$rest_api_path = $namespace . '/' . $rest_base . $leaf;
+		}
+
+		/**
+		 * Filters the REST API path for the current queried object.
+		 *
+		 * @param string|null $rest_api_path REST API Path, null if none was auto-detected.
+		 * @param \WP_Post_Type|\WP_Term|\WP_Post|null $queried_object Queried object.
+		 */
+		$rest_api_path = apply_filters( 'customize_snapshots_queried_object_rest_api_path', $rest_api_path, $queried_object );
+
+		return $rest_api_path;
 	}
 
 	/**
@@ -747,13 +802,14 @@ class Customize_Snapshot_Manager {
 	}
 
 	/**
-	 * Include the snapshot nonce in the Customizer nonces.
+	 * Include the snapshot and REST API nonce in the Customizer nonces.
 	 *
 	 * @param array $nonces Nonces.
 	 * @return array Nonces.
 	 */
 	public function filter_customize_refresh_nonces( $nonces ) {
 		$nonces['snapshot'] = wp_create_nonce( self::AJAX_ACTION );
+		$nonces['rest-api'] = wp_create_nonce( 'wp_rest' );
 		return $nonces;
 	}
 
@@ -1416,6 +1472,19 @@ class Customize_Snapshot_Manager {
 	public function render_templates() {
 		$data = $this->get_month_choices();
 		?>
+		<script type="text/html" id="tmpl-customize-rest-api-preview">
+			<div id="rest-api-preview">
+				<div class="rest-api-url-bar">
+					<button class="rest-api-log-response button button-secondary" type="button">
+						<code>console.log()</code>
+					</button>
+					<span class="rest-api-url-label"><?php esc_html_e( 'REST API URL:', 'customize-snapshots' ) ?></span>
+					<a class="rest-api-url-link" href="" target="_blank"></a>
+				</div>
+				<pre class="rest-api-response"></pre>
+			</div>
+		</script>
+
 		<script type="text/html" id="tmpl-snapshot-preview-link">
 			<a href="#" target="frontend-preview" id="snapshot-preview-link" class="dashicons dashicons-welcome-view-site" title="<?php esc_attr_e( 'View on frontend', 'customize-snapshots' ) ?>">
 				<span class="screen-reader-text"><?php esc_html_e( 'View on frontend', 'customize-snapshots' ) ?></span>
