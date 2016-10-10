@@ -810,16 +810,18 @@ class Test_Post_type extends \WP_UnitTestCase {
 
 		$post_type->handle_snapshot_bulk_actions( '', 'merge_snapshot', array( $post_1, $post_2 ) );
 		$merged_post = get_post( $post_2 + 1 );
+		$post_2_obj = get_post( $post_2 );
 		$value['foo']['merge_conflict'] = array(
 			array(
 				'uuid' => get_post( $post_1 )->post_name,
 				'value' => 'bar',
 			),
 			array(
-				'uuid' => get_post( $post_2 )->post_name,
+				'uuid' => $post_2_obj->post_name,
 				'value' => 'baz',
 			),
 		);
+		$value['foo']['selected_uuid'] = $post_2_obj->post_name;
 		$this->assertSame( $value, $post_type->get_post_content( $merged_post ) );
 	}
 
