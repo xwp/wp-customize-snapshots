@@ -875,7 +875,7 @@ class Post_Type {
 			}
 			echo '</ul>';
 			echo '</div>';
-		}
+		} // End if().
 	}
 
 	/**
