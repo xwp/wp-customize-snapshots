@@ -756,7 +756,8 @@ class Post_Type {
 				}
 			}
 			$merged_snapshot_data[ $key ]['merge_conflict'] = $original_values;
-			$merged_snapshot_data[ $key ]['selected_uuid'] = end( $original_values )['uuid'];
+			$last_value = end( $original_values );
+			$merged_snapshot_data[ $key ]['selected_uuid'] = $last_value['uuid'];
 		}
 		$post_id = $this->save( array(
 			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
