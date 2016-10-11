@@ -90,6 +90,7 @@ class Test_Post_type extends \WP_UnitTestCase {
 			$this->assertEquals( 10, has_action( 'load-edit.php', array( $post_type, 'handle_snapshot_bulk_actions_workaround' ) ) );
 		}
 		$this->assertEquals( 10, has_action( 'admin_notices', array( $post_type, 'admin_show_merge_error' ) ) );
+		$this->assertEquals( 11, has_filter( 'content_save_pre', array( $post_type, 'filter_selected_conflict_setting' ) ) );
 	}
 
 	/**
@@ -785,7 +786,7 @@ class Test_Post_type extends \WP_UnitTestCase {
 	/**
 	 * Tests add_snapshot_bulk_actions
 	 *
-	 * @see Post_Type::add_snapshot_bulk_actions()
+	 * @covers CustomizeSnapshots\Post_Type::add_snapshot_bulk_actions()
 	 */
 	public function test_add_snapshot_bulk_actions() {
 		$post_type = new Post_Type( $this->plugin->customize_snapshot_manager );
@@ -796,7 +797,7 @@ class Test_Post_type extends \WP_UnitTestCase {
 	/**
 	 * Test handle_snapshot_bulk_actions
 	 *
-	 * @see Post_Type::handle_snapshot_bulk_actions()
+	 * @covers CustomizeSnapshots\Post_Type::handle_snapshot_bulk_actions()
 	 */
 	public function test_handle_snapshot_bulk_actions() {
 		$post_type = new Post_Type( $this->plugin->customize_snapshot_manager );
@@ -851,7 +852,7 @@ class Test_Post_type extends \WP_UnitTestCase {
 	/**
 	 * Test snapshot_merge_print_script
 	 *
-	 * @see Post_Type::snapshot_merge_print_script()
+	 * @covers CustomizeSnapshots\Post_Type::snapshot_merge_print_script()
 	 */
 	public function test_snapshot_merge_print_script() {
 		global $post_type;
@@ -870,7 +871,7 @@ class Test_Post_type extends \WP_UnitTestCase {
 	/**
 	 * Test handle_snapshot_bulk_actions_workaround
 	 *
-	 * @see Post_Type::handle_snapshot_bulk_actions_workaround()
+	 * @covers CustomizeSnapshots\Post_Type::handle_snapshot_bulk_actions_workaround()
 	 */
 	public function test_handle_snapshot_bulk_actions_workaround() {
 		$GLOBALS['hook_suffix'] = 'posts-' . Post_Type::SLUG; // WPCS: global override ok.
@@ -892,7 +893,7 @@ class Test_Post_type extends \WP_UnitTestCase {
 	/**
 	 * Test admin_show_merge_error
 	 *
-	 * @see Post_Type::admin_show_merge_error()
+	 * @covers CustomizeSnapshots\Post_Type::admin_show_merge_error()
 	 */
 	public function test_admin_show_merge_error() {
 		$post_type_obj = new Post_Type( $this->plugin->customize_snapshot_manager );
@@ -915,7 +916,7 @@ class Test_Post_type extends \WP_UnitTestCase {
 	/**
 	 * Test resolve_conflict_markup.
 	 *
-	 * @see Post_Type::resolve_conflict_markup()
+	 * @covers CustomizeSnapshots\Post_Type::resolve_conflict_markup()
 	 */
 	public function test_resolve_conflict_markup() {
 		$post_type_obj = new Post_Type( $this->plugin->customize_snapshot_manager );
@@ -933,7 +934,7 @@ class Test_Post_type extends \WP_UnitTestCase {
 	/**
 	 * Test filter_selected_conflict_setting.
 	 *
-	 * @see Post_Type::filter_selected_conflict_setting()
+	 * @covers CustomizeSnapshots\Post_Type::filter_selected_conflict_setting()
 	 */
 	public function test_filter_selected_conflict_setting() {
 		global $post;
