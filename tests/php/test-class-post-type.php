@@ -27,6 +27,13 @@ class Test_Post_type extends \WP_UnitTestCase {
 	const UUID = '65aee1ff-af47-47df-9e14-9c69b3017cd3';
 
 	/**
+	 * Merge sample data
+	 *
+	 * @var array
+	 */
+	public $snapshot_merge_sample_data;
+
+	/**
 	 * Set up.
 	 */
 	function setUp() {
@@ -34,6 +41,22 @@ class Test_Post_type extends \WP_UnitTestCase {
 		$GLOBALS['wp_customize'] = null; // WPCS: Global override ok.
 		$this->plugin = get_plugin_instance();
 		unregister_post_type( Post_Type::SLUG );
+		$this->snapshot_merge_sample_data = $sample = array(
+			'foo' => array(
+				'value' => 'bar',
+				'merge_conflict' => array(
+					array(
+						'uuid' => 'abc',
+						'value' => array('baz'),
+					),
+					array(
+						'uuid' => 'xyz',
+						'value' => 'bar',
+					)
+				),
+				'selected_uuid' => 'xyz',
+			)
+		);
 	}
 
 	/**
@@ -887,5 +910,56 @@ class Test_Post_type extends \WP_UnitTestCase {
 		$post_type_obj->admin_show_merge_error();
 		$notice_content = ob_get_clean();
 		$this->assertEmpty( $notice_content );
+	}
+
+	/**
+	 * Test resolve_conflict_markup.
+	 *
+	 * @see Post_Type::resolve_conflict_markup()
+	 */
+	public function test_resolve_conflict_markup() {
+		$post_type_obj = new Post_Type( $this->plugin->customize_snapshot_manager );
+		ob_start();
+		$post_type_obj->resolve_conflict_markup( 'foo', $this->snapshot_merge_sample_data['foo'], $this->snapshot_merge_sample_data );
+		$resolve_conflict_markup = ob_get_clean();
+		$this->assertContains( 'input', $resolve_conflict_markup );
+		$this->assertContains( 'baz', $resolve_conflict_markup );
+		$this->assertContains( 'bar', $resolve_conflict_markup );
+		$this->assertContains( 'name="' . Post_Type::SLUG . '_resolve_conflict_uuid[0]"', $resolve_conflict_markup );
+		$this->assertContains( '<details', $resolve_conflict_markup );
+		$this->assertContains( '<pre', $resolve_conflict_markup );
+	}
+
+	/**
+	 * Test filter_selected_conflict_setting.
+	 *
+	 * @see Post_Type::filter_selected_conflict_setting()
+	 */
+	public function test_filter_selected_conflict_setting() {
+		global $post;
+		$post_type_obj = new Post_Type( $this->plugin->customize_snapshot_manager );
+		$post_type_obj->register();
+		wp_set_current_user( $admin_user_id = $this->factory()->user->create( array( 'role' => 'administrator' ) ) );
+		$post_id = $post_type_obj->save( array(
+			'uuid' => self::UUID,
+			'data' => $this->snapshot_merge_sample_data,
+			'status' => 'draft',
+		) );
+		$post = get_post( $post_id );
+		$nonce_key = Post_Type::SLUG . '_merge_conflict';
+		$resolve_setting_key = Post_Type::SLUG . '_resolve_conflict_uuid';
+		$_REQUEST[ $nonce_key ] = $_GET[ Post_Type::SLUG . '_merge_conflict' ] = wp_create_nonce( Post_Type::SLUG . '_resolve_settings' );
+		$_REQUEST[ $resolve_setting_key ] = $_POST[ $resolve_setting_key ] = array(
+			wp_json_encode( array(
+				'setting_id' => 'foo',
+				'uuid' => 'abc'
+			))
+		);
+		$content = $post_type_obj->filter_selected_conflict_setting( $post->post_content );
+		$data = json_decode( $content, true );
+		$this->assertSame( array(
+			'baz',
+		), $data['foo']['value'] );
+		$this->assertEquals( 'abc', $data['foo']['selected_uuid'] );
 	}
 }
