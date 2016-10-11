@@ -41,21 +41,21 @@ class Test_Post_type extends \WP_UnitTestCase {
 		$GLOBALS['wp_customize'] = null; // WPCS: Global override ok.
 		$this->plugin = get_plugin_instance();
 		unregister_post_type( Post_Type::SLUG );
-		$this->snapshot_merge_sample_data = $sample = array(
+		$this->snapshot_merge_sample_data = array(
 			'foo' => array(
 				'value' => 'bar',
 				'merge_conflict' => array(
 					array(
 						'uuid' => 'abc',
-						'value' => array('baz'),
+						'value' => array( 'baz' ),
 					),
 					array(
 						'uuid' => 'xyz',
 						'value' => 'bar',
-					)
+					),
 				),
 				'selected_uuid' => 'xyz',
-			)
+			),
 		);
 	}
 
@@ -953,8 +953,8 @@ class Test_Post_type extends \WP_UnitTestCase {
 		$_REQUEST[ $resolve_setting_key ] = $_POST[ $resolve_setting_key ] = array(
 			wp_json_encode( array(
 				'setting_id' => 'foo',
-				'uuid' => 'abc'
-			))
+				'uuid' => 'abc',
+			) ),
 		);
 		$content = $post_type_obj->filter_selected_conflict_setting( $post->post_content );
 		$data = json_decode( $content, true );

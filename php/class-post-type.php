@@ -362,7 +362,7 @@ class Post_Type {
 		echo '<hr>';
 
 		ksort( $snapshot_content );
-		wp_nonce_field( static::SLUG . '_resolve_settings', static::SLUG.'_merge_conflict' );
+		wp_nonce_field( static::SLUG . '_resolve_settings', static::SLUG . '_merge_conflict' );
 		echo '<ul id="snapshot-settings">';
 		foreach ( $snapshot_content as $setting_id => $setting_params ) {
 			if ( ! isset( $setting_params['value'] ) && ! isset( $setting_params['publish_error'] ) ) {
