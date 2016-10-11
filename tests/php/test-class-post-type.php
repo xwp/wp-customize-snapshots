@@ -50,6 +50,14 @@ class Test_Post_type extends \WP_UnitTestCase {
 						'value' => array( 'baz' ),
 					),
 					array(
+						'uuid' => 'pqr',
+						'value' => '',
+					),
+					array(
+						'uuid' => 'lmn',
+						'value' => false,
+					),
+					array(
 						'uuid' => 'xyz',
 						'value' => 'bar',
 					),
@@ -847,6 +855,13 @@ class Test_Post_type extends \WP_UnitTestCase {
 		);
 		$value['foo']['selected_uuid'] = $post_2_obj->post_name;
 		$this->assertSame( $value, $post_type->get_post_content( $merged_post ) );
+
+		$input = 'http://example.com';
+		$url = $post_type->handle_snapshot_bulk_actions( $input, 'fishy_Action', array( 1, 2 ) );
+		$this->assertEquals( 'http://example.com', $url );
+
+		$url = $post_type->handle_snapshot_bulk_actions( $input, 'merge_snapshot', array( 1 ) );
+		$this->assertContains( 'merge-error=1', $url );
 	}
 
 	/**
@@ -887,6 +902,12 @@ class Test_Post_type extends \WP_UnitTestCase {
 		$post_type_obj->expects( $this->once() )
 		              ->method( 'handle_snapshot_bulk_actions' )
 		              ->will( $this->returnValue( null ) );
+		$post_type_obj->handle_snapshot_bulk_actions_workaround();
+
+		$_POST['post'] = $_REQUEST['post'] = $_GET['post'] = array();
+		$post_type_obj->handle_snapshot_bulk_actions_workaround();
+
+		$_POST['action'] = $_REQUEST['action'] = $_GET['action'] = 'fishy_action';
 		$post_type_obj->handle_snapshot_bulk_actions_workaround();
 	}
 
