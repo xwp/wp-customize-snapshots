@@ -373,7 +373,7 @@ class Post_Type {
 			echo '<details open class="snapshot-setting-value">';
 			echo '<summary><code>' . esc_html( $setting_id ) . '</code> ';
 			echo '<span class="snapshot-setting-actions">';
-			$this->resolve_conflict_markup( $setting_id, $setting_params );
+			$this->resolve_conflict_markup( $setting_id, $setting_params, $snapshot_content );
 			echo '</span>';
 			// Show error message when there was a publishing error.
 			if ( isset( $setting_params['publish_error'] ) ) {
@@ -835,10 +835,11 @@ class Post_Type {
 	 * Generate resolve conflict markup.
 	 * This will add thickbox with radio button to select between conflicted setting values.
 	 *
-	 * @param string $setting_id setting id.
-	 * @param array  $value setting value.
+	 * @param string $setting_id       setting id.
+	 * @param array  $value            setting value.
+	 * @param array  $snapshot_content snapshot post-content.
 	 */
-	public function resolve_conflict_markup( $setting_id, $value ) {
+	public function resolve_conflict_markup( $setting_id, $value, $snapshot_content ) {
 		if ( isset( $value['merge_conflict'] ) ) {
 			$setting_id_key = str_replace( ']', '\\]', str_replace( '[', '\\[', $setting_id ) );
 			echo '<a href="#TB_inline?width=600&height=550&inlineId=snapshot-resolve-' . esc_attr( $setting_id_key ) . '" id="' . esc_attr( $setting_id ) . '" class="snapshot-resolve-setting-conflict remove thickbox">' . esc_html__( 'Resolve conflict', 'customize-snapshots' ) . '</a>';
@@ -849,11 +850,11 @@ class Post_Type {
 				echo '<details open>';
 				echo '<summary>';
 				$input = '<input type="radio" class="snapshot-resolved-settings" data-setting-value-selector="snapshot-setting-preview-' . $setting_id_key . '"';
-				$input .= 'name="' . self::SLUG . '_resolve_conflict_uuid[]" value=' .
+				$input .= 'name="' . self::SLUG . '_resolve_conflict_uuid[' . array_search( $setting_id, array_keys( $snapshot_content ) ) . ']" value=' .
 				                                   wp_json_encode( array(
 					                                   'setting_id' => $setting_id,
 					                                   'uuid' => $conflicted_data['uuid'],
-				                                   ) );
+				                                   ) ) . ' ';
 				$input .= checked( $value['selected_uuid'], $conflicted_data['uuid'], false ) . '>';
 				echo $input; // WPCS: xss ok.
 				echo '<code> ' . esc_html( $conflicted_data['uuid'] ) . ' </code></summary>';
