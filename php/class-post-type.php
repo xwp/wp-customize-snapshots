@@ -452,7 +452,7 @@ class Post_Type {
 			'post_parent' => $post->ID,
 			'posts_per_page' => 20, // Todo 20 looks fine i don't think people would have that many forks.
 			'post_type' => array( static::SLUG ),
-			'post_status' => 'any'
+			'post_status' => 'any',
 		) ); ?>
 		<ul id="snapshot-fork-list"><?php
 		if ( $post_query->have_posts() ) {
