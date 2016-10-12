@@ -115,6 +115,16 @@ class Post_Type {
 		add_action( 'admin_notices', array( $this, 'show_publish_error_admin_notice' ) );
 		add_action( 'post_submitbox_minor_actions', array( $this, 'hide_disabled_publishing_actions' ) );
 		add_action( 'admin_print_scripts-revision.php', array( $this, 'disable_revision_ui_for_published_posts' ) );
+
+		// Version check for bulk action.
+		if ( version_compare( get_bloginfo( 'version' ), '4.7', '>=' ) ) {
+			add_filter( 'bulk_actions-edit-' . self::SLUG, array( $this, 'add_snapshot_bulk_actions' ) );
+			add_filter( 'handle_bulk_actions-edit-' . self::SLUG, array( $this, 'handle_snapshot_bulk_actions' ), 10, 3 );
+		} else {
+			add_action( 'admin_print_footer_scripts-edit.php', array( $this, 'snapshot_merge_print_script' ) );
+			add_action( 'load-edit.php', array( $this, 'handle_snapshot_bulk_actions_workaround' ) );
+		}
+		add_action( 'admin_notices', array( $this, 'admin_show_merge_error' ) );
 		add_action( 'wp_ajax_snapshot_fork', array( $this, 'handle_snapshot_fork' ) );
 		add_action( 'admin_print_footer_scripts-post.php', array( $this, 'snapshot_admin_script_template' ) );
 	}
@@ -718,6 +728,143 @@ class Post_Type {
 			}
 		</style>
 		<?php
+	}
+
+	/**
+	 * Add snapshot bulk actions.
+	 *
+	 * @param array $bulk_actions actions.
+	 *
+	 * @return mixed
+	 */
+	public function add_snapshot_bulk_actions( $bulk_actions ) {
+		$bulk_actions['merge_snapshot'] = __( 'Merge Snapshot', 'customize-snapshots' );
+		return $bulk_actions;
+	}
+
+	/**
+	 * Handle bulk actions.
+	 *
+	 * @param string $redirect_to url to redirect to.
+	 * @param string $do_action   current action.
+	 * @param array  $post_ids    post ids.
+	 *
+	 * @return string url.
+	 */
+	public function handle_snapshot_bulk_actions( $redirect_to, $do_action, $post_ids ) {
+		if ( 'merge_snapshot' !== $do_action ) {
+			return $redirect_to;
+		}
+		$posts = array_map( 'get_post', $post_ids );
+		if ( count( $posts ) <= 1 ) {
+			return empty( $redirect_to ) ? add_query_arg( array( 'merge-error' => 1 ) ) : add_query_arg( array( 'merge-error' => 1 ), $redirect_to );
+		}
+
+		usort( $posts, function( $a, $b ) {
+			$compare_a = $a->post_modified;
+			$compare_b = $b->post_modified;
+			if ( '0000-00-00 00:00:00' === $compare_a ) {
+				$compare_a = $a->post_date;
+			}
+			if ( '0000-00-00 00:00:00' === $compare_b ) {
+				$compare_b = $b->post_date;
+			}
+			return strtotime( $compare_a ) - strtotime( $compare_b );
+		} );
+
+		$snapshot_post_data = array();
+		foreach ( $posts as $post ) {
+			$snapshot_post_data[] = array(
+				'data' => $this->get_post_content( $post ),
+				'uuid' => $post->post_name,
+			);
+		}
+		$snapshots_data = wp_list_pluck( $snapshot_post_data, 'data' );
+		$conflict_keys = call_user_func_array( 'array_intersect_key', $snapshots_data );
+		$merged_snapshot_data = call_user_func_array( 'array_merge', $snapshots_data );
+
+		foreach ( $conflict_keys as $key => $conflict_val ) {
+			$original_values = array();
+			foreach ( $snapshot_post_data as $post_data ) {
+				if ( isset( $post_data['data'][ $key ] ) ) {
+					$original_values[] = array(
+						'uuid' => $post_data['uuid'],
+						'value' => $post_data['data'][ $key ]['value'],
+					);
+				}
+			}
+			$merged_snapshot_data[ $key ]['merge_conflict'] = $original_values;
+		}
+		$post_id = $this->save( array(
+			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
+			'status' => 'draft',
+			'data' => $merged_snapshot_data,
+			'post_date' => current_time( 'mysql', false ),
+			'post_date_gmt' => current_time( 'mysql', true ),
+		) );
+		$redirect_to = get_edit_post_link( $post_id, 'raw' );
+		return $redirect_to;
+	}
+
+	/**
+	 * Insert script for adding merge snapshot bulk action polyfill.
+	 */
+	public function snapshot_merge_print_script() {
+		global $post_type;
+		if ( self::SLUG === $post_type ) {
+			?>
+			<script type="text/javascript">
+				jQuery( function( $ ) {
+					var optionText = <?php echo wp_json_encode( __( 'Merge Snapshot', 'customize-snapshots' ) ); ?>;
+					$( 'select[name="action"], select[name="action2"]' ).each( function() {
+						var option = $( '<option>', {
+							text: optionText,
+							value: 'merge_snapshot'
+						} );
+						$( this ).append( option );
+					} );
+				} );
+			</script>
+			<?php
+		}
+	}
+
+	/**
+	 * Handles bulk action for 4.6.x and older version.
+	 */
+	public function handle_snapshot_bulk_actions_workaround() {
+		$wp_list_table = _get_list_table( 'WP_Posts_List_Table' );
+		$action = $wp_list_table->current_action();
+		if ( 'merge_snapshot' !== $action || ( isset( $_REQUEST['post_type'] ) && self::SLUG !== wp_unslash( $_REQUEST['post_type'] ) ) ) {
+			return;
+		}
+		check_admin_referer( 'bulk-posts' );
+		$post_ids = array_map( 'intval', $_REQUEST['post'] );
+		if ( empty( $post_ids ) ) {
+			return;
+		}
+		$redirect_url = $this->handle_snapshot_bulk_actions( wp_get_referer(), 'merge_snapshot', $post_ids );
+		if ( ! empty( $redirect_url ) ) {
+			wp_safe_redirect( $redirect_url );
+			exit;
+		}
+	}
+
+	/**
+	 * Show admin notice in case of merge error
+	 */
+	public function admin_show_merge_error() {
+		if ( ! isset( $_REQUEST['merge-error'] ) ) {
+			return;
+		}
+		$error = array(
+			1 => __( 'At-least two snapshot required for merge.', 'customize-snapshots' ),
+		);
+		$error_code = intval( $_REQUEST['merge-error'] );
+		if ( ! isset( $error[ $error_code ] ) ) {
+			return;
+		}
+		printf( '<div class="notice notice-error is-dismissible"><p>%s</p></div>', esc_html( $error[ $error_code ] ) );
 	}
 
 	/**
