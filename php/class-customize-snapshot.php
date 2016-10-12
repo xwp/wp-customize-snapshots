@@ -141,6 +141,11 @@ class Customize_Snapshot {
 	 * @throws Exception When $settings_data is not an array of arrays.
 	 *
 	 * @param array $settings_data Settings data, mapping setting IDs to arrays containing `value` and optionally additional params.
+	 * @param array $options {
+	 *     Additional options.
+	 *
+	 *     @type bool $skip_validation Whether to skip validation. Optional, defaults to false.
+	 * }
 	 * @return array {
 	 *     Result.
 	 *
@@ -149,7 +154,7 @@ class Customize_Snapshot {
 	 *     @type array          $validities Setting validities.
 	 * }
 	 */
-	public function set( array $settings_data ) {
+	public function set( array $settings_data, array $options = array() ) {
 		$error = new \WP_Error();
 		$result = array(
 			'errors' => null,
@@ -188,26 +193,29 @@ class Customize_Snapshot {
 			)
 		);
 
-		// Validate.
-		if ( method_exists( $customize_manager, 'validate_setting_values' ) ) {
-			$result['validities'] = $customize_manager->validate_setting_values( $unsanitized_values );
-		} else {
-			// @codeCoverageIgnoreStart
-			$result['validities'] = array_map(
-				function( $sanitized ) {
-					if ( is_null( $sanitized ) ) {
-						return new \WP_Error( 'invalid_value', __( 'Invalid value', 'customize-snapshots' ) );
-					} else {
-						return true;
-					}
-				},
-				$unsanitized_values
-			);
-			// @codeCoverageIgnoreEnd
+		$invalid_setting_ids = array();
+		if ( empty( $options['skip_validation'] ) ) {
+			// Validate.
+			if ( method_exists( $customize_manager, 'validate_setting_values' ) ) {
+				$result['validities'] = $customize_manager->validate_setting_values( $unsanitized_values );
+			} else {
+				// @codeCoverageIgnoreStart
+				$result['validities'] = array_map(
+					function( $sanitized ) {
+						if ( is_null( $sanitized ) ) {
+							return new \WP_Error( 'invalid_value', __( 'Invalid value', 'customize-snapshots' ) );
+						} else {
+							return true;
+						}
+					},
+					$unsanitized_values
+				);
+				// @codeCoverageIgnoreEnd
+			}
+			$invalid_setting_ids = array_keys( array_filter( $result['validities'], function( $validity ) {
+				return is_wp_error( $validity );
+			} ) );
 		}
-		$invalid_setting_ids = array_keys( array_filter( $result['validities'], function( $validity ) {
-			return is_wp_error( $validity );
-		} ) );
 
 		// Sanitize.
 		foreach ( $unsanitized_values as $setting_id => $unsanitized_value ) {
