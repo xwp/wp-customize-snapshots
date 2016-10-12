@@ -352,19 +352,28 @@ class Test_Post_type extends \WP_UnitTestCase {
 	function test_render_forked_metabox() {
 		$post_type = new Post_Type( $this->plugin->customize_snapshot_manager );
 		$post_type->register();
-		$data = array(
-			'knoa8sdhpasidg0apbdpahcas' => array( 'value' => 'a09sad0as9hdgw22dutacs' ),
-			'n0nee8fa9s7ap9sdga9sdas9c' => array( 'value' => 'lasdbaosd81vvajgcaf22k' ),
-		);
-		$post_id = $post_type->save( array(
-			'uuid' => self::UUID,
-			'data' => $data,
-			'status' => 'draft',
+		$parent_post_id = $this->factory()->post->create( array(
+			'post_status' => 'draft',
+			'post_type' => Post_Type::SLUG,
+		) );
+		$post_id = $this->factory()->post->create( array(
+			'post_status' => 'draft',
+			'post_type' => Post_Type::SLUG,
+			'post_parent' => $parent_post_id,
+		) );
+		$this->factory()->post->create( array(
+			'post_status' => 'draft',
+			'post_type' => Post_Type::SLUG,
+			'post_parent' => $post_id,
 		) );
 		ob_start();
 		$post_type->render_forked_metabox( get_post( $post_id ) );
 		$metabox_content = ob_get_clean();
+
 		$this->assertContains( 'id="snapshot-fork-list"', $metabox_content );
+		$this->assertContains( '<ul', $metabox_content );
+		$this->assertContains( '<li', $metabox_content );
+		$this->assertContains( '<h2', $metabox_content );
 	}
 
 	/**
