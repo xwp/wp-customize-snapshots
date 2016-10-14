@@ -762,6 +762,7 @@ class Customize_Snapshot_Manager {
 			$handle = 'customize-snapshots-admin';
 			wp_enqueue_script( $handle );
 			wp_enqueue_style( $handle );
+			wp_add_inline_script( $handle, 'CustomizeSnapshotsAdmin.init()' );
 		}
 	}
 

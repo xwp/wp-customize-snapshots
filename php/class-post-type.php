@@ -126,7 +126,7 @@ class Post_Type {
 		}
 		add_action( 'admin_notices', array( $this, 'admin_show_merge_error' ) );
 		add_action( 'wp_ajax_snapshot_fork', array( $this, 'handle_snapshot_fork' ) );
-		add_action( 'admin_print_footer_scripts-post.php', array( $this, 'snapshot_admin_script_template' ) );
+		add_action( 'admin_footer-post.php', array( $this, 'snapshot_admin_script_template' ) );
 	}
 
 	/**
@@ -873,7 +873,7 @@ class Post_Type {
 	 */
 	public function snapshot_admin_script_template() {
 		global $post;
-		if ( isset( $post->post_type, $post->post_status ) && static::SLUG === $post->post_type ) { ?>
+		if ( isset( $post->post_type ) && static::SLUG === $post->post_type ) { ?>
 			<script type="text/html" id="tmpl-snapshot-fork-item">
 				<li><a href="{{data.edit_link}}">{{data.post_title}}</a></li>
 			</script>
@@ -884,14 +884,20 @@ class Post_Type {
 	 * Handles snapshot fork ajax request.
 	 */
 	public function handle_snapshot_fork() {
-		if ( ! check_ajax_referer( 'snapshot-fork', 'nonce', false ) ) {
+		$post_type_object = get_post_type_object( self::SLUG );
+		$is_authorized_request = ( ! check_ajax_referer( 'snapshot-fork', 'nonce', false )
+		                           ||
+		                           ! isset( $_POST['ID'] )
+		                           ||
+		                           ! intval( $_POST['ID'] )
+		                           ||
+		                           ! current_user_can( $post_type_object->cap->edit_post, $_POST['ID'] )
+		);
+		if ( $is_authorized_request ) {
 			status_header( 400 );
-			wp_send_json_error( 'bad_nonce' );
+			wp_send_json_error( 'bad_request' );
 		}
-		$post_id = 0;
-		if ( ! isset( $_POST['ID'] ) || ! $post_id = intval( $_POST['ID'] ) ) {
-			wp_send_json_error( 'invalid_post-id' );
-		}
+		$post_id = intval( $_POST['ID'] );
 		$parent_post = get_post( $post_id );
 		if ( self::SLUG !== $parent_post->post_type ) {
 			wp_send_json_error( 'invalid-post' );

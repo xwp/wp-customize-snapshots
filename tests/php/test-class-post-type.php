@@ -68,7 +68,7 @@ class Test_Post_type extends \WP_UnitTestCase {
 		}
 		$this->assertEquals( 10, has_action( 'admin_notices', array( $post_type, 'admin_show_merge_error' ) ) );
 		$this->assertEquals( 10, has_action( 'wp_ajax_snapshot_fork', array( $post_type, 'handle_snapshot_fork' ) ) );
-		$this->assertEquals( 10, has_action( 'admin_print_footer_scripts-post.php', array( $post_type, 'snapshot_admin_script_template' ) ) );
+		$this->assertEquals( 10, has_action( 'admin_footer-post.php', array( $post_type, 'snapshot_admin_script_template' ) ) );
 	}
 
 	/**

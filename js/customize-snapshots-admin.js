@@ -1,5 +1,6 @@
 /* global jQuery */
-(function( $, wp ) {
+/* exported CustomizeSnapshotsAdmin */
+var CustomizeSnapshotsAdmin = (function( $, wp ) {
 	'use strict';
 	var component = {};
 
@@ -35,5 +36,5 @@
 			component.forkClick();
 		} );
 	};
-	component.init();
+	return component;
 })( jQuery, window.wp );
