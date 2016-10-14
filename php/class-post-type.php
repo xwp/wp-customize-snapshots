@@ -121,7 +121,7 @@ class Post_Type {
 			add_filter( 'bulk_actions-edit-' . self::SLUG, array( $this, 'add_snapshot_bulk_actions' ) );
 			add_filter( 'handle_bulk_actions-edit-' . self::SLUG, array( $this, 'handle_snapshot_bulk_actions' ), 10, 3 );
 		} else {
-			add_action( 'admin_print_footer_scripts-edit.php', array( $this, 'snapshot_merge_print_script' ) );
+			add_action( 'admin_footer-edit.php', array( $this, 'snapshot_merge_print_script' ) );
 			add_action( 'load-edit.php', array( $this, 'handle_snapshot_bulk_actions_workaround' ) );
 		}
 		add_action( 'admin_notices', array( $this, 'admin_show_merge_error' ) );
