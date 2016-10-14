@@ -63,7 +63,7 @@ class Test_Post_type extends \WP_UnitTestCase {
 			$this->assertEquals( 10, has_filter( 'bulk_actions-edit-' . Post_Type::SLUG, array( $post_type, 'add_snapshot_bulk_actions' ) ) );
 			$this->assertEquals( 10, has_filter( 'handle_bulk_actions-edit-' . Post_Type::SLUG, array( $post_type, 'handle_snapshot_bulk_actions' ) ) );
 		} else {
-			$this->assertEquals( 10, has_action( 'admin_print_footer_scripts-edit.php', array( $post_type, 'snapshot_merge_print_script' ) ) );
+			$this->assertEquals( 10, has_action( 'admin_footer-edit.php', array( $post_type, 'snapshot_merge_print_script' ) ) );
 			$this->assertEquals( 10, has_action( 'load-edit.php', array( $post_type, 'handle_snapshot_bulk_actions_workaround' ) ) );
 		}
 		$this->assertEquals( 10, has_action( 'admin_notices', array( $post_type, 'admin_show_merge_error' ) ) );
