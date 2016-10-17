@@ -333,6 +333,21 @@ class Post_Type {
 		echo sprintf( '%1$s %2$s %3$s', esc_html__( 'Modified:', 'customize-snapshots' ), esc_html( get_the_modified_date( '' ) ), esc_html( get_the_modified_time( '' ) ) ) . '<br>';
 		echo '</p>';
 
+		$merged_uuid = $this->get_snapshot_merged_uuid( $snapshot_content );
+		if ( ! empty( $merged_uuid ) ) {
+			echo '<p>';
+			echo '<strong>';
+			esc_html_e( 'This snapshot is merged from:', 'customize-snapshots' );
+			echo '</strong>';
+			echo '<ul class="ul-disc snapshot-merged-list">';
+			foreach ( $merged_uuid as $uuid ) {
+				$uuid_post = $this->find_post( $uuid );
+				echo '<li><a href="' . esc_url( get_edit_post_link( $uuid_post ) ) . '"> ' . esc_html( $uuid ) . '</a ></li > ';
+			}
+			echo '</ul>';
+			echo '</p>';
+		}
+
 		$snapshot_theme = get_post_meta( $post->ID, '_snapshot_theme', true );
 		if ( ! empty( $snapshot_theme ) && get_stylesheet() !== $snapshot_theme ) {
 			echo '<p>';
@@ -744,20 +759,52 @@ class Post_Type {
 		$snapshots_data = wp_list_pluck( $snapshot_post_data, 'data' );
 		$conflict_keys = call_user_func_array( 'array_intersect_key', $snapshots_data );
 		$merged_snapshot_data = call_user_func_array( 'array_merge', $snapshots_data );
+		$merged_keys = array_keys( array_diff_key( $merged_snapshot_data, $conflict_keys ) );
+
+		foreach ( $merged_keys as $key ) {
+			// Store contributed snapshot id in setting.
+			$uuid = array();
+			foreach ( $snapshot_post_data as $post_data ) {
+				if ( isset( $post_data['data'][ $key ]['merged_uuid'] ) && is_array( $post_data['data'][ $key ]['merged_uuid'] ) ) {
+					$uuid = array_merge( $uuid, $post_data['data'][ $key ]['merged_uuid'] );
+				} elseif ( isset( $post_data['data'][ $key ] ) ) {
+					$uuid[] = $post_data['uuid'];
+				}
+			}
+			$merged_snapshot_data[ $key ]['merged_uuid'] = array_values( array_unique( $uuid ) );
+		}
 
 		foreach ( $conflict_keys as $key => $conflict_val ) {
 			$original_values = array();
+			$uuid = array();
 			foreach ( $snapshot_post_data as $post_data ) {
-				if ( isset( $post_data['data'][ $key ] ) ) {
+				if ( isset( $post_data['data'][ $key ]['merge_conflict'] ) && is_array( $post_data['data'][ $key ]['merge_conflict'] ) ) {
+					$original_values = array_merge( $original_values, $post_data['data'][ $key ]['merge_conflict'] );
+				} elseif ( isset( $post_data['data'][ $key ] ) ) {
 					$original_values[] = array(
 						'uuid' => $post_data['uuid'],
 						'value' => $post_data['data'][ $key ]['value'],
 					);
 				}
+				if ( isset( $post_data['data'][ $key ]['merged_uuid'] ) ) {
+					$uuid = array_merge( $uuid, $post_data['data'][ $key ]['merged_uuid'] );
+				} else {
+					$uuid[] = $post_data['uuid'];
+				}
 			}
-			$merged_snapshot_data[ $key ]['merge_conflict'] = $original_values;
-			$last_value = end( $original_values );
-			$merged_snapshot_data[ $key ]['selected_uuid'] = $last_value['uuid'];
+			$values = wp_list_pluck( $original_values, 'value' );
+			$values = array_unique( $values, SORT_REGULAR );
+			if ( 1 === count( $values ) ) {
+				// If all values are same there is no conflict so store normally as contributed snapshot ids.
+				$merged_snapshot_data[ $key ]['merged_uuid'] = ! empty( $uuid ) ? $uuid : wp_list_pluck( $original_values, 'uuid' );
+				$merged_snapshot_data[ $key ]['merged_uuid'] = array_values( array_unique( $merged_snapshot_data[ $key ]['merged_uuid'] ) ); // Array_values to reset keys.
+				unset( $merged_snapshot_data[ $key ]['merge_conflict'], $merged_snapshot_data[ $key ]['selected_uuid'] );
+			} else {
+				// If we have more than one unique value means it is conflicting.
+				$merged_snapshot_data[ $key ]['merge_conflict'] = $original_values;
+				$last_value = end( $original_values );
+				$merged_snapshot_data[ $key ]['selected_uuid'] = $last_value['uuid'];
+			}
 		}
 		$post_id = $this->save( array(
 			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
@@ -934,5 +981,24 @@ class Post_Type {
 		}
 		$content = Customize_Snapshot_Manager::encode_json( $snapshot_data );
 		return $content;
+	}
+
+	/**
+	 * Get snapshot merged uuid from post_content
+	 *
+	 * @param array $post_content snapshot data.
+	 * @return array merged snapshot.
+	 */
+	public function get_snapshot_merged_uuid( $post_content ) {
+		$snapshot_merged_uuid = array();
+		foreach ( $post_content as $key => $value ) {
+			if ( isset( $value['merged_uuid'] ) ) {
+				$snapshot_merged_uuid = array_merge( $snapshot_merged_uuid, $value['merged_uuid'] );
+			} elseif ( isset( $value['merge_conflict'] ) ) {
+				$temp_uuid = wp_list_pluck( $value['merge_conflict'], 'uuid' );
+				$snapshot_merged_uuid = array_merge( $snapshot_merged_uuid, $temp_uuid );
+			}
+		}
+		return array_unique( $snapshot_merged_uuid );
 	}
 }
