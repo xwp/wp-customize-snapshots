@@ -884,23 +884,27 @@ class Post_Type {
 	 * Handles snapshot fork ajax request.
 	 */
 	public function handle_snapshot_fork() {
-		$post_type_object = get_post_type_object( self::SLUG );
-		$is_authorized_request = ( ! check_ajax_referer( 'snapshot-fork', 'nonce', false )
-		                           ||
-		                           ! isset( $_POST['ID'] )
-		                           ||
-		                           ! intval( $_POST['ID'] )
-		                           ||
-		                           ! current_user_can( $post_type_object->cap->edit_post, $_POST['ID'] )
-		);
-		if ( $is_authorized_request ) {
+		if ( ! check_ajax_referer( 'snapshot-fork', 'nonce', false ) ) {
 			status_header( 400 );
 			wp_send_json_error( 'bad_request' );
 		}
+
+		if ( ! isset( $_POST['ID'] ) || ! intval( $_POST['ID'] ) ) {
+			status_header( 400 );
+			wp_send_json_error( 'wrong_input' );
+		}
+
 		$post_id = intval( $_POST['ID'] );
 		$parent_post = get_post( $post_id );
 		if ( self::SLUG !== $parent_post->post_type ) {
+			status_header( 400 );
 			wp_send_json_error( 'invalid-post' );
+		}
+
+		$post_type_object = get_post_type_object( self::SLUG );
+		if ( ! current_user_can( $post_type_object->cap->edit_post, $post_id ) ) {
+			status_header( 403 );
+			wp_send_json_error( 'unauthorized_user' );
 		}
 
 		$uuid = Customize_Snapshot_Manager::generate_uuid();
