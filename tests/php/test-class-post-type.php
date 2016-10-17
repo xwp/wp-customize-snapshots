@@ -304,7 +304,10 @@ class Test_Post_type extends \WP_UnitTestCase {
 		$post_type = new Post_Type( $this->plugin->customize_snapshot_manager );
 		$post_type->register();
 		$data = array(
-			'knoa8sdhpasidg0apbdpahcas' => array( 'value' => 'a09sad0as9hdgw22dutacs' ),
+			'knoa8sdhpasidg0apbdpahcas' => array(
+				'value' => 'a09sad0as9hdgw22dutacs',
+				'merged_uuid' => array( self::UUID ),
+			),
 			'n0nee8fa9s7ap9sdga9sdas9c' => array( 'value' => 'lasdbaosd81vvajgcaf22k' ),
 		);
 		$post_id = $post_type->save( array(
@@ -319,6 +322,7 @@ class Test_Post_type extends \WP_UnitTestCase {
 
 		$this->assertContains( 'UUID:', $metabox_content );
 		$this->assertContains( 'button-secondary', $metabox_content );
+		$this->assertContains( 'snapshot-merged-list', $metabox_content );
 		$this->assertContains( '<ul id="snapshot-settings">', $metabox_content );
 		foreach ( $data as $setting_id => $setting_args ) {
 			$this->assertContains( $setting_id, $metabox_content );
@@ -817,6 +821,28 @@ class Test_Post_type extends \WP_UnitTestCase {
 				'foo' => array(
 					'value' => 'bar',
 				),
+				'qux' => array(
+					'value' => 'same',
+				),
+				'quux' => array(
+					'value' => 'foo val',
+					'merged_uuid' => array(
+						'a-uuid',
+					),
+				),
+				'corge' => array(
+					'value' => 'foo val 4',
+					'merge_conflict' => array(
+						array(
+							'uuid' => 'c-uuid',
+							'value' => 'foo val 3',
+						),
+						array(
+							'uuid' => 'd-uuid',
+							'value' => 'foo val 4',
+						),
+					),
+				),
 			),
 			'post_date' => $date1,
 			'post_date_gmt' => $date1,
@@ -828,6 +854,25 @@ class Test_Post_type extends \WP_UnitTestCase {
 			),
 			'baz' => array(
 				'value' => 'zab',
+			),
+			'qux' => array(
+				'value' => 'same',
+			),
+			'quux' => array(
+				'value' => 'foo val',
+				'merged_uuid' => array(
+					'a-uuid',
+					'b-uuid',
+				),
+			),
+			'corge' => array(
+				'value' => 'foo val 5',
+				'merge_conflict' => array(
+					array(
+						'uuid' => 'e-uuid',
+						'value' => 'foo val 5',
+					),
+				),
 			),
 		);
 		$date2 = gmdate( 'Y-m-d H:i:s', ( time() + 60 + ( get_option( 'gmt_offset' ) * HOUR_IN_SECONDS ) ) );
@@ -841,20 +886,67 @@ class Test_Post_type extends \WP_UnitTestCase {
 		) );
 
 		$post_type->handle_snapshot_bulk_actions( '', 'merge_snapshot', array( $post_1, $post_2 ) );
-		$merged_post = get_post( $post_2 + 1 );
+		$post_1_uuid = get_post( $post_1 )->post_name;
 		$post_2_obj = get_post( $post_2 );
-		$value['foo']['merge_conflict'] = array(
-			array(
-				'uuid' => get_post( $post_1 )->post_name,
-				'value' => 'bar',
-			),
-			array(
-				'uuid' => $post_2_obj->post_name,
+		$post_2_uuid = $post_2_obj->post_name;
+		$merged_post = get_post( $post_2 + 1 );
+
+		$expected = array(
+			'foo' => array(
 				'value' => 'baz',
+				'merge_conflict' => array(
+					array(
+						'uuid' => get_post( $post_1 )->post_name,
+						'value' => 'bar',
+					),
+					array(
+						'uuid' => $post_2_obj->post_name,
+						'value' => 'baz',
+					),
+				),
+				'selected_uuid' => $post_2_uuid,
+			),
+			'qux' => array(
+				'value' => 'same',
+				'merged_uuid' => array(
+					$post_1_uuid,
+					$post_2_uuid,
+				),
+			),
+			'quux' => array(
+				'value' => 'foo val',
+				'merged_uuid' => array(
+					'a-uuid',
+					'b-uuid',
+				),
+			),
+			'corge' => array(
+				'value' => 'foo val 5',
+				'merge_conflict' => array(
+					array(
+						'uuid' => 'c-uuid',
+						'value' => 'foo val 3',
+					),
+					array(
+						'uuid' => 'd-uuid',
+						'value' => 'foo val 4',
+					),
+					array(
+						'uuid' => 'e-uuid',
+						'value' => 'foo val 5',
+					),
+				),
+				'selected_uuid' => 'e-uuid',
+			),
+			'baz' => array(
+				'value' => 'zab',
+				'merged_uuid' => array(
+					$post_2_uuid,
+				),
 			),
 		);
-		$value['foo']['selected_uuid'] = $post_2_obj->post_name;
-		$this->assertSame( $value, $post_type->get_post_content( $merged_post ) );
+
+		$this->assertSame( $expected, $post_type->get_post_content( $merged_post ) );
 
 		$input = 'http://example.com';
 		$url = $post_type->handle_snapshot_bulk_actions( $input, 'fishy_Action', array( 1, 2 ) );
@@ -983,5 +1075,23 @@ class Test_Post_type extends \WP_UnitTestCase {
 			'baz',
 		), $data['foo']['value'] );
 		$this->assertEquals( 'abc', $data['foo']['selected_uuid'] );
+	}
+
+	/**
+	 * Test get_snapshot_merged_uuid.
+	 *
+	 * @covers CustomizeSnapshots\Post_Type::get_snapshot_merged_uuid()
+	 */
+	public function test_get_snapshot_merged_uuid() {
+		$post_type_obj = new Post_Type( $this->plugin->customize_snapshot_manager );
+		$uuid = $post_type_obj->get_snapshot_merged_uuid( array(
+			'foo' => array( 'merged_uuid' => array( 'uuid-1' ) ),
+			'bar' => array(
+				'merge_conflict' => array(
+					array( 'uuid' => 'uuid-2' ),
+				),
+			),
+		) );
+		$this->assertSame( array( 'uuid-1', 'uuid-2' ), $uuid );
 	}
 }
