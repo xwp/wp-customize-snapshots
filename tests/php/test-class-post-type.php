@@ -366,6 +366,45 @@ class Test_Post_type extends \WP_UnitTestCase {
 		$post_type->render_data_metabox( get_post( $post_id ) );
 		$metabox_content = ob_get_clean();
 		$this->assertContains( 'snapshot was made when a different theme was active', $metabox_content );
+
+		$data = array(
+			'knoa8sdhpasidg0apbdpahcas' => array(
+				'value' => 'a09sad0as9hdgw22dutacs',
+				'merged_uuid' => array( self::UUID ),
+			),
+			'foo' => array(
+				'value' => '',
+				'publish_error' => 'invalid_value',
+			),
+			'bar' => array(
+				'value' => false,
+				'publish_error' => 'unrecognized_setting',
+			),
+			'baz' => array(
+				'value' => array( 'foo_key' => 'bar_value' ),
+				'publish_error' => 'unexpected_value',
+			),
+			'qux' => array(
+				'value' => null,
+				'publish_error' => 'null_value',
+			),
+		);
+		$post_id = $post_type->save( array(
+			'uuid' => self::UUID,
+			'data' => $data,
+			'status' => 'draft',
+		) );
+		ob_start();
+		$post_type->render_data_metabox( get_post( $post_id ) );
+		$metabox_content = ob_get_clean();
+		$this->assertContains( 'class="error-message"', $metabox_content );
+		$this->assertContains( 'unexpected_value', $metabox_content );
+		$this->assertContains( 'Publish error', $metabox_content );
+		$this->assertContains( 'Missing value', $metabox_content );
+		$this->assertContains( 'Unrecognized setting', $metabox_content );
+		$this->assertContains( 'Invalid value', $metabox_content );
+		$this->assertContains( '(Empty string)', $metabox_content );
+		$this->assertContains( '<pre', $metabox_content );
 	}
 
 	/**
