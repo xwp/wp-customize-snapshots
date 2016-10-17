@@ -122,7 +122,7 @@ class Post_Type {
 			add_filter( 'bulk_actions-edit-' . self::SLUG, array( $this, 'add_snapshot_bulk_actions' ) );
 			add_filter( 'handle_bulk_actions-edit-' . self::SLUG, array( $this, 'handle_snapshot_bulk_actions' ), 10, 3 );
 		} else {
-			add_action( 'admin_print_footer_scripts-edit.php', array( $this, 'snapshot_merge_print_script' ) );
+			add_action( 'admin_footer-edit.php', array( $this, 'snapshot_merge_print_script' ) );
 			add_action( 'load-edit.php', array( $this, 'handle_snapshot_bulk_actions_workaround' ) );
 		}
 		add_action( 'admin_notices', array( $this, 'admin_show_merge_error' ) );
@@ -729,7 +729,7 @@ class Post_Type {
 				$compare_a = $a->post_date;
 			}
 			if ( '0000-00-00 00:00:00' === $compare_b ) {
-				$compare_a = $b->post_date;
+				$compare_b = $b->post_date;
 			}
 			return strtotime( $compare_a ) - strtotime( $compare_b );
 		} );
