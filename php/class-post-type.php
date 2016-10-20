@@ -115,6 +115,7 @@ class Post_Type {
 		add_action( 'admin_notices', array( $this, 'show_publish_error_admin_notice' ) );
 		add_action( 'post_submitbox_minor_actions', array( $this, 'hide_disabled_publishing_actions' ) );
 		add_filter( 'content_save_pre', array( $this, 'filter_selected_conflict_setting' ), 11 ); // 11 because remove customize setting is set on 10.
+		add_filter( 'content_save_pre', array( $this, 'filter_out_settings_if_removed_in_metabox' ), 10 );
 		add_action( 'admin_print_scripts-revision.php', array( $this, 'disable_revision_ui_for_published_posts' ) );
 
 		// Version check for bulk action.
@@ -377,7 +378,7 @@ class Post_Type {
 		echo '<hr>';
 
 		ksort( $snapshot_content );
-		wp_nonce_field( static::SLUG . '_resolve_settings', static::SLUG . '_merge_conflict' );
+		wp_nonce_field( static::SLUG . '_settings', static::SLUG );
 		echo '<ul id="snapshot-settings">';
 		foreach ( $snapshot_content as $setting_id => $setting_params ) {
 			if ( ! isset( $setting_params['value'] ) && ! isset( $setting_params['publish_error'] ) ) {
@@ -389,7 +390,9 @@ class Post_Type {
 			echo '<summary><code>' . esc_html( $setting_id ) . '</code> ';
 			echo '<span class="snapshot-setting-actions">';
 			$this->resolve_conflict_markup( $setting_id, $setting_params, $snapshot_content );
+			echo '<a href="#" id="' . esc_attr( $setting_id ) . '" data-text-restore="' . esc_attr__( 'Restore setting', 'customize-snapshots' ) . '" class="snapshot-toggle-setting-removal remove">' . esc_html__( 'Remove setting', 'customize-snapshots' ) . '</a>';
 			echo '</span>';
+
 			// Show error message when there was a publishing error.
 			if ( isset( $setting_params['publish_error'] ) ) {
 				echo '<span class="error-message">';
@@ -879,6 +882,57 @@ class Post_Type {
 	}
 
 	/**
+	 * Filter settings out of post content, if they were removed in the meta box.
+	 *
+	 * In each snapshot's edit page, there are JavaScript-controlled links to remove each setting.
+	 * On clicking a setting, the JS sets a hidden input field with that setting's ID.
+	 * And these settings appear in $_REQUEST as the array 'customize_snapshot_remove_settings.'
+	 * So look for these removed settings in that array, on saving.
+	 * And possibly filter out those settings from the post content.
+	 *
+	 * @param String $content Post content to filter.
+	 * @return String $content Post content, possibly filtered.
+	 */
+	public function filter_out_settings_if_removed_in_metabox( $content ) {
+		global $post;
+		$key_for_settings = static::SLUG . '_remove_settings';
+		$post_type_object = get_post_type_object( static::SLUG );
+
+		$should_filter_content = (
+			isset( $post->post_status )
+			&&
+			( 'publish' !== $post->post_status )
+			&&
+			current_user_can( $post_type_object->cap->edit_post, $post->ID )
+			&&
+			( static::SLUG === $post->post_type )
+			&&
+			! empty( $_REQUEST[ $key_for_settings ] )
+			&&
+			is_array( $_REQUEST[ $key_for_settings ] )
+			&&
+			isset( $_REQUEST[ static::SLUG ] )
+			&&
+			wp_verify_nonce( $_REQUEST[ static::SLUG ], static::SLUG . '_settings' )
+			&&
+			! ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE )
+		);
+
+		if ( ! $should_filter_content ) {
+			return $content;
+		}
+
+		$setting_ids_to_unset = $_REQUEST[ $key_for_settings ];
+		$data = json_decode( wp_unslash( $content ), true );
+		foreach ( $setting_ids_to_unset as $setting_id ) {
+			unset( $data[ $setting_id ] );
+		}
+		$content = Customize_Snapshot_Manager::encode_json( $data );
+
+		return $content;
+	}
+
+	/**
 	 * Generate resolve conflict markup.
 	 * This will add thickbox with radio button to select between conflicted setting values.
 	 *
@@ -889,7 +943,7 @@ class Post_Type {
 	public function resolve_conflict_markup( $setting_id, $value, $snapshot_content ) {
 		if ( isset( $value['merge_conflict'] ) ) {
 			$setting_id_key = str_replace( ']', '\\]', str_replace( '[', '\\[', $setting_id ) );
-			echo '<a href="#TB_inline?width=600&height=550&inlineId=snapshot-resolve-' . esc_attr( $setting_id_key ) . '" id="' . esc_attr( $setting_id ) . '" class="snapshot-resolve-setting-conflict remove thickbox">' . esc_html__( 'Resolve conflict', 'customize-snapshots' ) . '</a>';
+			echo '<a href="#TB_inline?width=600&height=550&inlineId=snapshot-resolve-' . esc_attr( $setting_id_key ) . '" id="' . esc_attr( $setting_id ) . '" class="snapshot-resolve-setting-conflict remove thickbox">' . esc_html__( 'Resolve conflict', 'customize-snapshots' ) . '</a> ';
 			echo '<div id="snapshot-resolve-' . esc_attr( $setting_id ) . '" style="display:none;">';
 			echo '<ul>';
 			foreach ( $value['merge_conflict'] as $conflicted_data ) {
@@ -897,7 +951,7 @@ class Post_Type {
 				echo '<details open>';
 				echo '<summary>';
 				$input = '<input type="radio" class="snapshot-resolved-settings" data-setting-value-selector="snapshot-setting-preview-' . $setting_id_key . '"';
-				$input .= 'name="' . self::SLUG . '_resolve_conflict_uuid[' . array_search( $setting_id, array_keys( $snapshot_content ) ) . ']" value=' .
+				$input .= 'name="' . self::SLUG . '_resolve_conflict_uuid[' . array_search( $setting_id, array_keys( $snapshot_content ), true ) . ']" value=' .
 				                                   wp_json_encode( array(
 					                                   'setting_id' => $setting_id,
 					                                   'uuid' => $conflicted_data['uuid'],
@@ -950,9 +1004,9 @@ class Post_Type {
 			&&
 			is_array( $_REQUEST[ $key_for_selected_resolved_setting ] )
 			&&
-			isset( $_REQUEST[ static::SLUG . '_merge_conflict' ] )
+			isset( $_REQUEST[ static::SLUG ] )
 			&&
-			wp_verify_nonce( $_REQUEST[ static::SLUG . '_merge_conflict' ], static::SLUG . '_resolve_settings' )
+			wp_verify_nonce( $_REQUEST[ static::SLUG ], static::SLUG . '_settings' )
 			&&
 			! ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE )
 		);
