@@ -102,6 +102,7 @@ class Customize_Snapshot_Manager {
 		add_action( 'customize_controls_enqueue_scripts', array( $this, 'enqueue_controls_scripts' ) );
 		add_action( 'customize_preview_init', array( $this, 'customize_preview_init' ) );
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_frontend_scripts' ) );
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
 
 		add_action( 'customize_controls_init', array( $this, 'add_snapshot_uuid_to_return_url' ) );
 		add_action( 'customize_controls_print_footer_scripts', array( $this, 'render_templates' ) );
@@ -744,6 +745,23 @@ class Customize_Snapshot_Manager {
 			sprintf( 'CustomizeSnapshotsFrontend.init( %s )', wp_json_encode( $exports ) ),
 			'after'
 		);
+	}
+
+	/**
+	 * Enqueue admin scripts.
+	 *
+	 * These files control the behavior and styling of links to remove settings.
+	 * Published snapshots can't be edited, so these files are not needed on those pages.
+	 *
+	 * @param String $hook Current page in admin.
+	 */
+	public function enqueue_admin_scripts( $hook ) {
+		global $post;
+		$handle = 'customize-snapshots-admin';
+		if ( ( 'post.php' === $hook ) && isset( $post->post_type ) && ( Post_Type::SLUG === $post->post_type ) && ( 'publish' !== $post->post_status ) ) {
+			wp_enqueue_script( $handle );
+			wp_enqueue_style( $handle );
+		}
 	}
 
 	/**

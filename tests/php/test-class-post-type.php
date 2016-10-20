@@ -58,6 +58,7 @@ class Test_Post_type extends \WP_UnitTestCase {
 		$this->assertEquals( 10, has_action( 'transition_post_status', array( $post_type->snapshot_manager, 'save_settings_with_publish_snapshot' ) ) );
 		$this->assertEquals( 10, has_filter( 'wp_insert_post_data', array( $post_type->snapshot_manager, 'prepare_snapshot_post_content_for_publish' ) ) );
 		$this->assertEquals( 10, has_action( 'display_post_states', array( $post_type, 'display_post_states' ) ) );
+		$this->assertEquals( 10, has_filter( 'content_save_pre', array( $post_type, 'filter_out_settings_if_removed_in_metabox' ) ) );
 
 		if ( version_compare( get_bloginfo( 'version' ), '4.7', '>=' ) ) {
 			$this->assertEquals( 10, has_filter( 'bulk_actions-edit-' . Post_Type::SLUG, array( $post_type, 'add_snapshot_bulk_actions' ) ) );
@@ -885,5 +886,37 @@ class Test_Post_type extends \WP_UnitTestCase {
 		$post_type_obj->admin_show_merge_error();
 		$notice_content = ob_get_clean();
 		$this->assertEmpty( $notice_content );
+	}
+
+	/**
+	 * Test filter_out_settings_if_removed_in_metabox.
+	 *
+	 * @covers CustomizeSnapshots\Post_Type::filter_out_settings_if_removed_in_metabox()
+	 */
+	public function test_filter_out_settings_if_removed_in_metabox() {
+		global $post;
+		$post_type_obj = new Post_Type( $this->plugin->customize_snapshot_manager );
+		$post_type_obj->register();
+		wp_set_current_user( $admin_user_id = $this->factory()->user->create( array( 'role' => 'administrator' ) ) );
+		$post_id = $post_type_obj->save( array(
+			'uuid' => self::UUID,
+			'data' => array(
+				'foo' => array(
+					'value' => 'foo_value',
+				),
+				'bar' => array(
+					'value' => 'bar_value',
+				),
+			),
+			'status' => 'draft',
+		) );
+		$post = get_post( $post_id ); // WPCS: override ok.
+		$nonce_key = Post_Type::SLUG;
+		$key_for_settings = Post_Type::SLUG . '_remove_settings';
+		$_REQUEST[ $nonce_key ] = $_POST[ $nonce_key ] = wp_create_nonce( Post_Type::SLUG . '_settings' );
+		$_REQUEST[ $key_for_settings ] = $_POST[ $key_for_settings ] = array( 'foo' );
+		$content = $post_type_obj->filter_out_settings_if_removed_in_metabox( $post->post_content );
+		$data = json_decode( $content, true );
+		$this->assertArrayNotHasKey( 'foo', $data );
 	}
 }
