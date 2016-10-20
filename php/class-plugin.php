@@ -83,6 +83,11 @@ class Plugin extends Plugin_Base {
 		$src = $this->dir_url . 'js/customize-snapshots-frontend' . $min . '.js';
 		$deps = array( 'jquery', 'underscore' );
 		$wp_scripts->add( $handle, $src, $deps );
+
+		$handle = 'customize-snapshots-admin';
+		$src = $this->dir_url . 'js/customize-snapshots-admin' . $min . '.js';
+		$deps = array( 'jquery' );
+		$wp_scripts->add( $handle, $src, $deps );
 	}
 
 	/**
@@ -105,10 +110,9 @@ class Plugin extends Plugin_Base {
 		$src = $this->dir_url . 'css/customize-snapshots-preview' . $min . '.css';
 		$deps = array( 'customize-preview' );
 		$wp_styles->add( $handle, $src, $deps );
-		$wp_styles->add( $this->slug, $src, $deps );
 
+		$handle = 'customize-snapshots-admin';
 		$src = $this->dir_url . 'css/customize-snapshots-admin' . $min . '.css';
-		$deps = array();
-		$wp_styles->add( 'snapshot-admin', $src, $deps );
+		$wp_styles->add( $handle, $src );
 	}
 }
