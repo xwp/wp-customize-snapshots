@@ -113,7 +113,6 @@ class Plugin extends Plugin_Base {
 
 		$handle = 'customize-snapshots-admin';
 		$src = $this->dir_url . 'css/customize-snapshots-admin' . $min . '.css';
-		$deps = array();
-		$wp_styles->add( $handle, $src, $deps );
+		$wp_styles->add( $handle, $src );
 	}
 }
