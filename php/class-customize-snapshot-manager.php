@@ -77,6 +77,13 @@ class Customize_Snapshot_Manager {
 	public $original_stylesheet;
 
 	/**
+	 * Dashboard_Widget object.
+	 *
+	 * @var Dashboard_Widget
+	 */
+	public $dashboard_widget;
+
+	/**
 	 * Constructor.
 	 *
 	 * @access public
@@ -95,6 +102,8 @@ class Customize_Snapshot_Manager {
 	 */
 	function init() {
 		$this->post_type = new Post_Type( $this );
+		$this->dashboard_widget = new Dashboard_Widget( $this );
+
 		add_action( 'init', array( $this->post_type, 'register' ) );
 
 		add_action( 'template_redirect', array( $this, 'show_theme_switch_error' ) );

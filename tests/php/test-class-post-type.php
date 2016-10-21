@@ -93,7 +93,7 @@ class Test_Post_type extends \WP_UnitTestCase {
 
 		if ( version_compare( get_bloginfo( 'version' ), '4.7', '>=' ) ) {
 			$this->assertEquals( 10, has_filter( 'bulk_actions-edit-' . Post_Type::SLUG, array( $post_type, 'add_snapshot_bulk_actions' ) ) );
-			$this->assertEquals( 10, has_filter( 'handle_bulk_actions-edit-' . Post_Type::SLUG, array( $post_type, 'handle_snapshot_bulk_actions' ) ) );
+			$this->assertEquals( 10, has_filter( 'handle_bulk_actions-edit-' . Post_Type::SLUG, array( $post_type, 'handle_snapshot_merge_bulk_actions' ) ) );
 		} else {
 			$this->assertEquals( 10, has_action( 'admin_footer-edit.php', array( $post_type, 'snapshot_merge_print_script' ) ) );
 			$this->assertEquals( 10, has_action( 'load-edit.php', array( $post_type, 'handle_snapshot_bulk_actions_workaround' ) ) );
@@ -849,9 +849,9 @@ class Test_Post_type extends \WP_UnitTestCase {
 	/**
 	 * Test handle_snapshot_bulk_actions
 	 *
-	 * @covers CustomizeSnapshots\Post_Type::handle_snapshot_bulk_actions()
+	 * @covers CustomizeSnapshots\Post_Type::handle_snapshot_merge_bulk_actions()
 	 */
-	public function test_handle_snapshot_bulk_actions() {
+	public function test_handle_snapshot_merge_bulk_actions() {
 		$post_type = new Post_Type( $this->plugin->customize_snapshot_manager );
 		$date1 = gmdate( 'Y-m-d H:i:s', ( time() + ( get_option( 'gmt_offset' ) * HOUR_IN_SECONDS ) ) );
 		$post_1 = $post_type->save( array(
@@ -925,7 +925,7 @@ class Test_Post_type extends \WP_UnitTestCase {
 			'edit_date' => $date2,
 		) );
 
-		$post_type->handle_snapshot_bulk_actions( '', 'merge_snapshot', array( $post_1, $post_2 ) );
+		$post_type->handle_snapshot_merge_bulk_actions( '', 'merge_snapshot', array( $post_1, $post_2 ) );
 		$post_1_uuid = get_post( $post_1 )->post_name;
 		$post_2_obj = get_post( $post_2 );
 		$post_2_uuid = $post_2_obj->post_name;
@@ -989,10 +989,10 @@ class Test_Post_type extends \WP_UnitTestCase {
 		$this->assertSame( $expected, $post_type->get_post_content( $merged_post ) );
 
 		$input = 'http://example.com';
-		$url = $post_type->handle_snapshot_bulk_actions( $input, 'fishy_Action', array( 1, 2 ) );
+		$url = $post_type->handle_snapshot_merge_bulk_actions( $input, 'fishy_Action', array( 1, 2 ) );
 		$this->assertEquals( 'http://example.com', $url );
 
-		$url = $post_type->handle_snapshot_bulk_actions( $input, 'merge_snapshot', array( 1 ) );
+		$url = $post_type->handle_snapshot_merge_bulk_actions( $input, 'merge_snapshot', array( 1 ) );
 		$this->assertContains( 'merge-error=1', $url );
 	}
 
@@ -1029,10 +1029,10 @@ class Test_Post_type extends \WP_UnitTestCase {
 		$_POST['_wp_http_referer'] = $_REQUEST['_wp_http_referer'] = $_GET['_wp_http_referer'] = admin_url();
 		$post_type_obj = $this->getMockBuilder( 'CustomizeSnapshots\Post_Type' )
 		                      ->setConstructorArgs( array( $this->plugin->customize_snapshot_manager ) )
-		                      ->setMethods( array( 'handle_snapshot_bulk_actions' ) )
+		                      ->setMethods( array( 'handle_snapshot_merge_bulk_actions' ) )
 		                      ->getMock();
 		$post_type_obj->expects( $this->once() )
-		              ->method( 'handle_snapshot_bulk_actions' )
+		              ->method( 'handle_snapshot_merge_bulk_actions' )
 		              ->will( $this->returnValue( null ) );
 		$post_type_obj->handle_snapshot_bulk_actions_workaround();
 

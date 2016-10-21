@@ -121,7 +121,7 @@ class Post_Type {
 		// Version check for bulk action.
 		if ( version_compare( get_bloginfo( 'version' ), '4.7', '>=' ) ) {
 			add_filter( 'bulk_actions-edit-' . self::SLUG, array( $this, 'add_snapshot_bulk_actions' ) );
-			add_filter( 'handle_bulk_actions-edit-' . self::SLUG, array( $this, 'handle_snapshot_bulk_actions' ), 10, 3 );
+			add_filter( 'handle_bulk_actions-edit-' . self::SLUG, array( $this, 'handle_snapshot_merge_bulk_actions' ), 10, 3 );
 		} else {
 			add_action( 'admin_footer-edit.php', array( $this, 'snapshot_merge_print_script' ) );
 			add_action( 'load-edit.php', array( $this, 'handle_snapshot_bulk_actions_workaround' ) );
@@ -728,10 +728,11 @@ class Post_Type {
 	 * @param string $redirect_to url to redirect to.
 	 * @param string $do_action   current action.
 	 * @param array  $post_ids    post ids.
+	 * @param bool   $future_merge is dashboard request for preview schedule snapshots.
 	 *
 	 * @return string url.
 	 */
-	public function handle_snapshot_bulk_actions( $redirect_to, $do_action, $post_ids ) {
+	public function handle_snapshot_merge_bulk_actions( $redirect_to, $do_action, $post_ids, $future_merge = false ) {
 		if ( 'merge_snapshot' !== $do_action ) {
 			return $redirect_to;
 		}
@@ -811,13 +812,13 @@ class Post_Type {
 		}
 		$post_id = $this->save( array(
 			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
-			'status' => 'draft',
+			'status' => $future_merge ? 'auto-draft' : 'draft',
 			'data' => $merged_snapshot_data,
 			'post_date' => current_time( 'mysql', false ),
 			'post_date_gmt' => current_time( 'mysql', true ),
 		) );
 		$redirect_to = get_edit_post_link( $post_id, 'raw' );
-		return $redirect_to;
+		return $future_merge ? $post_id : $redirect_to;
 	}
 
 	/**
@@ -857,7 +858,7 @@ class Post_Type {
 		if ( empty( $post_ids ) ) {
 			return;
 		}
-		$redirect_url = $this->handle_snapshot_bulk_actions( wp_get_referer(), 'merge_snapshot', $post_ids );
+		$redirect_url = $this->handle_snapshot_merge_bulk_actions( wp_get_referer(), 'merge_snapshot', $post_ids );
 		if ( ! empty( $redirect_url ) ) {
 			wp_safe_redirect( $redirect_url );
 			exit;
