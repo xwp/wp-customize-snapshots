@@ -90,9 +90,11 @@ class Dashboard_Widget {
 		$data = $query->posts;
 		if ( ! empty( $data ) ) {
 			$merged_snapshot_post_id = $this->manager->post_type->handle_snapshot_merge_bulk_actions( '', 'merge_snapshot', $data, true );
-			$link = get_permalink( $merged_snapshot_post_id );
-			wp_safe_redirect( $link );
-			exit;
+			if ( $merged_snapshot_post_id ) {
+				$link = get_permalink( $merged_snapshot_post_id );
+				wp_safe_redirect( $link );
+				exit;
+			}
 		}
 	}
 }
