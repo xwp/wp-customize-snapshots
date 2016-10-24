@@ -47,7 +47,11 @@ class Test_Dashboard_Widget extends \WP_UnitTestCase {
 		ob_start();
 		$dashboard->render_widget();
 		$widget_content = ob_get_clean();
-		$this->assertContains( 'name="preview-schedule-snapshot-date"', $widget_content );
+		$this->assertContains( 'name="year"', $widget_content );
+		$this->assertContains( 'name="month"', $widget_content );
+		$this->assertContains( 'name="day"', $widget_content );
+		$this->assertContains( 'name="hour"', $widget_content );
+		$this->assertContains( 'name="minute"', $widget_content );
 	}
 
 	/**
@@ -59,6 +63,7 @@ class Test_Dashboard_Widget extends \WP_UnitTestCase {
 		$post_type_obj = new Post_Type( $manager );
 		$date = gmdate( 'Y-m-d H:i:s', ( time() + DAY_IN_SECONDS + ( get_option( 'gmt_offset' ) * HOUR_IN_SECONDS ) ) );
 		$search_date = gmdate( 'Y-m-d H:i:s', ( time() + DAY_IN_SECONDS + DAY_IN_SECONDS + ( get_option( 'gmt_offset' ) * HOUR_IN_SECONDS ) ) );
+		$date_time = new \DateTime( $search_date );
 		$post_type_obj->save( array(
 			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
 			'status' => 'future',
@@ -81,7 +86,11 @@ class Test_Dashboard_Widget extends \WP_UnitTestCase {
 		$_POST['_wpnonce'] = $_REQUEST['_wpnonce'] = wp_create_nonce( 'customize_site_state_future_snapshot_preview' );
 		$_POST['_wp_http_referer'] = $_REQUEST['_wp_http_referer'] = admin_url();
 		$_POST['customize-future-snapshot-preview'] = 1;
-		$_POST['preview-schedule-snapshot-date'] = $search_date;
+		$_POST['year'] = $date_time->format( 'Y' );
+		$_POST['month'] = $date_time->format( 'm' );
+		$_POST['day'] = $date_time->format( 'd' );
+		$_POST['hour'] = $date_time->format( 'H' );
+		$_POST['minute'] = $date_time->format( 'i' );
 		$_SERVER['REQUEST_METHOD'] = 'POST';
 
 		// Mock handle_snapshot_merge_bulk_actions.

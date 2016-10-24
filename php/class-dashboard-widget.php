@@ -22,6 +22,13 @@ class Dashboard_Widget {
 	public $manager;
 
 	/**
+	 * Wrong date.
+	 *
+	 * @var bool
+	 */
+	public $wrong_date = false;
+
+	/**
 	 * Dashboard_Widget constructor.
 	 *
 	 * @param Customize_Snapshot_Manager $manager manager object.
@@ -48,12 +55,46 @@ class Dashboard_Widget {
 	 */
 	public function render_widget() {
 		// @Todo Change date picker with default WordPress date picker.
-		?>
+		$date_time = current_time( 'mysql' );
+		$date_time = new \DateTime( $date_time );
+		if ( isset( $_POST['year'], $_POST['month'], $_POST['day'], $_POST['hour'], $_POST['minute'], $_REQUEST['_wpnonce'] ) && wp_verify_nonce( $_REQUEST['_wpnonce'], 'customize_site_state_future_snapshot_preview' ) ) {
+			$date_time->setTimestamp( strtotime( "{$_POST['year']}-{$_POST['month']}-{$_POST['day']} {$_POST['hour']}:{$_POST['minute']}" ) );
+		}
+		if ( $this->wrong_date ) {
+			echo '<p class="error-message">Please select future date</p>';
+		} ?>
 		<form method="post">
-			<label for="preview-schedule-snapshot-date"><?php esc_html_e( 'Pick a future date', 'customize-snapshots' ); ?>: </label>
-			<input id="preview-schedule-snapshot-date" type="date" name="preview-schedule-snapshot-date"/>
-			<?php wp_nonce_field( 'customize_site_state_future_snapshot_preview' );
-			submit_button( 'Go!', 'primary', 'customize-future-snapshot-preview', false ); ?>
+				<div class="preview-future-state date-inputs clear">
+					<label>
+						<span class="screen-reader-text"><?php esc_html_e( 'Month', 'customize-snapshots' ); ?></span>
+						<?php $month = $this->manager->get_month_choices(); ?>
+						<select id="snapshot-date-month" class="date-input month" data-date-input="month" name="month">
+							<?php foreach ( $month['month_choices'] as $month_choice ) {
+								echo '<option value="' . esc_attr( $month_choice['value'] ) . '" ' . selected( $date_time->format( 'm' ), $month_choice['value'], false ) . '>' . esc_html( $month_choice['text'] ) . '</option>';} ?>
+						</select>
+					</label>
+					<label>
+						<span class="screen-reader-text"><?php esc_html_e( 'Day', 'customize-snapshots' ); ?></span>
+						<input type="number" size="2" maxlength="2" autocomplete="off" class="date-input day" data-date-input="day" min="1" max="31" value="<?php echo esc_attr( $date_time->format( 'd' ) ); ?>" name="day"/>
+					</label>
+					<span class="time-special-char">,</span>
+					<label>
+						<span class="screen-reader-text"><?php esc_html_e( 'Year', 'customize-snapshots' ); ?></span>
+						<input type="number" size="4" maxlength="4" autocomplete="off" class="date-input year" data-date-input="year" min="<?php echo intval( $date_time->format( 'Y' ) ); ?>" value="<?php echo intval( $date_time->format( 'Y' ) ); ?>" max="9999" name="year" />
+					</label>
+					<span class="time-special-char">@</span>
+					<label>
+						<span class="screen-reader-text"><?php esc_html_e( 'Hour', 'customize-snapshots' ); ?></span>
+						<input type="number" size="2" maxlength="2" autocomplete="off" class="date-input hour" data-date-input="hour" min="0" max="23" value="<?php echo intval( $date_time->format( 'G' ) ); ?>" name="hour" />
+					</label>
+					<span class="time-special-char">:</span>
+					<label>
+						<span class="screen-reader-text"><?php esc_html_e( 'Minute', 'customize-snapshots' ); ?></span>
+						<input type="number" size="2" maxlength="2" autocomplete="off" class="date-input minute" data-date-input="minute" min="0" max="59" value="<?php echo intval( $date_time->format( 'i' ) ); ?>" name="minute" />
+					</label>
+					<?php wp_nonce_field( 'customize_site_state_future_snapshot_preview' );
+					submit_button( 'Preview', 'primary', 'customize-future-snapshot-preview', false ); ?>
+			</div>
 		</form>
 		<?php
 	}
@@ -66,12 +107,15 @@ class Dashboard_Widget {
 			return;
 		}
 		check_admin_referer( 'customize_site_state_future_snapshot_preview' );
-		if ( ! isset( $_POST['preview-schedule-snapshot-date'] ) || empty( $_POST['preview-schedule-snapshot-date'] ) ) {
+		if ( ! isset( $_POST['year'], $_POST['month'], $_POST['day'], $_POST['hour'], $_POST['minute'] ) ) {
+			$this->wrong_date = true;
 			return;
 		}
-		$date = new \DateTime( $_POST['preview-schedule-snapshot-date'] );
-		$current_date = new \DateTime();
+		$date = new \DateTime();
+		$date->setTimestamp( strtotime( "{$_POST['year']}-{$_POST['month']}-{$_POST['day']} {$_POST['hour']}:{$_POST['minute']}" ) );
+		$current_date = new \DateTime( current_time( 'mysql' ) );
 		if ( ! $date || $date <= $current_date ) {
+			$this->wrong_date = true;
 			return;
 		}
 		$query = new \WP_Query( array(
