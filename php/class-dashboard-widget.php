@@ -24,9 +24,16 @@ class Dashboard_Widget {
 	/**
 	 * Wrong date.
 	 *
-	 * @var bool
+	 * @var int
 	 */
-	public $wrong_date = false;
+	public $error_code = 0;
+
+	/**
+	 * Error codes and message mapping.
+	 *
+	 * @var array
+	 */
+	public $error = array();
 
 	/**
 	 * Dashboard_Widget constructor.
@@ -37,6 +44,12 @@ class Dashboard_Widget {
 		$this->manager = $manager;
 		add_action( 'wp_dashboard_setup', array( $this, 'add_widget' ) );
 		add_action( 'load-index.php', array( $this, 'handle_future_snapshot_preview_request' ) );
+
+		$this->error = array(
+			1 => __( 'Please select future date.', 'customize-snapshots' ),
+			2 => __( 'No snapshot found to preview for given date.', 'customize-snapshots' ),
+			3 => __( 'Something went wrong while merging snapshots.', 'customize-snapshots' ),
+		);
 	}
 
 	/**
@@ -60,8 +73,8 @@ class Dashboard_Widget {
 		if ( isset( $_POST['year'], $_POST['month'], $_POST['day'], $_POST['hour'], $_POST['minute'], $_REQUEST['_wpnonce'] ) && wp_verify_nonce( $_REQUEST['_wpnonce'], 'customize_site_state_future_snapshot_preview' ) ) {
 			$date_time->setTimestamp( strtotime( "{$_POST['year']}-{$_POST['month']}-{$_POST['day']} {$_POST['hour']}:{$_POST['minute']}" ) );
 		}
-		if ( $this->wrong_date ) {
-			echo '<p class="error-message">Please select future date</p>';
+		if ( $this->error_code ) {
+			echo '<p class="error-message">' . esc_html( $this->error[ $this->error_code ] ) . '</p>';
 		} ?>
 		<form method="post">
 				<div class="preview-future-state date-inputs clear">
@@ -108,14 +121,14 @@ class Dashboard_Widget {
 		}
 		check_admin_referer( 'customize_site_state_future_snapshot_preview' );
 		if ( ! isset( $_POST['year'], $_POST['month'], $_POST['day'], $_POST['hour'], $_POST['minute'] ) ) {
-			$this->wrong_date = true;
+			$this->error_code = 1;
 			return;
 		}
 		$date = new \DateTime();
 		$date->setTimestamp( strtotime( "{$_POST['year']}-{$_POST['month']}-{$_POST['day']} {$_POST['hour']}:{$_POST['minute']}" ) );
 		$current_date = new \DateTime( current_time( 'mysql' ) );
 		if ( ! $date || $date <= $current_date ) {
-			$this->wrong_date = true;
+			$this->error_code = 1;
 			return;
 		}
 		$query = new \WP_Query( array(
@@ -138,7 +151,11 @@ class Dashboard_Widget {
 				$link = get_permalink( $merged_snapshot_post_id );
 				wp_safe_redirect( $link );
 				exit;
+			} else {
+				$this->error_code = 3;
 			}
+		} else {
+			$this->error_code = 2;
 		}
 	}
 }

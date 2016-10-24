@@ -44,6 +44,7 @@ class Test_Dashboard_Widget extends \WP_UnitTestCase {
 	 */
 	public function test_render_widget() {
 		$dashboard = new Dashboard_Widget( get_plugin_instance()->customize_snapshot_manager );
+		$dashboard->error_code = 1;
 		ob_start();
 		$dashboard->render_widget();
 		$widget_content = ob_get_clean();
