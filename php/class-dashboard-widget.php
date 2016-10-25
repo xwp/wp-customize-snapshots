@@ -44,6 +44,7 @@ class Dashboard_Widget {
 		$this->manager = $manager;
 		add_action( 'wp_dashboard_setup', array( $this, 'add_widget' ) );
 		add_action( 'load-index.php', array( $this, 'handle_future_snapshot_preview_request' ) );
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_dashboard_scripts' ) );
 
 		$this->error = array(
 			1 => __( 'Please select future date.', 'customize-snapshots' ),
@@ -53,12 +54,24 @@ class Dashboard_Widget {
 	}
 
 	/**
+	 * Enqueue Dashboard styles.
+	 *
+	 * @param string $hook current page.
+	 */
+	public function enqueue_admin_dashboard_scripts( $hook ) {
+		$handle = 'customize-snapshots-dashboard';
+		if ( 'index.php' === $hook ) {
+			wp_enqueue_style( $handle );
+		}
+	}
+
+	/**
 	 * Add widget.
 	 */
 	public function add_widget() {
 		wp_add_dashboard_widget(
 			'customize_site_state_future_snapshot_preview',
-			__( 'Preview Future Scheduled Snapshots','customize-snapshots' ),
+			__( 'Preview Future Site State','customize-snapshots' ),
 			array( $this, 'render_widget' )
 		);
 	}

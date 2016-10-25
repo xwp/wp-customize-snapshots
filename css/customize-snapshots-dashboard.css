@@ -1,0 +1,54 @@
+.preview-future-state.date-inputs {
+	display: flex;
+	display: -ms-flexbox;
+	align-items: center;
+	-webkit-box-align: center;
+	-ms-flex-align: center;
+	justify-content: flex-start;
+	-webkit-box-pack: start;
+	-ms-flex-pack: start;
+}
+
+.preview-future-state input.date-input {
+	-moz-appearance: textfield;
+	-webkit-appearance: textfield;
+	padding-left: 5px; /* 10px padding is not ideal for such small inputs */
+	padding-right: 5px;
+}
+
+.preview-future-state label {
+	display: inline-block; /* To align items when flex is not supported */
+}
+
+.preview-future-state .year.date-input {
+	min-width: 4em;
+}
+
+.preview-future-state input[type="number"]{
+	width:100%;
+}
+
+.preview-future-state .time-special-char {
+	padding-left:2px;
+	padding-right:2px;
+}
+
+.preview-future-state select {
+	height: 28px;
+}
+
+@media screen and ( max-width: 782px ) {
+	.preview-future-state select {
+		height: 40px;
+	}
+}
+
+.preview-future-state input.date-input::-webkit-outer-spin-button,
+.preview-future-state input.date-input::-webkit-inner-spin-button {
+	-webkit-appearance: none;
+	margin: 0;
+}
+
+#customize-future-snapshot-preview{
+	margin-left: 0.5em;
+}
