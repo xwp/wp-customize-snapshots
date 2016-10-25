@@ -80,7 +80,6 @@ class Dashboard_Widget {
 	 * Render widget.
 	 */
 	public function render_widget() {
-		// @Todo Change date picker with default WordPress date picker.
 		$date_time = current_time( 'mysql' );
 		$date_time = new \DateTime( $date_time );
 		if ( isset( $_POST['year'], $_POST['month'], $_POST['day'], $_POST['hour'], $_POST['minute'], $_REQUEST['_wpnonce'] ) && wp_verify_nonce( $_REQUEST['_wpnonce'], 'customize_site_state_future_snapshot_preview' ) ) {
