@@ -22,6 +22,19 @@ class Test_Dashboard_Widget extends \WP_UnitTestCase {
 	}
 
 	/**
+	 * Test enqueue_admin_dashboard_scripts
+	 *
+	 * @covers CustomizeSnapshots\Dashboard_Widget::enqueue_admin_dashboard_scripts()
+	 */
+	public function test_enqueue_admin_dashboard_scripts() {
+		$plugin = get_plugin_instance();
+		$plugin->register_styles( wp_styles() );
+		$manager = new Dashboard_Widget( get_plugin_instance()->customize_snapshot_manager );
+		$manager->enqueue_admin_dashboard_scripts( 'index.php' );
+		$this->assertTrue( wp_style_is( 'customize-snapshots-dashboard', 'enqueued' ) );
+	}
+
+	/**
 	 * Test add_widget
 	 *
 	 * @covers CustomizeSnapshots\Dashboard_Widget::add_widget()
@@ -65,7 +78,7 @@ class Test_Dashboard_Widget extends \WP_UnitTestCase {
 		$date = gmdate( 'Y-m-d H:i:s', ( time() + DAY_IN_SECONDS + ( get_option( 'gmt_offset' ) * HOUR_IN_SECONDS ) ) );
 		$search_date = gmdate( 'Y-m-d H:i:s', ( time() + DAY_IN_SECONDS + DAY_IN_SECONDS + ( get_option( 'gmt_offset' ) * HOUR_IN_SECONDS ) ) );
 		$date_time = new \DateTime( $search_date );
-		$post_type_obj->save( array(
+		$post_id_1 = $post_type_obj->save( array(
 			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
 			'status' => 'future',
 			'post_date' => $date,
@@ -73,7 +86,7 @@ class Test_Dashboard_Widget extends \WP_UnitTestCase {
 			'data' => array( 'foo' => array( 'value' => 'bar' ) ),
 			'edit_date' => current_time( 'mysql' ),
 		) );
-		$post_type_obj->save( array(
+		$post_id_2 = $post_type_obj->save( array(
 			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
 			'status' => 'future',
 			'post_date' => $date,
@@ -105,5 +118,32 @@ class Test_Dashboard_Widget extends \WP_UnitTestCase {
 		$manager->post_type = $post_type_obj;
 		$dashboard = new Dashboard_Widget( $manager );
 		$dashboard->handle_future_snapshot_preview_request();
+		$this->assertEquals( 3, $dashboard->error_code );
+
+		wp_update_post( array(
+			'post_status' => 'draft',
+			'ID' => $post_id_1,
+			'post_date' => current_time( 'mysql' ),
+		) );
+		wp_update_post( array(
+			'post_status' => 'draft',
+			'ID' => $post_id_2,
+			'post_date' => current_time( 'mysql' ),
+		) );
+		$dashboard->handle_future_snapshot_preview_request();
+		$this->assertEquals( 2, $dashboard->error_code );
+
+		$_POST['year'] = '2010';
+		$dashboard->handle_future_snapshot_preview_request();
+		$this->assertEquals( 1, $dashboard->error_code );
+
+		unset( $_POST['year'] );
+		$dashboard->error_code = 0;
+		$dashboard->handle_future_snapshot_preview_request();
+		$this->assertEquals( 1, $dashboard->error_code );
+
+		unset( $_POST['customize-future-snapshot-preview'] );
+		$dashboard->handle_future_snapshot_preview_request();
+
 	}
 }
