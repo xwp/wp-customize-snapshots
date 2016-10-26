@@ -11,3 +11,6 @@ details:not(.snapshot-setting-removed) .snapshot-toggle-setting-removal {
 details:not(.snapshot-setting-removed) .snapshot-toggle-setting-removal:hover {
 	color: #f00
 }
+.snapshot-merged-list a{
+	vertical-align: bottom;
+}

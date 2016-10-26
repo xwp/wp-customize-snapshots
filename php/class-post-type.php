@@ -342,8 +342,9 @@ class Post_Type {
 			echo '</strong>';
 			echo '<ul class="ul-disc snapshot-merged-list">';
 			foreach ( $merged_uuid as $uuid ) {
-				$uuid_post = $this->find_post( $uuid );
-				echo '<li><a href="' . esc_url( get_edit_post_link( $uuid_post ) ) . '"> ' . esc_html( $uuid ) . '</a ></li > ';
+				$uuid_post_id = $this->find_post( $uuid );
+				$uuid_post = get_post( $uuid_post_id );
+				echo '<li>' . ( ( $uuid_post->post_name === $uuid_post->post_title ) ? get_the_title( $uuid_post ) : get_the_title( $uuid_post ) . ' - ' . esc_html( $uuid ) ) . ' <a href="' . esc_url( get_edit_post_link( $uuid_post_id ) ) . '" class="dashicons dashicons-external"></a></li>';
 			}
 			echo '</ul>';
 			echo '</p>';

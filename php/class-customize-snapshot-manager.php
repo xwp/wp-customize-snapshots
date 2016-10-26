@@ -1142,7 +1142,7 @@ class Customize_Snapshot_Manager {
 		$publish_date = isset( $_POST['publish_date'] ) ? $_POST['publish_date'] : '';
 		if ( 'future' === $status ) {
 			$publish_date_obj = new \DateTime( $publish_date );
-			$current_date = new \DateTime();
+			$current_date = new \DateTime( current_time( 'mysql' ) );
 			if ( empty( $publish_date ) || ! $publish_date_obj || $publish_date > $current_date ) {
 				status_header( 400 );
 				wp_send_json_error( 'bad_schedule_time' );
