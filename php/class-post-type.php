@@ -344,7 +344,9 @@ class Post_Type {
 			foreach ( $merged_uuid as $uuid ) {
 				$uuid_post_id = $this->find_post( $uuid );
 				$uuid_post = get_post( $uuid_post_id );
-				echo '<li>' . ( ( $uuid_post->post_name === $uuid_post->post_title ) ? get_the_title( $uuid_post ) : get_the_title( $uuid_post ) . ' - ' . esc_html( $uuid ) ) . ' <a href="' . esc_url( get_edit_post_link( $uuid_post_id ) ) . '" class="dashicons dashicons-external"></a></li>';
+				echo '<li>' . ( ( $uuid_post->post_name === $uuid_post->post_title ) ? get_the_title( $uuid_post ) : get_the_title( $uuid_post ) . ' - ' . esc_html( $uuid ) );
+				echo ( 'future' === $uuid_post->post_status ) ? ' (Scheduled)' : '';
+				echo '<a href="' . esc_url( get_edit_post_link( $uuid_post_id ) ) . '" class="dashicons dashicons-external"></a></li>';
 			}
 			echo '</ul>';
 			echo '</p>';
@@ -944,7 +946,7 @@ class Post_Type {
 	public function resolve_conflict_markup( $setting_id, $value, $snapshot_content ) {
 		if ( isset( $value['merge_conflict'] ) ) {
 			$setting_id_key = str_replace( ']', '\\]', str_replace( '[', '\\[', $setting_id ) );
-			echo '<a href="#TB_inline?width=600&height=550&inlineId=snapshot-resolve-' . esc_attr( $setting_id_key ) . '" id="' . esc_attr( $setting_id ) . '" class="snapshot-resolve-setting-conflict remove thickbox">' . esc_html__( 'Resolve conflict', 'customize-snapshots' ) . '</a> ';
+			echo '<a href="#TB_inline?width=600&height=550&inlineId=snapshot-resolve-' . esc_attr( $setting_id_key ) . '" id="' . esc_attr( $setting_id ) . '" class="snapshot-resolve-setting-conflict remove thickbox">' . esc_html__( 'Change merge selection', 'customize-snapshots' ) . '</a> ';
 			echo '<div id="snapshot-resolve-' . esc_attr( $setting_id ) . '" style="display:none;">';
 			echo '<ul>';
 			foreach ( $value['merge_conflict'] as $conflicted_data ) {
