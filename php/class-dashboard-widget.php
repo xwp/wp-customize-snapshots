@@ -126,6 +126,8 @@ class Dashboard_Widget {
 
 	/**
 	 * Handle future snapshot preview request.
+	 *
+	 * @return void|int post_id.
 	 */
 	public function handle_future_snapshot_preview_request() {
 		if ( 'POST' !== $_SERVER['REQUEST_METHOD'] || ! isset( $_POST['customize-future-snapshot-preview'] ) ) {
@@ -175,8 +177,12 @@ class Dashboard_Widget {
 
 			if ( $merged_snapshot_post_id ) {
 				$link = get_permalink( $merged_snapshot_post_id );
-				wp_safe_redirect( $link );
-				exit;
+				$success = wp_safe_redirect( $link );
+				if ( $success ) {
+					exit;
+				} else {
+					return $merged_snapshot_post_id;
+				}
 			} else {
 				$this->error_code = 3;
 			}

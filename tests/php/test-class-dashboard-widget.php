@@ -78,12 +78,13 @@ class Test_Dashboard_Widget extends \WP_UnitTestCase {
 		$date = gmdate( 'Y-m-d H:i:s', ( time() + DAY_IN_SECONDS + ( get_option( 'gmt_offset' ) * HOUR_IN_SECONDS ) ) );
 		$search_date = gmdate( 'Y-m-d H:i:s', ( time() + DAY_IN_SECONDS + DAY_IN_SECONDS + ( get_option( 'gmt_offset' ) * HOUR_IN_SECONDS ) ) );
 		$date_time = new \DateTime( $search_date );
+		$data = array( 'foo' => array( 'value' => 'bar' ) );
 		$post_id_1 = $post_type_obj->save( array(
 			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
 			'status' => 'future',
 			'post_date' => $date,
 			'post_date_gmt' => '0000-00-00 00:00:00',
-			'data' => array( 'foo' => array( 'value' => 'bar' ) ),
+			'data' => $data,
 			'edit_date' => current_time( 'mysql' ),
 		) );
 		$post_id_2 = $post_type_obj->save( array(
@@ -91,7 +92,7 @@ class Test_Dashboard_Widget extends \WP_UnitTestCase {
 			'status' => 'future',
 			'post_date' => $date,
 			'post_date_gmt' => '0000-00-00 00:00:00',
-			'data' => array( 'foo' => array( 'value' => 'bar' ) ),
+			'data' => $data,
 			'edit_date' => current_time( 'mysql' ),
 		) );
 
@@ -119,12 +120,20 @@ class Test_Dashboard_Widget extends \WP_UnitTestCase {
 		$dashboard = new Dashboard_Widget( $manager );
 		$dashboard->handle_future_snapshot_preview_request();
 		$this->assertEquals( 3, $dashboard->error_code );
-
 		wp_update_post( array(
 			'post_status' => 'draft',
 			'ID' => $post_id_1,
 			'post_date' => current_time( 'mysql' ),
 		) );
+
+		// Case: Only 1 snapshot to preview for future state so create duplicate.
+		add_filter( 'wp_redirect', '__return_null', 99 );
+		$new_duplicate_post_id = $dashboard->handle_future_snapshot_preview_request();
+		$duplicate_post = get_post( $new_duplicate_post_id );
+		$this->assertEquals( 'auto-draft', $duplicate_post->post_status );
+		$this->assertSame( $data, $dashboard->manager->post_type->get_post_content( $duplicate_post ) );
+		remove_filter( 'wp_redirect', '__return_null', 99 );
+
 		wp_update_post( array(
 			'post_status' => 'draft',
 			'ID' => $post_id_2,
