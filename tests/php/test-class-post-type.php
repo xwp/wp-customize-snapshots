@@ -230,7 +230,7 @@ class Test_Post_type extends \WP_UnitTestCase {
 
 		wp_set_current_user( $admin_user_id );
 		$filtered_actions = apply_filters( 'post_row_actions', $original_actions, get_post( $post_id ) );
-		$this->assertArrayHasKey( 'inline hide-if-no-js', $filtered_actions );
+		$this->assertArrayNotHasKey( 'inline hide-if-no-js', $filtered_actions );
 		$this->assertArrayHasKey( 'customize', $filtered_actions );
 		$this->assertArrayHasKey( 'front-view', $filtered_actions );
 

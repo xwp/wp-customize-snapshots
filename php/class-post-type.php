@@ -286,8 +286,6 @@ class Post_Type {
 				$actions
 			);
 		} else {
-			unset( $actions['inline hide-if-no-js'] );
-
 			if ( isset( $actions['edit'] ) ) {
 				$actions['edit'] = sprintf(
 					'<a href="%s" aria-label="%s">%s</a>',
@@ -298,6 +296,9 @@ class Post_Type {
 				);
 			}
 		}
+
+		unset( $actions['inline hide-if-no-js'] );
+
 		return $actions;
 	}
 
