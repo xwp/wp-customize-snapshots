@@ -994,10 +994,6 @@ class Test_Post_type extends \WP_UnitTestCase {
 
 		$url = $post_type->handle_snapshot_merge_bulk_actions( $input, 'merge_snapshot', array( 1 ) );
 		$this->assertContains( 'merge-error=1', $url );
-
-		// Dashboard merge request with single snapshot.
-		$result_post_1 = $post_type->handle_snapshot_merge_bulk_actions( $input, 'merge_snapshot', array( $post_1 ), true );
-		$this->assertEquals( $result_post_1, $post_1 );
 	}
 
 	/**

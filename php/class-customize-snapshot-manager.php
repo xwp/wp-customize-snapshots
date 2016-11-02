@@ -1343,11 +1343,14 @@ class Customize_Snapshot_Manager {
 			);
 		}
 
-		// Add customize_snapshot_uuid param as param to customize.php itself.
-		$customize_node->href = add_query_arg(
-			array( 'customize_snapshot_uuid' => $this->current_snapshot_uuid ),
-			$customize_node->href
-		);
+		$post = $this->snapshot->post();
+		if ( ! $this->is_read_only_snapshot( $post ) ) {
+			// Add customize_snapshot_uuid param as param to customize.php itself.
+			$customize_node->href = add_query_arg(
+				array( 'customize_snapshot_uuid' => $this->current_snapshot_uuid ),
+				$customize_node->href
+			);
+		}
 
 		$customize_node->meta['class'] .= ' ab-customize-snapshots-item';
 		$wp_admin_bar->add_menu( (array) $customize_node );
@@ -1379,7 +1382,7 @@ class Customize_Snapshot_Manager {
 			return;
 		}
 		$post = $this->snapshot->post();
-		if ( ! $post ) {
+		if ( ! $post || $this->is_read_only_snapshot( $post ) ) {
 			return;
 		}
 		$wp_admin_bar->add_menu( array(
@@ -1664,5 +1667,15 @@ class Customize_Snapshot_Manager {
 			}
 		}
 		return $post;
+	}
+
+	/**
+	 * Returns whether post is readonly or not.
+	 *
+	 * @param \WP_Post|int $post post_object or post_id.
+	 * @return bool
+	 */
+	public function is_read_only_snapshot( $post ) {
+		return ( 'auto-draft' === get_post_status( $post ) );
 	}
 }

@@ -156,9 +156,23 @@ class Dashboard_Widget {
 			'update_post_meta_cache' => false,
 			'update_post_term_cache' => false,
 		) );
-		$data = $query->posts;
-		if ( ! empty( $data ) ) {
-			$merged_snapshot_post_id = $this->manager->post_type->handle_snapshot_merge_bulk_actions( '', 'merge_snapshot', $data, true );
+		$mergable_posts = $query->posts;
+		if ( ! empty( $mergable_posts ) ) {
+			if ( 1 === count( $mergable_posts ) ) {
+				// In case of single post duplicate it's data.
+				$_snapshot_post = get_post( array_shift( $mergable_posts ) );
+				$merged_snapshot_post_id = $this->manager->post_type->save( array(
+					'uuid' => Customize_Snapshot_Manager::generate_uuid(),
+					'status' => 'auto-draft',
+					'data' => $this->manager->post_type->get_post_content( $_snapshot_post ),
+					'post_date' => current_time( 'mysql', false ),
+					'post_date_gmt' => current_time( 'mysql', true ),
+				) );
+			} else {
+				// Merge posts.
+				$merged_snapshot_post_id = $this->manager->post_type->handle_snapshot_merge_bulk_actions( '', 'merge_snapshot', $mergable_posts, true );
+			}
+
 			if ( $merged_snapshot_post_id ) {
 				$link = get_permalink( $merged_snapshot_post_id );
 				wp_safe_redirect( $link );

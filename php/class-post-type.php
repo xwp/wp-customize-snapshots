@@ -741,11 +741,6 @@ class Post_Type {
 			return $redirect_to;
 		}
 		$posts = array_map( 'get_post', $post_ids );
-		if ( 1 === count( $posts ) && true === $future_merge ) {
-			// If it is dashboard request and there is only one snapshot, preview it directly.
-			$snapshot_post = array_shift( $posts );
-			return $snapshot_post->ID;
-		}
 		if ( count( $posts ) <= 1 ) {
 			return empty( $redirect_to ) ? add_query_arg( array( 'merge-error' => 1 ) ) : add_query_arg( array( 'merge-error' => 1 ), $redirect_to );
 		}
