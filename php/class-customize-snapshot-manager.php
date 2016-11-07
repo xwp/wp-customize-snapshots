@@ -1329,6 +1329,11 @@ class Customize_Snapshot_Manager {
 		if ( empty( $customize_node ) ) {
 			return;
 		}
+		$post = $this->snapshot->post();
+		if ( $this->is_read_only_snapshot( $post ) ) {
+			$wp_admin_bar->remove_menu( 'customize' );
+			return;
+		}
 
 		// Remove customize_snapshot_uuid query param from url param to be previewed in Customizer.
 		$preview_url_query_params = array();
@@ -1343,15 +1348,11 @@ class Customize_Snapshot_Manager {
 			);
 		}
 
-		$post = $this->snapshot->post();
-		if ( ! $this->is_read_only_snapshot( $post ) ) {
-			// Add customize_snapshot_uuid param as param to customize.php itself.
-			$customize_node->href = add_query_arg(
-				array( 'customize_snapshot_uuid' => $this->current_snapshot_uuid ),
-				$customize_node->href
-			);
-		}
-
+		// Add customize_snapshot_uuid param as param to customize.php itself.
+		$customize_node->href = add_query_arg(
+			array( 'customize_snapshot_uuid' => $this->current_snapshot_uuid ),
+			$customize_node->href
+		);
 		$customize_node->meta['class'] .= ' ab-customize-snapshots-item';
 		$wp_admin_bar->add_menu( (array) $customize_node );
 	}
