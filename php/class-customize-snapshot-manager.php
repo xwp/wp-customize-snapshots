@@ -1677,6 +1677,10 @@ class Customize_Snapshot_Manager {
 	 * @return bool
 	 */
 	public function is_read_only_snapshot( $post ) {
-		return ( 'auto-draft' === get_post_status( $post ) );
+		$post = get_post( $post );
+		if ( ! $post ) {
+			return false;
+		}
+		return ( '1' === get_post_meta( $post->ID, 'is_future_preview', true ) && 'auto-draft' === $post->post_status );
 	}
 }

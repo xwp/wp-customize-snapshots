@@ -131,6 +131,7 @@ class Test_Dashboard_Widget extends \WP_UnitTestCase {
 		$new_duplicate_post_id = $dashboard->handle_future_snapshot_preview_request();
 		$duplicate_post = get_post( $new_duplicate_post_id );
 		$this->assertEquals( 'auto-draft', $duplicate_post->post_status );
+		$this->assertEquals( '1', get_post_meta( $duplicate_post->ID, 'is_future_preview', true ) );
 		$this->assertSame( $data, $dashboard->manager->post_type->get_post_content( $duplicate_post ) );
 		remove_filter( 'wp_redirect', '__return_null', 99 );
 

@@ -176,6 +176,7 @@ class Dashboard_Widget {
 			}
 
 			if ( $merged_snapshot_post_id ) {
+				add_post_meta( $merged_snapshot_post_id, 'is_future_preview', '1' );
 				$link = get_permalink( $merged_snapshot_post_id );
 				$success = wp_safe_redirect( $link );
 				if ( $success ) {

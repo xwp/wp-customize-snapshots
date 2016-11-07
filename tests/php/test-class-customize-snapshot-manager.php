@@ -1130,4 +1130,17 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		$this->assertNotEquals( $post->post_modified, '0000-00-00 00:00:00' );
 		$this->assertNotEquals( $post->post_modified_gmt, '0000-00-00 00:00:00' );
 	}
+
+	/**
+	 * Test is_read_only_snapshot
+	 *
+	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::is_read_only_snapshot()
+	 */
+	public function test_is_read_only_snapshot() {
+		$post_id = $this->factory()->post->create( array( 'post_status' => 'auto-draft' ) );
+		$post = get_post( $post_id );
+		$this->assertFalse( $this->manager->is_read_only_snapshot( $post ) );
+		add_post_meta( $post->ID, 'is_future_preview', '1' );
+		$this->assertTrue( $this->manager->is_read_only_snapshot( $post ) );
+	}
 }
