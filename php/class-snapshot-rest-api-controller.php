@@ -141,7 +141,7 @@ class Snapshot_REST_API_Controller extends \WP_REST_Posts_Controller {
 	 * @return boolean Can we read it?
 	 */
 	public function check_read_permission( $post ) {
-		$post_type_obj = get_post_type_object( 'customize_snapshot' );
+		$post_type_obj = get_post_type_object( $this->snapshot_post_type->snapshot_manager->get_post_type() );
 		if ( ! current_user_can( $post_type_obj->cap->edit_post, $post->ID ) ) {
 			return false;
 		}

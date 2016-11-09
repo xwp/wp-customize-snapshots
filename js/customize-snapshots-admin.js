@@ -1,20 +1,37 @@
-( function( $ ) {
+/* global jQuery */
+/* exported CustomizeSnapshotsAdmin */
+var CustomizeSnapshotsAdmin = (function( $ ) {
 	'use strict';
+	var component = {};
 
-	$( function() {
-		var component, $linkToRemoveOrRestore, linkActions, dataSlug, inputName;
+	component.data = {
+		deleteInputName: 'customize_snapshot_remove_settings[]'
+	};
 
-		component = {};
-		$linkToRemoveOrRestore = $( '.snapshot-toggle-setting-removal' );
-		linkActions = [ 'remove', 'restore' ];
-		dataSlug = 'cs-action';
-		inputName = 'customize_snapshot_remove_settings[]';
+	/**
+	 * Initialize component.
+	 *
+	 * @param {object} args Args.
+	 * @return {void}
+	 */
+	component.init = function( args ) {
+		component.data = _.extend( component.data, args );
+		$( function() {
+			component.deleteSetting();
+		} );
+	};
 
-		component.initializeLink = function() {
-			$linkToRemoveOrRestore.data( dataSlug, linkActions[ 0 ] );
-		};
+	/**
+	 * Handles snapshot setting delete actions.
+	 *
+	 * @return {void}
+	 */
+	component.deleteSetting = function() {
+		var $linkToRemoveOrRestore = $( '.snapshot-toggle-setting-removal' ),
+			linkActions = ['remove', 'restore'],
+			dataSlug = 'cs-action';
 
-		component.initializeLink();
+		$linkToRemoveOrRestore.data( dataSlug, linkActions[0] );
 
 		component.isLinkSetToRemoveSetting = function( $link ) {
 			return linkActions[ 0 ] === component.getClickedLinkAction( $link );
@@ -50,7 +67,7 @@
 
 		component.constructHiddenInputWithValue = function( settingId ) {
 			return $( '<input>' ).attr( {
-				'name': inputName,
+				'name': component.data.deleteInputName,
 				'type': 'hidden'
 			} )
 			.val( settingId );
@@ -77,7 +94,7 @@
 		};
 
 		component.removeHiddenInputWithValue = function( settingId ) {
-			$( 'input[name="' + inputName + '"][value="' + settingId + '"]' ).remove();
+			$( 'input[name="' + component.data.deleteInputName + '"][value="' + settingId + '"]' ).remove();
 		};
 
 		$linkToRemoveOrRestore.on( 'click', function( event ) {
@@ -91,6 +108,7 @@
 				component.showSettingAndChangeLinkText( $clickedLink );
 			}
 		} );
+	};
 
-	} );
-} )( jQuery );
+	return component;
+})( jQuery );

@@ -94,8 +94,13 @@ class Customize_Snapshot_Manager {
 	 * @global \WP_Customize_Manager $wp_customize
 	 */
 	function init() {
-		$this->post_type = new Post_Type( $this );
-		add_action( 'init', array( $this->post_type, 'register' ) );
+		// Todo change this 4.7-beta1 to 4.7.
+		if ( version_compare( get_bloginfo( 'version' ), '4.7-beta1', '>=' ) ) {
+			$this->post_type = new Post_Type( $this );
+		} else {
+			$this->post_type = new Post_Type_Back_Compat( $this );
+		}
+		add_action( 'init', array( $this->post_type, 'init' ) );
 
 		add_action( 'template_redirect', array( $this, 'show_theme_switch_error' ) );
 
@@ -758,9 +763,17 @@ class Customize_Snapshot_Manager {
 	public function enqueue_admin_scripts( $hook ) {
 		global $post;
 		$handle = 'customize-snapshots-admin';
-		if ( ( 'post.php' === $hook ) && isset( $post->post_type ) && ( Post_Type::SLUG === $post->post_type ) && ( 'publish' !== $post->post_status ) ) {
+		if ( ( 'post.php' === $hook ) && isset( $post->post_type ) && ( $this->get_post_type() === $post->post_type ) && ( 'publish' !== $post->post_status ) ) {
 			wp_enqueue_script( $handle );
 			wp_enqueue_style( $handle );
+			$exports = array(
+				'deleteInputName' => $this->get_post_type() . '_remove_settings[]',
+			);
+			wp_add_inline_script(
+				$handle,
+				sprintf( 'CustomizeSnapshotsAdmin.init( %s )', wp_json_encode( $exports ) ),
+				'after'
+			);
 		}
 	}
 
@@ -870,7 +883,7 @@ class Customize_Snapshot_Manager {
 		$is_publishing_snapshot = (
 			isset( $data['post_type'] )
 			&&
-			Post_Type::SLUG === $data['post_type']
+			$this->get_post_type() === $data['post_type']
 			&&
 			'publish' === $data['post_status']
 			&&
@@ -934,7 +947,7 @@ class Customize_Snapshot_Manager {
 	public function save_settings_with_publish_snapshot( $new_status, $old_status, $post ) {
 
 		// Abort if not transitioning a snapshot post to publish from a non-publish status.
-		if ( Post_Type::SLUG !== $post->post_type || 'publish' !== $new_status || $new_status === $old_status ) {
+		if ( $this->get_post_type() !== $post->post_type || 'publish' !== $new_status || $new_status === $old_status ) {
 			return false;
 		}
 
@@ -1157,7 +1170,7 @@ class Customize_Snapshot_Manager {
 		do_action( 'customize_snapshot_save_before', $this->snapshot, $this );
 
 		// Set the snapshot UUID.
-		$post_type = get_post_type_object( Post_Type::SLUG );
+		$post_type = get_post_type_object( $this->get_post_type() );
 		$authorized = ( $post ?
 			current_user_can( $post_type->cap->edit_post, $post->ID ) :
 			current_user_can( 'customize' )
@@ -1316,13 +1329,15 @@ class Customize_Snapshot_Manager {
 		if ( empty( $customize_node ) ) {
 			return;
 		}
+		$customize_changeset_param_name = constant( get_class( $this->post_type ) . '::CUSTOMIZE_UUID_PARAM_NAME' );
+		$frontend_changeset_param_name = constant( get_class( $this->post_type ) . '::FRONT_UUID_PARAM_NAME' );
 
 		// Remove customize_snapshot_uuid query param from url param to be previewed in Customizer.
 		$preview_url_query_params = array();
 		$preview_url_parsed = wp_parse_url( $customize_node->href );
 		parse_str( $preview_url_parsed['query'], $preview_url_query_params );
 		if ( ! empty( $preview_url_query_params['url'] ) ) {
-			$preview_url_query_params['url'] = remove_query_arg( array( 'customize_snapshot_uuid' ), $preview_url_query_params['url'] );
+			$preview_url_query_params['url'] = remove_query_arg( array( $frontend_changeset_param_name ), $preview_url_query_params['url'] );
 			$customize_node->href = preg_replace(
 				'/(?<=\?).*?(?=#|$)/',
 				build_query( $preview_url_query_params ),
@@ -1332,7 +1347,7 @@ class Customize_Snapshot_Manager {
 
 		// Add customize_snapshot_uuid param as param to customize.php itself.
 		$customize_node->href = add_query_arg(
-			array( 'customize_snapshot_uuid' => $this->current_snapshot_uuid ),
+			array( $customize_changeset_param_name => $this->current_snapshot_uuid ),
 			$customize_node->href
 		);
 
@@ -1388,10 +1403,12 @@ class Customize_Snapshot_Manager {
 		if ( ! $this->snapshot ) {
 			return;
 		}
+		$frontend_changeset_param_name = constant( get_class( $this->post_type ) . '::FRONT_UUID_PARAM_NAME' );
+
 		$wp_admin_bar->add_menu( array(
 			'id' => 'exit-customize-snapshot',
 			'title' => __( 'Exit Snapshot Preview', 'customize-snapshots' ),
-			'href' => remove_query_arg( 'customize_snapshot_uuid' ),
+			'href' => remove_query_arg( $frontend_changeset_param_name ),
 			'meta' => array(
 				'class' => 'ab-item ab-customize-snapshots-item',
 			),
@@ -1651,5 +1668,12 @@ class Customize_Snapshot_Manager {
 			}
 		}
 		return $post;
+	}
+
+	/**
+	 * Get Post_Type from dynamic class.
+	 */
+	public function get_post_type() {
+		return constant( get_class( $this->post_type ) . '::SLUG' );
 	}
 }

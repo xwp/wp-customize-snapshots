@@ -86,7 +86,7 @@ class Plugin extends Plugin_Base {
 
 		$handle = 'customize-snapshots-admin';
 		$src = $this->dir_url . 'js/customize-snapshots-admin' . $min . '.js';
-		$deps = array( 'jquery' );
+		$deps = array( 'jquery', 'underscore' );
 		$wp_scripts->add( $handle, $src, $deps );
 	}
 
