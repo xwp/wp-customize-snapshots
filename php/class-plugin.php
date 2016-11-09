@@ -29,6 +29,13 @@ class Plugin extends Plugin_Base {
 	public $version;
 
 	/**
+	 * Is old version of WordPress.
+	 *
+	 * @var boolean
+	 */
+	public $compat;
+
+	/**
 	 * Plugin constructor.
 	 */
 	public function __construct() {
@@ -37,6 +44,8 @@ class Plugin extends Plugin_Base {
 		if ( preg_match( '/Version:\s*(\S+)/', file_get_contents( __DIR__ . '/../customize-snapshots.php' ), $matches ) ) {
 			$this->version = $matches[1];
 		}
+
+		$this->compat = version_compare( get_bloginfo( 'version' ), '4.6.9', '<' );
 
 		load_plugin_textdomain( 'customize-snapshots' );
 
@@ -79,15 +88,22 @@ class Plugin extends Plugin_Base {
 		$deps = array( 'jquery', 'jquery-ui-dialog', 'wp-util', 'customize-controls' );
 		$wp_scripts->add( $handle, $src, $deps );
 
-		$handle = 'customize-snapshots-preview';
-		$src = $this->dir_url . 'js/customize-snapshots-preview' . $min . '.js';
-		$deps = array( 'customize-preview' );
-		$wp_scripts->add( $handle, $src, $deps );
+		if ( $this->compat ) {
+			$handle = 'customize-snapshots-compat';
+			$src = $this->dir_url . 'js/compat/customize-snapshots' . $min . '.js';
+			$deps = array( 'jquery', 'jquery-ui-dialog', 'wp-util', 'customize-controls', 'customize-snapshots' );
+			$wp_scripts->add( $handle, $src, $deps );
 
-		$handle = 'customize-snapshots-frontend';
-		$src = $this->dir_url . 'js/customize-snapshots-frontend' . $min . '.js';
-		$deps = array( 'jquery', 'underscore' );
-		$wp_scripts->add( $handle, $src, $deps );
+			$handle = 'customize-snapshots-preview';
+			$src = $this->dir_url . 'js/compat/customize-snapshots-preview' . $min . '.js';
+			$deps = array( 'customize-preview' );
+			$wp_scripts->add( $handle, $src, $deps );
+
+			$handle = 'customize-snapshots-frontend';
+			$src = $this->dir_url . 'js/compat/customize-snapshots-frontend' . $min . '.js';
+			$deps = array( 'jquery', 'underscore' );
+			$wp_scripts->add( $handle, $src, $deps );
+		}
 
 		$handle = 'customize-snapshots-admin';
 		$src = $this->dir_url . 'js/customize-snapshots-admin' . $min . '.js';
