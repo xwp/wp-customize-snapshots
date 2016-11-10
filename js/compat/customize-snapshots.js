@@ -9,7 +9,7 @@
 
 	api.SnapshotCompat = api.Snapshots.extend({
 
-		fontendPreviewParam: 'customize_snapshot_uuid',
+		uuidParam: 'customize_snapshot_uuid',
 
 		initialize: function initialize( snapshotsConfig ) {
 			var snapshot = this;

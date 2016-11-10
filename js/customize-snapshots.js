@@ -22,6 +22,8 @@
 			dirty: false
 		},
 
+		uuidParam: 'customize_changeset_uuid',
+
 		initialize: function initialize( snapshotsConfig ) {
 			var snapshot = this;
 
@@ -172,7 +174,7 @@
 			if ( a.search ) {
 				a.search += '&';
 			}
-			a.search += 'customize_snapshot_uuid=' + snapshot.data.uuid;
+			a.search += snapshot.uuidParam + '=' + snapshot.data.uuid;
 			return a.href;
 		},
 
