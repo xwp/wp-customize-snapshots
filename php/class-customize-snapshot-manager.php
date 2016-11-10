@@ -280,6 +280,7 @@ class Customize_Snapshot_Manager {
 		}
 
 		$script_handle = $this->plugin->compat ? $this->plugin->slug . '-compat': $this->plugin->slug;
+		$js_instance = $this->plugin->compat ? 'new wp.customize.SnapshotCompat( %s )': 'new wp.customize.Snapshots( %s )';
 
 		wp_enqueue_style( 'customize-snapshots' );
 		wp_enqueue_script( $script_handle );
@@ -321,7 +322,7 @@ class Customize_Snapshot_Manager {
 
 		wp_add_inline_script(
 			$script_handle,
-			sprintf( 'wp.customize.Snapshots.init( %s )', wp_json_encode( $exports ) ),
+			sprintf( $js_instance, wp_json_encode( $exports ) ),
 			'after'
 		);
 	}
