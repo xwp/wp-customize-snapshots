@@ -7,23 +7,23 @@
 
 	api.Snapshots = api.Class.extend({
 
+		data: {
+			action: '',
+			uuid: '',
+			editLink: '',
+			title: '',
+			publishDate: '',
+			postStatus: '',
+			currentUserCanPublish: true,
+			initialServerDate: '',
+			initialServerTimestamp: 0,
+			initialClientTimestamp: 0,
+			i18n: {},
+			dirty: false
+		},
+
 		initialize: function initialize( snapshotsConfig ) {
 			var snapshot = this;
-
-			snapshot.data = {
-				action: '',
-				uuid: '',
-				editLink: '',
-				title: '',
-				publishDate: '',
-				postStatus: '',
-				currentUserCanPublish: true,
-				initialServerDate: '',
-				initialServerTimestamp: 0,
-				initialClientTimestamp: 0,
-				i18n: {},
-				dirty: false
-			};
 
 			snapshot.schedule = {};
 
@@ -53,24 +53,9 @@
 				snapshot.editSnapshotUI();
 
 				$( '#snapshot-save' ).on( 'click', function( event ) {
-					var scheduleDate,
-					    requestData = {
-						    status: 'draft'
-					    };
-					event.preventDefault();
-
-					if ( snapshot.snapshotTitle && snapshot.snapshotTitle.val() ) {
-						requestData.title = snapshot.snapshotTitle.val();
-					}
-					if ( ! _.isEmpty( snapshot.editContainer ) && snapshot.isFutureDate() ) {
-						scheduleDate = snapshot.getDateFromInputs();
-						requestData.status = 'future';
-						requestData.publish_date = snapshot.formatDate( scheduleDate );
-						snapshot.sendUpdateSnapshotRequest( requestData );
-					} else {
-						snapshot.sendUpdateSnapshotRequest( requestData );
-					}
+					snapshot.onSnapshotSave( event );
 				} );
+
 				$( '#snapshot-submit' ).on( 'click', function( event ) {
 					var requestData = {
 						status: 'pending'
@@ -91,61 +76,74 @@
 			} );
 
 			api.bind( 'save', function( request ) {
-
-				// Make sure that saved state is false so that Published button behaves as expected.
-				api.state( 'saved' ).set( false );
-
-				request.fail( function( response ) {
-					var id = 'snapshot-dialog-error',
-					    snapshotDialogPublishError = wp.template( id );
-
-					if ( response.responseText ) {
-
-						// Insert the dialog error template.
-						if ( 0 === $( '#' + id ).length ) {
-							$( 'body' ).append( snapshotDialogPublishError( {
-								title: snapshot.data.i18n.publish,
-								message: api.state( 'snapshot-exists' ).get() ? snapshot.data.i18n.permsMsg.update : snapshot.data.i18n.permsMsg.save
-							} ) );
-						}
-
-						$( '#customize-header-actions .spinner' ).removeClass( 'is-active' );
-
-						// Open the dialog.
-						$( '#' + id ).dialog( {
-							autoOpen: true,
-							modal: true
-						} );
-					}
-				} );
-				return request;
+				snapshot.onSave( request );
 			} );
+		},
 
-			api.bind( 'saved', function( response ) {
-				var url = window.location.href,
-				    updatedUrl,
-				    urlParts;
+		/**
+		 * Save the snapshot.
+		 *
+		 * @param {object} request object received after saving.
+		 * @returns {object} request.
+		 */
+		onSave: function onSave( request ) {
+			var snapshot = this;
 
-				// Update the UUID.
-				if ( response.new_customize_snapshot_uuid ) {
-					snapshot.data.uuid = response.new_customize_snapshot_uuid;
-					snapshot.previewLink.attr( 'target', snapshot.data.uuid );
-				}
+			// Make sure that saved state is false so that Published button behaves as expected.
+			api.state( 'saved' ).set( false );
 
-				api.state( 'snapshot-exists' ).set( false );
+			request.fail( function( response ) {
+				var id = 'snapshot-dialog-error',
+				    snapshotDialogPublishError = wp.template( id );
 
-				// Replace the history state with an updated Customizer URL that does not include the Snapshot UUID.
-				urlParts = url.split( '?' );
-				if ( history.replaceState && urlParts[1] ) {
-					updatedUrl = urlParts[0] + '?' + _.filter( urlParts[1].split( '&' ), function( queryPair ) {
-							return ! /^(customize_snapshot_uuid)=/.test( queryPair );
-						} ).join( '&' );
-					updatedUrl = updatedUrl.replace( /\?$/, '' );
-					if ( updatedUrl !== url ) {
-						history.replaceState( {}, document.title, updatedUrl );
+				if ( response.responseText ) {
+
+					// Insert the dialog error template.
+					if ( 0 === $( '#' + id ).length ) {
+						$( 'body' ).append( snapshotDialogPublishError( {
+							title: snapshot.data.i18n.publish,
+							message: api.state( 'snapshot-exists' ).get() ? snapshot.data.i18n.permsMsg.update : snapshot.data.i18n.permsMsg.save
+						} ) );
 					}
+
+					$( '#customize-header-actions .spinner' ).removeClass( 'is-active' );
+
+					// Open the dialog.
+					$( '#' + id ).dialog( {
+						autoOpen: true,
+						modal: true
+					} );
 				}
 			} );
+			return request;
+		},
+
+		/**
+		 * When save snapshot button is clicked.
+		 *
+		 * @param {object} event Event.
+		 * @return {void}
+		 */
+		onSnapshotSave: function onSnapshotSave( event ) {
+			var snapshot = this,
+				scheduleDate,
+			    requestData = {
+				    status: 'draft'
+			    };
+
+			event.preventDefault();
+
+			if ( snapshot.snapshotTitle && snapshot.snapshotTitle.val() ) {
+				requestData.title = snapshot.snapshotTitle.val();
+			}
+			if ( ! _.isEmpty( snapshot.editContainer ) && snapshot.isFutureDate() ) {
+				scheduleDate = snapshot.getDateFromInputs();
+				requestData.status = 'future';
+				requestData.publish_date = snapshot.formatDate( scheduleDate );
+				snapshot.sendUpdateSnapshotRequest( requestData );
+			} else {
+				snapshot.sendUpdateSnapshotRequest( requestData );
+			}
 		},
 
 		/**
@@ -153,7 +151,7 @@
 		 *
 		 * @return {void}
 		 */
-		extendPreviewerQuery: function() {
+		extendPreviewerQuery: function extendPreviewerQuery() {
 			var snapshot = this, originalQuery = api.previewer.query;
 
 			api.previewer.query = function() {
@@ -188,7 +186,7 @@
 		 *
 		 * @return {void}
 		 */
-		addButtons: function() {
+		addButtons: function addButtons() {
 			var snapshot = this,
 				header = $( '#customize-header-actions' ),
 			    publishButton = header.find( '#save' ),
@@ -552,7 +550,7 @@
 		 *
 		 * @return {void}
 		 */
-		resetSavedStateQuietly: function() {
+		resetSavedStateQuietly: function resetSavedStateQuietly() {
 			api.state( 'saved' )._value = true;
 		},
 
@@ -563,7 +561,7 @@
 		 * @param {string} options.status The post status for the snapshot.
 		 * @return {void}
 		 */
-		sendUpdateSnapshotRequest: function( options ) {
+		sendUpdateSnapshotRequest: function sendUpdateSnapshotRequest( options ) {
 			var snapshot = this,
 				spinner = $( '#customize-header-actions .spinner' ),
 			    request, data;
@@ -875,7 +873,7 @@
 		 * @param {string|Date} dateString The post status for the snapshot.
 		 * @returns {object|string} The primitive value or date object.
 		 */
-		dateValueOf: function( dateString ) {
+		dateValueOf: function dateValueOf( dateString ) {
 			var date;
 
 			if ( 'string' === typeof dateString ) {
