@@ -41,14 +41,15 @@
 				api.state.create( 'snapshot-exists', snapshot.data.snapshotExists );
 				api.state.create( 'snapshot-saved', true );
 				api.state.create( 'snapshot-submitted', true );
+
 				api.bind( 'change', function() {
 					api.state( 'snapshot-saved' ).set( false );
 					api.state( 'snapshot-submitted' ).set( false );
 				} );
+
 				snapshot.frontendPreviewUrl = new api.Value( api.previewer.previewUrl.get() );
 				snapshot.frontendPreviewUrl.link( api.previewer.previewUrl );
 
-				snapshot.extendPreviewerQuery();
 				snapshot.addButtons();
 				snapshot.editSnapshotUI();
 
@@ -57,14 +58,7 @@
 				} );
 
 				$( '#snapshot-submit' ).on( 'click', function( event ) {
-					var requestData = {
-						status: 'pending'
-					};
-					event.preventDefault();
-					if ( snapshot.snapshotTitle && snapshot.snapshotTitle.val() ) {
-						requestData.title = snapshot.snapshotTitle.val();
-					}
-					snapshot.sendUpdateSnapshotRequest( requestData );
+					snapshot.onSnapshotSubmit( event );
 				} );
 
 				if ( api.state( 'snapshot-exists' ).get() ) {
@@ -94,22 +88,24 @@
 
 			request.fail( function( response ) {
 				var id = 'snapshot-dialog-error',
-				    snapshotDialogPublishError = wp.template( id );
+				    snapshotDialogPublishError = wp.template( id ),
+					snapshotDialog = $( '#' + id ),
+					spinner = $( '#customize-header-actions' ).find( '.spinner' );
 
 				if ( response.responseText ) {
 
 					// Insert the dialog error template.
-					if ( 0 === $( '#' + id ).length ) {
+					if ( 0 === snapshotDialog.length ) {
 						$( 'body' ).append( snapshotDialogPublishError( {
 							title: snapshot.data.i18n.publish,
 							message: api.state( 'snapshot-exists' ).get() ? snapshot.data.i18n.permsMsg.update : snapshot.data.i18n.permsMsg.save
 						} ) );
 					}
 
-					$( '#customize-header-actions .spinner' ).removeClass( 'is-active' );
+					spinner.removeClass( 'is-active' );
 
 					// Open the dialog.
-					$( '#' + id ).dialog( {
+					snapshotDialog.dialog( {
 						autoOpen: true,
 						modal: true
 					} );
@@ -136,10 +132,11 @@
 			if ( snapshot.snapshotTitle && snapshot.snapshotTitle.val() ) {
 				requestData.title = snapshot.snapshotTitle.val();
 			}
+
 			if ( ! _.isEmpty( snapshot.editContainer ) && snapshot.isFutureDate() ) {
 				scheduleDate = snapshot.getDateFromInputs();
 				requestData.status = 'future';
-				requestData.publish_date = snapshot.formatDate( scheduleDate );
+				requestData.date = snapshot.formatDate( scheduleDate );
 				snapshot.sendUpdateSnapshotRequest( requestData );
 			} else {
 				snapshot.sendUpdateSnapshotRequest( requestData );
@@ -147,23 +144,21 @@
 		},
 
 		/**
-		 * Amend the preview query so we can update the snapshot during `customize_save`.
+		 * When snapshot button is clicked.
 		 *
+		 * @param {object} event Event.
 		 * @return {void}
 		 */
-		extendPreviewerQuery: function extendPreviewerQuery() {
-			var snapshot = this, originalQuery = api.previewer.query;
-
-			api.previewer.query = function() {
-				var retval = originalQuery.apply( this, arguments );
-				if ( api.state( 'snapshot-exists' ).get() ) {
-					retval.customize_snapshot_uuid = snapshot.data.uuid;
-					if ( snapshot.snapshotTitle && snapshot.snapshotTitle.val() ) {
-						retval.title = snapshot.snapshotTitle.val();
-					}
-				}
-				return retval;
+		onSnapshotSubmit: function onSnapshotSubmit( event ) {
+			var snapshot = this,
+				requestData = {
+				status: 'pending'
 			};
+			event.preventDefault();
+			if ( snapshot.snapshotTitle && snapshot.snapshotTitle.val() ) {
+				requestData.title = snapshot.snapshotTitle.val();
+			}
+			snapshot.sendUpdateSnapshotRequest( requestData );
 		},
 
 		/**
@@ -488,7 +483,6 @@
 				snapshot.schedule.inputs.each( function() {
 					var input = $( this ),
 					    fieldName = input.data( 'date-input' );
-
 					$( this ).val( parsed[fieldName] );
 				} );
 			}
@@ -563,70 +557,46 @@
 		 */
 		sendUpdateSnapshotRequest: function sendUpdateSnapshotRequest( options ) {
 			var snapshot = this,
-				spinner = $( '#customize-header-actions .spinner' ),
+				spinner = $( '#customize-header-actions' ).find( '.spinner' ),
 			    request, data;
 
 			data = _.extend(
 				{
 					status: 'draft'
 				},
-				api.previewer.query(),
-				options,
-				{
-					nonce: api.settings.nonce.snapshot,
-					customize_snapshot_uuid: snapshot.data.uuid
-				}
+				options
 			);
-			request = wp.ajax.post( 'customize_update_snapshot', data );
+
+			console.info( data );
+
+			request = wp.customize.previewer.save( data );
 
 			spinner.addClass( 'is-active' );
+
 			request.always( function( response ) {
 				spinner.removeClass( 'is-active' );
 				if ( response.edit_link ) {
 					snapshot.data.editLink = response.edit_link;
 				}
-				if ( response.snapshot_publish_date ) {
-					snapshot.data.publishDate = response.snapshot_publish_date;
+				if ( response.publish_date ) {
+					snapshot.data.publishDate = response.publish_date;
 				}
 				if ( response.title ) {
 					snapshot.data.title = response.title;
 				}
 				snapshot.updateSnapshotEditControls();
 				snapshot.data.dirty = false;
-
-				// @todo Remove privateness from _handleSettingValidities in Core.
-				if ( api._handleSettingValidities && response.setting_validities ) {
-					api._handleSettingValidities( {
-						settingValidities: response.setting_validities,
-						focusInvalidControl: true
-					} );
-				}
 			} );
 
 			request.done( function( response ) {
 				var url = api.previewer.previewUrl(),
-				    regex = new RegExp( '([?&])customize_snapshot_uuid=.*?(&|$)', 'i' ),
-				    notFound = -1,
-				    separator = url.indexOf( '?' ) !== notFound ? '&' : '?',
-				    customizeUrl = window.location.href,
-				    customizeSeparator = customizeUrl.indexOf( '?' ) !== notFound ? '&' : '?';
-
-				if ( url.match( regex ) ) {
-					url = url.replace( regex, '$1customize_snapshot_uuid=' + encodeURIComponent( snapshot.data.uuid ) + '$2' );
-				} else {
-					url = url + separator + 'customize_snapshot_uuid=' + encodeURIComponent( snapshot.data.uuid );
-				}
+				    customizeUrl = window.location.href;
 
 				// Change the save button text to update.
 				api.state( 'snapshot-exists' ).set( true );
 
-				// Replace the history state with an updated Customizer URL that includes the Snapshot UUID.
-				if ( history.replaceState && ! customizeUrl.match( regex ) ) {
-					customizeUrl += customizeSeparator + 'customize_snapshot_uuid=' + encodeURIComponent( snapshot.data.uuid );
-					history.replaceState( {}, document.title, customizeUrl );
-				}
-
 				api.state( 'snapshot-saved' ).set( true );
+
 				if ( 'pending' === data.status ) {
 					api.state( 'snapshot-submitted' ).set( true );
 				}
