@@ -54,7 +54,12 @@ class Plugin extends Plugin_Base {
 	 * @action after_setup_theme, 8
 	 */
 	public function init() {
-		$this->customize_snapshot_manager = new Customize_Snapshot_Manager( $this );
+		// Todo change this 4.7-beta1 to 4.7.
+		if ( version_compare( get_bloginfo( 'version' ), '4.7-beta1', '>=' ) ) {
+			$this->customize_snapshot_manager = new Customize_Snapshot_Manager( $this );
+		} else {
+			$this->customize_snapshot_manager = new Customize_Snapshot_Manager_Back_Compat( $this );
+		}
 		$this->customize_snapshot_manager->init();
 	}
 
