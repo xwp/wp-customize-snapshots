@@ -25,7 +25,7 @@
 		uuidParam: 'customize_changeset_uuid',
 
 		initialize: function initialize( snapshotsConfig ) {
-			var snapshot = this;
+			var snapshot = this, snapshotExists;
 
 			snapshot.schedule = {};
 
@@ -40,7 +40,8 @@
 			snapshot.data.initialClientTimestamp = snapshot.dateValueOf();
 
 			api.bind( 'ready', function() {
-				api.state.create( 'snapshot-exists', snapshot.data.snapshotExists );
+				snapshotExists = api.previewer.query().customized !== '{}';
+				api.state.create( 'snapshot-exists', snapshotExists );
 				api.state.create( 'snapshot-saved', true );
 				api.state.create( 'snapshot-submitted', true );
 
@@ -90,14 +91,14 @@
 
 			request.fail( function( response ) {
 				var id = 'snapshot-dialog-error',
+				    hashedID = '#' + id,
 				    snapshotDialogPublishError = wp.template( id ),
-					snapshotDialog = $( '#' + id ),
 					spinner = $( '#customize-header-actions' ).find( '.spinner' );
 
 				if ( response.responseText ) {
 
 					// Insert the dialog error template.
-					if ( 0 === snapshotDialog.length ) {
+					if ( 0 === $( hashedID ).length ) {
 						$( 'body' ).append( snapshotDialogPublishError( {
 							title: snapshot.data.i18n.publish,
 							message: api.state( 'snapshot-exists' ).get() ? snapshot.data.i18n.permsMsg.update : snapshot.data.i18n.permsMsg.save
@@ -107,7 +108,7 @@
 					spinner.removeClass( 'is-active' );
 
 					// Open the dialog.
-					snapshotDialog.dialog( {
+					$( hashedID ).dialog( {
 						autoOpen: true,
 						modal: true
 					} );
@@ -146,7 +147,8 @@
 		},
 
 		/**
-		 * When snapshot button is clicked.
+		 * When the user does not have the permission to 'customize_publish',
+		 * submit button appears.
 		 *
 		 * @param {object} event Event.
 		 * @return {void}
@@ -568,8 +570,6 @@
 				},
 				options
 			);
-
-			console.info( data );
 
 			request = wp.customize.previewer.save( data );
 

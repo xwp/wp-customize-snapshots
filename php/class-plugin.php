@@ -91,7 +91,7 @@ class Plugin extends Plugin_Base {
 		if ( $this->compat ) {
 			$handle = 'customize-snapshots-compat';
 			$src = $this->dir_url . 'js/compat/customize-snapshots' . $min . '.js';
-			$deps = array( 'jquery', 'jquery-ui-dialog', 'wp-util', 'customize-controls', 'customize-snapshots' );
+			$deps = array( 'customize-snapshots' );
 			$wp_scripts->add( $handle, $src, $deps );
 
 			$handle = 'customize-snapshots-preview';

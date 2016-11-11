@@ -19,6 +19,7 @@
 			}
 
 			api.bind( 'ready', function() {
+				api.state.create( 'snapshot-exists', snapshot.data.snapshotExists );
 				snapshot.extendPreviewerQuery();
 			} );
 
