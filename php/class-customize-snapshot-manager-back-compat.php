@@ -74,7 +74,8 @@ class Customize_Snapshot_Manager_Back_Compat extends Customize_Snapshot_Manager 
 		}
 
 		wp_enqueue_style( 'customize-snapshots' );
-		wp_enqueue_script( 'customize-snapshots' );
+		wp_enqueue_script( 'customize-snapshots-compat' );
+
 		if ( $this->snapshot ) {
 			$post = $this->snapshot->post();
 			$this->override_post_date_default_data( $post );
@@ -111,11 +112,10 @@ class Customize_Snapshot_Manager_Back_Compat extends Customize_Snapshot_Manager 
 			'snapshotExists' => ( $this->snapshot && $this->snapshot->saved() ),
 		) );
 
-		// Export data to JS.
-		wp_scripts()->add_data(
-			$this->plugin->slug,
-			'data',
-			sprintf( 'var _customizeSnapshots = %s;', wp_json_encode( $exports ) )
+		wp_add_inline_script(
+			$this->plugin->slug . '-compat',
+			sprintf( 'new wp.customize.Snapshots( %s )', wp_json_encode( $exports ) ),
+			'after'
 		);
 	}
 

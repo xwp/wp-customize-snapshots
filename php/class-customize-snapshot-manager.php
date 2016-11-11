@@ -279,11 +279,8 @@ class Customize_Snapshot_Manager {
 			return;
 		}
 
-		$script_handle = $this->plugin->compat ? $this->plugin->slug . '-compat': $this->plugin->slug;
-		$js_instance = $this->plugin->compat ? 'new wp.customize.SnapshotCompat( %s )': 'new wp.customize.Snapshots( %s )';
-
 		wp_enqueue_style( 'customize-snapshots' );
-		wp_enqueue_script( $script_handle );
+		wp_enqueue_script( 'customize-snapshots' );
 
 		if ( $this->snapshot ) {
 			$post_id = $this->customize_manager->changeset_post_id();
@@ -321,8 +318,8 @@ class Customize_Snapshot_Manager {
 		) );
 
 		wp_add_inline_script(
-			$script_handle,
-			sprintf( $js_instance, wp_json_encode( $exports ) ),
+			$this->plugin->compat,
+			sprintf( 'new wp.customize.Snapshots( %s )', wp_json_encode( $exports ) ),
 			'after'
 		);
 	}
