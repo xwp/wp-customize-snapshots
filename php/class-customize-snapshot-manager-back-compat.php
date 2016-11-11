@@ -114,7 +114,7 @@ class Customize_Snapshot_Manager_Back_Compat extends Customize_Snapshot_Manager 
 
 		wp_add_inline_script(
 			$this->plugin->slug . '-compat',
-			sprintf( 'new wp.customize.Snapshots( %s )', wp_json_encode( $exports ) ),
+			sprintf( 'new wp.customize.SnapshotsCompat( %s )', wp_json_encode( $exports ) ),
 			'after'
 		);
 	}

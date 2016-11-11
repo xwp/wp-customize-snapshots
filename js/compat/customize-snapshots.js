@@ -7,7 +7,7 @@
 	    return;
 	}
 
-	api.SnapshotCompat = api.Snapshots.extend({
+	api.SnapshotsCompat = api.Snapshots.extend({
 
 		uuidParam: 'customize_snapshot_uuid',
 
@@ -17,6 +17,7 @@
 			if ( _.isObject( snapshotsConfig ) ) {
 				_.extend( snapshot.data, snapshotsConfig );
 			}
+
 
 			api.bind( 'ready', function() {
 				api.state.create( 'snapshot-exists', snapshot.data.snapshotExists );

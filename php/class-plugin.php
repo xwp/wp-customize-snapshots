@@ -45,7 +45,8 @@ class Plugin extends Plugin_Base {
 			$this->version = $matches[1];
 		}
 
-		$this->compat = version_compare( get_bloginfo( 'version' ), '4.6.9', '<' );
+		// Todo change this 4.7-beta1 to 4.7.
+		$this->compat = version_compare( get_bloginfo( 'version' ), '4.7-beta1', '<' );
 
 		load_plugin_textdomain( 'customize-snapshots' );
 
@@ -63,11 +64,10 @@ class Plugin extends Plugin_Base {
 	 * @action after_setup_theme, 8
 	 */
 	public function init() {
-		// Todo change this 4.7-beta1 to 4.7.
-		if ( version_compare( get_bloginfo( 'version' ), '4.7-beta1', '>=' ) ) {
-			$this->customize_snapshot_manager = new Customize_Snapshot_Manager( $this );
-		} else {
+		if ( $this->compat ) {
 			$this->customize_snapshot_manager = new Customize_Snapshot_Manager_Back_Compat( $this );
+		} else {
+			$this->customize_snapshot_manager = new Customize_Snapshot_Manager( $this );
 		}
 		$this->customize_snapshot_manager->init();
 	}

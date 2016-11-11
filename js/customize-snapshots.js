@@ -615,6 +615,7 @@
 
 			request.fail( function( response ) {
 				var id = 'snapshot-dialog-error',
+				    hashedID = '#' + id,
 				    snapshotDialogShareError = wp.template( id ),
 				    messages = snapshot.data.i18n.errorMsg,
 				    invalidityCount = 0,
@@ -642,7 +643,7 @@
 				}
 
 				// Insert the snapshot dialog error template.
-				dialogElement = $( '#' + id );
+				dialogElement = $( hashedID );
 				if ( ! dialogElement.length ) {
 					dialogElement = $( snapshotDialogShareError( {
 						title: snapshot.data.i18n.errorTitle,
@@ -652,7 +653,7 @@
 				}
 
 				// Open the dialog.
-				dialogElement.dialog( {
+				$( hashedID ).dialog( {
 					autoOpen: true,
 					modal: true
 				} );
