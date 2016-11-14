@@ -45,6 +45,10 @@
 				api.state.create( 'snapshot-saved', true );
 				api.state.create( 'snapshot-submitted', true );
 
+				if ( ! snapshot.data.uuid ) {
+					snapshot.data.uuid = api.settings.changeset.uuid;
+				}
+
 				api.bind( 'change', function() {
 					api.state( 'snapshot-saved' ).set( false );
 					api.state( 'snapshot-submitted' ).set( false );
