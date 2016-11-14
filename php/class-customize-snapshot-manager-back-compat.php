@@ -812,7 +812,7 @@ class Customize_Snapshot_Manager_Back_Compat extends Customize_Snapshot_Manager 
 		if ( 'future' === $status ) {
 			$publish_date_obj = new \DateTime( $publish_date );
 			$current_date = new \DateTime( current_time( 'mysql' ) );
-			if ( empty( $publish_date ) || ! $publish_date_obj || $publish_date > $current_date ) {
+			if ( empty( $publish_date ) || ! $publish_date_obj || $current_date > $publish_date_obj ) {
 				status_header( 400 );
 				wp_send_json_error( 'bad_schedule_time' );
 			}
