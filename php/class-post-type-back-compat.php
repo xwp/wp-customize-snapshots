@@ -96,62 +96,12 @@ class Post_Type_Back_Compat extends Post_Type {
 		$this->hooks();
 
 		// 4.6.x and post-type specific hooks.
+		add_action( 'admin_notices', array( $this, 'show_publish_error_admin_notice' ) );
+		add_filter( 'display_post_states', array( $this, 'display_post_states' ), 10, 2 );
 		add_action( 'admin_footer-edit.php', array( $this, 'snapshot_merge_print_script' ) );
 		add_action( 'load-edit.php', array( $this, 'handle_snapshot_bulk_actions_workaround' ) );
 		add_filter( 'post_type_link', array( $this, 'filter_post_type_link' ), 10, 2 );
 		add_filter( 'wp_insert_post_data', array( $this, 'preserve_post_name_in_insert_data' ), 10, 2 );
-	}
-
-	/**
-	 * Add Customize link to quick edit links.
-	 *
-	 * @param array    $actions Actions.
-	 * @param \WP_Post $post    Post.
-	 * @return array Actions.
-	 */
-	public function filter_post_row_actions( $actions, $post ) {
-		if ( static::SLUG !== $post->post_type ) {
-			return $actions;
-		}
-
-		$post_type_obj = get_post_type_object( static::SLUG );
-		if ( 'publish' !== $post->post_status && current_user_can( $post_type_obj->cap->edit_post, $post->ID ) ) {
-			$args = array(
-				static::CUSTOMIZE_UUID_PARAM_NAME => $post->post_name,
-			);
-			$customize_url = add_query_arg( array_map( 'rawurlencode', $args ), wp_customize_url() );
-			$actions = array_merge(
-				array(
-					'customize' => sprintf( '<a href="%s">%s</a>', esc_url( $customize_url ), esc_html__( 'Customize', 'customize-snapshots' ) ),
-				),
-				$actions
-			);
-
-			$actions = array_merge(
-				array(
-					'front-view' => sprintf(
-						'<a href="%s">%s</a>',
-						esc_url( get_permalink( $post->ID ) ),
-						esc_html__( 'Preview Snapshot', 'customize-snapshots' )
-					),
-				),
-				$actions
-			);
-		} else {
-			if ( isset( $actions['edit'] ) ) {
-				$actions['edit'] = sprintf(
-					'<a href="%s" aria-label="%s">%s</a>',
-					get_edit_post_link( $post->ID, 'display' ),
-					/* translators: %s: post title */
-					esc_attr( sprintf( __( 'View &#8220;%s&#8221;', 'customize-snapshots' ), get_the_title( $post->ID ) ) ),
-					__( 'View', 'customize-snapshots' )
-				);
-			}
-		}
-
-		unset( $actions['inline hide-if-no-js'] );
-
-		return $actions;
 	}
 
 	/**
@@ -244,5 +194,45 @@ class Post_Type_Back_Compat extends Post_Type {
 			$post_data['post_name'] = $original_post_data['post_name'];
 		}
 		return $post_data;
+	}
+
+	/**
+	 * Display snapshot save error on post list table.
+	 *
+	 * @param array    $states Display states.
+	 * @param \WP_Post $post   Post object.
+	 *
+	 * @return mixed
+	 */
+	public function display_post_states( $states, $post ) {
+		if ( static::SLUG !== $post->post_type ) {
+			return $states;
+		}
+		$maybe_error = get_post_meta( $post->ID, 'snapshot_error_on_publish', true );
+		if ( $maybe_error ) {
+			$states['snapshot_error'] = __( 'Error on publish', 'customize-snapshots' );
+		}
+		return $states;
+	}
+
+	/**
+	 * Show an admin notice when publishing fails and the post gets kicked back to pending.
+	 */
+	public function show_publish_error_admin_notice() {
+		if ( ! function_exists( 'get_current_screen' ) ) {
+			return;
+		}
+		$current_screen = get_current_screen();
+		if ( ! $current_screen || static::SLUG !== $current_screen->id || 'post' !== $current_screen->base ) {
+			return;
+		}
+		if ( ! isset( $_REQUEST['snapshot_error_on_publish'] ) ) {
+			return;
+		}
+		?>
+		<div class="notice notice-error is-dismissible">
+			<p><?php esc_html_e( 'Failed to publish snapshot due to an error with saving one of its settings. This may be due to a theme or plugin having been changed since the snapshot was created. See below.', 'customize-snapshots' ) ?></p>
+		</div>
+		<?php
 	}
 }

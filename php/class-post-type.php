@@ -69,14 +69,11 @@ class Post_Type {
 	 * Calls common hooks Actions and filters
 	 */
 	public function hooks() {
-		add_filter( 'post_link', array( $this, 'filter_post_type_link' ), 10, 2 );
 		add_action( 'add_meta_boxes_' . static::SLUG, array( $this, 'remove_slug_metabox' ), 100 );
 		add_action( 'load-revision.php', array( $this, 'suspend_kses_for_snapshot_revision_restore' ) );
 		add_filter( 'get_the_excerpt', array( $this, 'filter_snapshot_excerpt' ), 10, 2 );
 		add_filter( 'post_row_actions', array( $this, 'filter_post_row_actions' ), 10, 2 );
 		add_filter( 'user_has_cap', array( $this, 'filter_user_has_cap' ), 10, 2 );
-		add_filter( 'display_post_states', array( $this, 'display_post_states' ), 10, 2 );
-		add_action( 'admin_notices', array( $this, 'show_publish_error_admin_notice' ) );
 		add_action( 'post_submitbox_minor_actions', array( $this, 'hide_disabled_publishing_actions' ) );
 		add_filter( 'content_save_pre', array( $this, 'filter_out_settings_if_removed_in_metabox' ), 10 );
 		add_action( 'admin_print_scripts-revision.php', array( $this, 'disable_revision_ui_for_published_posts' ) );
@@ -90,6 +87,8 @@ class Post_Type {
 	public function init() {
 		$this->extend_changeset_post_type_object();
 		$this->hooks();
+
+		add_filter( 'post_link', array( $this, 'filter_post_type_link' ), 10, 2 );
 		add_action( 'add_meta_boxes_' . static::SLUG, array( $this, 'setup_metaboxes' ), 10, 1 );
 		add_action( 'admin_menu',array( $this, 'add_admin_menu_item' ) );
 		add_filter( 'map_meta_cap', array( $this, 'remap_customize_meta_cap' ), 5, 4 );
@@ -278,7 +277,7 @@ class Post_Type {
 					'front-view' => sprintf(
 						'<a href="%s">%s</a>',
 						esc_url( get_permalink( $post->ID ) ),
-						esc_html__( 'Preview Changeset', 'customize-snapshots' )
+						esc_html__( 'Preview', 'customize-snapshots' )
 					),
 				),
 				$actions
@@ -595,47 +594,6 @@ class Post_Type {
 		return $allcaps;
 	}
 
-
-	/**
-	 * Display snapshot save error on post list table.
-	 *
-	 * @param array    $states Display states.
-	 * @param \WP_Post $post   Post object.
-	 *
-	 * @return mixed
-	 */
-	public function display_post_states( $states, $post ) {
-		if ( static::SLUG !== $post->post_type ) {
-			return $states;
-		}
-		$maybe_error = get_post_meta( $post->ID, 'snapshot_error_on_publish', true );
-		if ( $maybe_error ) {
-			$states['snapshot_error'] = __( 'Error on publish', 'customize-snapshots' );
-		}
-		return $states;
-	}
-
-	/**
-	 * Show an admin notice when publishing fails and the post gets kicked back to pending.
-	 */
-	public function show_publish_error_admin_notice() {
-		if ( ! function_exists( 'get_current_screen' ) ) {
-			return;
-		}
-		$current_screen = get_current_screen();
-		if ( ! $current_screen || static::SLUG !== $current_screen->id || 'post' !== $current_screen->base ) {
-			return;
-		}
-		if ( ! isset( $_REQUEST['snapshot_error_on_publish'] ) ) {
-			return;
-		}
-		?>
-		<div class="notice notice-error is-dismissible">
-			<p><?php esc_html_e( 'Failed to publish snapshot due to an error with saving one of its settings. This may be due to a theme or plugin having been changed since the snapshot was created. See below.', 'customize-snapshots' ) ?></p>
-		</div>
-		<?php
-	}
-
 	/**
 	 * Disable the revision revert UI for published posts.
 	 */
@@ -762,8 +720,7 @@ class Post_Type {
 			'post_date_gmt' => current_time( 'mysql', true ),
 		) );
 		$redirect_to = get_edit_post_link( $post_id, 'raw' );
-		wp_safe_redirect( $redirect_to );
-		exit();
+		return $redirect_to;
 	}
 
 	/**
