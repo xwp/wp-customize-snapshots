@@ -808,7 +808,7 @@ class Customize_Snapshot_Manager_Back_Compat extends Customize_Snapshot_Manager 
 			status_header( 400 );
 			wp_send_json_error( 'customize_not_allowed' );
 		}
-		$publish_date = isset( $_POST['publish_date'] ) ? $_POST['publish_date'] : '';
+		$publish_date = isset( $_POST['date'] ) ? $_POST['date'] : '';
 		if ( 'future' === $status ) {
 			$publish_date_obj = new \DateTime( $publish_date );
 			$current_date = new \DateTime( current_time( 'mysql' ) );

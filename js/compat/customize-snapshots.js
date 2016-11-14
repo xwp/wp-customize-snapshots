@@ -18,7 +18,6 @@
 				_.extend( snapshot.data, snapshotsConfig );
 			}
 
-
 			api.bind( 'ready', function() {
 				api.state.create( 'snapshot-exists', snapshot.data.snapshotExists );
 				snapshot.extendPreviewerQuery();
@@ -51,36 +50,6 @@
 			} );
 
 			api.Snapshots.prototype.initialize.call( snapshot, snapshotsConfig );
-		},
-
-		/**
-		 * When save snapshot button is clicked.
-		 *
-		 * @param {object} event Event.
-		 * @return {void}
-		 */
-		onSnapshotSave: function onSnapshotSave( event ) {
-			var snapshot = this,
-			    scheduleDate,
-			    requestData = {
-				    status: 'draft'
-			    };
-
-			event.preventDefault();
-
-			if ( snapshot.snapshotTitle && snapshot.snapshotTitle.val() ) {
-				requestData.title = snapshot.snapshotTitle.val();
-			}
-			if ( ! _.isEmpty( snapshot.editContainer ) && snapshot.isFutureDate() ) {
-				scheduleDate = snapshot.getDateFromInputs();
-				requestData.status = 'future';
-
-				// @todo we can change 'publish_date' to 'date', so that we don't have to override this method here.
-				requestData.publish_date = snapshot.formatDate( scheduleDate );
-				snapshot.sendUpdateSnapshotRequest( requestData );
-			} else {
-				snapshot.sendUpdateSnapshotRequest( requestData );
-			}
 		},
 
 		/**

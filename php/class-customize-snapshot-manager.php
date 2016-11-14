@@ -318,7 +318,7 @@ class Customize_Snapshot_Manager {
 		) );
 
 		wp_add_inline_script(
-			$this->plugin->compat,
+			$this->plugin->slug,
 			sprintf( 'new wp.customize.Snapshots( %s )', wp_json_encode( $exports ) ),
 			'after'
 		);
