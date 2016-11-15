@@ -40,7 +40,7 @@ class Test_Snapshot_REST_API_Controller extends \WP_Test_REST_TestCase {
 		parent::setUp();
 		$this->plugin = get_plugin_instance();
 
-		$this->plugin->customize_snapshot_manager->post_type->register();
+		$this->plugin->customize_snapshot_manager->post_type->init();
 
 		$snapshot_data = array(
 			array(
