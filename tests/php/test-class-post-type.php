@@ -66,7 +66,9 @@ class Test_Post_Type extends \WP_UnitTestCase {
 	 * Mark test incomplete as it is only for new versions.
 	 */
 	public function mark_incompatible() {
-		$this->markTestIncomplete( 'This unit-test require WP version 4.7 or up.' );
+		if ( $this->plugin->compat ) {
+			$this->markTestIncomplete( 'This unit-test require WP version 4.7 or up.' );
+		}
 	}
 
 	/**
