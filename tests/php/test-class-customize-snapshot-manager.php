@@ -249,6 +249,35 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	}
 
 	/**
+	 * Tests load_snapshot.
+	 *
+	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::init()
+	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::load_snapshot()
+	 */
+	public function test_load_snapshot() {
+		$this->mark_incompatible();
+		$this->markTestIncomplete();
+	}
+	/**
+	 * Tests add_snapshot_var_to_customize_save.
+	 *
+	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::add_snapshot_var_to_customize_save()
+	 */
+	public function test_add_snapshot_var_to_customize_save() {
+		$this->mark_incompatible();
+		$this->markTestIncomplete();
+	}
+
+	/**
+	 * Tests enqueue_admin_scripts.
+	 *
+	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::enqueue_admin_scripts()
+	 */
+	public function test_enqueue_admin_scripts() {
+		$this->markTestIncomplete();
+	}
+
+	/**
 	 * Tests init hooks.
 	 *
 	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::init()
@@ -320,7 +349,6 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		$manager->ensure_customize_manager();
 		$this->assertTrue( $manager->is_theme_active() );
 	}
-
 
 	/**
 	 * Test add snapshot uuid to return url.
@@ -647,5 +675,32 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		$this->assertNotEquals( $post->post_date_gmt, '0000-00-00 00:00:00' );
 		$this->assertNotEquals( $post->post_modified, '0000-00-00 00:00:00' );
 		$this->assertNotEquals( $post->post_modified_gmt, '0000-00-00 00:00:00' );
+	}
+
+	/**
+	 * Tests get_post_type.
+	 *
+	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::get_post_type()
+	 */
+	public function test_get_post_type() {
+		$this->markTestIncomplete();
+	}
+
+	/**
+	 * Tests get_front_uuid_param.
+	 *
+	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::get_front_uuid_param()
+	 */
+	public function test_get_front_uuid_param() {
+		$this->markTestIncomplete();
+	}
+
+	/**
+	 * Tests get_customize_uuid_param.
+	 *
+	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::get_customize_uuid_param()
+	 */
+	public function test_get_customize_uuid_param() {
+		$this->markTestIncomplete();
 	}
 }

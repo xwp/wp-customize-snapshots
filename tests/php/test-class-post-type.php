@@ -112,6 +112,26 @@ class Test_Post_Type extends \WP_UnitTestCase {
 	}
 
 	/**
+	 * Test extend_changeset_post_type_object
+	 *
+	 * @covers CustomizeSnapshots\Post_Type::extend_changeset_post_type_object()
+	 */
+	public function test_extend_changeset_post_type_object() {
+		$this->mark_incompatible();
+		$this->markTestIncomplete();
+	}
+
+	/**
+	 * Test add_admin_menu_item.
+	 *
+	 * @covers Customize_Snapshot\Post_Type::add_admin_menu_item()
+	 */
+	public function test_add_admin_menu_item() {
+		$this->mark_incompatible();
+		$this->markTestIncomplete();
+	}
+
+	/**
 	 * Test filter_post_type_link.
 	 *
 	 * @covers CustomizeSnapshots\Post_Type::filter_post_type_link()
@@ -367,6 +387,7 @@ class Test_Post_Type extends \WP_UnitTestCase {
 	 * Find a snapshot post by UUID.
 	 *
 	 * @see Post_Type::find_post()
+	 * @see Post_Type_Back_Compat::find_post()
 	 */
 	public function test_find_post() {
 		$post_type = $this->get_new_post_type_instance( $this->plugin->customize_snapshot_manager );
@@ -831,4 +852,25 @@ class Test_Post_Type extends \WP_UnitTestCase {
 		$data = json_decode( $content, true );
 		$this->assertArrayNotHasKey( 'foo', $data );
 	}
+
+	/**
+	 * Test remap_customize_meta_cap
+	 *
+	 * @covers CustomizeSnapshots\Post_Type::remap_customize_meta_cap()
+	 */
+	public function test_remap_customize_meta_cap() {
+		$this->mark_incompatible();
+		$this->markTestIncomplete();
+	}
+
+	/**
+	 * Test hide_add_new_changeset_button
+	 *
+	 * @covers CustomizeSnapshots\Post_Type::hide_add_new_changeset_button()
+	 */
+	public function test_hide_add_new_changeset_button() {
+		$this->mark_incompatible();
+		$this->markTestIncomplete();
+	}
+
 }

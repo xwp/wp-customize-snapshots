@@ -97,7 +97,6 @@ class Post_Type {
 		add_action( 'admin_print_styles-edit.php', array( $this, 'hide_add_new_changeset_button' ) );
 	}
 
-
 	/**
 	 * Extend changeset post_type object.
 	 */

@@ -123,6 +123,9 @@ class Customize_Snapshot_Manager {
 		}
 	}
 
+	/**
+	 * Load Snapshot.
+	 */
 	public function load_snapshot() {
 		$this->ensure_customize_manager();
 		$this->snapshot = new Customize_Snapshot( $this );
