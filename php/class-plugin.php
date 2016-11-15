@@ -17,7 +17,7 @@ class Plugin extends Plugin_Base {
 	 *
 	 * @todo Rename this to just `$manager` and let the class be `Manager`.
 	 *
-	 * @var Customize_Snapshot_Manager
+	 * @var Customize_Snapshot_Manager|Customize_Snapshot_Manager_Back_Compat
 	 */
 	public $customize_snapshot_manager;
 
