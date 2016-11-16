@@ -27,6 +27,8 @@ class Customize_Snapshot_Manager_Back_Compat extends Customize_Snapshot_Manager 
 		add_action( 'customize_save_after', array( $this, 'publish_snapshot_with_customize_save_after' ) );
 		add_action( 'transition_post_status', array( $this, 'save_settings_with_publish_snapshot' ), 10, 3 );
 		add_action( 'wp_ajax_' . self::AJAX_ACTION, array( $this, 'handle_update_snapshot_request' ) );
+		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_frontend_scripts' ) );
+		add_action( 'customize_preview_init', array( $this, 'customize_preview_init' ) );
 		$this->hooks();
 		if ( $this->read_current_snapshot_uuid() ) {
 			$this->load_snapshot();
@@ -949,5 +951,61 @@ class Customize_Snapshot_Manager_Back_Compat extends Customize_Snapshot_Manager 
 
 		$customize_node->meta['class'] .= ' ab-customize-snapshots-item';
 		$wp_admin_bar->add_menu( (array) $customize_node );
+	}
+
+	/**
+	 * Set up Customizer preview.
+	 */
+	public function customize_preview_init() {
+		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_preview_scripts' ) );
+	}
+
+	/**
+	 * Enqueue Customizer preview scripts.
+	 *
+	 * @global \WP_Customize_Manager $wp_customize
+	 */
+	public function enqueue_preview_scripts() {
+		global $wp_customize;
+
+		$handle = 'customize-snapshots-preview';
+		wp_enqueue_script( $handle );
+		wp_enqueue_style( $handle );
+
+		$exports = array(
+			'home_url' => wp_parse_url( home_url( '/' ) ),
+			'rest_api_url' => wp_parse_url( rest_url( '/' ) ),
+			'admin_ajax_url' => wp_parse_url( admin_url( 'admin-ajax.php' ) ),
+			'initial_dirty_settings' => array_keys( $wp_customize->unsanitized_post_values() ),
+		);
+		wp_add_inline_script(
+			$handle,
+			sprintf( 'CustomizeSnapshotsPreview.init( %s )', wp_json_encode( $exports ) ),
+			'after'
+		);
+	}
+
+	/**
+	 * Enqueue Customizer frontend scripts.
+	 */
+	public function enqueue_frontend_scripts() {
+		if ( ! $this->snapshot || is_customize_preview() ) {
+			return;
+		}
+		$handle = 'customize-snapshots-frontend';
+		wp_enqueue_script( $handle );
+
+		$exports = array(
+			'uuid' => $this->snapshot ? $this->snapshot->uuid() : null,
+			'home_url' => wp_parse_url( home_url( '/' ) ),
+			'l10n' => array(
+				'restoreSessionPrompt' => __( 'It seems you may have inadvertently navigated away from previewing a customized state. Would you like to restore the snapshot context?', 'customize-snapshots' ),
+			),
+		);
+		wp_add_inline_script(
+			$handle,
+			sprintf( 'CustomizeSnapshotsFrontend.init( %s )', wp_json_encode( $exports ) ),
+			'after'
+		);
 	}
 }
