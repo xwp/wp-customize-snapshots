@@ -1,11 +1,11 @@
 /* global jQuery, wp */
 
-( function( api, $ ) {
+(function( api, $ ) {
 	'use strict';
 
 	var escKeyCode = 27;
 
-	api.Snapshots = api.Class.extend({
+	api.Snapshots = api.Class.extend( {
 
 		data: {
 			action: '',
@@ -62,9 +62,9 @@
 
 				$( '#snapshot-save' ).on( 'click', function( event ) {
 					var scheduleDate,
-					    requestData = {
-						    status: 'draft'
-					    };
+						requestData = {
+							status: 'draft'
+						};
 
 					event.preventDefault();
 
@@ -84,8 +84,8 @@
 
 				$( '#snapshot-submit' ).on( 'click', function( event ) {
 					var requestData = {
-						    status: 'pending'
-					    };
+						status: 'pending'
+					};
 					event.preventDefault();
 					if ( snapshot.snapshotTitle && snapshot.snapshotTitle.val() ) {
 						requestData.title = snapshot.snapshotTitle.val();
@@ -107,9 +107,9 @@
 
 				request.fail( function( response ) {
 					var id = 'snapshot-dialog-error',
-					    hashedID = '#' + id,
-					    snapshotDialogPublishError = wp.template( id ),
-					    spinner = $( '#customize-header-actions' ).find( '.spinner' );
+						hashedID = '#' + id,
+						snapshotDialogPublishError = wp.template( id ),
+						spinner = $( '#customize-header-actions' ).find( '.spinner' );
 
 					if ( response.responseText ) {
 
@@ -157,8 +157,8 @@
 		addButtons: function addButtons() {
 			var snapshot = this,
 				header = $( '#customize-header-actions' ),
-			    publishButton = header.find( '#save' ),
-			    submitButton, templateData = {}, setPreviewLinkHref;
+				publishButton = header.find( '#save' ),
+				submitButton, templateData = {}, setPreviewLinkHref;
 
 			snapshot.dirtySnapshotPostSetting = new api.Value();
 			snapshot.dirtyScheduleDate = new api.Value();
@@ -304,7 +304,7 @@
 		 */
 		editSnapshotUI: function editSnapshotUI() {
 			var snapshot = this, sliceBegin = 0,
-			    sliceEnd = -2, updateUI;
+				sliceEnd = -2, updateUI;
 
 			snapshot.snapshotEditContainerDisplayed = new api.Value();
 
@@ -378,7 +378,7 @@
 					event.preventDefault();
 					snapshot.snapshotEditContainerDisplayed.set( false );
 				}
-			});
+			} );
 
 			// Collapse the schedule container when Esc is pressed inside of the schedule container.
 			snapshot.editContainer.on( 'keydown', function( event ) {
@@ -388,14 +388,14 @@
 					snapshot.snapshotEditContainerDisplayed.set( false );
 					snapshot.snapshotExpandButton.focus();
 				}
-			});
+			} );
 
 			// Collapse the schedule container interacting outside the schedule container.
 			$( 'body' ).on( 'mousedown', function( event ) {
 				if ( snapshot.snapshotEditContainerDisplayed.get() && ! $.contains( snapshot.editContainer[0], event.target ) && ! snapshot.snapshotExpandButton.is( event.target ) ) {
 					snapshot.snapshotEditContainerDisplayed.set( false );
 				}
-			});
+			} );
 
 			snapshot.snapshotEditContainerDisplayed.set( false );
 
@@ -436,8 +436,8 @@
 		updateSnapshotEditControls: function updateSnapshotEditControls() {
 			var snapshot = this,
 				parsed,
-			    sliceBegin = 0,
-			    sliceEnd = -2;
+				sliceBegin = 0,
+				sliceEnd = -2;
 
 			if ( _.isEmpty( snapshot.editContainer ) ) {
 				return;
@@ -455,7 +455,7 @@
 				// Update date controls.
 				snapshot.schedule.inputs.each( function() {
 					var input = $( this ),
-					    fieldName = input.data( 'date-input' );
+						fieldName = input.data( 'date-input' );
 					$( this ).val( parsed[fieldName] );
 				} );
 			}
@@ -478,11 +478,11 @@
 		 * @returns {boolean} True if date inputs are valid.
 		 */
 		updateCountdown: function updateCountdown() {
-			var snapshot = this,countdown = snapshot.editContainer.find( '.snapshot-scheduled-countdown' ),
-			    countdownTemplate = wp.template( 'snapshot-scheduled-countdown' ),
-			    dateTimeFromInput = snapshot.getDateFromInputs(),
-			    millisecondsDivider = 1000,
-			    remainingTime;
+			var snapshot = this, countdown = snapshot.editContainer.find( '.snapshot-scheduled-countdown' ),
+				countdownTemplate = wp.template( 'snapshot-scheduled-countdown' ),
+				dateTimeFromInput = snapshot.getDateFromInputs(),
+				millisecondsDivider = 1000,
+				remainingTime;
 
 			if ( ! dateTimeFromInput ) {
 				return false;
@@ -531,7 +531,7 @@
 		sendUpdateSnapshotRequest: function sendUpdateSnapshotRequest( options ) {
 			var snapshot = this,
 				spinner = $( '#customize-header-actions' ).find( '.spinner' ),
-			    request, data;
+				request, data;
 
 			data = _.extend(
 				{
@@ -561,7 +561,7 @@
 
 			request.done( function( response ) {
 				var url = api.previewer.previewUrl(),
-				    customizeUrl = window.location.href;
+					customizeUrl = window.location.href;
 
 				// Change the save button text to update.
 				api.state( 'snapshot-exists' ).set( true );
@@ -584,11 +584,11 @@
 
 			request.fail( function( response ) {
 				var id = 'snapshot-dialog-error',
-				    hashedID = '#' + id,
-				    snapshotDialogShareError = wp.template( id ),
-				    messages = snapshot.data.i18n.errorMsg,
-				    invalidityCount = 0,
-				    dialogElement;
+					hashedID = '#' + id,
+					snapshotDialogShareError = wp.template( id ),
+					messages = snapshot.data.i18n.errorMsg,
+					invalidityCount = 0,
+					dialogElement;
 
 				if ( response.setting_validities ) {
 					invalidityCount = _.size( response.setting_validities, function( validity ) {
@@ -637,8 +637,8 @@
 		getDateFromInputs: function getDateFromInputs() {
 			var snapshot = this,
 				template = snapshot.editContainer,
-			    monthOffset = 1,
-			    date;
+				monthOffset = 1,
+				date;
 
 			date = new Date(
 				parseInt( template.find( '[data-date-input="year"]' ).val(), 10 ),
@@ -692,9 +692,9 @@
 		 */
 		formatDate: function formatDate( date ) {
 			var formattedDate,
-			    yearLength = 4,
-			    nonYearLength = 2,
-			    monthOffset = 1;
+				yearLength = 4,
+				nonYearLength = 2,
+				monthOffset = 1;
 
 			formattedDate = ( '0000' + date.getFullYear() ).substr( -yearLength, yearLength );
 			formattedDate += '-' + ( '00' + ( date.getMonth() + monthOffset ) ).substr( -nonYearLength, nonYearLength );
@@ -725,7 +725,7 @@
 
 			snapshot.schedule.inputs.each( function() {
 				var input = $( this ),
-				    fieldName = input.data( 'date-input' );
+					fieldName = input.data( 'date-input' );
 
 				if ( ! $( this ).is( 'select' ) && '' === $( this ).val() ) {
 					$( this ).val( parsed[fieldName] );
@@ -742,7 +742,7 @@
 		populateSetting: function populateSetting() {
 			var snapshot = this,
 				date = snapshot.getDateFromInputs(),
-			    scheduled;
+				scheduled;
 
 			if ( ! date || ! snapshot.data.currentUserCanPublish ) {
 				snapshot.dirtySnapshotPostSetting.set( snapshot.data.title !== snapshot.snapshotTitle.val() );
@@ -775,8 +775,8 @@
 		isFutureDate: function isFutureDate() {
 			var snapshot = this,
 				date = snapshot.getDateFromInputs(),
-			    millisecondsDivider = 1000,
-			    remainingTime;
+				millisecondsDivider = 1000,
+				remainingTime;
 
 			if ( ! date ) {
 				return false;
@@ -799,8 +799,8 @@
 		getCurrentTime: function getCurrentTime() {
 			var snapshot = this,
 				currentDate = new Date( snapshot.data.initialServerDate ),
-			    currentTimestamp = snapshot.dateValueOf(),
-			    timestampDifferential;
+				currentTimestamp = snapshot.dateValueOf(),
+				timestampDifferential;
 
 			timestampDifferential = currentTimestamp - snapshot.data.initialClientTimestamp;
 			timestampDifferential += snapshot.data.initialClientTimestamp - snapshot.data.initialServerTimestamp;
@@ -828,6 +828,6 @@
 
 			return date.valueOf();
 		}
-	});
+	} );
 
-} )( wp.customize, jQuery );
+})( wp.customize, jQuery );

@@ -1,13 +1,13 @@
-/* global jQuery, _customizeSnapshots */
+/* global jQuery */
 
 ( function( api, $ ) {
 	'use strict';
 
 	if ( ! api.Snapshots ) {
-	    return;
+		return;
 	}
 
-	api.SnapshotsCompat = api.Snapshots.extend({
+	api.SnapshotsCompat = api.Snapshots.extend( {
 
 		uuidParam: 'customize_snapshot_uuid',
 
@@ -25,8 +25,8 @@
 
 			api.bind( 'saved', function( response ) {
 				var url = window.location.href,
-				    updatedUrl,
-				    urlParts;
+					updatedUrl,
+					urlParts;
 
 				// Update the UUID.
 				if ( response.new_customize_snapshot_uuid ) {
@@ -40,8 +40,8 @@
 				urlParts = url.split( '?' );
 				if ( history.replaceState && urlParts[1] ) {
 					updatedUrl = urlParts[0] + '?' + _.filter( urlParts[1].split( '&' ), function( queryPair ) {
-							return ! /^(customize_snapshot_uuid)=/.test( queryPair );
-						} ).join( '&' );
+						return ! /^(customize_snapshot_uuid)=/.test( queryPair );
+					} ).join( '&' );
 					updatedUrl = updatedUrl.replace( /\?$/, '' );
 					if ( updatedUrl !== url ) {
 						history.replaceState( {}, document.title, updatedUrl );
@@ -61,8 +61,8 @@
 		 */
 		sendUpdateSnapshotRequest: function sendUpdateSnapshotRequest( options ) {
 			var snapshot = this,
-			    spinner = $( '#customize-header-actions' ).find( '.spinner' ),
-			    request, data;
+				spinner = $( '#customize-header-actions' ).find( '.spinner' ),
+				request, data;
 
 			data = _.extend(
 				{
@@ -103,11 +103,11 @@
 
 			request.done( function( response ) {
 				var url = api.previewer.previewUrl(),
-				    regex = new RegExp( '([?&])customize_snapshot_uuid=.*?(&|$)', 'i' ),
-				    notFound = -1,
-				    separator = url.indexOf( '?' ) !== notFound ? '&' : '?',
-				    customizeUrl = window.location.href,
-				    customizeSeparator = customizeUrl.indexOf( '?' ) !== notFound ? '&' : '?';
+					regex = new RegExp( '([?&])customize_snapshot_uuid=.*?(&|$)', 'i' ),
+					notFound = -1,
+					separator = url.indexOf( '?' ) !== notFound ? '&' : '?',
+					customizeUrl = window.location.href,
+					customizeSeparator = customizeUrl.indexOf( '?' ) !== notFound ? '&' : '?';
 
 				if ( url.match( regex ) ) {
 					url = url.replace( regex, '$1customize_snapshot_uuid=' + encodeURIComponent( snapshot.data.uuid ) + '$2' );
@@ -141,10 +141,10 @@
 
 			request.fail( function( response ) {
 				var id = 'snapshot-dialog-error',
-				    snapshotDialogShareError = wp.template( id ),
-				    messages = snapshot.data.i18n.errorMsg,
-				    invalidityCount = 0,
-				    dialogElement;
+					snapshotDialogShareError = wp.template( id ),
+					messages = snapshot.data.i18n.errorMsg,
+					invalidityCount = 0,
+					dialogElement;
 
 				if ( response.setting_validities ) {
 					invalidityCount = _.size( response.setting_validities, function( validity ) {
@@ -205,6 +205,6 @@
 			};
 		}
 
-	});
+	} );
 
 } )( wp.customize, jQuery );
