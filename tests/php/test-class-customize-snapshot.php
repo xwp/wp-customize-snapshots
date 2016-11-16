@@ -94,6 +94,7 @@ class Test_Customize_Snapshot extends \WP_UnitTestCase {
 	 * @see Customize_Snapshot::uuid()
 	 */
 	function test_uuid() {
+		$_REQUEST['customize_changeset_uuid'] = self::UUID;
 		$manager = new Customize_Snapshot_Manager( $this->plugin );
 		$manager->init();
 		$this->assertEquals( self::UUID, $manager->snapshot()->uuid() );

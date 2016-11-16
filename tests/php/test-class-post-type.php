@@ -6,6 +6,7 @@
  */
 
 namespace CustomizeSnapshots;
+use Aws\S3\Exception\PermanentRedirectException;
 
 /**
  * Class Test_Post_type
@@ -85,7 +86,7 @@ class Test_Post_Type extends \WP_UnitTestCase {
 		$this->assertEquals( 10, has_filter( 'post_link', array( $post_type_obj, 'filter_post_type_link' ) ) );
 		$this->assertEquals( 10, has_action( 'add_meta_boxes_' . Post_Type::SLUG, array( $post_type_obj, 'setup_metaboxes' ) ) );
 		$this->assertEquals( 10, has_action( 'admin_menu', array( $post_type_obj, 'add_admin_menu_item' ) ) );
-		$this->assertEquals( 10, has_filter( 'map_meta_cap', array( $post_type_obj, 'remap_customize_meta_cap' ) ) );
+		$this->assertEquals( 5, has_filter( 'map_meta_cap', array( $post_type_obj, 'remap_customize_meta_cap' ) ) );
 		$this->assertEquals( 10, has_filter( 'bulk_actions-edit-' . Post_Type::SLUG, array( $post_type_obj, 'add_snapshot_bulk_actions' ) ) );
 		$this->assertEquals( 10, has_filter( 'handle_bulk_actions-edit-' . Post_Type::SLUG, array( $post_type_obj, 'handle_snapshot_bulk_actions' ) ) );
 		$this->assertEquals( 10, has_action( 'admin_print_styles-edit.php', array( $post_type_obj, 'hide_add_new_changeset_button' ) ) );
@@ -145,15 +146,15 @@ class Test_Post_Type extends \WP_UnitTestCase {
 				'blogname' => array( 'value' => 'Hello' ),
 			),
 		) );
-
+		$param = $this->plugin->customize_snapshot_manager->get_front_uuid_param();
 		$this->assertContains(
-			'customize_snapshot_uuid=' . self::UUID,
+			$param . '=' . self::UUID,
 			$post_type->filter_post_type_link( '', get_post( $post_id ) )
 		);
 
 		remove_all_filters( 'post_type_link' );
 		$post_type->init();
-		$this->assertContains( 'customize_snapshot_uuid=' . self::UUID, get_permalink( $post_id ) );
+		$this->assertContains( $param . '=' . self::UUID, get_permalink( $post_id ) );
 	}
 
 	/**
@@ -450,6 +451,9 @@ class Test_Post_Type extends \WP_UnitTestCase {
 			'status' => 'publish',
 		) );
 		$snapshot_post = get_post( $post_id );
+		if ( ! $this->plugin->compat ) {
+			unset( $data['foo']['publish_error'] );
+		}
 		$this->assertEquals( $data, $post_type->get_post_content( $snapshot_post ) );
 
 		// Revision.
@@ -535,7 +539,11 @@ class Test_Post_Type extends \WP_UnitTestCase {
 			'theme' => get_stylesheet(),
 		) );
 		$this->assertInternalType( 'int', $r );
-		$this->assertEquals( $data, $post_type->get_post_content( get_post( $r ) ) );
+		$expected = $data;
+		if ( ! $this->plugin->compat ) {
+			unset( $expected['foo']['publish_error'] );
+		}
+		$this->assertEquals( $expected, $post_type->get_post_content( get_post( $r ) ) );
 
 		$this->assertEquals( get_stylesheet(), get_post_meta( $r, '_snapshot_theme', true ) );
 		$this->assertEquals( $this->plugin->version, get_post_meta( $r, '_snapshot_version', true ) );
@@ -558,101 +566,6 @@ class Test_Post_Type extends \WP_UnitTestCase {
 			'date_gmt' => gmdate( 'Y-m-d H:i:s', time() + 24 * 3600 ),
 		) );
 		$this->assertEquals( 'future', get_post_status( $post_id ) );
-	}
-
-	/**
-	 * Snapshot publish.
-	 *
-	 * @see Post_Type::save()
-	 */
-	function test_publish_snapshot() {
-		$admin_user_id = $this->factory()->user->create( array( 'role' => 'administrator' ) );
-		wp_set_current_user( $admin_user_id );
-		$post_type = get_plugin_instance()->customize_snapshot_manager->post_type;
-		$post_type->init();
-		$tag_line = 'Snapshot blog';
-
-		$data = array(
-			'blogdescription' => array(
-				'value' => $tag_line,
-			),
-			'foo' => array(
-				'value' => 'bar',
-			),
-			'baz' => array(
-				'value' => null,
-			),
-		);
-
-		$validated_content = array(
-			'blogdescription' => array(
-				'value' => $tag_line,
-			),
-			'foo' => array(
-				'value' => 'bar',
-				'publish_error' => 'unrecognized_setting',
-			),
-			'baz' => array(
-				'value' => null,
-				'publish_error' => 'null_value',
-			),
-		);
-
-		/*
-		 * Ensure that directly updating a post succeeds with invalid settings
-		 * works because the post is a draft. Note that if using
-		 * Customize_Snapshot::set() this would fail because it does validation.
-		 */
-		$post_id = $post_type->save( array(
-			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
-			'data' => $data,
-			'status' => 'draft',
-		) );
-		wp_update_post( array( 'ID' => $post_id, 'post_status' => 'draft' ) );
-		$content = $post_type->get_post_content( get_post( $post_id ) );
-		$this->assertEquals( $data, $content );
-
-		/*
-		 * Ensure that attempting to publish a snapshot with invalid settings
-		 * will get the publish_errors added as well as kick it back to pending.
-		 */
-		remove_all_filters( 'redirect_post_location' );
-		$post_id = $post_type->save( array(
-			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
-			'data' => $data,
-			'status' => 'draft',
-		) );
-		wp_publish_post( $post_id );
-		$snapshot_post = get_post( $post_id );
-		$content = $post_type->get_post_content( $snapshot_post );
-		$this->assertEquals( 'pending', $snapshot_post->post_status );
-		$this->assertEquals( $validated_content, $content );
-		$this->assertContains(
-			'snapshot_error_on_publish=1',
-			apply_filters( 'redirect_post_location', get_edit_post_link( $snapshot_post->ID ), $snapshot_post->ID )
-		);
-
-		/*
-		 * Remove invalid settings and now attempt publish.
-		 */
-		remove_all_filters( 'redirect_post_location' );
-		unset( $data['foo'] );
-		unset( $data['baz'] );
-		$post_id = $post_type->save( array(
-			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
-			'data' => $data,
-			'status' => 'draft',
-		) );
-		wp_publish_post( $post_id );
-		$snapshot_post = get_post( $post_id );
-		$content = $post_type->get_post_content( $snapshot_post );
-		$this->assertEquals( 'publish', $snapshot_post->post_status );
-		$this->assertEquals( $data, $content );
-		$this->assertEquals( $tag_line, get_bloginfo( 'description' ) );
-		$this->assertNotContains(
-			'snapshot_error_on_publish=1',
-			apply_filters( 'redirect_post_location', get_edit_post_link( $snapshot_post->ID ), $snapshot_post->ID )
-		);
 	}
 
 	/**

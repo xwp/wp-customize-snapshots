@@ -34,11 +34,24 @@ class Test_Snapshot_REST_API_Controller extends \WP_Test_REST_TestCase {
 	public $snapshot_by_status = array();
 
 	/**
+	 * End point.
+	 *
+	 * @var string
+	 */
+	public $end_point;
+
+	/**
 	 * Set up.
 	 */
 	function setUp() {
 		parent::setUp();
 		$this->plugin = get_plugin_instance();
+
+		if ( $this->plugin->compat ) {
+			$this->end_point = 'customize_snapshots';
+		} else {
+			$this->end_point = 'customize_changesets';
+		}
 
 		$this->plugin->customize_snapshot_manager->post_type->init();
 
@@ -79,12 +92,12 @@ class Test_Snapshot_REST_API_Controller extends \WP_Test_REST_TestCase {
 	}
 
 	/**
-	 * Test unauthenticated requests for /wp/v2/customize_snapshots
+	 * Test unauthenticated requests for /wp/v2/$end_point
 	 */
 	function test_get_collection_unauthenticated() {
 		wp_set_current_user( 0 );
 		$this->assertFalse( current_user_can( 'customize' ) );
-		$request = new \WP_REST_Request( 'GET', '/wp/v2/customize_snapshots' );
+		$request = new \WP_REST_Request( 'GET', '/wp/v2/' . $this->end_point );
 		$response = $this->server->dispatch( $request );
 		$this->assertErrorResponse( 'rest_customize_unauthorized', $response );
 	}
@@ -95,18 +108,18 @@ class Test_Snapshot_REST_API_Controller extends \WP_Test_REST_TestCase {
 	function test_get_collection_unauthorized() {
 		wp_set_current_user( $this->factory()->user->create( array( 'role' => 'contributor' ) ) );
 		$this->assertFalse( current_user_can( 'customize' ) );
-		$request = new \WP_REST_Request( 'GET', '/wp/v2/customize_snapshots' );
+		$request = new \WP_REST_Request( 'GET', '/wp/v2/' . $this->end_point );
 		$response = $this->server->dispatch( $request );
 		$this->assertErrorResponse( 'rest_customize_unauthorized', $response );
 	}
 
 	/**
-	 * Test unauthorized requests for /wp/v2/customize_snapshots
+	 * Test unauthorized requests for /wp/v2/$end_point
 	 */
 	function test_get_collection_authorized() {
 		wp_set_current_user( $this->factory()->user->create( array( 'role' => 'administrator' ) ) );
 		$this->assertTrue( current_user_can( 'customize' ) );
-		$request = new \WP_REST_Request( 'GET', '/wp/v2/customize_snapshots' );
+		$request = new \WP_REST_Request( 'GET', '/wp/v2/' . $this->end_point );
 		$response = $this->server->dispatch( $request );
 		$this->assertEquals( 200, $response->get_status() );
 	}
@@ -116,7 +129,7 @@ class Test_Snapshot_REST_API_Controller extends \WP_Test_REST_TestCase {
 	 */
 	function test_get_collection_published() {
 		wp_set_current_user( $this->factory()->user->create( array( 'role' => 'administrator' ) ) );
-		$request = new \WP_REST_Request( 'GET', '/wp/v2/customize_snapshots' );
+		$request = new \WP_REST_Request( 'GET', '/wp/v2/' . $this->end_point );
 		$request->set_param( 'context', 'edit' );
 		$response = $this->server->dispatch( $request );
 		$this->assertEquals( 200, $response->get_status() );
@@ -127,7 +140,7 @@ class Test_Snapshot_REST_API_Controller extends \WP_Test_REST_TestCase {
 		$this->assertArrayHasKey( 'blogname', $items[0]['content'] );
 		$this->assertArrayHasKey( 'value', $items[0]['content']['blogname'] );
 
-		$request = new \WP_REST_Request( 'GET', '/wp/v2/customize_snapshots' );
+		$request = new \WP_REST_Request( 'GET', '/wp/v2/' . $this->end_point );
 		$request->set_param( 'context', 'edit' );
 		$request->set_url_params( array( 'status' => 'publish' ) );
 		$response = $this->server->dispatch( $request );
@@ -139,7 +152,7 @@ class Test_Snapshot_REST_API_Controller extends \WP_Test_REST_TestCase {
 	 */
 	function test_get_collection_any() {
 		wp_set_current_user( $this->factory()->user->create( array( 'role' => 'administrator' ) ) );
-		$request = new \WP_REST_Request( 'GET', '/wp/v2/customize_snapshots' );
+		$request = new \WP_REST_Request( 'GET', '/wp/v2/' . $this->end_point );
 		$request->set_param( 'context', 'edit' );
 		$request->set_param( 'status', 'any' );
 		$response = $this->server->dispatch( $request );
@@ -158,7 +171,7 @@ class Test_Snapshot_REST_API_Controller extends \WP_Test_REST_TestCase {
 	 */
 	function test_get_collection_by_author() {
 		wp_set_current_user( $this->factory()->user->create( array( 'role' => 'administrator' ) ) );
-		$request = new \WP_REST_Request( 'GET', '/wp/v2/customize_snapshots' );
+		$request = new \WP_REST_Request( 'GET', '/wp/v2/' . $this->end_point );
 		$request->set_param( 'context', 'edit' );
 		$request->set_param( 'status', 'any' );
 		$response = $this->server->dispatch( $request );
@@ -170,7 +183,7 @@ class Test_Snapshot_REST_API_Controller extends \WP_Test_REST_TestCase {
 			$item_author_mapping[ $item['author'] ] = $item['slug'];
 		}
 
-		$request = new \WP_REST_Request( 'GET', '/wp/v2/customize_snapshots' );
+		$request = new \WP_REST_Request( 'GET', '/wp/v2/' . $this->end_point );
 		$request->set_param( 'context', 'edit' );
 		$request->set_param( 'status', 'any' );
 		$request->set_param( 'author', $item_authors[0] );
@@ -179,7 +192,7 @@ class Test_Snapshot_REST_API_Controller extends \WP_Test_REST_TestCase {
 		$this->assertCount( 1, $items );
 		$this->assertEquals( $items[0]['slug'], $item_author_mapping[ $item_authors[0] ] );
 
-		$request = new \WP_REST_Request( 'GET', '/wp/v2/customize_snapshots' );
+		$request = new \WP_REST_Request( 'GET', '/wp/v2/' . $this->end_point );
 		$request->set_param( 'context', 'edit' );
 		$request->set_param( 'status', 'any' );
 		$request->set_param( 'author', get_user_by( 'id', $item_authors[0] )->user_nicename );
@@ -188,7 +201,7 @@ class Test_Snapshot_REST_API_Controller extends \WP_Test_REST_TestCase {
 		$this->assertCount( 1, $items );
 		$this->assertEquals( $items[0]['slug'], $item_author_mapping[ $item_authors[0] ] );
 
-		$request = new \WP_REST_Request( 'GET', '/wp/v2/customize_snapshots' );
+		$request = new \WP_REST_Request( 'GET', '/wp/v2/' . $this->end_point );
 		$request->set_param( 'context', 'edit' );
 		$request->set_param( 'status', 'any' );
 		$request->set_param( 'author', join( ',', $item_authors ) );
@@ -203,7 +216,7 @@ class Test_Snapshot_REST_API_Controller extends \WP_Test_REST_TestCase {
 	function test_get_item_published() {
 		wp_set_current_user( $this->factory()->user->create( array( 'role' => 'administrator' ) ) );
 		$post = get_post( $this->snapshot_by_status['publish'] );
-		$request = new \WP_REST_Request( 'GET', '/wp/v2/customize_snapshots/' . $post->ID );
+		$request = new \WP_REST_Request( 'GET', '/wp/v2/' . $this->end_point . '/' . $post->ID );
 		$request->set_param( 'context', 'edit' );
 		$response = $this->server->dispatch( $request );
 		$this->assertEquals( 200, $response->get_status() );
@@ -218,8 +231,11 @@ class Test_Snapshot_REST_API_Controller extends \WP_Test_REST_TestCase {
 	 * Test create item.
 	 */
 	function test_create_item() {
+		if ( ! $this->plugin->compat ) {
+			$this->markTestIncomplete(); // Todo fix this for 4.7.
+		}
 		wp_set_current_user( $this->factory()->user->create( array( 'role' => 'administrator' ) ) );
-		$request = new \WP_REST_Request( 'POST', '/wp/v2/customize_snapshots' );
+		$request = new \WP_REST_Request( 'POST', '/wp/v2/' . $this->end_point );
 		$request->set_param( 'content', array( 'blogname' => array( 'value' => 'test' ) ) );
 		$request->set_param( 'slug', Customize_Snapshot_Manager::generate_uuid() );
 		$response = $this->server->dispatch( $request );
@@ -232,7 +248,7 @@ class Test_Snapshot_REST_API_Controller extends \WP_Test_REST_TestCase {
 	function test_update_item() {
 		wp_set_current_user( $this->factory()->user->create( array( 'role' => 'administrator' ) ) );
 		$post = get_post( $this->snapshot_by_status['publish'] );
-		$request = new \WP_REST_Request( 'PUT', '/wp/v2/customize_snapshots/' . $post->ID );
+		$request = new \WP_REST_Request( 'PUT', '/wp/v2/' . $this->end_point . '/' . $post->ID );
 		$request->set_param( 'content', array( 'blogname' => array( 'value' => 'test' ) ) );
 		$response = $this->server->dispatch( $request );
 		$this->assertErrorResponse( 'invalid-method', $response );
@@ -244,7 +260,7 @@ class Test_Snapshot_REST_API_Controller extends \WP_Test_REST_TestCase {
 	function test_delete_item() {
 		wp_set_current_user( $this->factory()->user->create( array( 'role' => 'administrator' ) ) );
 		$post = get_post( $this->snapshot_by_status['publish'] );
-		$request = new \WP_REST_Request( 'DELETE', '/wp/v2/customize_snapshots/' . $post->ID );
+		$request = new \WP_REST_Request( 'DELETE', '/wp/v2/' . $this->end_point . '/' . $post->ID );
 		$response = $this->server->dispatch( $request );
 		$this->assertErrorResponse( 'invalid-method', $response );
 	}

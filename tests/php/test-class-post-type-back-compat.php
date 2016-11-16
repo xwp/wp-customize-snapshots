@@ -187,4 +187,99 @@ class Test_Post_Type_Back_Compat extends \WP_UnitTestCase {
 		$filtered_post_data = $post_type_obj->preserve_post_name_in_insert_data( $post_data, $original_post_data );
 		$this->assertEquals( $original_post_data['post_name'], $filtered_post_data['post_name'] );
 	}
+
+	/**
+	 * Snapshot publish.
+	 *
+	 * @see Post_Type::save()
+	 */
+	function test_publish_snapshot() {
+		$admin_user_id = $this->factory()->user->create( array( 'role' => 'administrator' ) );
+		wp_set_current_user( $admin_user_id );
+		$post_type = get_plugin_instance()->customize_snapshot_manager->post_type;
+		$post_type->init();
+		$tag_line = 'Snapshot blog';
+
+		$data = array(
+			'blogdescription' => array(
+				'value' => $tag_line,
+			),
+			'foo' => array(
+				'value' => 'bar',
+			),
+			'baz' => array(
+				'value' => null,
+			),
+		);
+
+		$validated_content = array(
+			'blogdescription' => array(
+				'value' => $tag_line,
+			),
+			'foo' => array(
+				'value' => 'bar',
+				'publish_error' => 'unrecognized_setting',
+			),
+			'baz' => array(
+				'value' => null,
+				'publish_error' => 'null_value',
+			),
+		);
+
+		/*
+		 * Ensure that directly updating a post succeeds with invalid settings
+		 * works because the post is a draft. Note that if using
+		 * Customize_Snapshot::set() this would fail because it does validation.
+		 */
+		$post_id = $post_type->save( array(
+			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
+			'data' => $data,
+			'status' => 'draft',
+		) );
+		wp_update_post( array( 'ID' => $post_id, 'post_status' => 'draft' ) );
+		$content = $post_type->get_post_content( get_post( $post_id ) );
+		$this->assertEquals( $data, $content );
+
+		/*
+		 * Ensure that attempting to publish a snapshot with invalid settings
+		 * will get the publish_errors added as well as kick it back to pending.
+		 */
+		remove_all_filters( 'redirect_post_location' );
+		$post_id = $post_type->save( array(
+			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
+			'data' => $data,
+			'status' => 'draft',
+		) );
+		wp_publish_post( $post_id );
+		$snapshot_post = get_post( $post_id );
+		$content = $post_type->get_post_content( $snapshot_post );
+		$this->assertEquals( 'pending', $snapshot_post->post_status );
+		$this->assertEquals( $validated_content, $content );
+		$this->assertContains(
+			'snapshot_error_on_publish=1',
+			apply_filters( 'redirect_post_location', get_edit_post_link( $snapshot_post->ID ), $snapshot_post->ID )
+		);
+
+		/*
+		 * Remove invalid settings and now attempt publish.
+		 */
+		remove_all_filters( 'redirect_post_location' );
+		unset( $data['foo'] );
+		unset( $data['baz'] );
+		$post_id = $post_type->save( array(
+			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
+			'data' => $data,
+			'status' => 'draft',
+		) );
+		wp_publish_post( $post_id );
+		$snapshot_post = get_post( $post_id );
+		$content = $post_type->get_post_content( $snapshot_post );
+		$this->assertEquals( 'publish', $snapshot_post->post_status );
+		$this->assertEquals( $data, $content );
+		$this->assertEquals( $tag_line, get_bloginfo( 'description' ) );
+		$this->assertNotContains(
+			'snapshot_error_on_publish=1',
+			apply_filters( 'redirect_post_location', get_edit_post_link( $snapshot_post->ID ), $snapshot_post->ID )
+		);
+	}
 }
