@@ -1,4 +1,5 @@
 /* global jQuery, wp */
+/* eslint consistent-this: ["error", "snapshot"] */
 
 ( function( api, $ ) {
 	'use strict';
