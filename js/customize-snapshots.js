@@ -40,7 +40,7 @@
 			snapshot.data.initialClientTimestamp = snapshot.dateValueOf();
 
 			api.bind( 'ready', function() {
-				snapshotExists = api.previewer.query().customized !== '{}';
+				snapshotExists = '{}' !== api.previewer.query().customized;
 				api.state.create( 'snapshot-exists', snapshotExists );
 				api.state.create( 'snapshot-saved', true );
 				api.state.create( 'snapshot-submitted', true );
@@ -102,6 +102,7 @@
 			} );
 
 			api.bind( 'save', function( request ) {
+
 				// Make sure that saved state is false so that Published button behaves as expected.
 				api.state( 'saved' ).set( false );
 

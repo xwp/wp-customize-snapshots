@@ -1,4 +1,4 @@
-/* global jQuery */
+/* global jQuery, wp */
 
 ( function( api, $ ) {
 	'use strict';
