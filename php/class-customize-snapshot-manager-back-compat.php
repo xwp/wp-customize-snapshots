@@ -726,7 +726,7 @@ class Customize_Snapshot_Manager_Back_Compat extends Customize_Snapshot_Manager 
 
 			$settings[] = $setting;
 			unset( $setting_params['publish_error'] );
-		}
+		} // End foreach().
 
 		// Handle error scenarios.
 		if ( $publish_error_count > 0 ) {

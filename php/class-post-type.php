@@ -403,7 +403,7 @@ class Post_Type {
 			echo $preview; // WPCS: xss ok.
 			echo '</details>';
 			echo '</li>';
-		}
+		} // End foreach().
 		echo '</ul>';
 	}
 
