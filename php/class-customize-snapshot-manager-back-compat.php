@@ -1008,4 +1008,32 @@ class Customize_Snapshot_Manager_Back_Compat extends Customize_Snapshot_Manager 
 			'after'
 		);
 	}
+
+	/**
+	 * Underscore (JS) templates.
+	 */
+	public function render_templates() {
+		?>
+		<script type="text/html" id="tmpl-snapshot-save">
+			<button id="snapshot-save" class="button button-secondary">
+				{{ data.buttonText }}
+			</button>
+		</script>
+
+		<script type="text/html" id="tmpl-snapshot-submit">
+			<button id="snapshot-submit" class="button button-primary">
+				{{ data.buttonText }}
+			</button>
+		</script>
+		<?php
+
+		parent::render_templates();
+	}
+
+	/**
+	 * Override add drop down button template for less than 4.7.
+	 */
+	public function add_snapshot_button() {
+
+	}
 }

@@ -428,6 +428,9 @@
 					snapshot.snapshotEditContainerDisplayed.set( false );
 				}
 			} );
+
+			// @todo Move it from here.
+			snapshot.createSelectButton();
 		},
 
 		/**
@@ -829,6 +832,24 @@
 			}
 
 			return date.valueOf();
+		},
+
+		/**
+		 * Creates select drop down button.
+		 *
+		 * @return {void}
+		 */
+		createSelectButton: function() {
+			var select = $( '#snapshot-select-dropdown' ),
+				buttonTitle = $( '#snapshot-select-button-title' ),
+				update;
+
+			update = (function updateButton() {
+				buttonTitle.get( 0 ).textContent = select.find( 'option:selected' ).text();
+				return updateButton;
+			})();
+
+			select.on( 'change', update );
 		}
 	} );
 

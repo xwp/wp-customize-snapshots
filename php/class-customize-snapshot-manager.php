@@ -589,6 +589,8 @@ class Customize_Snapshot_Manager {
 	 */
 	public function render_templates() {
 		$data = $this->get_month_choices();
+
+		$this->add_snapshot_button();
 		?>
 		<script type="text/html" id="tmpl-snapshot-preview-link">
 			<a href="#" target="frontend-preview" id="snapshot-preview-link" class="dashicons dashicons-welcome-view-site" title="<?php esc_attr_e( 'View on frontend', 'customize-snapshots' ) ?>">
@@ -734,6 +736,27 @@ class Customize_Snapshot_Manager {
 			<div id="snapshot-dialog-error" title="{{ data.title }}">
 				<p>{{ data.message }}</p>
 			</div>
+		</script>
+		<?php
+	}
+
+	/**
+	 * Add drop down button template.
+	 *
+	 * @return void
+	 */
+	public function add_snapshot_button() {
+		?>
+		<script type="text/html" id="tmpl-snapshot-save">
+			<a id="snapshot-dropdown-button" href="javascript:void(0)" role="button" class="button button-secondary">
+				<label for="snapshot-select-dropdown" id="snapshot-select-button-title"></label>
+				<select id="snapshot-select-dropdown">
+					<option selected value="Draft"><?php esc_attr_e( 'Draft' , 'customize-snapshots' ); ?></option>
+					<option value="Scheduled"><?php esc_attr_e( 'Scheduled' , 'customize-snapshots' ); ?></option>
+					<option value="Pending"><?php esc_attr_e( 'Pending' , 'customize-snapshots' ); ?></option>
+				</select>
+				<span class="dashicons dashicons-arrow-down"></span>
+			</a>
 		</script>
 		<?php
 	}

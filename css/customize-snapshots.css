@@ -217,3 +217,42 @@
 	list-style: none;
 	margin: 0;
 }
+
+#snapshot-dropdown-button{
+    position: relative;
+    float: right;
+    height: 28px;
+    margin-top: 9px;
+    padding-right: 5px;
+    cursor: pointer;
+    margin-right: 5px;
+}
+
+#snapshot-dropdown-button .dashicons-arrow-down{
+    width:10px;
+    margin-top: 3px;
+}
+
+#snapshot-dropdown-button .dashicons-arrow-down:before{
+    margin-left:-5px;
+}
+
+#snapshot-select-button-title{
+    vertical-align: top;
+}
+
+#snapshot-select-dropdown{
+    -webkit-appearance: none;
+    -webkit-border-radius: 0px;
+    -khtml-appearance: 'none';
+    opacity: 0;
+    position: absolute;
+    left:0;
+    top:0;
+    width: 100%;
+    height: 28px;
+    padding: 0;
+    margin: 0;
+    outline: none;
+    cursor: pointer;
+}
