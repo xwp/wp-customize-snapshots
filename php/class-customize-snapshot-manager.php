@@ -720,12 +720,6 @@ class Customize_Snapshot_Manager {
 			<# } #>
 		</script>
 
-		<script type="text/html" id="tmpl-snapshot-save">
-			<button id="snapshot-save" class="button button-secondary">
-				{{ data.buttonText }}
-			</button>
-		</script>
-
 		<script type="text/html" id="tmpl-snapshot-submit">
 			<button id="snapshot-submit" class="button button-primary">
 				{{ data.buttonText }}

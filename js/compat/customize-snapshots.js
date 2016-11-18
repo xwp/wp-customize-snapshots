@@ -204,8 +204,142 @@
 				}
 				return retval;
 			};
-		}
+		},
 
+		/**
+		 * Create the snapshot buttons.
+		 *
+		 * @return {void}
+		 */
+		addButtons: function addButtons() {
+			var snapshot = this,
+			    header = $( '#customize-header-actions' ),
+			    publishButton = header.find( '#save' ),
+			    submitButton, templateData = {}, setPreviewLinkHref;
+
+			snapshot.dirtySnapshotPostSetting = new api.Value();
+			snapshot.dirtyScheduleDate = new api.Value();
+
+			// Save/update button.
+			if ( api.state( 'snapshot-exists' ).get() ) {
+				if ( 'future' === snapshot.data.postStatus ) {
+					templateData.buttonText = snapshot.data.i18n.scheduleButton;
+				} else {
+					templateData.buttonText = snapshot.data.i18n.updateButton;
+				}
+			} else {
+				templateData.buttonText = snapshot.data.i18n.saveButton;
+			}
+			snapshot.snapshotButton = $( $.trim( wp.template( 'snapshot-save' )( templateData ) ) );
+
+			if ( ! snapshot.data.currentUserCanPublish ) {
+				snapshot.snapshotButton.attr( 'title', api.state( 'snapshot-exists' ).get() ? snapshot.data.i18n.permsMsg.update : snapshot.data.i18n.permsMsg.save );
+			}
+			snapshot.snapshotButton.prop( 'disabled', true );
+			snapshot.snapshotButton.insertAfter( publishButton );
+
+			// Preview link.
+			snapshot.previewLink = $( $.trim( wp.template( 'snapshot-preview-link' )() ) );
+			snapshot.previewLink.toggle( api.state( 'snapshot-saved' ).get() );
+			snapshot.previewLink.attr( 'target', snapshot.data.uuid );
+			setPreviewLinkHref = _.debounce( function() {
+				if ( api.state( 'snapshot-exists' ).get() ) {
+					snapshot.previewLink.attr( 'href', snapshot.getSnapshotFrontendPreviewUrl() );
+				} else {
+					snapshot.previewLink.attr( 'href', snapshot.frontendPreviewUrl.get() );
+				}
+			} );
+			snapshot.frontendPreviewUrl.bind( setPreviewLinkHref );
+			setPreviewLinkHref();
+			api.state.bind( 'change', setPreviewLinkHref );
+			api.bind( 'saved', setPreviewLinkHref );
+			snapshot.snapshotButton.after( snapshot.previewLink );
+			api.state( 'snapshot-saved' ).bind( function( saved ) {
+				snapshot.previewLink.toggle( saved );
+			} );
+
+			// Edit button.
+			snapshot.snapshotExpandButton = $( $.trim( wp.template( 'snapshot-expand-button' )( {} ) ) );
+			snapshot.snapshotExpandButton.insertAfter( snapshot.snapshotButton );
+
+			if ( ! snapshot.data.editLink ) {
+				snapshot.snapshotExpandButton.hide();
+			}
+
+			api.state( 'change', function() {
+				snapshot.snapshotExpandButton.toggle( api.state( 'snapshot-saved' ).get() && api.state( 'snapshot-exists' ).get() );
+			} );
+
+			api.state( 'snapshot-exists' ).bind( function( exist ) {
+				snapshot.snapshotExpandButton.toggle( exist );
+			} );
+
+			api.state( 'snapshot-saved' ).bind( function( saved ) {
+				snapshot.snapshotButton.prop( 'disabled', saved );
+			} );
+
+			api.state( 'saved' ).bind( function( saved ) {
+				if ( saved ) {
+					snapshot.snapshotButton.prop( 'disabled', true );
+				}
+			} );
+			api.bind( 'change', function() {
+				snapshot.snapshotButton.prop( 'disabled', false );
+			} );
+
+			api.state( 'snapshot-exists' ).bind( function( exists ) {
+				var buttonText, permsMsg;
+				if ( exists ) {
+					buttonText = snapshot.data.i18n.updateButton;
+					permsMsg = snapshot.data.i18n.permsMsg.update;
+				} else {
+					buttonText = snapshot.data.i18n.saveButton;
+					permsMsg = snapshot.data.i18n.permsMsg.save;
+				}
+
+				snapshot.snapshotButton.text( buttonText );
+				if ( ! snapshot.data.currentUserCanPublish ) {
+					snapshot.snapshotButton.attr( 'title', permsMsg );
+				}
+			} );
+
+			snapshot.dirtySnapshotPostSetting.bind( function( dirty ) {
+				if ( dirty ) {
+					snapshot.snapshotButton.prop( 'disabled', false );
+				} else {
+					snapshot.snapshotButton.prop( 'disabled', ! snapshot.data.dirty );
+				}
+				snapshot.updateButtonText();
+			} );
+			snapshot.dirtyScheduleDate.bind( function( dirty ) {
+				var date;
+				if ( dirty ) {
+					date = snapshot.getDateFromInputs();
+					if ( ! date || ! snapshot.data.currentUserCanPublish ) {
+						return;
+					}
+					snapshot.snapshotButton.text( snapshot.data.i18n.scheduleButton );
+				} else {
+					snapshot.updateButtonText();
+				}
+			} );
+
+			// Submit for review button.
+			if ( ! snapshot.data.currentUserCanPublish ) {
+				publishButton.hide();
+				submitButton = wp.template( 'snapshot-submit' );
+				submitButton = $( $.trim( submitButton( {
+					buttonText: snapshot.data.i18n.submit
+				} ) ) );
+				submitButton.prop( 'disabled', ! api.state( 'snapshot-exists' ).get() );
+				submitButton.insertBefore( snapshot.snapshotButton );
+				api.state( 'snapshot-submitted' ).bind( function( submitted ) {
+					submitButton.prop( 'disabled', submitted );
+				} );
+			}
+
+			header.addClass( 'button-added' );
+		}
 	} );
 
 } )( wp.customize, jQuery );

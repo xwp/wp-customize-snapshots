@@ -175,12 +175,14 @@
 			} else {
 				templateData.buttonText = snapshot.data.i18n.saveButton;
 			}
-			snapshot.snapshotButton = $( $.trim( wp.template( 'snapshot-save' )( templateData ) ) );
+
+			snapshot.createSelectButton();
+			snapshot.snapshotButton = $( '#snapshot-dropdown-button' );
+			snapshot.snapshotButton.attr( 'disabled', true ).find( 'select' ).prop( 'disabled', true );
+
 			if ( ! snapshot.data.currentUserCanPublish ) {
 				snapshot.snapshotButton.attr( 'title', api.state( 'snapshot-exists' ).get() ? snapshot.data.i18n.permsMsg.update : snapshot.data.i18n.permsMsg.save );
 			}
-			snapshot.snapshotButton.prop( 'disabled', true );
-			snapshot.snapshotButton.insertAfter( publishButton );
 
 			// Preview link.
 			snapshot.previewLink = $( $.trim( wp.template( 'snapshot-preview-link' )() ) );
@@ -428,9 +430,6 @@
 					snapshot.snapshotEditContainerDisplayed.set( false );
 				}
 			} );
-
-			// @todo Move it from here.
-			snapshot.createSelectButton();
 		},
 
 		/**
@@ -839,13 +838,17 @@
 		 *
 		 * @return {void}
 		 */
-		createSelectButton: function() {
-			var select = $( '#snapshot-select-dropdown' ),
-				buttonTitle = $( '#snapshot-select-button-title' ),
-				update;
+		createSelectButton: function createSelectButton() {
+			var select, buttonTitle, update, snapshotButton;
+
+			snapshotButton = $( wp.template( 'snapshot-save' )() );
+			$( '#save' ).after( snapshotButton );
+
+			select = $( '#snapshot-select-dropdown' );
+			buttonTitle = $( '#snapshot-select-button-title' );
 
 			update = (function updateButton() {
-				buttonTitle.get( 0 ).textContent = select.find( 'option:selected' ).text();
+				buttonTitle.text( select.find( 'option:selected' ).text() );
 				return updateButton;
 			})();
 
