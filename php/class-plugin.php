@@ -36,6 +36,13 @@ class Plugin extends Plugin_Base {
 	public $compat;
 
 	/**
+	 * Migration handler.
+	 *
+	 * @var Migrate
+	 */
+	public $migrate;
+
+	/**
 	 * Plugin constructor.
 	 */
 	public function __construct() {
@@ -51,6 +58,15 @@ class Plugin extends Plugin_Base {
 		load_plugin_textdomain( 'customize-snapshots' );
 
 		parent::__construct();
+	}
+
+	/**
+	 * Init migration.
+	 *
+	 * @action init
+	 */
+	public function init_migration() {
+		$this->migrate = new Migrate();
 	}
 
 	/**
