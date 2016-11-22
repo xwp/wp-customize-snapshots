@@ -218,7 +218,7 @@
 	margin: 0;
 }
 
-#snapshot-dropdown-button{
+#snapshot-status-button{
     position: relative;
     float: right;
     height: 28px;
@@ -228,20 +228,20 @@
     margin-right: 5px;
 }
 
-#snapshot-dropdown-button .dashicons-arrow-down{
+#snapshot-status-button .dashicons-arrow-down{
     width:10px;
     margin-top: 3px;
 }
 
-#snapshot-dropdown-button .dashicons-arrow-down:before{
+#snapshot-status-button .dashicons-arrow-down:before{
     margin-left:-5px;
 }
 
-#snapshot-select-button-title{
+#snapshot-status-button-title{
     vertical-align: top;
 }
 
-#snapshot-select-dropdown{
+#snapshot-status-select{
     -webkit-appearance: none;
     -webkit-border-radius: 0px;
     -khtml-appearance: 'none';
@@ -255,4 +255,10 @@
     margin: 0;
     outline: none;
     cursor: pointer;
+}
+
+#snapshot-save-draft{
+	float: right;
+	margin-top: 9px;
+	margin-right:5px;
 }

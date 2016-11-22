@@ -303,7 +303,7 @@
 			if ( snapshot.isFutureDate() && date && snapshot.data.currentUserCanPublish ) {
 				api.state( 'snapshot-status' ).set( 'schedule' );
 			} else {
-				api.state( 'snapshot-status' ).set( snapshot.data.postStatus ); // @todo Get post status.
+				api.state( 'snapshot-status' ).set( 'draft' ); // @todo Get post status.
 			}
 		},
 
@@ -878,6 +878,8 @@
 			snapshot.statusButton.state( 'disabled' ).bind( 'change', function( state ) {
 				snapshot.statusButton.selector.attr( 'disabled', state ).find( 'select' ).prop( 'disabled', state );
 			} );
+
+			api.state( 'snapshot-status' ).set( 'draft' ); // Default value.
 		}
 	} );
 
