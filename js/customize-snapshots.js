@@ -51,6 +51,12 @@
 					snapshot.data.uuid = api.settings.changeset.uuid;
 				}
 
+				api.bind( 'changeset-saved', function() {
+					if ( 'auto-draft' !== api.state( 'changesetStatus' ).get() ) {
+						api.state( 'saved' ).set( true );
+					}
+				});
+
 				api.bind( 'change', function() {
 					api.state( 'snapshot-saved' ).set( false );
 					api.state( 'snapshot-submitted' ).set( false );
