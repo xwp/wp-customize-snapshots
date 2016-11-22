@@ -1,5 +1,5 @@
 /* global jQuery, wp */
-/* eslint consistent-this: ["error", "snapshot"] */
+/* eslint no-magic-numbers: [ "error", { "ignore": [0,1] } ], consistent-this: [ "error", "snapshot" ] */
 
 (function( api, $ ) {
 	'use strict';
@@ -45,7 +45,7 @@
 				api.state.create( 'snapshot-exists', snapshotExists );
 				api.state.create( 'snapshot-saved', true );
 				api.state.create( 'snapshot-submitted', true );
-				api.state.create( 'snapshot-status' );
+				api.state.create( 'snapshot-status', snapshot.data.postStatus );
 
 				if ( ! snapshot.data.uuid ) {
 					snapshot.data.uuid = api.settings.changeset.uuid;
@@ -848,23 +848,31 @@
 		 * @return {object} status button.
 		 */
 		addSelectButton: function addSelectButton() {
-			var snapshot = this, statusButton = {}, updateButtonText, status;
+			var snapshot = this, statusButton = {},
+			    updateButtonText, status, capitalize;
 
 			statusButton.selector = $( wp.template( 'snapshot-status-button' )() );
+
+			capitalize = function( string ) {
+				return string.charAt( 0 ).toUpperCase() + string.slice( 1 );
+			};
 
 			statusButton.select = statusButton.selector.find( '#snapshot-status-select' );
 			statusButton.title = statusButton.selector.find( '#snapshot-status-button-title' );
 
-			updateButtonText = _.debounce( function() {
-				statusButton.title.text( statusButton.select.find( 'option:selected' ).text() );
-			} );
+			updateButtonText = (function update() {
+				status = api.state( 'snapshot-status' ).get();
+				statusButton.title.text( capitalize( status ) );
+				statusButton.select.val( status );
+				return update;
+			})();
 
-			updateButtonText();
+			updateButtonText = _.debounce( updateButtonText );
 
 			statusButton.select.on( 'change', function() {
 				status = statusButton.select.val();
-				updateButtonText();
 				api.state( 'snapshot-status' ).set( status );
+				updateButtonText();
 				if ( 'scheduled' === status ) {
 					snapshot.snapshotEditContainerDisplayed.set( true );
 				} else {
@@ -873,10 +881,7 @@
 				}
 			} );
 
-			api.state( 'snapshot-status' ).bind( 'change', function( value ) {
-				updateButtonText();
-				statusButton.select.val( value );
-			} );
+			api.state( 'snapshot-status' ).bind( 'change', updateButtonText );
 
 			statusButton.select.on( 'click', function() {
 			    if ( 'scheduled' === api.state( 'snapshot-status' ).get() ) {
