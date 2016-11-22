@@ -751,7 +751,7 @@ class Customize_Snapshot_Manager {
 			<a id="snapshot-status-button" href="javascript:void(0)" role="button" class="button button-secondary hidden">
 				<label for="snapshot-status-select" id="snapshot-status-button-title"></label>
 				<select id="snapshot-status-select">
-					<option value="draft"><?php esc_attr_e( 'Draft' , 'customize-snapshots' ); ?></option>
+					<option selected value="draft"><?php esc_attr_e( 'Draft' , 'customize-snapshots' ); ?></option>
 					<option value="scheduled"><?php esc_attr_e( 'Scheduled' , 'customize-snapshots' ); ?></option>
 					<option value="pending"><?php esc_attr_e( 'Pending' , 'customize-snapshots' ); ?></option>
 				</select>

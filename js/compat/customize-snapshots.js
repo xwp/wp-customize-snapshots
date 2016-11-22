@@ -24,6 +24,11 @@
 				snapshot.extendPreviewerQuery();
 			} );
 
+			$( '#snapshot-save' ).on( 'click', function( event ) {
+				event.preventDefault();
+				snapshot.updateSnapshot( 'draft' );
+			} );
+
 			api.bind( 'saved', function( response ) {
 				var url = window.location.href,
 					updatedUrl,
@@ -51,37 +56,6 @@
 			} );
 
 			api.Snapshots.prototype.initialize.call( snapshot, snapshotsConfig );
-		},
-
-		/**
-		 * Bind event for snapshot save.
-		 *
-		 * @return {void}
-		 */
-		bindSnapshotSaveEvent: function onSnapshotSave() {
-			var snapshot = this;
-
-			$( '#snapshot-save' ).on( 'click', function( event ) {
-				var scheduleDate,
-				    requestData = {
-					    status: 'draft'
-				    };
-
-				event.preventDefault();
-
-				if ( snapshot.snapshotTitle && snapshot.snapshotTitle.val() ) {
-					requestData.title = snapshot.snapshotTitle.val();
-				}
-
-				if ( ! _.isEmpty( snapshot.editContainer ) && snapshot.isFutureDate() ) {
-					scheduleDate = snapshot.getDateFromInputs();
-					requestData.status = 'future';
-					requestData.date = snapshot.formatDate( scheduleDate );
-					snapshot.sendUpdateSnapshotRequest( requestData );
-				} else {
-					snapshot.sendUpdateSnapshotRequest( requestData );
-				}
-			} );
 		},
 
 		/**
