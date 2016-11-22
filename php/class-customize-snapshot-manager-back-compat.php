@@ -1027,5 +1027,5 @@ class Customize_Snapshot_Manager_Back_Compat extends Customize_Snapshot_Manager 
 	/**
 	 * Override add drop down button template for less than 4.7.
 	 */
-	public function add_snapshot_button() {}
+	public function add_snapshot_buttons() {}
 }

@@ -45,6 +45,7 @@
 				api.state.create( 'snapshot-exists', snapshotExists );
 				api.state.create( 'snapshot-saved', true );
 				api.state.create( 'snapshot-submitted', true );
+				api.state.create( 'snapshot-status' );
 
 				if ( ! snapshot.data.uuid ) {
 					snapshot.data.uuid = api.settings.changeset.uuid;
@@ -61,27 +62,7 @@
 				snapshot.addButtons();
 				snapshot.editSnapshotUI();
 
-				$( '#snapshot-save' ).on( 'click', function( event ) {
-					var scheduleDate,
-						requestData = {
-							status: 'draft'
-						};
-
-					event.preventDefault();
-
-					if ( snapshot.snapshotTitle && snapshot.snapshotTitle.val() ) {
-						requestData.title = snapshot.snapshotTitle.val();
-					}
-
-					if ( ! _.isEmpty( snapshot.editContainer ) && snapshot.isFutureDate() ) {
-						scheduleDate = snapshot.getDateFromInputs();
-						requestData.status = 'future';
-						requestData.date = snapshot.formatDate( scheduleDate );
-						snapshot.sendUpdateSnapshotRequest( requestData );
-					} else {
-						snapshot.sendUpdateSnapshotRequest( requestData );
-					}
-				} );
+				snapshot.bindSnapshotSaveEvent();
 
 				$( '#snapshot-submit' ).on( 'click', function( event ) {
 					var requestData = {
@@ -137,6 +118,37 @@
 		},
 
 		/**
+		 * Bind event for snapshot save draft.
+		 *
+		 * @return {void}
+		 */
+		bindSnapshotSaveEvent: function onSnapshotSave() {
+			var snapshot = this;
+
+			snapshot.saveDraftButton.on( 'click', function( event ) {
+				var scheduleDate,
+				    requestData = {
+					    status: 'draft'
+				    };
+
+				event.preventDefault();
+
+				if ( snapshot.snapshotTitle && snapshot.snapshotTitle.val() ) {
+					requestData.title = snapshot.snapshotTitle.val();
+				}
+
+				if ( ! _.isEmpty( snapshot.editContainer ) && snapshot.isFutureDate() ) {
+					scheduleDate = snapshot.getDateFromInputs();
+					requestData.status = 'future';
+					requestData.date = snapshot.formatDate( scheduleDate );
+					snapshot.sendUpdateSnapshotRequest( requestData );
+				} else {
+					snapshot.sendUpdateSnapshotRequest( requestData );
+				}
+			} );
+		},
+
+		/**
 		 * Get the preview URL with the snapshot UUID attached.
 		 *
 		 * @returns {string} URL.
@@ -159,33 +171,28 @@
 		addButtons: function addButtons() {
 			var snapshot = this,
 				header = $( '#customize-header-actions' ),
-				publishButton = header.find( '#save' ),
-				submitButton, templateData = {}, setPreviewLinkHref;
+				publishButton = $( '#save' ),
+				submitButton, setPreviewLinkHref;
 
 			snapshot.dirtySnapshotPostSetting = new api.Value();
 			snapshot.dirtyScheduleDate = new api.Value();
 
-			// Save/update button.
-			if ( api.state( 'snapshot-exists' ).get() ) {
-				if ( 'future' === snapshot.data.postStatus ) {
-					templateData.buttonText = snapshot.data.i18n.scheduleButton;
-				} else {
-					templateData.buttonText = snapshot.data.i18n.updateButton;
-				}
+			snapshot.addSelectButton();
+			snapshot.saveDraftButton = $( wp.template( 'snapshot-save-draft-button' )() );
+
+			// Select/save-draft button.
+			if ( api.state( 'snapshot-exists' ).get() && 'auto-draft' !== snapshot.data.postStatus ) {
+				snapshot.statusButton.selector.removeClass( 'hidden' );
+				api.state( 'snapshot-status' ).set( snapshot.data.postStatus );
 			} else {
-				templateData.buttonText = snapshot.data.i18n.saveButton;
+				snapshot.saveDraftButton.removeClass( 'hidden' );
 			}
 
-			snapshot.createSelectButton();
-			snapshot.snapshotButton = $( '#snapshot-dropdown-button' );
-			snapshot.snapshotButton.attr( 'disabled', true ).find( 'select' ).prop( 'disabled', true );
-
-			if ( ! snapshot.data.currentUserCanPublish ) {
-				snapshot.snapshotButton.attr( 'title', api.state( 'snapshot-exists' ).get() ? snapshot.data.i18n.permsMsg.update : snapshot.data.i18n.permsMsg.save );
-			}
+			snapshot.saveDraftButton.prop( 'disabled', true );
+			publishButton.after( snapshot.saveDraftButton );
 
 			// Preview link.
-			snapshot.previewLink = $( $.trim( wp.template( 'snapshot-preview-link' )() ) );
+			snapshot.previewLink = $( wp.template( 'snapshot-preview-link' )() );
 			snapshot.previewLink.toggle( api.state( 'snapshot-saved' ).get() );
 			snapshot.previewLink.attr( 'target', snapshot.data.uuid );
 			setPreviewLinkHref = _.debounce( function() {
@@ -199,14 +206,14 @@
 			setPreviewLinkHref();
 			api.state.bind( 'change', setPreviewLinkHref );
 			api.bind( 'saved', setPreviewLinkHref );
-			snapshot.snapshotButton.after( snapshot.previewLink );
+			snapshot.statusButton.selector.after( snapshot.previewLink );
 			api.state( 'snapshot-saved' ).bind( function( saved ) {
 				snapshot.previewLink.toggle( saved );
 			} );
 
 			// Edit button.
 			snapshot.snapshotExpandButton = $( $.trim( wp.template( 'snapshot-expand-button' )( {} ) ) );
-			snapshot.snapshotExpandButton.insertAfter( snapshot.snapshotButton );
+			snapshot.snapshotExpandButton.insertAfter( snapshot.statusButton.selector );
 
 			if ( ! snapshot.data.editLink ) {
 				snapshot.snapshotExpandButton.hide();
@@ -221,39 +228,38 @@
 			} );
 
 			api.state( 'snapshot-saved' ).bind( function( saved ) {
-				snapshot.snapshotButton.prop( 'disabled', saved );
+				snapshot.saveDraftButton.prop( 'disabled', saved );
 			} );
 
 			api.state( 'saved' ).bind( function( saved ) {
 				if ( saved ) {
-					snapshot.snapshotButton.prop( 'disabled', true );
+					snapshot.saveDraftButton.prop( 'disabled', true );
 				}
 			} );
+
 			api.bind( 'change', function() {
-				snapshot.snapshotButton.prop( 'disabled', false );
+				snapshot.saveDraftButton.prop( 'disabled', false );
 			} );
 
 			api.state( 'snapshot-exists' ).bind( function( exists ) {
-				var buttonText, permsMsg;
+				var permsMsg;
 				if ( exists ) {
-					buttonText = snapshot.data.i18n.updateButton;
 					permsMsg = snapshot.data.i18n.permsMsg.update;
 				} else {
-					buttonText = snapshot.data.i18n.saveButton;
 					permsMsg = snapshot.data.i18n.permsMsg.save;
 				}
 
-				snapshot.snapshotButton.text( buttonText );
 				if ( ! snapshot.data.currentUserCanPublish ) {
-					snapshot.snapshotButton.attr( 'title', permsMsg );
+					snapshot.statusButton.selector.attr( 'title', permsMsg );
+					snapshot.saveDraftButton.attr( 'title', permsMsg );
 				}
 			} );
 
 			snapshot.dirtySnapshotPostSetting.bind( function( dirty ) {
 				if ( dirty ) {
-					snapshot.snapshotButton.prop( 'disabled', false );
+					snapshot.saveDraftButton.prop( 'disabled', false );
 				} else {
-					snapshot.snapshotButton.prop( 'disabled', ! snapshot.data.dirty );
+					snapshot.saveDraftButton.prop( 'disabled', ! snapshot.data.dirty );
 				}
 				snapshot.updateButtonText();
 			} );
@@ -264,7 +270,7 @@
 					if ( ! date || ! snapshot.data.currentUserCanPublish ) {
 						return;
 					}
-					snapshot.snapshotButton.text( snapshot.data.i18n.scheduleButton );
+					api.state( 'snapshot-status' ).set( 'scheduled' );
 				} else {
 					snapshot.updateButtonText();
 				}
@@ -278,7 +284,7 @@
 					buttonText: snapshot.data.i18n.submit
 				} ) ) );
 				submitButton.prop( 'disabled', ! api.state( 'snapshot-exists' ).get() );
-				submitButton.insertBefore( snapshot.snapshotButton );
+				submitButton.insertBefore( snapshot.statusButton.selector );
 				api.state( 'snapshot-submitted' ).bind( function( submitted ) {
 					submitButton.prop( 'disabled', submitted );
 				} );
@@ -295,9 +301,9 @@
 		updateButtonText: function updateButtonText() {
 			var snapshot = this, date = snapshot.getDateFromInputs();
 			if ( snapshot.isFutureDate() && date && snapshot.data.currentUserCanPublish ) {
-				snapshot.snapshotButton.text( snapshot.data.i18n.scheduleButton );
+				api.state( 'snapshot-status' ).set( 'schedule' );
 			} else {
-				snapshot.snapshotButton.text( api.state( 'snapshot-exists' ).get() ? snapshot.data.i18n.updateButton : snapshot.data.i18n.saveButton );
+				api.state( 'snapshot-status' ).set( snapshot.data.postStatus ); // @todo Get post status.
 			}
 		},
 
@@ -572,6 +578,10 @@
 
 				api.state( 'snapshot-saved' ).set( true );
 
+				snapshot.saveDraftButton.addClass( 'hidden' );
+				snapshot.statusButton.selector.removeClass( 'hidden' );
+				snapshot.statusButton.state( 'disabled' ).set( false );
+
 				if ( 'pending' === data.status ) {
 					api.state( 'snapshot-submitted' ).set( true );
 				}
@@ -834,25 +844,40 @@
 		},
 
 		/**
-		 * Creates select drop down button.
+		 * Add select drop down button.
 		 *
 		 * @return {void}
 		 */
-		createSelectButton: function createSelectButton() {
-			var select, buttonTitle, update, snapshotButton;
+		addSelectButton: function addSelectButton() {
+			var snapshot = this, titleMsg;
 
-			snapshotButton = $( wp.template( 'snapshot-save' )() );
-			$( '#save' ).after( snapshotButton );
+			snapshot.statusButton = {};
+			snapshot.statusButton.selector = $( wp.template( 'snapshot-status-button' )() );
 
-			select = $( '#snapshot-select-dropdown' );
-			buttonTitle = $( '#snapshot-select-button-title' );
+			$( '#save' ).after( snapshot.statusButton.selector );
 
-			update = (function updateButton() {
-				buttonTitle.text( select.find( 'option:selected' ).text() );
-				return updateButton;
-			})();
+			snapshot.statusButton.select = $( '#snapshot-status-select' );
+			snapshot.statusButton.title = $( '#snapshot-status-button-title' );
 
-			select.on( 'change', update );
+			snapshot.statusButton.select.on( 'change', function() {
+				snapshot.statusButton.title.text( snapshot.statusButton.select.find( 'option:selected' ).text() );
+			} );
+
+			api.state( 'snapshot-status' ).bind( 'change', function( value ) {
+				snapshot.statusButton.select.val( value ).change();
+			} );
+
+			if ( ! snapshot.data.currentUserCanPublish ) {
+				titleMsg = api.state( 'snapshot-exists' ).get() ? snapshot.data.i18n.permsMsg.update : snapshot.data.i18n.permsMsg.save;
+				snapshot.statusButton.selector.attr( 'title', titleMsg );
+			}
+
+			snapshot.statusButton.state = new api.Values();
+			snapshot.statusButton.state.create( 'disabled' );
+
+			snapshot.statusButton.state( 'disabled' ).bind( 'change', function( state ) {
+				snapshot.statusButton.selector.attr( 'disabled', state ).find( 'select' ).prop( 'disabled', state );
+			} );
 		}
 	} );
 

@@ -590,7 +590,7 @@ class Customize_Snapshot_Manager {
 	public function render_templates() {
 		$data = $this->get_month_choices();
 
-		$this->add_snapshot_button();
+		$this->add_snapshot_buttons();
 		?>
 		<script type="text/html" id="tmpl-snapshot-preview-link">
 			<a href="#" target="frontend-preview" id="snapshot-preview-link" class="dashicons dashicons-welcome-view-site" title="<?php esc_attr_e( 'View on frontend', 'customize-snapshots' ) ?>">
@@ -739,15 +739,21 @@ class Customize_Snapshot_Manager {
 	 *
 	 * @return void
 	 */
-	public function add_snapshot_button() {
+	public function add_snapshot_buttons() {
 		?>
-		<script type="text/html" id="tmpl-snapshot-save">
-			<a id="snapshot-dropdown-button" href="javascript:void(0)" role="button" class="button button-secondary">
-				<label for="snapshot-select-dropdown" id="snapshot-select-button-title"></label>
-				<select id="snapshot-select-dropdown">
-					<option selected value="Draft"><?php esc_attr_e( 'Draft' , 'customize-snapshots' ); ?></option>
-					<option value="Scheduled"><?php esc_attr_e( 'Scheduled' , 'customize-snapshots' ); ?></option>
-					<option value="Pending"><?php esc_attr_e( 'Pending' , 'customize-snapshots' ); ?></option>
+		<script type="text/html" id="tmpl-snapshot-save-draft-button">
+			<button id="snapshot-save-draft" class="button button-secondary hidden">
+				<?php esc_attr_e( 'Save Draft', 'customize-snapshots' ); ?>
+			</button>
+		</script>
+
+		<script type="text/html" id="tmpl-snapshot-status-button">
+			<a id="snapshot-status-button" href="javascript:void(0)" role="button" class="button button-secondary hidden">
+				<label for="snapshot-status-select" id="snapshot-status-button-title"></label>
+				<select id="snapshot-status-select">
+					<option value="draft"><?php esc_attr_e( 'Draft' , 'customize-snapshots' ); ?></option>
+					<option value="scheduled"><?php esc_attr_e( 'Scheduled' , 'customize-snapshots' ); ?></option>
+					<option value="pending"><?php esc_attr_e( 'Pending' , 'customize-snapshots' ); ?></option>
 				</select>
 				<span class="dashicons dashicons-arrow-down"></span>
 			</a>

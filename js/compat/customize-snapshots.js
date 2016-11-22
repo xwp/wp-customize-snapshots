@@ -54,6 +54,51 @@
 		},
 
 		/**
+		 * Bind event for snapshot save.
+		 *
+		 * @return {void}
+		 */
+		bindSnapshotSaveEvent: function onSnapshotSave() {
+			var snapshot = this;
+
+			$( '#snapshot-save' ).on( 'click', function( event ) {
+				var scheduleDate,
+				    requestData = {
+					    status: 'draft'
+				    };
+
+				event.preventDefault();
+
+				if ( snapshot.snapshotTitle && snapshot.snapshotTitle.val() ) {
+					requestData.title = snapshot.snapshotTitle.val();
+				}
+
+				if ( ! _.isEmpty( snapshot.editContainer ) && snapshot.isFutureDate() ) {
+					scheduleDate = snapshot.getDateFromInputs();
+					requestData.status = 'future';
+					requestData.date = snapshot.formatDate( scheduleDate );
+					snapshot.sendUpdateSnapshotRequest( requestData );
+				} else {
+					snapshot.sendUpdateSnapshotRequest( requestData );
+				}
+			} );
+		},
+
+		/**
+		 * Update button text.
+		 *
+		 * @returns {void}
+		 */
+		updateButtonText: function updateButtonText() {
+			var snapshot = this, date = snapshot.getDateFromInputs();
+			if ( snapshot.isFutureDate() && date && snapshot.data.currentUserCanPublish ) {
+				snapshot.snapshotButton.text( snapshot.data.i18n.scheduleButton );
+			} else {
+				snapshot.snapshotButton.text( api.state( 'snapshot-exists' ).get() ? snapshot.data.i18n.updateButton : snapshot.data.i18n.saveButton );
+			}
+		},
+
+		/**
 		 * Make the AJAX request to update/save a snapshot.
 		 *
 		 * @param {object} options Options.
