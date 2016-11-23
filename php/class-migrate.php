@@ -1,6 +1,6 @@
 <?php
 /**
- * Customize Snapshot Migration for 4.7 changeset.
+ * Customize Snapshot.
  *
  * @package CustomizeSnapshots
  */
@@ -8,7 +8,7 @@
 namespace CustomizeSnapshots;
 
 /**
- * Class Migrate
+ * Customize Snapshot Migration for 4.7 changeset.
  *
  * @package CustomizeSnapshots
  */
@@ -28,43 +28,136 @@ class Migrate {
 	 */
 	public function __construct() {
 		$this->compat = version_compare( get_bloginfo( 'version' ), '4.7-beta1', '<' );
-		if ( is_admin() ) {
+		if ( ! $this->compat && is_admin() && is_super_admin() ) {
 			$this->maybe_migrate();
 		}
 	}
 
 	/**
+	 * Is already migrated or not.
+	 *
+	 * @return bool status of migration.
+	 */
+	public function is_migrated() {
+		$snapshot_migrate_option = get_option( self::KEY );
+		return ! empty( $snapshot_migrate_option );
+	}
+
+	/**
 	 * Migrate if wp version is 4.7 and above.
 	 */
-	public function maybe_migrate() {
-		if ( $this->compat ) {
-			return;
+	protected function maybe_migrate() {
+		if ( ! $this->is_migrated() ) {
+			add_action( 'admin_notices', array( $this, 'show_migration_notice' ) );
+			add_action( 'admin_print_footer_scripts', array( $this, 'print_migration_script' ),999 );
+			add_action( 'wp_ajax_customize_snapshot_migration', array( $this, 'handle_migrate_changeset_request' ) );
 		}
-		$snapshot_migrate_option = get_option( self::KEY );
-		if ( empty( $snapshot_migrate_option ) ) {
-			$snapshot_migrate_option = $this->changeset_migrate();
-			if ( $snapshot_migrate_option ) {
-				update_option( self::KEY, 1 );
-			}
+	}
+
+	/**
+	 * Migrate 20 posts at a time.
+	 */
+	public function handle_migrate_changeset_request() {
+		check_ajax_referer( 'customize-snapshot-migration', 'nonce' );
+		$limit = isset( $_REQUEST['limit'] ) ? absint( $_REQUEST['limit'] ) : 20;
+		$found_posts = $this->changeset_migrate( $limit );
+		$remaining_post = $found_posts - $limit;
+		$data = array();
+		$data['remaining_posts'] = $remaining_post ? $remaining_post : 0;
+		if ( ! $remaining_post ) {
+			update_option( self::KEY, 1 );
 		}
+		$data['new_nonce'] = wp_create_nonce( 'customize-snapshot-migration' );
+		wp_send_json_success( $data );
+	}
+
+	/**
+	 * Print migration javascript script.
+	 */
+	public function print_migration_script() {
+		?>
+		<script type="application/javascript">
+			( function( $ ) {
+				var component = {};
+				component.init = function(){
+					$( function() {
+						component.el = $('#customize-snapshot-migration');
+						component.bindClick();
+						component.spinner = $( '.spinner.customize-snapshot-spinner' );
+						component.spinner.css('margin','0');
+					} );
+				};
+				component.bindClick = function() {
+					component.el.click( function() {
+						//todo spinner start
+						component.spinner.css('visibility', 'visible');
+						component.migrate( component.el.data( 'nonce' ), 20 );
+					} );
+				};
+				component.migrate = function( nonce, limit ) {
+					var data;
+					data = {
+						nonce: nonce,
+						limit: limit
+					};
+					request = wp.ajax.post( 'customize_snapshot_migration', data );
+					request.always( function( data ) {
+						var outerDiv = $('div.customize-snapshot-migration');
+						if ( data.remaining_posts ) {
+							_.delay( component.migrate, 100, data.new_nonce, data.remaining_posts );
+						} else{
+							component.spinner.css('visibility', 'hidden');
+							outerDiv.removeClass( 'notice-error' ).addClass( 'notice-success' ).find('p').html( component.el.data( 'migration-success' ) );
+						}
+					} );
+				};
+				component.init();
+			})(jQuery);
+		</script>
+		<?php
+	}
+
+	/**
+	 * Show admin notice to migrate.
+	 */
+	public function show_migration_notice() {
+		?>
+		<div class="notice notice-error customize-snapshot-migration">
+			<p><?php esc_html_e( 'Existing snapshots need to be migrated in changesets in WordPress 4.7.', 'customize-snapshots' );
+				printf( ' %s <a id="customize-snapshot-migration" data-nonce="' . esc_attr( wp_create_nonce( 'customize-snapshot-migration' ) ) . '" href="javascript:void(0)" data-migration-success="%s">%s</a> %s <span class="spinner customize-snapshot-spinner"></span>', esc_html__( 'Click', 'customize-snapshots' ), esc_html__( 'Customize snapshot migration complete!', 'customize-snapshots' ), esc_html__( 'here', 'customize-snapshots' ), esc_html__( 'to start migration.', 'customize-snapshots' ) ); ?>
+			</p>
+		</div>
+		<?php
 	}
 
 	/**
 	 * Query data and migrate if not empty.
 	 *
-	 * @return bool migration status.
+	 * @param int  $limit   migration limit.
+	 * @param bool $dry_run get number of posts affected.
+	 *
+	 * @return int|array migration status or posts.
 	 */
-	public function changeset_migrate() {
+	public function changeset_migrate( $limit = - 1, $dry_run = false ) {
 		$query = new \WP_Query();
-		$query->query( array(
+		$arg = array(
 			'post_type' => 'customize_snapshot',
-			'no_found_rows' => true,
+			'no_found_rows' => false,
 			'update_post_meta_cache' => false,
 			'update_post_term_cache' => false,
 			'post_status' => array_keys( get_post_stati() ),
-			'posts_per_page' => -1, // Because we are migrating all posts.
+			'posts_per_page' => $limit,
 			'fields' => 'ids', // We will use get_post() to fetch each posts.
-		) );
+		);
+
+		if ( - 1 === $limit ) {
+			$arg['no_found_rows'] = true;
+		}
+
+		$query->query( $arg );
+		if ( $dry_run ) {
+			return $query->posts;
+		}
 
 		if ( ! empty( $query->posts ) ) {
 			$has_kses = ( false !== has_filter( 'content_save_pre', 'wp_filter_post_kses' ) );
@@ -74,7 +167,6 @@ class Migrate {
 			if ( ! class_exists( '\WP_Customize_Manager' ) ) {
 				require_once( ABSPATH . WPINC . '/class-wp-customize-manager.php' );
 			}
-			set_time_limit( 0 ); // This script will run for more than 30 sec.
 			foreach ( $query->posts as $id ) {
 				$this->migrate_post( $id );
 			}
@@ -82,7 +174,12 @@ class Migrate {
 				kses_init_filters();
 			}
 		}
-		return true;
+		if ( - 1 === $limit ) {
+			update_option( self::KEY, 1 );
+			return count( $query->posts );
+		} else {
+			return $query->found_posts;
+		}
 	}
 
 	/**
