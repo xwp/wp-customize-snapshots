@@ -69,20 +69,9 @@
 				snapshot.editSnapshotUI();
 
 				$( '#snapshot-submit' ).on( 'click', function( event ) {
-					var requestData = {
-						status: 'pending'
-					};
 					event.preventDefault();
-					if ( snapshot.snapshotTitle && snapshot.snapshotTitle.val() ) {
-						requestData.title = snapshot.snapshotTitle.val();
-					}
-					snapshot.sendUpdateSnapshotRequest( requestData );
+					snapshot.updateSnapshot( 'pending' );
 				} );
-
-				if ( api.state( 'snapshot-exists' ).get() ) {
-					api.state( 'saved' ).set( false );
-					snapshot.resetSavedStateQuietly();
-				}
 
 				api.trigger( 'snapshots-ready', snapshot );
 			} );
@@ -137,11 +126,13 @@
 				requestData.title = snapshot.snapshotTitle.val();
 			}
 
-			if ( ! _.isEmpty( snapshot.editContainer ) && snapshot.isFutureDate() ) {
-				scheduleDate = snapshot.getDateFromInputs();
-				requestData.status = 'future';
-				requestData.date = snapshot.formatDate( scheduleDate );
-				snapshot.sendUpdateSnapshotRequest( requestData );
+			if ( 'scheduled' === status ) {
+				if ( ! _.isEmpty( snapshot.editContainer ) && snapshot.isFutureDate() ) {
+					scheduleDate = snapshot.getDateFromInputs();
+					requestData.status = 'future';
+					requestData.date = snapshot.formatDate( scheduleDate );
+					snapshot.sendUpdateSnapshotRequest( requestData );
+				}
 			} else {
 				snapshot.sendUpdateSnapshotRequest( requestData );
 			}
@@ -177,7 +168,7 @@
 			snapshot.dirtyScheduleDate = new api.Value();
 
 			snapshot.statusButton = snapshot.addSelectButton();
-			snapshot.saveDraftButton = $( wp.template( 'snapshot-save-draft-button' )() );
+			snapshot.saveDraftButton = $( $.trim( wp.template( 'snapshot-save-draft-button' )() ) );
 
 			// Select/save-draft button.
 			if ( api.state( 'snapshot-exists' ).get() && 'auto-draft' !== snapshot.data.postStatus ) {
@@ -195,7 +186,7 @@
 			publishButton.after( snapshot.saveDraftButton );
 
 			// Preview link.
-			snapshot.previewLink = $( wp.template( 'snapshot-preview-link' )() );
+			snapshot.previewLink = $( $.trim( wp.template( 'snapshot-preview-link' )() ) );
 			snapshot.previewLink.toggle( api.state( 'snapshot-saved' ).get() );
 			snapshot.previewLink.attr( 'target', snapshot.data.uuid );
 			setPreviewLinkHref = _.debounce( function() {
@@ -244,15 +235,11 @@
 				snapshot.saveDraftButton.prop( 'disabled', false );
 			} );
 
+			// @todo May have to remove this?.
 			api.state( 'snapshot-exists' ).bind( function( exists ) {
 				var permsMsg;
-				if ( exists ) {
-					permsMsg = snapshot.data.i18n.permsMsg.update;
-				} else {
-					permsMsg = snapshot.data.i18n.permsMsg.save;
-				}
-
 				if ( ! snapshot.data.currentUserCanPublish ) {
+					permsMsg = exists ? snapshot.data.i18n.permsMsg.update : snapshot.data.i18n.permsMsg.save;
 					snapshot.statusButton.selector.attr( 'title', permsMsg );
 					snapshot.saveDraftButton.attr( 'title', permsMsg );
 				}
@@ -281,7 +268,6 @@
 
 			// Submit for review button.
 			if ( ! snapshot.data.currentUserCanPublish ) {
-				publishButton.hide();
 				submitButton = wp.template( 'snapshot-submit' );
 				submitButton = $( $.trim( submitButton( {
 					buttonText: snapshot.data.i18n.submit
@@ -515,23 +501,6 @@
 			}
 
 			return true;
-		},
-
-		/**
-		 * Silently update the saved state to be true without triggering the
-		 * changed event so that the AYS beforeunload dialog won't appear
-		 * if no settings have been changed after saving a snapshot. Note
-		 * that it would be better if jQuery's callbacks allowed them to
-		 * disabled and then re-enabled later, for example:
-		 *   wp.customize.state.topics.change.disable();
-		 *   wp.customize.state( 'saved' ).set( true );
-		 *   wp.customize.state.topics.change.enable();
-		 * But unfortunately there is no such enable method.
-		 *
-		 * @return {void}
-		 */
-		resetSavedStateQuietly: function resetSavedStateQuietly() {
-			api.state( 'saved' )._value = true;
 		},
 
 		/**
@@ -857,7 +826,7 @@
 			var snapshot = this, statusButton = {},
 			    updateButtonText, status, capitalize;
 
-			statusButton.selector = $( wp.template( 'snapshot-status-button' )() );
+			statusButton.selector = $( $.trim( wp.template( 'snapshot-status-button' )() ) );
 
 			capitalize = function( string ) {
 				return string.charAt( 0 ).toUpperCase() + string.slice( 1 );

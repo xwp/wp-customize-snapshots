@@ -22,11 +22,11 @@
 			api.bind( 'ready', function() {
 				api.state.create( 'snapshot-exists', snapshot.data.snapshotExists );
 				snapshot.extendPreviewerQuery();
-			} );
 
-			$( '#snapshot-save' ).on( 'click', function( event ) {
-				event.preventDefault();
-				snapshot.updateSnapshot( 'draft' );
+				if ( api.state( 'snapshot-exists' ).get() ) {
+					api.state( 'saved' ).set( false );
+					snapshot.resetSavedStateQuietly();
+				}
 			} );
 
 			api.bind( 'saved', function( response ) {
@@ -255,6 +255,12 @@
 				snapshot.snapshotButton.attr( 'title', api.state( 'snapshot-exists' ).get() ? snapshot.data.i18n.permsMsg.update : snapshot.data.i18n.permsMsg.save );
 			}
 			snapshot.snapshotButton.prop( 'disabled', true );
+
+			snapshot.snapshotButton.on( 'click', function( event ) {
+				event.preventDefault();
+				snapshot.updateSnapshot( 'draft' );
+			} );
+
 			snapshot.snapshotButton.insertAfter( publishButton );
 
 			// Preview link.
@@ -358,6 +364,23 @@
 			}
 
 			header.addClass( 'button-added' );
+		},
+
+		/**
+		 * Silently update the saved state to be true without triggering the
+		 * changed event so that the AYS beforeunload dialog won't appear
+		 * if no settings have been changed after saving a snapshot. Note
+		 * that it would be better if jQuery's callbacks allowed them to
+		 * disabled and then re-enabled later, for example:
+		 *   wp.customize.state.topics.change.disable();
+		 *   wp.customize.state( 'saved' ).set( true );
+		 *   wp.customize.state.topics.change.enable();
+		 * But unfortunately there is no such enable method.
+		 *
+		 * @return {void}
+		 */
+		resetSavedStateQuietly: function resetSavedStateQuietly() {
+			api.state( 'saved' )._value = true;
 		}
 	} );
 
