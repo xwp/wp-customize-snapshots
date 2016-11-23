@@ -47,10 +47,10 @@
 				api.state.create( 'snapshot-submitted', true );
 				api.state.create( 'snapshot-status', snapshot.data.postStatus );
 
-				if ( ! snapshot.data.uuid ) {
-					snapshot.data.uuid = api.settings.changeset.uuid;
-				}
+				snapshot.data.uuid = snapshot.data.uuid || api.settings.changeset.uuid;
+				snapshot.data.title = snapshot.data.title || snapshot.data.uuid;
 
+				// Suppress the AYS dialog.
 				api.bind( 'changeset-saved', function() {
 					if ( 'auto-draft' !== api.state( 'changesetStatus' ).get() ) {
 						api.state( 'saved' ).set( true );
@@ -559,7 +559,6 @@
 				if ( 'pending' === data.status ) {
 					api.state( 'snapshot-submitted' ).set( true );
 				}
-				snapshot.resetSavedStateQuietly();
 
 				// Trigger an event for plugins to use.
 				api.trigger( 'customize-snapshots-update', {
