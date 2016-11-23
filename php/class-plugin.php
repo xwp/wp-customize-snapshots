@@ -67,6 +67,9 @@ class Plugin extends Plugin_Base {
 	 */
 	public function init_migration() {
 		$this->migrate = new Migrate();
+		if ( defined( 'WP_CLI' ) && WP_CLI ) {
+			require_once( __DIR__ . '/class-customize-snapshot-command.php' );
+		}
 	}
 
 	/**
