@@ -139,18 +139,116 @@
 		},
 
 		/**
-		 * Get the preview URL with the snapshot UUID attached.
+		 * Make the AJAX request to update/save a snapshot.
 		 *
-		 * @returns {string} URL.
+		 * @param {object} options Options.
+		 * @param {string} options.status The post status for the snapshot.
+		 * @return {void}
 		 */
-		getSnapshotFrontendPreviewUrl: function getSnapshotFrontendPreviewUrl() {
-			var snapshot = this, a = document.createElement( 'a' );
-			a.href = snapshot.frontendPreviewUrl.get();
-			if ( a.search ) {
-				a.search += '&';
-			}
-			a.search += snapshot.uuidParam + '=' + snapshot.data.uuid;
-			return a.href;
+		sendUpdateSnapshotRequest: function sendUpdateSnapshotRequest( options ) {
+			var snapshot = this,
+			    spinner = $( '#customize-header-actions' ).find( '.spinner' ),
+			    request, data;
+
+			data = _.extend(
+				{
+					status: 'draft'
+				},
+				options
+			);
+
+			request = wp.customize.previewer.save( data );
+
+			snapshot.statusButton.state( 'disabled' ).set( true );
+			spinner.addClass( 'is-active' );
+
+			request.always( function( response ) {
+				spinner.removeClass( 'is-active' );
+				if ( response.edit_link ) {
+					snapshot.data.editLink = response.edit_link;
+				}
+				if ( response.publish_date ) {
+					snapshot.data.publishDate = response.publish_date;
+				}
+				if ( response.title ) {
+					snapshot.data.title = response.title;
+				}
+				snapshot.updateSnapshotEditControls();
+				snapshot.statusButton.state( 'disabled' ).set( false );
+				snapshot.data.dirty = false;
+			} );
+
+			request.done( function( response ) {
+				var url = api.previewer.previewUrl(),
+				    customizeUrl = window.location.href;
+
+				snapshot.saveDraftButton.addClass( 'hidden' );
+				snapshot.statusButton.selector.removeClass( 'hidden' );
+				snapshot.statusButton.state( 'disabled' ).set( false );
+
+				api.state( 'snapshot-exists' ).set( true );
+				api.state( 'snapshot-saved' ).set( true );
+				api.state( 'snapshot-status' ).set( data.status );
+
+				if ( 'pending' === data.status ) {
+					api.state( 'snapshot-submitted' ).set( true );
+				}
+
+				// Trigger an event for plugins to use.
+				api.trigger( 'customize-snapshots-update', {
+					previewUrl: url,
+					customizeUrl: customizeUrl,
+					uuid: snapshot.data.uuid,
+					response: response
+				} );
+			} );
+
+			request.fail( function( response ) {
+				var id = 'snapshot-dialog-error',
+				    hashedID = '#' + id,
+				    snapshotDialogShareError = wp.template( id ),
+				    messages = snapshot.data.i18n.errorMsg,
+				    invalidityCount = 0,
+				    dialogElement;
+
+				// @todo check.
+				if ( response.setting_validities ) {
+					invalidityCount = _.size( response.setting_validities, function( validity ) {
+						return true !== validity;
+					} );
+				}
+
+				/*
+				 * Short-circuit if there are setting validation errors, since the error messages
+				 * will be displayed with the controls themselves. Eventually, once we have
+				 * a global notification area in the Customizer, we can eliminate this
+				 * short-circuit and instead display the messages in there.
+				 * See https://core.trac.wordpress.org/ticket/35210
+				 */
+				if ( invalidityCount > 0 ) {
+					return;
+				}
+
+				if ( response.errors ) {
+					messages += ' ' + _.pluck( response.errors, 'message' ).join( ' ' );
+				}
+
+				// Insert the snapshot dialog error template.
+				dialogElement = $( hashedID );
+				if ( ! dialogElement.length ) {
+					dialogElement = $( snapshotDialogShareError( {
+						title: snapshot.data.i18n.errorTitle,
+						message: messages
+					} ) );
+					$( 'body' ).append( dialogElement );
+				}
+
+				// Open the dialog.
+				$( hashedID ).dialog( {
+					autoOpen: true,
+					modal: true
+				} );
+			} );
 		},
 
 		/**
@@ -225,6 +323,7 @@
 				snapshot.saveDraftButton.prop( 'disabled', saved );
 			} );
 
+			// @todo remove it since its not longer visible?.
 			api.state( 'saved' ).bind( function( saved ) {
 				if ( saved ) {
 					snapshot.saveDraftButton.prop( 'disabled', true );
@@ -235,34 +334,13 @@
 				snapshot.saveDraftButton.prop( 'disabled', false );
 			} );
 
-			// @todo May have to remove this?.
+			// @todo not required?.
 			api.state( 'snapshot-exists' ).bind( function( exists ) {
 				var permsMsg;
 				if ( ! snapshot.data.currentUserCanPublish ) {
 					permsMsg = exists ? snapshot.data.i18n.permsMsg.update : snapshot.data.i18n.permsMsg.save;
 					snapshot.statusButton.selector.attr( 'title', permsMsg );
 					snapshot.saveDraftButton.attr( 'title', permsMsg );
-				}
-			} );
-
-			snapshot.dirtySnapshotPostSetting.bind( function( dirty ) {
-				if ( dirty ) {
-					snapshot.saveDraftButton.prop( 'disabled', false );
-				} else {
-					snapshot.saveDraftButton.prop( 'disabled', ! snapshot.data.dirty );
-				}
-				snapshot.updateButtonText();
-			} );
-			snapshot.dirtyScheduleDate.bind( function( dirty ) {
-				var date;
-				if ( dirty ) {
-					date = snapshot.getDateFromInputs();
-					if ( ! date || ! snapshot.data.currentUserCanPublish ) {
-						return;
-					}
-					api.state( 'snapshot-status' ).set( 'scheduled' );
-				} else {
-					snapshot.updateButtonText();
 				}
 			} );
 
@@ -280,20 +358,6 @@
 			}
 
 			header.addClass( 'button-added' );
-		},
-
-		/**
-		 * Update button text.
-		 *
-		 * @returns {void}
-		 */
-		updateButtonText: function updateButtonText() {
-			var snapshot = this, date = snapshot.getDateFromInputs();
-			if ( snapshot.isFutureDate() && date && snapshot.data.currentUserCanPublish ) {
-				api.state( 'snapshot-status' ).set( 'schedule' );
-			} else {
-				api.state( 'snapshot-status' ).set( 'draft' ); // @todo Get post status.
-			}
 		},
 
 		/**
@@ -391,7 +455,11 @@
 
 			// Collapse the schedule container interacting outside the schedule container.
 			$( 'body' ).on( 'mousedown', function( event ) {
-				if ( snapshot.snapshotEditContainerDisplayed.get() && ! $.contains( snapshot.editContainer[0], event.target ) && ! snapshot.snapshotExpandButton.is( event.target ) ) {
+				var isDisplayed = snapshot.snapshotEditContainerDisplayed.get(),
+				    isTargetEditContainer = snapshot.editContainer.is( event.target ) || 0 !== snapshot.editContainer.has( event.target ).length,
+				    isTargetExpandButton = snapshot.snapshotExpandButton.is( event.target );
+
+				if ( isDisplayed && ! isTargetEditContainer && ! isTargetExpandButton ) {
 					snapshot.snapshotEditContainerDisplayed.set( false );
 				}
 			} );
@@ -425,6 +493,21 @@
 					snapshot.snapshotEditContainerDisplayed.set( false );
 				}
 			} );
+		},
+
+		/**
+		 * Get the preview URL with the snapshot UUID attached.
+		 *
+		 * @returns {string} URL.
+		 */
+		getSnapshotFrontendPreviewUrl: function getSnapshotFrontendPreviewUrl() {
+			var snapshot = this, a = document.createElement( 'a' );
+			a.href = snapshot.frontendPreviewUrl.get();
+			if ( a.search ) {
+				a.search += '&';
+			}
+			a.search += snapshot.uuidParam + '=' + snapshot.data.uuid;
+			return a.href;
 		},
 
 		/**
@@ -501,119 +584,6 @@
 			}
 
 			return true;
-		},
-
-		/**
-		 * Make the AJAX request to update/save a snapshot.
-		 *
-		 * @param {object} options Options.
-		 * @param {string} options.status The post status for the snapshot.
-		 * @return {void}
-		 */
-		sendUpdateSnapshotRequest: function sendUpdateSnapshotRequest( options ) {
-			var snapshot = this,
-				spinner = $( '#customize-header-actions' ).find( '.spinner' ),
-				request, data;
-
-			data = _.extend(
-				{
-					status: 'draft'
-				},
-				options
-			);
-
-			request = wp.customize.previewer.save( data );
-
-			snapshot.statusButton.state( 'disabled' ).set( true );
-			spinner.addClass( 'is-active' );
-
-			request.always( function( response ) {
-				spinner.removeClass( 'is-active' );
-				if ( response.edit_link ) {
-					snapshot.data.editLink = response.edit_link;
-				}
-				if ( response.publish_date ) {
-					snapshot.data.publishDate = response.publish_date;
-				}
-				if ( response.title ) {
-					snapshot.data.title = response.title;
-				}
-				snapshot.updateSnapshotEditControls();
-				snapshot.statusButton.state( 'disabled' ).set( false );
-				snapshot.data.dirty = false;
-			} );
-
-			request.done( function( response ) {
-				var url = api.previewer.previewUrl(),
-					customizeUrl = window.location.href;
-
-				// Change the save button text to update.
-				api.state( 'snapshot-exists' ).set( true );
-
-				api.state( 'snapshot-saved' ).set( true );
-
-				snapshot.saveDraftButton.addClass( 'hidden' );
-				snapshot.statusButton.selector.removeClass( 'hidden' );
-				snapshot.statusButton.state( 'disabled' ).set( false );
-
-				if ( 'pending' === data.status ) {
-					api.state( 'snapshot-submitted' ).set( true );
-				}
-
-				// Trigger an event for plugins to use.
-				api.trigger( 'customize-snapshots-update', {
-					previewUrl: url,
-					customizeUrl: customizeUrl,
-					uuid: snapshot.data.uuid,
-					response: response
-				} );
-			} );
-
-			request.fail( function( response ) {
-				var id = 'snapshot-dialog-error',
-					hashedID = '#' + id,
-					snapshotDialogShareError = wp.template( id ),
-					messages = snapshot.data.i18n.errorMsg,
-					invalidityCount = 0,
-					dialogElement;
-
-				if ( response.setting_validities ) {
-					invalidityCount = _.size( response.setting_validities, function( validity ) {
-						return true !== validity;
-					} );
-				}
-
-				/*
-				 * Short-circuit if there are setting validation errors, since the error messages
-				 * will be displayed with the controls themselves. Eventually, once we have
-				 * a global notification area in the Customizer, we can eliminate this
-				 * short-circuit and instead display the messages in there.
-				 * See https://core.trac.wordpress.org/ticket/35210
-				 */
-				if ( invalidityCount > 0 ) {
-					return;
-				}
-
-				if ( response.errors ) {
-					messages += ' ' + _.pluck( response.errors, 'message' ).join( ' ' );
-				}
-
-				// Insert the snapshot dialog error template.
-				dialogElement = $( hashedID );
-				if ( ! dialogElement.length ) {
-					dialogElement = $( snapshotDialogShareError( {
-						title: snapshot.data.i18n.errorTitle,
-						message: messages
-					} ) );
-					$( 'body' ).append( dialogElement );
-				}
-
-				// Open the dialog.
-				$( hashedID ).dialog( {
-					autoOpen: true,
-					modal: true
-				} );
-			} );
 		},
 
 		/**
@@ -729,7 +699,7 @@
 		populateSetting: function populateSetting() {
 			var snapshot = this,
 				date = snapshot.getDateFromInputs(),
-				scheduled;
+				scheduled, isDirtySetting, isDirtyDate;
 
 			if ( ! date || ! snapshot.data.currentUserCanPublish ) {
 				snapshot.dirtySnapshotPostSetting.set( snapshot.data.title !== snapshot.snapshotTitle.val() );
@@ -739,17 +709,12 @@
 			date.setSeconds( 0 );
 			scheduled = snapshot.formatDate( date ) !== snapshot.data.publishDate;
 
-			if ( snapshot.data.title !== snapshot.snapshotTitle.val() || scheduled ) {
-				snapshot.dirtySnapshotPostSetting.set( true );
-			} else {
-				snapshot.dirtySnapshotPostSetting.set( false );
-			}
+			isDirtySetting = snapshot.data.title !== snapshot.snapshotTitle.val() || scheduled;
+			snapshot.dirtySnapshotPostSetting.set( isDirtySetting );
 
-			if ( scheduled && snapshot.isFutureDate() ) {
-				snapshot.dirtyScheduleDate.set( true );
-			} else {
-				snapshot.dirtyScheduleDate.set( false );
-			}
+			isDirtyDate = scheduled && snapshot.isFutureDate();
+			snapshot.dirtyScheduleDate.set( isDirtyDate );
+
 			snapshot.updateCountdown();
 			snapshot.editContainer.find( '.reset-time' ).toggle( scheduled );
 		},
@@ -827,7 +792,7 @@
 
 			statusButton.selector = $( $.trim( wp.template( 'snapshot-status-button' )() ) );
 
-			capitalize = function( string ) {
+			capitalize = function capitalizeString( string ) {
 				return string.charAt( 0 ).toUpperCase() + string.slice( 1 );
 			};
 
@@ -870,6 +835,7 @@
 				);
 			}
 
+			// @todo Change to api.Value if nothing else required.
 			statusButton.state = new api.Values();
 			statusButton.state.create( 'disabled' );
 
