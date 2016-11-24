@@ -401,7 +401,6 @@
 					snapshot.schedule.inputs.on( 'blur', function() {
 						snapshot.populateInputs();
 						snapshot.populateSetting();
-						snapshot.autoSaveEditBox();
 					} );
 
 					snapshot.updateCountdown();
@@ -479,14 +478,6 @@
 				snapshot.editContainer.find( 'a.snapshot-edit-link' ).hide();
 			} );
 
-			api.state( 'saved' ).bind( function( saved ) {
-				if ( saved && ! _.isEmpty( snapshot.editContainer ) ) {
-					snapshot.data.dirty = false;
-					snapshot.data.publishDate = snapshot.getCurrentTime();
-					snapshot.updateSnapshotEditControls();
-				}
-			} );
-
 			api.state( 'snapshot-exists' ).bind( function( exists ) {
 				if ( exists && ! _.isEmpty( snapshot.editContainer ) ) {
 					snapshot.updateSnapshotEditControls();
@@ -494,6 +485,8 @@
 					snapshot.snapshotEditContainerDisplayed.set( false );
 				}
 			} );
+
+			snapshot.autoSaveEditBox();
 		},
 
 		/**
@@ -505,12 +498,14 @@
 			var snapshot = this, updateSnapshot, delay = 2000;
 
 		    updateSnapshot = _.debounce( function() {
-			    if ( snapshot.isFutureDate() ) {
-				    snapshot.updateSnapshot( 'future' );
-			    }
+			    snapshot.updateSnapshot( 'future' );
 		    }, delay );
 
-			updateSnapshot();
+			snapshot.dirtyScheduleDate.bind( function( dirty ) {
+			    if ( dirty ) {
+				    updateSnapshot();
+			    }
+			} );
 		},
 
 		/**

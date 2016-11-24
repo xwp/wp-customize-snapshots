@@ -405,7 +405,28 @@
 		 *
 		 * @return {void}
 		 */
-		autoSaveEditBox: function autoSaveEditor() {}
+		autoSaveEditBox: function autoSaveEditor() {
+
+		},
+
+		/**
+		 * Renders snapshot schedule and handles it's events.
+		 *
+		 * @returns {void}
+		 */
+		editSnapshotUI: function editSnapshotUI() {
+			var snapshot = this;
+			api.Snapshots.prototype.editSnapshotUI.call( snapshot );
+
+			api.state( 'saved' ).bind( function( saved ) {
+				if ( saved && ! _.isEmpty( snapshot.editContainer ) ) {
+					snapshot.data.dirty = false;
+					snapshot.data.publishDate = snapshot.getCurrentTime();
+					snapshot.snapshotEditContainerDisplayed.set( false );
+					snapshot.updateSnapshotEditControls();
+				}
+			} );
+		}
 
 	} );
 
