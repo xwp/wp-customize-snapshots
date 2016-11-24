@@ -118,8 +118,19 @@ class Test_Post_Type extends \WP_UnitTestCase {
 	 * @covers CustomizeSnapshots\Post_Type::extend_changeset_post_type_object()
 	 */
 	public function test_extend_changeset_post_type_object() {
+		global $_wp_post_type_features;
 		$this->mark_incompatible();
-		$this->markTestIncomplete();
+		$post_type_obj = get_post_type_object( Post_Type::SLUG );
+		$this->assertArrayHasKey( 'revisions', $_wp_post_type_features[ Post_Type::SLUG ] );
+		$this->assertTrue( $post_type_obj->show_ui );
+		$this->assertTrue( $post_type_obj->show_in_menu );
+		$this->assertEquals( 'post.php?post=%d', $post_type_obj->_edit_link );
+		$this->assertEquals( 'customize', $post_type_obj->cap->edit_published_posts );
+		$this->assertFalse( $post_type_obj->show_in_customizer );
+		$this->assertInstanceOf( __NAMESPACE__ . '\\Post_Type', $post_type_obj->customize_snapshot_post_type_obj );
+		$this->assertTrue( $post_type_obj->show_in_rest );
+		$this->assertEquals( 'customize_changesets', $post_type_obj->rest_base );
+		$this->assertEquals( __NAMESPACE__ . '\\Snapshot_REST_API_Controller', $post_type_obj->rest_controller_class );
 	}
 
 	/**
@@ -129,7 +140,12 @@ class Test_Post_Type extends \WP_UnitTestCase {
 	 */
 	public function test_add_admin_menu_item() {
 		$this->mark_incompatible();
-		$this->markTestIncomplete();
+		global $menu, $admin_page_hooks, $_registered_pages, $_parent_pages;
+		$post_type_obj = new Post_Type( $this->plugin->customize_snapshot_manager );
+		$post_type_obj->add_admin_menu_item();
+		$menu_slug = 'edit.php?post_type=' . Post_Type::SLUG;
+		$this->assertFalse( $_parent_pages[ $menu_slug ] );
+		$this->assertArrayHasKey( $menu_slug, $admin_page_hooks );
 	}
 
 	/**
@@ -783,7 +799,14 @@ class Test_Post_Type extends \WP_UnitTestCase {
 	 */
 	public function test_hide_add_new_changeset_button() {
 		$this->mark_incompatible();
-		$this->markTestIncomplete();
+		$post_type_obj = new Post_Type( $this->plugin->customize_snapshot_manager );
+		global $typenow;
+		$typenow = Post_Type::SLUG; // WPCS: Global override ok.
+		ob_start();
+		$post_type_obj->hide_add_new_changeset_button();
+		$content = ob_get_clean();
+		$this->assertContains( 'a.page-title-action', $content );
+		$this->assertContains( 'display: none;', $content );
 	}
 
 }

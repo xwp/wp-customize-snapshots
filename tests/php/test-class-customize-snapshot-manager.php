@@ -261,12 +261,16 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	/**
 	 * Tests load_snapshot.
 	 *
-	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::init()
 	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::load_snapshot()
 	 */
 	public function test_load_snapshot() {
 		$this->mark_incompatible();
-		$this->markTestIncomplete();
+		$manager = new Customize_Snapshot_Manager( $this->plugin );
+		$this->assertNull( $manager->snapshot );
+		$this->assertNull( $manager->customize_manager );
+		$manager->load_snapshot();
+		$this->assertInstanceOf( __NAMESPACE__ . '\\Customize_Snapshot', $manager->snapshot );
+		$this->assertInstanceOf( '\WP_Customize_Manager', $manager->customize_manager );
 	}
 	/**
 	 * Tests add_snapshot_var_to_customize_save.
@@ -275,7 +279,21 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	 */
 	public function test_add_snapshot_var_to_customize_save() {
 		$this->mark_incompatible();
-		$this->markTestIncomplete();
+		global $wp_customize;
+		$uuid = wp_generate_uuid4();
+		get_plugin_instance()->customize_snapshot_manager->post_type->save( array(
+			'uuid' => $uuid,
+			'data' => array(),
+			'status' => 'draft',
+		) );
+		$manager = new Customize_Snapshot_Manager( $this->plugin );
+		$wp_customize = null; // WPCS: global override ok.
+		$manager->current_snapshot_uuid = $uuid;
+		$manager->load_snapshot();
+		$data = $manager->add_snapshot_var_to_customize_save( array(), $manager->customize_manager );
+		$this->assertArrayHasKey( 'edit_link', $data );
+		$this->assertArrayHasKey( 'publish_date', $data );
+		$this->assertArrayHasKey( 'title', $data );
 	}
 
 	/**
@@ -433,7 +451,6 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::prepare_snapshot_post_content_for_publish()
 	 */
 	public function test_prepare_snapshot_post_content_for_publish() {
-		$snapshot_manager = get_plugin_instance()->customize_snapshot_manager;
 		$data = array(
 			'blogdescription' => array( 'value' => 'Snapshot blog' ),
 			'foo' => array(
@@ -642,7 +659,12 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::get_post_type()
 	 */
 	public function test_get_post_type() {
-		$this->markTestIncomplete();
+		$plugin = get_plugin_instance();
+		if ( $plugin->compat ) {
+			$this->assertEquals( $this->manager->get_post_type(), Post_Type_Back_Compat::SLUG );
+		} else {
+			$this->assertEquals( $this->manager->get_post_type(), Post_Type::SLUG );
+		}
 	}
 
 	/**
@@ -651,7 +673,12 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::get_front_uuid_param()
 	 */
 	public function test_get_front_uuid_param() {
-		$this->markTestIncomplete();
+		$plugin = get_plugin_instance();
+		if ( $plugin->compat ) {
+			$this->assertEquals( $this->manager->get_front_uuid_param(), Post_Type_Back_Compat::FRONT_UUID_PARAM_NAME );
+		} else {
+			$this->assertEquals( $this->manager->get_front_uuid_param(), Post_Type::FRONT_UUID_PARAM_NAME );
+		}
 	}
 
 	/**
@@ -660,6 +687,11 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::get_customize_uuid_param()
 	 */
 	public function test_get_customize_uuid_param() {
-		$this->markTestIncomplete();
+		$plugin = get_plugin_instance();
+		if ( $plugin->compat ) {
+			$this->assertEquals( $this->manager->get_customize_uuid_param(), Post_Type_Back_Compat::CUSTOMIZE_UUID_PARAM_NAME );
+		} else {
+			$this->assertEquals( $this->manager->get_customize_uuid_param(), Post_Type::CUSTOMIZE_UUID_PARAM_NAME );
+		}
 	}
 }
