@@ -78,7 +78,9 @@ class Migrate {
 		?>
 		<script type="application/javascript">
 			( function( $ ) {
-				var component = {};
+				var component = {
+					doingAjax : false
+				};
 				component.init = function(){
 					$( function() {
 						component.el = $('#customize-snapshot-migration');
@@ -89,8 +91,11 @@ class Migrate {
 				};
 				component.bindClick = function() {
 					component.el.click( function() {
-						//todo spinner start
+						if ( component.doingAjax ) {
+							return;
+						}
 						component.spinner.css('visibility', 'visible');
+						component.doingAjax = true;
 						component.migrate( component.el.data( 'nonce' ), 20 );
 					} );
 				};
@@ -108,6 +113,7 @@ class Migrate {
 						} else{
 							component.spinner.css('visibility', 'hidden');
 							outerDiv.removeClass( 'notice-error' ).addClass( 'notice-success' ).find('p').html( component.el.data( 'migration-success' ) );
+							component.doingAjax = false;
 						}
 					} );
 				};
