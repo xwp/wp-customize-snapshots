@@ -628,6 +628,9 @@ class Customize_Snapshot_Manager {
 							<p class="snapshot-schedule-description">
 								<?php esc_html_e( 'Schedule changes to publish (go live) at a future date.', 'customize-snapshots' ); ?>
 							</p>
+							<div class="snapshot-future-date-notification notice notice-error ">
+								<?php esc_html_e( 'Select a future date to schedule.', 'customize-snapshots' ); ?>
+							</div>
 							<div class="snapshot-schedule-control date-inputs clear">
 								<label>
 									<span class="screen-reader-text"><?php esc_html_e( 'Month', 'customize-snapshots' ); ?></span>
@@ -752,7 +755,7 @@ class Customize_Snapshot_Manager {
 				<label for="snapshot-status-select" id="snapshot-status-button-title"></label>
 				<select id="snapshot-status-select">
 					<option value="draft"><?php esc_attr_e( 'Draft' , 'customize-snapshots' ); ?></option>
-					<option value="scheduled"><?php esc_attr_e( 'Scheduled' , 'customize-snapshots' ); ?></option>
+					<option value="future"><?php esc_attr_e( 'Scheduled' , 'customize-snapshots' ); ?></option>
 					<option value="pending"><?php esc_attr_e( 'Pending' , 'customize-snapshots' ); ?></option>
 				</select>
 				<span class="dashicons dashicons-arrow-down"></span>

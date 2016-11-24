@@ -262,3 +262,9 @@
 	margin-top: 9px;
 	margin-right:5px;
 }
+
+.snapshot-future-date-notification.notice{
+	margin-bottom: 5px;
+	border-top: 1px solid #eee;
+	padding: 5px;
+}

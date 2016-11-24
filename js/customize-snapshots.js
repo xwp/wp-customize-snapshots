@@ -113,7 +113,7 @@
 		/**
 		 * Update snapshot.
 		 *
-		 * @param {string} status.
+		 * @param {string} status post status.
 		 * @return {void}
 		 */
 		updateSnapshot: function updateSnapshot( status ) {
@@ -126,10 +126,9 @@
 				requestData.title = snapshot.snapshotTitle.val();
 			}
 
-			if ( 'scheduled' === status ) {
+			if ( 'future' === status ) {
 				if ( ! _.isEmpty( snapshot.editContainer ) && snapshot.isFutureDate() ) {
 					scheduleDate = snapshot.getDateFromInputs();
-					requestData.status = 'future';
 					requestData.date = snapshot.formatDate( scheduleDate );
 					snapshot.sendUpdateSnapshotRequest( requestData );
 				}
@@ -390,6 +389,7 @@
 				// Add the template to the DOM.
 				snapshot.editContainer = $( $.trim( wp.template( 'snapshot-edit-container' )( snapshot.data ) ) );
 				snapshot.editContainer.hide().appendTo( $( '#customize-header-actions' ) );
+				snapshot.dateNotification = snapshot.editContainer.find( '.snapshot-future-date-notification' );
 
 				if ( snapshot.data.currentUserCanPublish ) {
 
@@ -421,6 +421,7 @@
 					snapshot.editContainer.stop().slideDown( 'fast' ).attr( 'aria-expanded', 'true' );
 					snapshot.snapshotExpandButton.attr( 'aria-pressed', 'true' );
 					snapshot.snapshotExpandButton.prop( 'title', snapshot.data.i18n.collapseSnapshotScheduling );
+					snapshot.toggleDateNotification();
 				} else {
 					snapshot.editContainer.stop().slideUp( 'fast' ).attr( 'aria-expanded', 'false' );
 					snapshot.snapshotExpandButton.attr( 'aria-pressed', 'false' );
@@ -493,6 +494,26 @@
 					snapshot.snapshotEditContainerDisplayed.set( false );
 				}
 			} );
+
+			snapshot.dirtySnapshotPostSetting.bind( function() {
+				var status = api.state( 'snapshot-status' ).get();
+				if ( status && snapshot.isFutureDate() ) {
+
+					// @todo Update to future status;
+				}
+			} );
+		},
+
+		/**
+		 * Toggles date notification.
+		 *
+		 * @return {void}.
+		 */
+		toggleDateNotification: function showDateNotification() {
+			var snapshot = this;
+			if ( ! _.isEmpty( snapshot.dateNotification ) ) {
+				snapshot.dateNotification.toggle( ! snapshot.isFutureDate() );
+			}
 		},
 
 		/**
@@ -717,6 +738,7 @@
 
 			snapshot.updateCountdown();
 			snapshot.editContainer.find( '.reset-time' ).toggle( scheduled );
+			snapshot.toggleDateNotification();
 		},
 
 		/**
@@ -788,21 +810,16 @@
 		 */
 		addSelectButton: function addSelectButton() {
 			var snapshot = this, statusButton = {},
-			    updateButtonText, status, capitalize;
+			    updateButtonText, status;
 
 			statusButton.selector = $( $.trim( wp.template( 'snapshot-status-button' )() ) );
-
-			capitalize = function capitalizeString( string ) {
-				return string.charAt( 0 ).toUpperCase() + string.slice( 1 );
-			};
-
 			statusButton.select = statusButton.selector.find( '#snapshot-status-select' );
 			statusButton.title = statusButton.selector.find( '#snapshot-status-button-title' );
 
 			updateButtonText = (function update() {
 				status = api.state( 'snapshot-status' ).get();
-				statusButton.title.text( capitalize( status ) );
 				statusButton.select.val( status );
+				statusButton.title.text( statusButton.select.find( 'option:selected' ).text() );
 				return update;
 			})();
 
@@ -812,7 +829,7 @@
 				status = statusButton.select.val();
 				api.state( 'snapshot-status' ).set( status );
 				updateButtonText();
-				if ( 'scheduled' === status ) {
+				if ( 'future' === status ) {
 					snapshot.snapshotEditContainerDisplayed.set( true );
 				} else {
 					snapshot.updateSnapshot( status );
@@ -823,7 +840,7 @@
 			api.state( 'snapshot-status' ).bind( 'change', updateButtonText );
 
 			statusButton.select.on( 'click', function() {
-			    if ( 'scheduled' === api.state( 'snapshot-status' ).get() ) {
+			    if ( 'future' === api.state( 'snapshot-status' ).get() ) {
 				    snapshot.snapshotEditContainerDisplayed.set( true );
 			    }
 			} );
