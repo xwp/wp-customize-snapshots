@@ -210,7 +210,7 @@
 				    invalidityCount = 0,
 				    dialogElement;
 
-				// @todo check.
+				// @todo is this required in 4.7?.
 				if ( response.setting_validities ) {
 					invalidityCount = _.size( response.setting_validities, function( validity ) {
 						return true !== validity;
@@ -401,6 +401,7 @@
 					snapshot.schedule.inputs.on( 'blur', function() {
 						snapshot.populateInputs();
 						snapshot.populateSetting();
+						snapshot.autoSaveEditBox();
 					} );
 
 					snapshot.updateCountdown();
@@ -482,7 +483,6 @@
 				if ( saved && ! _.isEmpty( snapshot.editContainer ) ) {
 					snapshot.data.dirty = false;
 					snapshot.data.publishDate = snapshot.getCurrentTime();
-					snapshot.snapshotEditContainerDisplayed.set( false );
 					snapshot.updateSnapshotEditControls();
 				}
 			} );
@@ -494,14 +494,23 @@
 					snapshot.snapshotEditContainerDisplayed.set( false );
 				}
 			} );
+		},
 
-			snapshot.dirtySnapshotPostSetting.bind( function() {
-				var status = api.state( 'snapshot-status' ).get();
-				if ( status && snapshot.isFutureDate() ) {
+		/**
+		 * Auto save edit box when the dates are changed.
+		 *
+		 * @return {void}.
+		 */
+		autoSaveEditBox: function autoSaveEditor() {
+			var snapshot = this, updateSnapshot, delay = 2000;
 
-					// @todo Update to future status;
-				}
-			} );
+		    updateSnapshot = _.debounce( function() {
+			    if ( snapshot.isFutureDate() ) {
+				    snapshot.updateSnapshot( 'future' );
+			    }
+		    }, delay );
+
+			updateSnapshot();
 		},
 
 		/**

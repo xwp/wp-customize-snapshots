@@ -95,6 +95,7 @@
 					customize_snapshot_uuid: snapshot.data.uuid
 				}
 			);
+
 			request = wp.ajax.post( 'customize_update_snapshot', data );
 
 			spinner.addClass( 'is-active' );
@@ -258,7 +259,11 @@
 
 			snapshot.snapshotButton.on( 'click', function( event ) {
 				event.preventDefault();
-				snapshot.updateSnapshot( 'draft' );
+				if ( snapshot.isFutureDate() ) {
+					snapshot.updateSnapshot( 'future' );
+				} else {
+					snapshot.updateSnapshot( 'draft' );
+				}
 			} );
 
 			snapshot.snapshotButton.insertAfter( publishButton );
@@ -381,7 +386,27 @@
 		 */
 		resetSavedStateQuietly: function resetSavedStateQuietly() {
 			api.state( 'saved' )._value = true;
-		}
+		},
+
+		/**
+		 * Hides the future date notification used for 4.7.
+		 *
+		 * @return {void}.
+		 */
+		toggleDateNotification: function showDateNotification() {
+			var snapshot = this;
+			if ( ! _.isEmpty( snapshot.dateNotification ) ) {
+				snapshot.dateNotification.addClass( 'hidden' );
+			}
+		},
+
+		/**
+		 * Auto save edit box when the dates are changed.
+		 *
+		 * @return {void}
+		 */
+		autoSaveEditBox: function autoSaveEditor() {}
+
 	} );
 
 } )( wp.customize, jQuery );
