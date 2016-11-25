@@ -134,9 +134,6 @@
 					snapshot.sendUpdateSnapshotRequest( requestData );
 				}
 			} else {
-				if ( ! snapshot.isFutureDate() ) {
-					requestData.date = snapshot.getCurrentTime();
-				}
 				snapshot.sendUpdateSnapshotRequest( requestData );
 			}
 		},
