@@ -426,8 +426,35 @@
 					snapshot.updateSnapshotEditControls();
 				}
 			} );
-		}
+		},
 
+		/**
+		 * Populate setting value from the inputs.
+		 *
+		 * @returns {void}
+		 */
+		populateSetting: function populateSetting() {
+			var snapshot = this,
+			    date = snapshot.getDateFromInputs(),
+			    scheduled, isDirtySetting, isDirtyDate;
+
+			if ( ! date || ! snapshot.data.currentUserCanPublish ) {
+				snapshot.dirtySnapshotPostSetting.set( snapshot.data.title !== snapshot.snapshotTitle.val() );
+				return;
+			}
+
+			date.setSeconds( 0 );
+			scheduled = snapshot.formatDate( date ) !== snapshot.data.publishDate;
+
+			isDirtySetting = snapshot.data.title !== snapshot.snapshotTitle.val() || scheduled;
+			snapshot.dirtySnapshotPostSetting.set( isDirtySetting );
+
+			isDirtyDate = scheduled && snapshot.isFutureDate();
+			snapshot.dirtyScheduleDate.set( isDirtyDate );
+
+			snapshot.updateCountdown();
+			snapshot.editContainer.find( '.reset-time' ).toggle( scheduled );
+		}
 	} );
 
 } )( wp.customize, jQuery );

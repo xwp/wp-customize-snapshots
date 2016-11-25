@@ -39,6 +39,7 @@
 
 			// Set the initial client timestamp.
 			snapshot.data.initialClientTimestamp = snapshot.dateValueOf();
+			snapshot.updatePending = false;
 
 			api.bind( 'ready', function() {
 				snapshotExists = '{}' !== api.previewer.query().customized;
@@ -158,6 +159,7 @@
 
 			request = wp.customize.previewer.save( data );
 
+			snapshot.updatePending = true;
 			snapshot.statusButton.state( 'disabled' ).set( true );
 			spinner.addClass( 'is-active' );
 
@@ -175,6 +177,7 @@
 				snapshot.updateSnapshotEditControls();
 				snapshot.statusButton.state( 'disabled' ).set( false );
 				snapshot.data.dirty = false;
+				snapshot.updatePending = false;
 			} );
 
 			request.done( function( response ) {
@@ -261,8 +264,7 @@
 				publishButton = $( '#save' ),
 				submitButton, setPreviewLinkHref;
 
-			snapshot.dirtySnapshotPostSetting = new api.Value();
-			snapshot.dirtyScheduleDate = new api.Value();
+			snapshot.dirtyEditSettings = new api.Values();
 
 			snapshot.statusButton = snapshot.addSelectButton();
 			snapshot.saveDraftButton = $( $.trim( wp.template( 'snapshot-save-draft-button' )() ) );
@@ -495,16 +497,21 @@
 		 * @return {void}.
 		 */
 		autoSaveEditBox: function autoSaveEditor() {
-			var snapshot = this, updateSnapshot, delay = 2000;
+			var snapshot = this, updateSnapshot, delay = 1000;
 
-		    updateSnapshot = _.debounce( function() {
-			    snapshot.updateSnapshot( 'future' );
+		    updateSnapshot = _.debounce( function( status ) {
+			    snapshot.updateSnapshot( status );
 		    }, delay );
 
-			snapshot.dirtyScheduleDate.bind( function( dirty ) {
-			    if ( dirty ) {
-				    updateSnapshot();
-			    }
+			snapshot.dirtyEditSettings.bind( 'date', function( dirty ) {
+				if ( ! snapshot.updatePending ) {
+					if ( dirty ) {
+						updateSnapshot( 'future' );
+					}
+					if ( ! snapshot.isFutureDate() ) {
+						updateSnapshot( 'draft' );
+					}
+				}
 			} );
 		},
 
@@ -724,21 +731,21 @@
 		populateSetting: function populateSetting() {
 			var snapshot = this,
 				date = snapshot.getDateFromInputs(),
-				scheduled, isDirtySetting, isDirtyDate;
+				scheduled, isDirtyTitle, isDirtyDate;
 
 			if ( ! date || ! snapshot.data.currentUserCanPublish ) {
-				snapshot.dirtySnapshotPostSetting.set( snapshot.data.title !== snapshot.snapshotTitle.val() );
+				snapshot.dirtyEditSettings.trigger( 'title', snapshot.data.title !== snapshot.snapshotTitle.val() );
 				return;
 			}
 
 			date.setSeconds( 0 );
 			scheduled = snapshot.formatDate( date ) !== snapshot.data.publishDate;
 
-			isDirtySetting = snapshot.data.title !== snapshot.snapshotTitle.val() || scheduled;
-			snapshot.dirtySnapshotPostSetting.set( isDirtySetting );
+			isDirtyTitle = snapshot.data.title !== snapshot.snapshotTitle.val();
+			snapshot.dirtyEditSettings.trigger( 'title', isDirtyTitle );
 
 			isDirtyDate = scheduled && snapshot.isFutureDate();
-			snapshot.dirtyScheduleDate.set( isDirtyDate );
+			snapshot.dirtyEditSettings.trigger( 'date', isDirtyDate );
 
 			snapshot.updateCountdown();
 			snapshot.editContainer.find( '.reset-time' ).toggle( scheduled );
