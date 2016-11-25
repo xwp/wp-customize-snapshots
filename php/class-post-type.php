@@ -93,7 +93,7 @@ class Post_Type {
 		add_action( 'admin_menu',array( $this, 'add_admin_menu_item' ) );
 		add_filter( 'map_meta_cap', array( $this, 'remap_customize_meta_cap' ), 5, 4 );
 		add_filter( 'bulk_actions-edit-' . static::SLUG, array( $this, 'add_snapshot_bulk_actions' ) );
-		add_filter( 'handle_bulk_actions-edit-' . static::SLUG, array( $this, 'handle_snapshot_bulk_actions' ), 10, 3 );
+		add_filter( 'handle_bulk_actions-edit-' . static::SLUG, array( $this, 'handle_snapshot_merge' ), 10, 3 );
 		add_action( 'admin_print_styles-edit.php', array( $this, 'hide_add_new_changeset_button' ) );
 	}
 
@@ -668,7 +668,7 @@ class Post_Type {
 	 *
 	 * @return string url.
 	 */
-	public function handle_snapshot_bulk_actions( $redirect_to, $do_action, $post_ids ) {
+	public function handle_snapshot_merge( $redirect_to, $do_action, $post_ids ) {
 		if ( 'merge_snapshot' !== $do_action ) {
 			return $redirect_to;
 		}
@@ -676,7 +676,24 @@ class Post_Type {
 		if ( count( $posts ) <= 1 ) {
 			return empty( $redirect_to ) ? add_query_arg( array( 'merge-error' => 1 ) ) : add_query_arg( array( 'merge-error' => 1 ), $redirect_to );
 		}
+		$post_id = $this->merge_snapshots( $posts );
+		$redirect_to = get_edit_post_link( $post_id, 'raw' );
+		if ( $redirect_to ) {
+			wp_safe_redirect( $redirect_to );
+			exit;
+		}
+		return $post_id;
+	}
 
+	/**
+	 * Merge two or more snapshots
+	 *
+	 * @param array $post_ids post id array.
+	 *
+	 * @return int Changeset post id.
+	 */
+	public function merge_snapshots( $post_ids ) {
+		$posts = array_map( 'get_post', $post_ids );
 		usort( $posts, function( $a, $b ) {
 			$compare_a = $a->post_modified;
 			$compare_b = $b->post_modified;
@@ -719,8 +736,7 @@ class Post_Type {
 			'post_date' => current_time( 'mysql', false ),
 			'post_date_gmt' => current_time( 'mysql', true ),
 		) );
-		$redirect_to = get_edit_post_link( $post_id, 'raw' );
-		return $redirect_to;
+		return $post_id;
 	}
 
 	/**

@@ -99,7 +99,7 @@ class Post_Type_Back_Compat extends Post_Type {
 		add_action( 'admin_notices', array( $this, 'show_publish_error_admin_notice' ) );
 		add_filter( 'display_post_states', array( $this, 'display_post_states' ), 10, 2 );
 		add_action( 'admin_footer-edit.php', array( $this, 'snapshot_merge_print_script' ) );
-		add_action( 'load-edit.php', array( $this, 'handle_snapshot_bulk_actions_workaround' ) );
+		add_action( 'load-edit.php', array( $this, 'handle_snapshot_merge_workaround' ) );
 		add_filter( 'post_type_link', array( $this, 'filter_post_type_link' ), 10, 2 );
 		add_filter( 'wp_insert_post_data', array( $this, 'preserve_post_name_in_insert_data' ), 10, 2 );
 	}
@@ -130,7 +130,7 @@ class Post_Type_Back_Compat extends Post_Type {
 	/**
 	 * Handles bulk action for 4.6.x and older version.
 	 */
-	public function handle_snapshot_bulk_actions_workaround() {
+	public function handle_snapshot_merge_workaround() {
 		$wp_list_table = _get_list_table( 'WP_Posts_List_Table' );
 		$action = $wp_list_table->current_action();
 		if ( 'merge_snapshot' !== $action || ( isset( $_REQUEST['post_type'] ) && static::SLUG !== wp_unslash( $_REQUEST['post_type'] ) ) ) {
@@ -141,7 +141,7 @@ class Post_Type_Back_Compat extends Post_Type {
 		if ( empty( $post_ids ) ) {
 			return;
 		}
-		$redirect_url = $this->handle_snapshot_bulk_actions( wp_get_referer(), 'merge_snapshot', $post_ids );
+		$redirect_url = $this->handle_snapshot_merge( wp_get_referer(), 'merge_snapshot', $post_ids );
 		if ( ! empty( $redirect_url ) ) {
 			wp_safe_redirect( $redirect_url );
 			exit;

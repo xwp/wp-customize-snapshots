@@ -54,7 +54,7 @@ class Test_Post_Type_Back_Compat extends \WP_UnitTestCase {
 		$this->assertEquals( 10, has_action( 'admin_notices', array( $post_type_obj, 'show_publish_error_admin_notice' ) ) );
 		$this->assertEquals( 10, has_filter( 'display_post_states', array( $post_type_obj, 'display_post_states' ) ) );
 		$this->assertEquals( 10, has_action( 'admin_footer-edit.php', array( $post_type_obj, 'snapshot_merge_print_script' ) ) );
-		$this->assertEquals( 10, has_action( 'load-edit.php', array( $post_type_obj, 'handle_snapshot_bulk_actions_workaround' ) ) );
+		$this->assertEquals( 10, has_action( 'load-edit.php', array( $post_type_obj, 'handle_snapshot_merge_workaround' ) ) );
 		$this->assertEquals( 10, has_filter( 'post_type_link', array( $post_type_obj, 'filter_post_type_link' ) ) );
 		$this->assertEquals( 10, has_filter( 'wp_insert_post_data', array( $post_type_obj, 'preserve_post_name_in_insert_data' ) ) );
 	}
@@ -140,7 +140,7 @@ class Test_Post_Type_Back_Compat extends \WP_UnitTestCase {
 	/**
 	 * Test handle_snapshot_bulk_actions_workaround
 	 *
-	 * @see Post_Type_Back_Compat::handle_snapshot_bulk_actions_workaround()
+	 * @see Post_Type_Back_Compat::handle_snapshot_merge_workaround()
 	 */
 	public function test_handle_snapshot_bulk_actions_workaround() {
 		$GLOBALS['hook_suffix'] = 'posts-' . Post_Type_Back_Compat::SLUG; // WPCS: global override ok.
@@ -151,12 +151,12 @@ class Test_Post_Type_Back_Compat extends \WP_UnitTestCase {
 		$_POST['_wp_http_referer'] = $_REQUEST['_wp_http_referer'] = $_GET['_wp_http_referer'] = admin_url();
 		$post_type_obj = $this->getMockBuilder( 'CustomizeSnapshots\Post_Type_Back_Compat' )
 		                      ->setConstructorArgs( array( $this->plugin->customize_snapshot_manager ) )
-		                      ->setMethods( array( 'handle_snapshot_bulk_actions' ) )
+		                      ->setMethods( array( 'handle_snapshot_merge' ) )
 		                      ->getMock();
 		$post_type_obj->expects( $this->once() )
-		              ->method( 'handle_snapshot_bulk_actions' )
+		              ->method( 'handle_snapshot_merge' )
 		              ->will( $this->returnValue( null ) );
-		$post_type_obj->handle_snapshot_bulk_actions_workaround();
+		$post_type_obj->handle_snapshot_merge_workaround();
 	}
 
 	/**

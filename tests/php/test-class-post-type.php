@@ -88,7 +88,7 @@ class Test_Post_Type extends \WP_UnitTestCase {
 		$this->assertEquals( 10, has_action( 'admin_menu', array( $post_type_obj, 'add_admin_menu_item' ) ) );
 		$this->assertEquals( 5, has_filter( 'map_meta_cap', array( $post_type_obj, 'remap_customize_meta_cap' ) ) );
 		$this->assertEquals( 10, has_filter( 'bulk_actions-edit-' . Post_Type::SLUG, array( $post_type_obj, 'add_snapshot_bulk_actions' ) ) );
-		$this->assertEquals( 10, has_filter( 'handle_bulk_actions-edit-' . Post_Type::SLUG, array( $post_type_obj, 'handle_snapshot_bulk_actions' ) ) );
+		$this->assertEquals( 10, has_filter( 'handle_bulk_actions-edit-' . Post_Type::SLUG, array( $post_type_obj, 'handle_snapshot_merge' ) ) );
 		$this->assertEquals( 10, has_action( 'admin_print_styles-edit.php', array( $post_type_obj, 'hide_add_new_changeset_button' ) ) );
 	}
 
@@ -136,11 +136,11 @@ class Test_Post_Type extends \WP_UnitTestCase {
 	/**
 	 * Test add_admin_menu_item.
 	 *
-	 * @covers Customize_Snapshot\Post_Type::add_admin_menu_item()
+	 * @covers CustomizeSnapshots\Post_Type::add_admin_menu_item()
 	 */
 	public function test_add_admin_menu_item() {
 		$this->mark_incompatible();
-		global $menu, $admin_page_hooks, $_registered_pages, $_parent_pages;
+		global $admin_page_hooks, $_parent_pages;
 		$post_type_obj = new Post_Type( $this->plugin->customize_snapshot_manager );
 		$post_type_obj->add_admin_menu_item();
 		$menu_slug = 'edit.php?post_type=' . Post_Type::SLUG;
@@ -677,9 +677,10 @@ class Test_Post_Type extends \WP_UnitTestCase {
 	/**
 	 * Test handle_snapshot_bulk_actions
 	 *
-	 * @see Post_Type::handle_snapshot_bulk_actions()
+	 * @see Post_Type::handle_snapshot_merge()
+	 * @see Post_Type::merge_snapshots()
 	 */
-	public function test_handle_snapshot_bulk_actions() {
+	public function test_handle_snapshot_merge() {
 		$post_type = $this->get_new_post_type_instance( $this->plugin->customize_snapshot_manager );
 		$date1 = gmdate( 'Y-m-d H:i:s', ( time() + ( get_option( 'gmt_offset' ) * HOUR_IN_SECONDS ) ) );
 		$post_1 = $post_type->save( array(
@@ -712,7 +713,7 @@ class Test_Post_Type extends \WP_UnitTestCase {
 			'edit_date' => $date2,
 		) );
 
-		$post_type->handle_snapshot_bulk_actions( '', 'merge_snapshot', array( $post_1, $post_2 ) );
+		$post_type->handle_snapshot_merge( '', 'merge_snapshot', array( $post_1, $post_2 ) );
 		$merged_post = get_post( $post_2 + 1 );
 		$value['foo']['merge_conflict'] = array(
 			array(
