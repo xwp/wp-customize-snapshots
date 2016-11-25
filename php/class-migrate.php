@@ -46,7 +46,7 @@ class Migrate {
 	/**
 	 * Migrate if wp version is 4.7 and above.
 	 */
-	protected function maybe_migrate() {
+	public function maybe_migrate() {
 		if ( ! $this->is_migrated() ) {
 			add_action( 'admin_notices', array( $this, 'show_migration_notice' ) );
 			add_action( 'admin_print_footer_scripts', array( $this, 'print_migration_script' ),999 );
@@ -67,7 +67,6 @@ class Migrate {
 		if ( ! $remaining_post ) {
 			update_option( self::KEY, 1 );
 		}
-		$data['new_nonce'] = wp_create_nonce( 'customize-snapshot-migration' );
 		wp_send_json_success( $data );
 	}
 
@@ -109,8 +108,8 @@ class Migrate {
 					request.always( function( data ) {
 						var outerDiv = $('div.customize-snapshot-migration');
 						if ( data.remaining_posts ) {
-							_.delay( component.migrate, 100, data.new_nonce, data.remaining_posts );
-						} else{
+							_.delay( component.migrate, 100, nonce, data.remaining_posts );
+						} else {
 							component.spinner.css('visibility', 'hidden');
 							outerDiv.removeClass( 'notice-error' ).addClass( 'notice-success' ).find('p').html( component.el.data( 'migration-success' ) );
 							component.doingAjax = false;
@@ -195,7 +194,7 @@ class Migrate {
 	 *
 	 * @return int|\WP_Error maybe updated.
 	 */
-	protected function migrate_post( $id ) {
+	public function migrate_post( $id ) {
 		$post = get_post( $id );
 
 		// Get data.
@@ -237,7 +236,7 @@ class Migrate {
 				'user_id' => $post->post_author,
 			);
 			if ( $setting instanceof \WP_Customize_Setting ) {
-				$post_data[ $setting_id ]['type'] = $setting->type;
+				$post_data[ $prefixed_setting_id ]['type'] = $setting->type;
 			}
 		}
 		$maybe_updated = wp_update_post( wp_slash( array(
