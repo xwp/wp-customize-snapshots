@@ -49,7 +49,7 @@ class Migrate {
 	public function maybe_migrate() {
 		if ( ! $this->is_migrated() ) {
 			add_action( 'admin_notices', array( $this, 'show_migration_notice' ) );
-			add_action( 'admin_print_footer_scripts', array( $this, 'print_migration_script' ),999 );
+			add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_script' ) );
 			add_action( 'wp_ajax_customize_snapshot_migration', array( $this, 'handle_migrate_changeset_request' ) );
 		}
 	}
@@ -73,53 +73,8 @@ class Migrate {
 	/**
 	 * Print migration javascript script.
 	 */
-	public function print_migration_script() {
-		?>
-		<script type="application/javascript">
-			( function( $ ) {
-				var component = {
-					doingAjax : false
-				};
-				component.init = function(){
-					$( function() {
-						component.el = $('#customize-snapshot-migration');
-						component.bindClick();
-						component.spinner = $( '.spinner.customize-snapshot-spinner' );
-						component.spinner.css('margin','0');
-					} );
-				};
-				component.bindClick = function() {
-					component.el.click( function() {
-						if ( component.doingAjax ) {
-							return;
-						}
-						component.spinner.css('visibility', 'visible');
-						component.doingAjax = true;
-						component.migrate( component.el.data( 'nonce' ), 20 );
-					} );
-				};
-				component.migrate = function( nonce, limit ) {
-					var data;
-					data = {
-						nonce: nonce,
-						limit: limit
-					};
-					request = wp.ajax.post( 'customize_snapshot_migration', data );
-					request.always( function( data ) {
-						var outerDiv = $('div.customize-snapshot-migration');
-						if ( data.remaining_posts ) {
-							_.delay( component.migrate, 100, nonce, data.remaining_posts );
-						} else {
-							component.spinner.css('visibility', 'hidden');
-							outerDiv.removeClass( 'notice-error' ).addClass( 'notice-success' ).find('p').html( component.el.data( 'migration-success' ) );
-							component.doingAjax = false;
-						}
-					} );
-				};
-				component.init();
-			})(jQuery);
-		</script>
-		<?php
+	public function enqueue_script() {
+		wp_enqueue_script( 'customize-snapshot-migrate' );
 	}
 
 	/**
