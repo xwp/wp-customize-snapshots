@@ -149,7 +149,7 @@ class Test_Customize_Snapshot extends \WP_UnitTestCase {
 	 */
 	public function mark_incompatible() {
 		if ( $this->plugin->compat ) {
-			$this->markTestIncomplete( 'This unit-test require WP version 4.7 or up.' );
+			$this->markTestSkipped( 'This unit-test require WP version 4.7 or up.' );
 		}
 	}
 }

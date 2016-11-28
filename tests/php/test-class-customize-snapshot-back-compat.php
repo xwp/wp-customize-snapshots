@@ -70,7 +70,7 @@ class Test_Customize_Snapshot_Back_Compat extends \WP_UnitTestCase {
 		parent::setUp();
 		$this->plugin = get_plugin_instance();
 		if ( ! $this->plugin->compat ) {
-			$this->markTestIncomplete( 'WordPress Version 4.6.x or below is required for this test-case.' );
+			$this->markTestSkipped( 'WordPress Version 4.6.x or below is required for this test-case.' );
 		}
 		require_once( ABSPATH . WPINC . '/class-wp-customize-manager.php' );
 		$GLOBALS['wp_customize'] = new \WP_Customize_Manager(); // WPCS: override ok.

@@ -33,7 +33,7 @@ class Test_Post_Type_Back_Compat extends \WP_UnitTestCase {
 		parent::setUp();
 		$this->plugin = get_plugin_instance();
 		if ( ! $this->plugin->compat ) {
-			$this->markTestIncomplete( 'WordPress Version 4.6.x or below is required for this test-case.' );
+			$this->markTestSkipped( 'WordPress Version 4.6.x or below is required for this test-case.' );
 		}
 		$GLOBALS['wp_customize'] = null; // WPCS: Global override ok.
 		unregister_post_type( Post_Type_Back_Compat::SLUG );

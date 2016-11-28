@@ -83,7 +83,7 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 		parent::setUp();
 		$plugin = get_plugin_instance();
 		if ( ! $plugin->compat ) {
-			$this->markTestIncomplete( 'WordPress Version 4.6.x or below is required for this test-case.' );
+			$this->markTestSkipped( 'WordPress Version 4.6.x or below is required for this test-case.' );
 		}
 
 		remove_all_actions( 'wp_ajax_customize_save' );
