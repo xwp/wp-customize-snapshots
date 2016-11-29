@@ -112,16 +112,6 @@ class Test_Migrate extends \WP_UnitTestCase {
 	}
 
 	/**
-	 * Test handle_migrate_changeset_request.
-	 *
-	 * @see Migrate::handle_migrate_changeset_request()
-	 */
-	function test_handle_migrate_changeset_request() {
-		// @todo move to ajax unit-test.
-		$this->markTestIncomplete();
-	}
-
-	/**
 	 * Test show_migration_notice.
 	 *
 	 * @see Migrate::show_migration_notice()

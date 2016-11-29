@@ -1,6 +1,6 @@
 <?php
 /**
- * Test Test_Ajax_Customize_Snapshot_Manager.
+ * Test Test_Ajax_Customize_Snapshot_Manager_Back_Compat.
  *
  * @package CustomizeSnapshots
  */
@@ -8,9 +8,9 @@
 namespace CustomizeSnapshots;
 
 /**
- * Class Test_Ajax_Customize_Snapshot_Manager
+ * Class Test_Ajax_Customize_Snapshot_Manager_Back_Compat
  */
-class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
+class Test_Ajax_Customize_Snapshot_Manager_Back_Compat extends \WP_Ajax_UnitTestCase {
 
 	/**
 	 * Plugin.
