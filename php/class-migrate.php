@@ -61,9 +61,10 @@ class Migrate {
 		check_ajax_referer( 'customize-snapshot-migration', 'nonce' );
 		$limit = isset( $_REQUEST['limit'] ) ? absint( $_REQUEST['limit'] ) : 20;
 		$found_posts = $this->changeset_migrate( $limit );
-		$remaining_post = $found_posts - $limit;
-		$data = array();
-		$data['remaining_posts'] = $remaining_post ? $remaining_post : 0;
+		$remaining_post = ( $found_posts < $limit ) ? 0 : $found_posts - $limit;
+		$data = array(
+			'remaining_posts' => $remaining_post,
+		);
 		if ( ! $remaining_post ) {
 			update_option( self::KEY, 1 );
 		}

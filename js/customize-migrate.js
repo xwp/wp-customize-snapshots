@@ -31,9 +31,10 @@
 		};
 		request = wp.ajax.post( 'customize_snapshot_migration', requestData );
 		request.always( function( data ) {
-			var outerDiv = $( 'div.customize-snapshot-migration' ), delay = 100;
+			var outerDiv = $( 'div.customize-snapshot-migration' ), delay = 100, newLimit;
 			if ( data.remaining_posts ) {
-				_.delay( component.migrate, delay, nonce, data.remaining_posts );
+				newLimit = data.remaining_posts > limit ? limit : data.remaining_posts;
+				_.delay( component.migrate, delay, nonce, newLimit );
 			} else {
 				component.spinner.css( 'visibility', 'hidden' );
 				outerDiv.removeClass( 'notice-error' ).addClass( 'notice-success' ).find( 'p' ).html( component.el.data( 'migration-success' ) );
