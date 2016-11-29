@@ -764,6 +764,12 @@ class Customize_Snapshot_Manager {
 				<span class="dashicons dashicons-arrow-down"></span>
 			</a>
 		</script>
+
+		<script type="text/html" id="tmpl-snapshot-schedule-button">
+			<button class="button button-primary hidden" id="snapshot-schedule-button">
+				<?php esc_html_e( 'Schedule', 'customize-snapshots' ); ?>
+			</button>
+		</script>
 		<?php
 	}
 

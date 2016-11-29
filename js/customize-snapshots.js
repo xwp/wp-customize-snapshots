@@ -115,10 +115,12 @@
 		 * Update snapshot.
 		 *
 		 * @param {string} status post status.
-		 * @return {void}
+		 * @returns {jQuery.promise} Request or promise.
 		 */
 		updateSnapshot: function updateSnapshot( status ) {
 			var snapshot = this, scheduleDate,
+			    deferred = new $.Deferred(),
+			    request,
 			    requestData = {
 				    status: status
 			    };
@@ -131,11 +133,13 @@
 				if ( ! _.isEmpty( snapshot.editContainer ) && snapshot.isFutureDate() ) {
 					scheduleDate = snapshot.getDateFromInputs();
 					requestData.date = snapshot.formatDate( scheduleDate );
-					snapshot.sendUpdateSnapshotRequest( requestData );
+					request = snapshot.sendUpdateSnapshotRequest( requestData );
 				}
 			} else {
-				snapshot.sendUpdateSnapshotRequest( requestData );
+				request = snapshot.sendUpdateSnapshotRequest( requestData );
 			}
+
+			return request ? request : deferred.promise();
 		},
 
 		/**
@@ -143,7 +147,7 @@
 		 *
 		 * @param {object} options Options.
 		 * @param {string} options.status The post status for the snapshot.
-		 * @return {void}
+		 * @return {object} request.
 		 */
 		sendUpdateSnapshotRequest: function sendUpdateSnapshotRequest( options ) {
 			var snapshot = this,
@@ -191,6 +195,7 @@
 				api.state( 'snapshot-exists' ).set( true );
 				api.state( 'snapshot-saved' ).set( true );
 				api.state( 'snapshot-status' ).set( data.status );
+				snapshot.isFirstSave = false;
 
 				if ( 'pending' === data.status ) {
 					api.state( 'snapshot-submitted' ).set( true );
@@ -251,6 +256,8 @@
 					modal: true
 				} );
 			} );
+
+			return request;
 		},
 
 		/**
@@ -261,9 +268,9 @@
 		addButtons: function addButtons() {
 			var snapshot = this,
 				header = $( '#customize-header-actions' ),
-				publishButton = $( '#save' ),
 				submitButton, setPreviewLinkHref;
 
+			snapshot.publishButton = $( '#save' );
 			snapshot.dirtyEditSettings = new api.Values();
 
 			snapshot.statusButton = snapshot.addSelectButton();
@@ -271,10 +278,12 @@
 
 			// Select/save-draft button.
 			if ( api.state( 'snapshot-exists' ).get() && 'auto-draft' !== snapshot.data.postStatus ) {
+				snapshot.isFirstSave = false;
 				snapshot.statusButton.selector.removeClass( 'hidden' );
 				api.state( 'snapshot-status' ).set( snapshot.data.postStatus );
 			} else {
 				snapshot.saveDraftButton.removeClass( 'hidden' );
+				snapshot.isFirstSave = true;
 			}
 
 			snapshot.saveDraftButton.prop( 'disabled', true ).on( 'click', function( event ) {
@@ -282,7 +291,18 @@
 				snapshot.updateSnapshot( 'draft' );
 			} );
 
-			publishButton.after( snapshot.saveDraftButton );
+			snapshot.publishButton.after( snapshot.saveDraftButton );
+
+			// Schedule button.
+			snapshot.scheduleButton = $( $.trim( wp.template( 'snapshot-schedule-button' )() ) );
+			snapshot.scheduleButton.on( 'click', function( event ) {
+				event.preventDefault();
+				snapshot.updateSnapshot( 'future' ).done( function() {
+					snapshot.scheduleButton.addClass( 'hidden' );
+					snapshot.publishButton.removeClass( 'hidden' );
+				} );
+			} );
+			snapshot.publishButton.after( snapshot.scheduleButton );
 
 			// Preview link.
 			snapshot.previewLink = $( $.trim( wp.template( 'snapshot-preview-link' )() ) );
@@ -504,12 +524,15 @@
 		    }, delay );
 
 			snapshot.dirtyEditSettings.bind( 'date', function( dirty ) {
-				if ( ! snapshot.updatePending ) {
+				if ( ! snapshot.updatePending && ! snapshot.isFirstSave ) {
 					if ( dirty ) {
-						updateSnapshot( 'future' );
+						snapshot.publishButton.addClass( 'hidden' );
+						snapshot.scheduleButton.removeClass( 'hidden' );
 					}
 					if ( ! snapshot.isFutureDate() ) {
 						updateSnapshot( 'draft' );
+						snapshot.publishButton.removeClass( 'hidden' );
+						snapshot.scheduleButton.addClass( 'hidden' );
 					}
 				}
 			} );
@@ -860,6 +883,7 @@
 				statusButton.select.focus();
 			} );
 
+			// @todo is this required?
 			if ( ! snapshot.data.currentUserCanPublish ) {
 				statusButton.selector.attr(
 					'title',
@@ -873,7 +897,7 @@
 				statusButton.selector.attr( 'disabled', state ).find( 'select' ).prop( 'disabled', state );
 			} );
 
-			$( '#save' ).after( statusButton.selector );
+			snapshot.publishButton.after( statusButton.selector );
 
 			return statusButton;
 		}
