@@ -231,9 +231,6 @@ class Test_Snapshot_REST_API_Controller extends \WP_Test_REST_TestCase {
 	 * Test create item.
 	 */
 	function test_create_item() {
-		if ( ! $this->plugin->compat ) {
-			$this->markTestIncomplete(); // Todo fix this for 4.7.
-		}
 		wp_set_current_user( $this->factory()->user->create( array( 'role' => 'administrator' ) ) );
 		$request = new \WP_REST_Request( 'POST', '/wp/v2/' . $this->end_point );
 		$request->set_param( 'content', array( 'blogname' => array( 'value' => 'test' ) ) );
