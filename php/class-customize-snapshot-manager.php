@@ -106,6 +106,9 @@ class Customize_Snapshot_Manager {
 		add_action( 'wp_before_admin_bar_render', array( $this, 'print_admin_bar_styles' ) );
 		add_filter( 'removable_query_args', array( $this, 'filter_removable_query_args' ) );
 
+		// @todo Remove after https://core.trac.wordpress.org/ticket/38943 patch is merged.
+		add_filter( 'wp_insert_post_data', array( $this, 'reset_post_date' ) );
+
 		add_filter( 'wp_insert_post_data', array( $this, 'prepare_snapshot_post_content_for_publish' ) );
 	}
 
@@ -635,22 +638,22 @@ class Customize_Snapshot_Manager {
 								<label>
 									<span class="screen-reader-text"><?php esc_html_e( 'Month', 'customize-snapshots' ); ?></span>
 									<#
-									_.defaults( data, <?php echo wp_json_encode( $data ) ?> );
-									#>
-									<select id="snapshot-date-month" class="date-input month" data-date-input="month">
-									<# _.each( data.month_choices, function( choice ) { #>
-										<# if ( _.isObject( choice ) && ! _.isUndefined( choice.text ) && ! _.isUndefined( choice.value ) ) {
-											text = choice.text;
-											value = choice.value;
-										} #>
-										<option value="{{ value }}"
-											<# if (choice.value == data.month) { #>
-												selected="selected"
-											<# } #>>
-											{{ text }}
-										</option>
-									<# } ); #>
-									</select>
+											_.defaults( data, <?php echo wp_json_encode( $data ) ?> );
+											#>
+										<select id="snapshot-date-month" class="date-input month" data-date-input="month">
+											<# _.each( data.month_choices, function( choice ) { #>
+												<# if ( _.isObject( choice ) && ! _.isUndefined( choice.text ) && ! _.isUndefined( choice.value ) ) {
+														text = choice.text;
+														value = choice.value;
+														} #>
+													<option value="{{ value }}"
+													<# if (choice.value == data.month) { #>
+														selected="selected"
+														<# } #>>
+															{{ text }}
+															</option>
+															<# } ); #>
+										</select>
 								</label>
 								<label>
 									<span class="screen-reader-text"><?php esc_html_e( 'Day', 'customize-snapshots' ); ?></span>
@@ -693,26 +696,26 @@ class Customize_Snapshot_Manager {
 								?>
 							</div>
 						</li>
-					<# } #>
+						<# } #>
 				</ul>
 			</div>
 		</script>
 
 		<script id="tmpl-snapshot-scheduled-countdown" type="text/html">
 			<# if ( data.remainingTime < 2 * 60 ) { #>
-				<?php esc_html_e( 'This is scheduled for publishing in about a minute.', 'customize-snapshots' ); ?>
+			<?php esc_html_e( 'This is scheduled for publishing in about a minute.', 'customize-snapshots' ); ?>
 
 			<# } else if ( data.remainingTime < 60 * 60 ) { #>
-				<?php
-				/* translators: %s is a placeholder for the Underscore template var */
-				echo sprintf( esc_html__( 'This snapshot is scheduled for publishing in about %s minutes.', 'customize-snapshots' ), '{{ Math.ceil( data.remainingTime / 60 ) }}' );
-				?>
+			<?php
+			/* translators: %s is a placeholder for the Underscore template var */
+			echo sprintf( esc_html__( 'This snapshot is scheduled for publishing in about %s minutes.', 'customize-snapshots' ), '{{ Math.ceil( data.remainingTime / 60 ) }}' );
+			?>
 
 			<# } else if ( data.remainingTime < 24 * 60 * 60 ) { #>
-				<?php
-				/* translators: %s is a placeholder for the Underscore template var */
-				echo sprintf( esc_html__( 'This snapshot is scheduled for publishing in about %s hours.', 'customize-snapshots' ), '{{ Math.round( data.remainingTime / 60 / 60 * 10 ) / 10 }}' );
-				?>
+			<?php
+			/* translators: %s is a placeholder for the Underscore template var */
+			echo sprintf( esc_html__( 'This snapshot is scheduled for publishing in about %s hours.', 'customize-snapshots' ), '{{ Math.round( data.remainingTime / 60 / 60 * 10 ) / 10 }}' );
+			?>
 
 			<# } else { #>
 				<?php
@@ -720,7 +723,7 @@ class Customize_Snapshot_Manager {
 				echo sprintf( esc_html__( 'This snapshot is scheduled for publishing in about %s days.', 'customize-snapshots' ), '{{ Math.round( data.remainingTime / 60 / 60 / 24 * 10 ) / 10 }}' );
 				?>
 
-			<# } #>
+				<# } #>
 		</script>
 
 		<script type="text/html" id="tmpl-snapshot-submit">
@@ -753,7 +756,7 @@ class Customize_Snapshot_Manager {
 		<script type="text/html" id="tmpl-snapshot-status-button">
 			<a id="snapshot-status-button" href="javascript:void(0)" role="button" class="button button-secondary hidden">
 				<label for="snapshot-status-select" id="snapshot-status-button-title"></label>
-				<select id="snapshot-status-select">
+				<select tabindex="-1" id="snapshot-status-select">
 					<option value="draft"><?php esc_attr_e( 'Draft' , 'customize-snapshots' ); ?></option>
 					<option value="future"><?php esc_attr_e( 'Scheduled' , 'customize-snapshots' ); ?></option>
 					<option value="pending"><?php esc_attr_e( 'Pending' , 'customize-snapshots' ); ?></option>
@@ -859,5 +862,26 @@ class Customize_Snapshot_Manager {
 	 */
 	public function get_customize_uuid_param() {
 		return constant( get_class( $this->post_type ) . '::CUSTOMIZE_UUID_PARAM_NAME' );
+	}
+
+	/**
+	 * Reset post date to today's date if status is non future.
+	 *
+	 * @param {array} $data post data.
+	 * @return {array} $data.
+	 */
+	public function reset_post_date( $data ) {
+		if ( 'customize_changeset' === $data['post_type']  && 'future' !== $data['post_status'] ) {
+			$previous_post_status = get_post_status( $data['post_id'] );
+			$changeset_date_gmt = get_gmt_from_date( $data['post_date'] );
+			$now = gmdate( 'Y-m-d H:i:59' );
+			$is_future_dated = ( mysql2date( 'U', $changeset_date_gmt, false ) > mysql2date( 'U', $now, false ) );
+
+			if ( 'future' !== $previous_post_status && $is_future_dated ) {
+				$data['post_date'] = $now;
+			}
+		}
+
+		return $data;
 	}
 }

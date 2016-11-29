@@ -250,6 +250,7 @@
 			} else {
 				templateData.buttonText = snapshot.data.i18n.saveButton;
 			}
+
 			snapshot.snapshotButton = $( $.trim( wp.template( 'snapshot-save' )( templateData ) ) );
 
 			if ( ! snapshot.data.currentUserCanPublish ) {

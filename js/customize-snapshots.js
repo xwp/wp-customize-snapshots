@@ -160,7 +160,7 @@
 			request = wp.customize.previewer.save( data );
 
 			snapshot.updatePending = true;
-			snapshot.statusButton.state( 'disabled' ).set( true );
+			snapshot.statusButton.disabled.set( true );
 			spinner.addClass( 'is-active' );
 
 			request.always( function( response ) {
@@ -175,7 +175,7 @@
 					snapshot.data.title = response.title;
 				}
 				snapshot.updateSnapshotEditControls();
-				snapshot.statusButton.state( 'disabled' ).set( false );
+				snapshot.statusButton.disabled.set( false );
 				snapshot.data.dirty = false;
 				snapshot.updatePending = false;
 			} );
@@ -186,7 +186,7 @@
 
 				snapshot.saveDraftButton.addClass( 'hidden' );
 				snapshot.statusButton.selector.removeClass( 'hidden' );
-				snapshot.statusButton.state( 'disabled' ).set( false );
+				snapshot.statusButton.disabled.set( false );
 
 				api.state( 'snapshot-exists' ).set( true );
 				api.state( 'snapshot-saved' ).set( true );
@@ -856,6 +856,10 @@
 			    }
 			} );
 
+			statusButton.selector.on( 'click', function() {
+				statusButton.select.focus();
+			} );
+
 			if ( ! snapshot.data.currentUserCanPublish ) {
 				statusButton.selector.attr(
 					'title',
@@ -863,11 +867,9 @@
 				);
 			}
 
-			// @todo Change to api.Value if nothing else required.
-			statusButton.state = new api.Values();
-			statusButton.state.create( 'disabled' );
+			statusButton.disabled = new api.Value();
 
-			statusButton.state( 'disabled' ).bind( 'change', function( state ) {
+			statusButton.disabled.bind( 'change', function( state ) {
 				statusButton.selector.attr( 'disabled', state ).find( 'select' ).prop( 'disabled', state );
 			} );
 
