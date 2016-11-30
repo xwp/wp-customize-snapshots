@@ -877,23 +877,38 @@ class Customize_Snapshot_Manager {
 	 * @return {array} $data.
 	 */
 	public function reset_post_date( $data, $post_arr ) {
-		if ( ! isset( $data['post_type'] ) || 'customize_changeset' !== $data['post_type'] ) {
+		if ( ! isset( $data['post_type'] ) || 'customize_changeset' !== $data['post_type'] || ! $this->doing_customize_save_ajax() ) {
 			return $data;
 		}
 
-		if ( isset( $post_arr['ID'], $data['post_status'], $data['post_date_gmt'] ) && $post_arr['ID'] && 'future' !== $data['post_status'] ) {
-			// because $data['post_date_gmt'] will be set from wp_update_post so we need to make sure date is of future or current.
-			$now = gmdate( 'Y-m-d H:i:59' );
+		// wp_insert_post checks future status post's dates and if it is past date it publishes the post.
+		$is_future_request_being_published = isset( $post_arr['post_status'], $data['post_status'] )
+		                                     &&
+		                                     'future' === $post_arr['post_status']
+		                                     &&
+		                                     'publish' === $data['post_status'];
+
+		if ( $is_future_request_being_published ) {
+			wp_send_json_error( array(
+				'error' => 'not_future_date',
+			) );
+		}
+
+		if ( isset( $post_arr['ID'], $post_arr['post_status'], $data['post_date_gmt'] ) && $post_arr['ID'] && 'future' !== $post_arr['post_status'] ) {
+			// Make sure existing date is current/future date.
+			$now = gmdate( 'Y-m-d H:i:s' );
 			$is_future_dated = ( mysql2date( 'U', $data['post_date_gmt'], false ) > mysql2date( 'U', $now, false ) );
 			if ( ! $is_future_dated ) {
-				$data['post_date'] = $now;
-				$data['post_date_gmt'] = get_gmt_from_date( $now );
+				$data['post_date_gmt'] = $now;
+				$data['post_date'] = get_date_from_gmt( $now );
 			}
 		}
 
-		if ( isset( $data['post_status'] ) && 'publish' === $data['post_status'] ) {
-			$post_array['post_date_gmt'] = '0000-00-00 00:00:00';
-			$post_array['post_date'] = '0000-00-00 00:00:00';
+		if ( isset( $post_arr['post_status'] ) && 'publish' === $post_arr['post_status'] ) {
+			$now = gmdate( 'Y-m-d H:i:s' );
+			$data['post_date_gmt'] = $now;
+			$data['post_date'] = get_date_from_gmt( $now );
+			$data['post_status'] = 'publish';
 		}
 
 		return $data;
