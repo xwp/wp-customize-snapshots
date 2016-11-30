@@ -136,6 +136,10 @@
 					request = snapshot.sendUpdateSnapshotRequest( requestData );
 				}
 			} else {
+				if ( ! _.isEmpty( snapshot.editContainer ) && snapshot.isFutureDate() ) {
+					scheduleDate = snapshot.getDateFromInputs();
+					requestData.date = snapshot.formatDate( scheduleDate );
+				}
 				request = snapshot.sendUpdateSnapshotRequest( requestData );
 			}
 
@@ -528,6 +532,9 @@
 					if ( dirty ) {
 						snapshot.publishButton.addClass( 'hidden' );
 						snapshot.scheduleButton.removeClass( 'hidden' );
+						if ( 'future' !== api.state( 'snapshot-status' ).get() ) {
+							snapshot.updateSnapshot( api.state( 'snapshot-status' ).get() );
+						}
 					}
 					if ( ! snapshot.isFutureDate() ) {
 						updateSnapshot( 'draft' );
@@ -546,7 +553,7 @@
 		toggleDateNotification: function showDateNotification() {
 			var snapshot = this;
 			if ( ! _.isEmpty( snapshot.dateNotification ) ) {
-				snapshot.dateNotification.toggle( ! snapshot.isFutureDate() );
+				snapshot.dateNotification.toggle( ! snapshot.isFutureDate() && 'future' === snapshot.statusButton.select.val() );
 			}
 		},
 
@@ -868,6 +875,8 @@
 				} else {
 					snapshot.updateSnapshot( status );
 					snapshot.snapshotEditContainerDisplayed.set( false );
+					snapshot.publishButton.removeClass( 'hidden' );
+					snapshot.scheduleButton.addClass( 'hidden' );
 				}
 			} );
 
