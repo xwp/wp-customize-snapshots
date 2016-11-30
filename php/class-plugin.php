@@ -104,7 +104,7 @@ class Plugin extends Plugin_Base {
 
 		$handle = 'customize-snapshots';
 		$src = $this->dir_url . 'js/customize-snapshots' . $min . '.js';
-		$deps = array( 'jquery', 'jquery-ui-dialog', 'wp-util', 'customize-controls' );
+		$deps = array( 'jquery', 'jquery-ui-dialog', 'jquery-ui-selectmenu', 'wp-util', 'customize-controls' );
 		$wp_scripts->add( $handle, $src, $deps );
 
 		if ( $this->compat ) {

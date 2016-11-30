@@ -168,7 +168,7 @@
 			request = wp.customize.previewer.save( data );
 
 			snapshot.updatePending = true;
-			snapshot.statusButton.disabled.set( true );
+			snapshot.statusButton.prop( 'disabled', true );
 			spinner.addClass( 'is-active' );
 
 			request.always( function( response ) {
@@ -183,7 +183,7 @@
 					snapshot.data.title = response.title;
 				}
 				snapshot.updateSnapshotEditControls();
-				snapshot.statusButton.disabled.set( false );
+				snapshot.statusButton.prop( 'disabled', false );
 				snapshot.data.dirty = false;
 				snapshot.updatePending = false;
 			} );
@@ -193,8 +193,8 @@
 				    customizeUrl = window.location.href;
 
 				snapshot.saveDraftButton.addClass( 'hidden' );
-				snapshot.statusButton.selector.removeClass( 'hidden' );
-				snapshot.statusButton.disabled.set( false );
+				snapshot.statusButton.parent().removeClass( 'hidden' );
+				snapshot.statusButton.prop( 'disabled', false );
 
 				api.state( 'snapshot-exists' ).set( true );
 				api.state( 'snapshot-saved' ).set( true );
@@ -283,7 +283,7 @@
 			// Select/save-draft button.
 			if ( api.state( 'snapshot-exists' ).get() && 'auto-draft' !== snapshot.data.postStatus ) {
 				snapshot.isFirstSave = false;
-				snapshot.statusButton.selector.removeClass( 'hidden' );
+				snapshot.statusButton.parent().removeClass( 'hidden' );
 				api.state( 'snapshot-status' ).set( snapshot.data.postStatus );
 			} else {
 				snapshot.saveDraftButton.removeClass( 'hidden' );
@@ -323,14 +323,14 @@
 			setPreviewLinkHref();
 			api.state.bind( 'change', setPreviewLinkHref );
 			api.bind( 'saved', setPreviewLinkHref );
-			snapshot.statusButton.selector.after( snapshot.previewLink );
+			snapshot.statusButton.parent().after( snapshot.previewLink );
 			api.state( 'snapshot-saved' ).bind( function( saved ) {
 				snapshot.previewLink.toggle( saved );
 			} );
 
 			// Edit button.
 			snapshot.snapshotExpandButton = $( $.trim( wp.template( 'snapshot-expand-button' )( {} ) ) );
-			snapshot.snapshotExpandButton.insertAfter( snapshot.statusButton.selector );
+			snapshot.statusButton.parent().after( snapshot.snapshotExpandButton );
 
 			if ( ! snapshot.data.editLink ) {
 				snapshot.snapshotExpandButton.hide();
@@ -364,7 +364,7 @@
 				var permsMsg;
 				if ( ! snapshot.data.currentUserCanPublish ) {
 					permsMsg = exists ? snapshot.data.i18n.permsMsg.update : snapshot.data.i18n.permsMsg.save;
-					snapshot.statusButton.selector.attr( 'title', permsMsg );
+					snapshot.statusButton.attr( 'title', permsMsg );
 					snapshot.saveDraftButton.attr( 'title', permsMsg );
 				}
 			} );
@@ -376,7 +376,7 @@
 					buttonText: snapshot.data.i18n.submit
 				} ) ) );
 				submitButton.prop( 'disabled', ! api.state( 'snapshot-exists' ).get() );
-				submitButton.insertBefore( snapshot.statusButton.selector );
+				submitButton.insertBefore( snapshot.statusButton.parent() );
 				api.state( 'snapshot-submitted' ).bind( function( submitted ) {
 					submitButton.prop( 'disabled', submitted );
 				} );
@@ -553,7 +553,7 @@
 		toggleDateNotification: function showDateNotification() {
 			var snapshot = this;
 			if ( ! _.isEmpty( snapshot.dateNotification ) ) {
-				snapshot.dateNotification.toggle( ! snapshot.isFutureDate() && 'future' === snapshot.statusButton.select.val() );
+				snapshot.dateNotification.toggle( ! snapshot.isFutureDate() && 'future' === snapshot.statusButton.val() );
 			}
 		},
 
@@ -850,26 +850,21 @@
 		 * @return {object} status button.
 		 */
 		addSelectButton: function addSelectButton() {
-			var snapshot = this, statusButton = {},
-			    updateButtonText, status;
+			var snapshot = this, buttonWrapper, statusButton, status;
 
-			statusButton.selector = $( $.trim( wp.template( 'snapshot-status-button' )() ) );
-			statusButton.select = statusButton.selector.find( '#snapshot-status-select' );
-			statusButton.title = statusButton.selector.find( '#snapshot-status-button-title' );
+			buttonWrapper = $( $.trim( wp.template( 'snapshot-status-button' )() ) );
+			statusButton = buttonWrapper.find( 'select' );
+			statusButton.selectmenu({
+				width: 'auto',
+				icons: {
+					button: 'dashicons dashicons-arrow-down'
+				}
+			});
 
-			updateButtonText = (function update() {
-				status = api.state( 'snapshot-status' ).get();
-				statusButton.select.val( status );
-				statusButton.title.text( statusButton.select.find( 'option:selected' ).text() );
-				return update;
-			})();
+			buttonWrapper.find( '#snapshot-status-button-button' ).addClass( 'button button-secondary' );
 
-			updateButtonText = _.debounce( updateButtonText );
-
-			statusButton.select.on( 'change', function() {
-				status = statusButton.select.val();
-				api.state( 'snapshot-status' ).set( status );
-				updateButtonText();
+			statusButton.on( 'selectmenuchange', function() {
+				status = statusButton.val();
 				if ( 'future' === status ) {
 					snapshot.snapshotEditContainerDisplayed.set( true );
 				} else {
@@ -880,33 +875,15 @@
 				}
 			} );
 
-			api.state( 'snapshot-status' ).bind( 'change', updateButtonText );
-
-			statusButton.select.on( 'click', function() {
-			    if ( 'future' === api.state( 'snapshot-status' ).get() ) {
-				    snapshot.snapshotEditContainerDisplayed.set( true );
-			    }
-			} );
-
-			statusButton.selector.on( 'click', function() {
-				statusButton.select.focus();
-			} );
-
 			// @todo is this required?
 			if ( ! snapshot.data.currentUserCanPublish ) {
-				statusButton.selector.attr(
+				statusButton.attr(
 					'title',
 					api.state( 'snapshot-exists' ).get() ? snapshot.data.i18n.permsMsg.update : snapshot.data.i18n.permsMsg.save
 				);
 			}
 
-			statusButton.disabled = new api.Value();
-
-			statusButton.disabled.bind( 'change', function( state ) {
-				statusButton.selector.attr( 'disabled', state ).find( 'select' ).prop( 'disabled', state );
-			} );
-
-			snapshot.publishButton.after( statusButton.selector );
+			snapshot.publishButton.after( buttonWrapper );
 
 			return statusButton;
 		}

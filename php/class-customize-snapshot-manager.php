@@ -754,15 +754,14 @@ class Customize_Snapshot_Manager {
 		</script>
 
 		<script type="text/html" id="tmpl-snapshot-status-button">
-			<a id="snapshot-status-button" href="javascript:void(0)" role="button" class="button button-secondary hidden">
-				<label for="snapshot-status-select" id="snapshot-status-button-title"></label>
-				<select tabindex="-1" id="snapshot-status-select">
+			<div id="snapshot-status-button-wrapper" class="hidden">
+				<label class="screen-reader-text" for="snapshot-status-button"><?php esc_attr_e( 'Snapshot Status', 'customize-snapshots' ); ?></label>
+				<select id="snapshot-status-button">
 					<option value="draft"><?php esc_attr_e( 'Draft' , 'customize-snapshots' ); ?></option>
 					<option value="future"><?php esc_attr_e( 'Scheduled' , 'customize-snapshots' ); ?></option>
 					<option value="pending"><?php esc_attr_e( 'Pending' , 'customize-snapshots' ); ?></option>
 				</select>
-				<span class="dashicons dashicons-arrow-down"></span>
-			</a>
+			</div>
 		</script>
 
 		<script type="text/html" id="tmpl-snapshot-schedule-button">
