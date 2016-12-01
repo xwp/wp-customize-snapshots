@@ -717,10 +717,26 @@ class Post_Type {
 			);
 		}
 		$snapshots_data = wp_list_pluck( $snapshot_post_data, 'data' );
-		$conflict_keys = call_user_func_array( 'array_intersect_key', $snapshots_data );
+		$data_size = count( $snapshots_data );
+		$conflict_keys  = array();
+
+		/*
+		 * This iterates all $snapshots_data and extract conflict keys
+		 */
+		for ( $i = 0; $i < $data_size; $i ++ ) {
+
+			// @Todo add unit-test for merging more than two posts.
+			$copy_snapshots_data = $snapshots_data;
+			$current_keys = array_keys( $snapshots_data[ $i ] );
+			unset( $copy_snapshots_data[ $i ] );
+			$temp_other_keys = array_keys( call_user_func_array( 'array_merge', $copy_snapshots_data ) );
+			$common_keys = array_intersect( $temp_other_keys, $current_keys );
+			$conflict_keys = array_merge( $conflict_keys, $common_keys );
+		}
+		$conflict_keys = array_flip( $conflict_keys );
 		$merged_snapshot_data = call_user_func_array( 'array_merge', $snapshots_data );
 
-		foreach ( $conflict_keys as $key => $conflict_val ) {
+		foreach ( $conflict_keys as $key => $i ) {
 			$original_values = array();
 			foreach ( $snapshot_post_data as $post_data ) {
 				if ( isset( $post_data['data'][ $key ] ) ) {
