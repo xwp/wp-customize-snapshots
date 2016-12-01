@@ -850,7 +850,7 @@
 		 * @return {object} status button.
 		 */
 		addSelectButton: function addSelectButton() {
-			var snapshot = this, buttonWrapper, statusButton, status;
+			var snapshot = this, buttonWrapper, statusButton, status, button, buttonOverlay;
 
 			buttonWrapper = $( $.trim( wp.template( 'snapshot-status-button' )() ) );
 			statusButton = buttonWrapper.find( 'select' );
@@ -861,7 +861,9 @@
 				}
 			});
 
-			buttonWrapper.find( '#snapshot-status-button-button' ).addClass( 'button button-secondary' );
+			button = buttonWrapper.find( '#snapshot-status-button-button' );
+			button.addClass( 'button button-secondary disabled-button' );
+			buttonWrapper.append( '<span class="snapshot-status-button-overlay"></span>' );
 
 			statusButton.on( 'selectmenuchange', function() {
 				status = statusButton.val();

@@ -230,10 +230,15 @@
 	padding: 5px;
 }
 
-#customize-header-actions .ui-selectmenu-button{
+#snapshot-status-button-wrapper{
     float: right;
+    position: relative;
     margin-top: 9px;
     margin-right:5px;
+}
+
+#customize-header-actions .ui-selectmenu-button.disabled .ui-icon{
+    color: #000000;
 }
 
 /** @todo Need to add snapshot specific class for all ui classes. **/
@@ -254,7 +259,7 @@
     border-top: 0;
     margin: 0;
     border-radius: 0 0 5px 5px;
-    box-shadow: 1px 2px 4px #ccc;
+    box-shadow: 0 1px 4px 0 rgba( 33,38,34,.12 ), 0 2px 11px 0 rgba( 30,36,37,.14 )
 }
 
 .ui-selectmenu-menu .ui-menu li{
@@ -280,22 +285,25 @@
 .ui-selectmenu-open {
     display: block;
 }
-.ui-selectmenu-button {
-    display: inline-block;
-    overflow: hidden;
-    position: relative;
-    text-decoration: none;
-    cursor: pointer;
-}
+
 .ui-selectmenu-button span.ui-icon {
     text-indent: 0;
     float: right;
-    margin-top: 3px;
-    margin-right: -8px;
+    border-left:1px solid #CCCCCC;
+    height: 26px;
+    width: 18px;
 }
+
+.ui-selectmenu-button span.ui-icon:before{
+    line-height: 27px;
+    text-indent: -3px;
+    display: inline-block;
+    width: 18px;
+}
+
 .ui-selectmenu-button span.ui-selectmenu-text {
     text-align: left;
-    /*padding: 0.4em 2.1em 0.4em 1em;*/
+    padding-right: 10px;
     display: block;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -304,4 +312,49 @@
 
 .ui-selectmenu-menu.ui-front{
     z-index: 999999;
+}
+
+.snapshot-status-button-overlay{
+    width: calc( 100% - 19px );
+    height: 28px;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
+}
+
+#customize-header-actions .ui-selectmenu-button{
+    padding-right: 0;
+    position: relative;
+}
+
+#customize-header-actions .ui-selectmenu-button.disabled-dropdown,
+#customize-header-actions .ui-selectmenu-button.disabled-button{
+
+}
+
+#customize-header-actions .ui-selectmenu-button.disabled-dropdown .ui-icon,
+#customize-header-actions .ui-selectmenu-button.disabled-button{
+    color: #a0a5aa;
+    border-color: #ddd;
+    background: #f7f7f7;
+    -webkit-box-shadow: none;
+    box-shadow: none;
+    text-shadow: 0 1px 0 #fff;
+    cursor: default;
+    -webkit-transform: none;
+    -ms-transform: none;
+    transform: none;
+}
+
+#customize-header-actions .ui-selectmenu-button.disabled-button .ui-icon{
+    color: #555;
+    cursor: pointer;
+    background: #f7f7f7;
+}
+
+#customize-header-actions .ui-selectmenu-button.disabled-button .ui-icon:hover{
+    background: #fafafa;
+    border-color: #999;
+    color: #23282d;
 }
