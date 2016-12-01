@@ -747,7 +747,7 @@ class Customize_Snapshot_Manager {
 					<option value="future"><?php esc_attr_e( 'Scheduled' , 'customize-snapshots' ); ?></option>
 					<option value="pending"><?php esc_attr_e( 'Pending' , 'customize-snapshots' ); ?></option>
 				</select>
-				<span class="snapshot-status-button-overlay button button-secondary"><?php esc_attr_e( 'Draft' , 'customize-snapshots' ); ?></span>
+				<button class="snapshot-status-button-overlay button button-secondary"><?php esc_attr_e( 'Draft' , 'customize-snapshots' ); ?></button>
 			</div>
 		</script>
 

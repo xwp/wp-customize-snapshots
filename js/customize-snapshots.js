@@ -168,7 +168,7 @@
 			request = wp.customize.previewer.save( data );
 
 			snapshot.updatePending = true;
-			snapshot.statusButton.prop( 'disabled', true );
+			snapshot.statusButton.state( 'disabled' ).set( true );
 			spinner.addClass( 'is-active' );
 
 			request.always( function( response ) {
@@ -183,7 +183,7 @@
 					snapshot.data.title = response.title;
 				}
 				snapshot.updateSnapshotEditControls();
-				snapshot.statusButton.prop( 'disabled', false );
+				snapshot.statusButton.state( 'disabled' ).set( false );
 				snapshot.data.dirty = false;
 				snapshot.updatePending = false;
 			} );
@@ -193,8 +193,7 @@
 				    customizeUrl = window.location.href;
 
 				snapshot.saveDraftButton.addClass( 'hidden' );
-				snapshot.statusButton.parent().removeClass( 'hidden' );
-				snapshot.statusButton.prop( 'disabled', false );
+				snapshot.statusButton.container.removeClass( 'hidden' );
 
 				api.state( 'snapshot-exists' ).set( true );
 				api.state( 'snapshot-saved' ).set( true );
@@ -283,7 +282,7 @@
 			// Select/save-draft button.
 			if ( api.state( 'snapshot-exists' ).get() && 'auto-draft' !== snapshot.data.postStatus ) {
 				snapshot.isFirstSave = false;
-				snapshot.statusButton.parent().removeClass( 'hidden' );
+				snapshot.statusButton.container.removeClass( 'hidden' );
 				api.state( 'snapshot-status' ).set( snapshot.data.postStatus );
 			} else {
 				snapshot.saveDraftButton.removeClass( 'hidden' );
@@ -323,14 +322,14 @@
 			setPreviewLinkHref();
 			api.state.bind( 'change', setPreviewLinkHref );
 			api.bind( 'saved', setPreviewLinkHref );
-			snapshot.statusButton.parent().after( snapshot.previewLink );
+			snapshot.statusButton.container.after( snapshot.previewLink );
 			api.state( 'snapshot-saved' ).bind( function( saved ) {
 				snapshot.previewLink.toggle( saved );
 			} );
 
 			// Edit button.
 			snapshot.snapshotExpandButton = $( $.trim( wp.template( 'snapshot-expand-button' )( {} ) ) );
-			snapshot.statusButton.parent().after( snapshot.snapshotExpandButton );
+			snapshot.statusButton.container.after( snapshot.snapshotExpandButton );
 
 			if ( ! snapshot.data.editLink ) {
 				snapshot.snapshotExpandButton.hide();
@@ -364,7 +363,7 @@
 				var permsMsg;
 				if ( ! snapshot.data.currentUserCanPublish ) {
 					permsMsg = exists ? snapshot.data.i18n.permsMsg.update : snapshot.data.i18n.permsMsg.save;
-					snapshot.statusButton.attr( 'title', permsMsg );
+					snapshot.statusButton.container.attr( 'title', permsMsg );
 					snapshot.saveDraftButton.attr( 'title', permsMsg );
 				}
 			} );
@@ -376,7 +375,7 @@
 					buttonText: snapshot.data.i18n.submit
 				} ) ) );
 				submitButton.prop( 'disabled', ! api.state( 'snapshot-exists' ).get() );
-				submitButton.insertBefore( snapshot.statusButton.parent() );
+				submitButton.insertBefore( snapshot.statusButton.container );
 				api.state( 'snapshot-submitted' ).bind( function( submitted ) {
 					submitButton.prop( 'disabled', submitted );
 				} );
@@ -553,7 +552,7 @@
 		toggleDateNotification: function showDateNotification() {
 			var snapshot = this;
 			if ( ! _.isEmpty( snapshot.dateNotification ) ) {
-				snapshot.dateNotification.toggle( ! snapshot.isFutureDate() && 'future' === snapshot.statusButton.val() );
+				snapshot.dateNotification.toggle( ! snapshot.isFutureDate() && 'future' === snapshot.statusButton.select.val() );
 			}
 		},
 
@@ -850,25 +849,34 @@
 		 * @return {object} status button.
 		 */
 		addSelectButton: function addSelectButton() {
-			var snapshot = this, buttonWrapper, statusButton, status, button, buttonOverlay;
+			var snapshot = this, selectMenuButton, statusButton = {};
 
-			buttonWrapper = $( $.trim( wp.template( 'snapshot-status-button' )() ) );
-			buttonOverlay = buttonWrapper.find( '.snapshot-status-button-overlay' );
-			statusButton = buttonWrapper.find( 'select' );
-			statusButton.selectmenu({
+			statusButton.state = new api.Values();
+			statusButton.state.create( 'disabled' );
+			statusButton.state.create( 'disabled-select' );
+			statusButton.state.create( 'disabled-button' );
+
+			statusButton.container = $( $.trim( wp.template( 'snapshot-status-button' )() ) );
+			statusButton.button = statusButton.container.find( '.snapshot-status-button-overlay' );
+			statusButton.select = statusButton.container.find( 'select' );
+			statusButton.select.selectmenu({
 				width: 'auto',
 				icons: {
 					button: 'dashicons dashicons-arrow-down'
+				},
+				change: function( event, ui ) {
+					statusButton.state.trigger( 'value-change', ui.item.value );
 				}
 			});
 
-			button = buttonWrapper.find( '#snapshot-status-button-button' );
-			button.find( '.ui-icon' ).addClass( 'button button-secondary' );
-			button.find( '.ui-selectmenu-text' ).addClass( 'button button-secondary' );
+			selectMenuButton = statusButton.container.find( '.ui-selectmenu-button' );
+			selectMenuButton.find( '.ui-selectmenu-text' ).addClass( 'button button-secondary' );
 
-			statusButton.on( 'selectmenuchange', function() {
-				status = statusButton.val();
-				buttonOverlay.text( statusButton.find( 'option:selected' ).text() );
+			statusButton.dropDown = selectMenuButton.find( '.ui-icon' );
+			statusButton.dropDown.addClass( 'button button-secondary' );
+
+			statusButton.state.bind( 'value-change', function( status ) {
+				statusButton.button.text( statusButton.select.find( 'option:selected' ).text() );
 				if ( 'future' === status ) {
 					snapshot.snapshotEditContainerDisplayed.set( true );
 				} else {
@@ -879,15 +887,26 @@
 				}
 			} );
 
-			// @todo is this required?
-			if ( ! snapshot.data.currentUserCanPublish ) {
-				statusButton.attr(
-					'title',
-					api.state( 'snapshot-exists' ).get() ? snapshot.data.i18n.permsMsg.update : snapshot.data.i18n.permsMsg.save
-				);
-			}
+			statusButton.state( 'disabled-select' ).bind( function( disabled ) {
+				statusButton.select.selectmenu( disabled ? 'disable' : 'enable' );
+				statusButton.dropDown.toggleClass( 'disabled', disabled );
+			} );
 
-			snapshot.publishButton.after( buttonWrapper );
+			statusButton.state( 'disabled-button' ).bind( function( disabled ) {
+				statusButton.button.prop( 'disabled', disabled );
+			} );
+
+			statusButton.state( 'disabled' ).bind( function( disabled ) {
+				statusButton.state( 'disabled-select' ).set( disabled );
+				statusButton.state( 'disabled-button' ).set( disabled );
+			} );
+
+			statusButton.button.on( 'click', function( event ) {
+			    event.preventDefault();
+				snapshot.updateSnapshot( statusButton.select.val() );
+			} );
+
+			snapshot.publishButton.after( statusButton.container );
 
 			return statusButton;
 		}
