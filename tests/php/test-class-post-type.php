@@ -126,6 +126,9 @@ class Test_Post_Type extends \WP_UnitTestCase {
 		$this->assertTrue( $post_type_obj->show_in_menu );
 		$this->assertEquals( 'post.php?post=%d', $post_type_obj->_edit_link );
 		$this->assertEquals( 'customize', $post_type_obj->cap->edit_published_posts );
+		$this->assertEquals( 'customize_publish', $post_type_obj->cap->publish_posts );
+		$this->assertEquals( 'edit_others_posts', $post_type_obj->cap->edit_others_posts );
+		$this->assertEquals( 'delete_others_posts', $post_type_obj->cap->delete_others_posts );
 		$this->assertFalse( $post_type_obj->show_in_customizer );
 		$this->assertInstanceOf( __NAMESPACE__ . '\\Post_Type', $post_type_obj->customize_snapshot_post_type_obj );
 		$this->assertTrue( $post_type_obj->show_in_rest );
