@@ -29,6 +29,7 @@ class Customize_Snapshot_Manager_Back_Compat extends Customize_Snapshot_Manager 
 		add_action( 'wp_ajax_' . self::AJAX_ACTION, array( $this, 'handle_update_snapshot_request' ) );
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_frontend_scripts' ) );
 		add_action( 'customize_preview_init', array( $this, 'customize_preview_init' ) );
+		add_action( 'customize_save', array( $this, 'check_customize_publish_authorization' ), 10, 0 );
 		$this->hooks();
 		if ( $this->read_current_snapshot_uuid() ) {
 			$this->load_snapshot();
@@ -510,6 +511,17 @@ class Customize_Snapshot_Manager_Back_Compat extends Customize_Snapshot_Manager 
 		}
 
 		return false;
+	}
+
+	/**
+	 * Check whether customize_publish capability is granted in customize_save.
+	 */
+	public function check_customize_publish_authorization() {
+		if ( $this->doing_customize_save_ajax() && ! current_user_can( 'customize_publish' ) ) {
+			wp_send_json_error( array(
+				'error' => 'customize_publish_unauthorized',
+			) );
+		}
 	}
 
 	/**

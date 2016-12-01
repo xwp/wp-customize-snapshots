@@ -100,7 +100,6 @@ class Customize_Snapshot_Manager {
 
 		add_action( 'customize_controls_init', array( $this, 'add_snapshot_uuid_to_return_url' ) );
 		add_action( 'customize_controls_print_footer_scripts', array( $this, 'render_templates' ) );
-		add_action( 'customize_save', array( $this, 'check_customize_publish_authorization' ), 10, 0 );
 		add_action( 'admin_bar_menu', array( $this, 'customize_menu' ), 41 );
 		add_action( 'admin_bar_menu', array( $this, 'remove_all_non_snapshot_admin_bar_links' ), 100000 );
 		add_action( 'wp_before_admin_bar_render', array( $this, 'print_admin_bar_styles' ) );
@@ -237,19 +236,6 @@ class Customize_Snapshot_Manager {
 			);
 			$return_url = add_query_arg( array_map( 'rawurlencode', $args ), $this->customize_manager->get_return_url() );
 			$this->customize_manager->set_return_url( $return_url );
-		}
-	}
-
-	/**
-	 * Check whether customize_publish capability is granted in customize_save.
-	 *
-	 * @todo move to back compat?
-	 */
-	public function check_customize_publish_authorization() {
-		if ( $this->doing_customize_save_ajax() && ! current_user_can( 'customize_publish' ) ) {
-			wp_send_json_error( array(
-				'error' => 'customize_publish_unauthorized',
-			) );
 		}
 	}
 

@@ -237,7 +237,6 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		$this->assertEquals( 10, has_action( 'admin_enqueue_scripts', array( $manager, 'enqueue_admin_scripts' ) ) );
 		$this->assertEquals( 10, has_action( 'customize_controls_init', array( $manager, 'add_snapshot_uuid_to_return_url' ) ) );
 		$this->assertEquals( 10, has_action( 'customize_controls_print_footer_scripts', array( $manager, 'render_templates' ) ) );
-		$this->assertEquals( 10, has_action( 'customize_save', array( $manager, 'check_customize_publish_authorization' ) ) );
 		$this->assertEquals( 41, has_action( 'admin_bar_menu', array( $manager, 'customize_menu' ) ) );
 		$this->assertEquals( 100000, has_action( 'admin_bar_menu', array( $manager, 'remove_all_non_snapshot_admin_bar_links' ) ) );
 		$this->assertEquals( 10, has_action( 'wp_before_admin_bar_render', array( $manager, 'print_admin_bar_styles' ) ) );
@@ -394,15 +393,6 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 			$manager->add_snapshot_uuid_to_return_url();
 			$this->assertContains( $this->front_param, $manager->customize_manager->get_return_url() );
 		}
-	}
-
-	/**
-	 * Tests check_customize_publish_authorization.
-	 *
-	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::check_customize_publish_authorization()
-	 */
-	function test_check_customize_publish_authorization() {
-		$this->markTestIncomplete();
 	}
 
 	/**

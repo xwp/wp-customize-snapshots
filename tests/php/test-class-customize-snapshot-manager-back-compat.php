@@ -206,7 +206,12 @@ class Test_Customize_Snapshot_Manager_Back_Compat extends \WP_UnitTestCase {
 		$this->assertEquals( 10, has_action( 'wp_ajax_customize_update_snapshot', array( $manager, 'handle_update_snapshot_request' ) ) );
 		$this->assertEquals( 10, has_action( 'customize_preview_init', array( $manager, 'customize_preview_init' ) ) );
 		$this->assertEquals( 10, has_action( 'wp_enqueue_scripts', array( $manager, 'enqueue_frontend_scripts' ) ) );
+		$this->assertEquals( 10, has_action( 'customize_save', array( $manager, 'check_customize_publish_authorization' ) ) );
 	}
+
+	/*
+	 * For Customize_Snapshot_Manager_Back_Compat::Customize_Snapshot_Manager_Back_Compat(), see Test_Ajax_Customize_Snapshot_Manager_Back_Compat::test_ajax_update_snapshot_cap_check().
+	 */
 
 	/**
 	 * Test customize preview init.
@@ -367,7 +372,7 @@ class Test_Customize_Snapshot_Manager_Back_Compat extends \WP_UnitTestCase {
 	}
 
 	/*
-	 * For Customize_Snapshot_Manager::handle_update_snapshot_request(), see Test_Ajax_Customize_Snapshot_Manager.
+	 * For Customize_Snapshot_Manager::handle_update_snapshot_request(), see Test_Ajax_Customize_Snapshot_Manager_Back_Compat.
 	 */
 
 	/**
