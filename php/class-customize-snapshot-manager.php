@@ -858,8 +858,10 @@ class Customize_Snapshot_Manager {
 	/**
 	 * Reset post date to today's date if status is non future.
 	 *
-	 * @param {array} $data post data.
-	 * @return {array} $data.
+	 * @param array $data     Processed post data.
+	 * @param array $post_arr raw post data.
+	 *
+	 * @return array {array} $data.
 	 */
 	public function reset_post_date( $data, $post_arr ) {
 		if ( ! isset( $data['post_type'] ) || 'customize_changeset' !== $data['post_type'] || ! $this->doing_customize_save_ajax() ) {
