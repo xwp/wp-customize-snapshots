@@ -747,6 +747,7 @@ class Customize_Snapshot_Manager {
 					<option value="future"><?php esc_attr_e( 'Scheduled' , 'customize-snapshots' ); ?></option>
 					<option value="pending"><?php esc_attr_e( 'Pending' , 'customize-snapshots' ); ?></option>
 				</select>
+				<span class="snapshot-status-button-overlay button button-secondary"><?php esc_attr_e( 'Draft' , 'customize-snapshots' ); ?></span>
 			</div>
 		</script>
 
@@ -870,10 +871,10 @@ class Customize_Snapshot_Manager {
 
 		// wp_insert_post checks future status post's dates and if it is past date it publishes the post.
 		$is_future_request_being_published = isset( $post_arr['post_status'], $data['post_status'] )
-		                                     &&
-		                                     'future' === $post_arr['post_status']
-		                                     &&
-		                                     'publish' === $data['post_status'];
+											 &&
+											 'future' === $post_arr['post_status']
+											 &&
+											 'publish' === $data['post_status'];
 
 		if ( $is_future_request_being_published ) {
 			wp_send_json_error( array(

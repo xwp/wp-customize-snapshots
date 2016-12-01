@@ -853,6 +853,7 @@
 			var snapshot = this, buttonWrapper, statusButton, status, button, buttonOverlay;
 
 			buttonWrapper = $( $.trim( wp.template( 'snapshot-status-button' )() ) );
+			buttonOverlay = buttonWrapper.find( '.snapshot-status-button-overlay' );
 			statusButton = buttonWrapper.find( 'select' );
 			statusButton.selectmenu({
 				width: 'auto',
@@ -862,11 +863,12 @@
 			});
 
 			button = buttonWrapper.find( '#snapshot-status-button-button' );
-			button.addClass( 'button button-secondary disabled-button' );
-			buttonWrapper.append( '<span class="snapshot-status-button-overlay"></span>' );
+			button.find( '.ui-icon' ).addClass( 'button button-secondary' );
+			button.find( '.ui-selectmenu-text' ).addClass( 'button button-secondary' );
 
 			statusButton.on( 'selectmenuchange', function() {
 				status = statusButton.val();
+				buttonOverlay.text( statusButton.find( 'option:selected' ).text() );
 				if ( 'future' === status ) {
 					snapshot.snapshotEditContainerDisplayed.set( true );
 				} else {
