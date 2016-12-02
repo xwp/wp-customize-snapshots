@@ -676,6 +676,7 @@ class Post_Type {
 			return $redirect_to;
 		}
 		$posts = array_map( 'get_post', $post_ids );
+		$posts = array_filter( $posts );
 		if ( count( $posts ) <= 1 ) {
 			return empty( $redirect_to ) ? add_query_arg( array( 'merge-error' => 1 ) ) : add_query_arg( array( 'merge-error' => 1 ), $redirect_to );
 		}
@@ -724,8 +725,6 @@ class Post_Type {
 		 * This iterates all $snapshots_data and extract conflict keys
 		 */
 		for ( $i = 0; $i < $data_size; $i ++ ) {
-
-			// @Todo add unit-test for merging more than two posts.
 			$copy_snapshots_data = $snapshots_data;
 			$current_keys = array_keys( $snapshots_data[ $i ] );
 			unset( $copy_snapshots_data[ $i ] );

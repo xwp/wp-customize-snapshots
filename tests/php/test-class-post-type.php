@@ -681,11 +681,29 @@ class Test_Post_Type extends \WP_UnitTestCase {
 	 * Test handle_snapshot_bulk_actions
 	 *
 	 * @see Post_Type::handle_snapshot_merge()
-	 * @see Post_Type::merge_snapshots()
 	 */
 	public function test_handle_snapshot_merge() {
+		$ids = $this->factory()->post->create_many( 2 );
+		$posts = array_map( 'get_post', $ids );
+		$post_type_obj = $this->getMockBuilder( 'CustomizeSnapshots\Post_Type' )
+		                      ->setConstructorArgs( array( $this->plugin->customize_snapshot_manager ) )
+		                      ->setMethods( array( 'merge_snapshots' ) )
+		                      ->getMock();
+		$post_type_obj->expects( $this->once() )
+		              ->method( 'merge_snapshots' )
+			->with( $posts )
+			->will( $this->returnValue( null ) );
+		$post_type_obj->handle_snapshot_merge( '', 'merge_snapshot', $ids );
+	}
+
+	/**
+	 * Test merge_snapshots
+	 *
+	 * @see Post_Type::merge_snapshots()
+	 */
+	public function test_merge_snapshots() {
 		$post_type = $this->get_new_post_type_instance( $this->plugin->customize_snapshot_manager );
-		$date1 = gmdate( 'Y-m-d H:i:s', ( time() + ( get_option( 'gmt_offset' ) * HOUR_IN_SECONDS ) ) );
+		$date1 = gmdate( 'Y-m-d H:i:s' );
 		$post_1 = $post_type->save( array(
 			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
 			'status' => 'draft',
@@ -694,9 +712,7 @@ class Test_Post_Type extends \WP_UnitTestCase {
 					'value' => 'bar',
 				),
 			),
-			'post_date' => $date1,
-			'post_date_gmt' => $date1,
-			'edit_date' => $date1,
+			'date_gmt' => $date1,
 		) );
 		$value = array(
 			'foo' => array(
@@ -706,18 +722,16 @@ class Test_Post_Type extends \WP_UnitTestCase {
 				'value' => 'zab',
 			),
 		);
-		$date2 = gmdate( 'Y-m-d H:i:s', ( time() + 60 + ( get_option( 'gmt_offset' ) * HOUR_IN_SECONDS ) ) );
+		$date2 = gmdate( 'Y-m-d H:i:s', ( time() + 60 ) );
 		$post_2 = $post_type->save( array(
 			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
 			'status' => 'draft',
 			'data' => $value,
-			'post_date' => $date2,
-			'post_date_gmt' => $date2,
-			'edit_date' => $date2,
+			'date_gmt' => $date2,
 		) );
 
-		$post_type->handle_snapshot_merge( '', 'merge_snapshot', array( $post_1, $post_2 ) );
-		$merged_post = get_post( $post_2 + 1 );
+		$merged_post_id = $post_type->merge_snapshots( array( $post_1, $post_2 ) );
+		$merged_post = get_post( $merged_post_id );
 		$value['foo']['merge_conflict'] = array(
 			array(
 				'uuid' => get_post( $post_1 )->post_name,
@@ -729,6 +743,34 @@ class Test_Post_Type extends \WP_UnitTestCase {
 			),
 		);
 		$this->assertSame( $value, $post_type->get_post_content( $merged_post ) );
+
+		$date3 = gmdate( 'Y-m-d H:i:s', ( time() + 120 ) );
+
+		$value_3 = array(
+			'baz' => array(
+				'value' => 'z',
+			),
+		);
+		$post_3 = $post_type->save( array(
+				'uuid' => Customize_Snapshot_Manager::generate_uuid(),
+				'status' => 'draft',
+				'data' => $value_3,
+				'date_gmt' => $date3,
+		) );
+		$post_3 = get_post( $post_3 );
+		$merge_result_post = get_post( $post_type->merge_snapshots( array( $post_1, $post_2, $post_3 ) ) );
+		$value['baz']['value'] = 'z';
+		$value['baz']['merge_conflict'] = array(
+			array(
+				'uuid'  => get_post( $post_2 )->post_name,
+				'value' => 'zab',
+			),
+			array(
+				'uuid'  => $post_3->post_name,
+				'value' => 'z',
+			),
+		);
+		$this->assertSame( $value, $post_type->get_post_content( $merge_result_post ) );
 	}
 
 	/**
