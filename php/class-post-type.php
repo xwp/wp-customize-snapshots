@@ -486,11 +486,6 @@ class Post_Type {
 			),
 		);
 		if ( ! empty( $args['status'] ) ) {
-			if ( isset( $args['post_date'], $args['edit_date'], $args['post_date_gmt'] ) ) {
-				$post_arr['post_date'] = $args['post_date'];
-				$post_arr['edit_date'] = $args['edit_date'];
-				$post_arr['post_date_gmt'] = $args['post_date_gmt'];
-			}
 			if ( ! get_post_status_object( $args['status'] ) ) {
 				return new \WP_Error( 'bad_status' );
 			}
@@ -751,8 +746,7 @@ class Post_Type {
 			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
 			'status' => 'draft',
 			'data' => $merged_snapshot_data,
-			'post_date' => current_time( 'mysql', false ),
-			'post_date_gmt' => current_time( 'mysql', true ),
+			'date_gmt' => gmdate( 'Y-m-d H:i:s' ),
 		) );
 		return $post_id;
 	}

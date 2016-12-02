@@ -582,8 +582,7 @@ class Customize_Snapshot_Manager_Back_Compat extends Customize_Snapshot_Manager 
 			// Ensure a scheduled Snapshot is published.
 			if ( $this->snapshot->post() && 'future' === $this->snapshot->post()->post_status ) {
 				$args['edit_date'] = true;
-				$args['post_date'] = current_time( 'mysql', false );
-				$args['post_date_gmt'] = current_time( 'mysql', true );
+				$args['date_gmt'] = current_time( 'mysql', true );
 			}
 
 			if ( isset( $_POST['title'] ) && '' !== trim( $_POST['title'] ) ) {
@@ -893,10 +892,9 @@ class Customize_Snapshot_Manager_Back_Compat extends Customize_Snapshot_Manager 
 
 		$args['edit_date'] = current_time( 'mysql' );
 		if ( isset( $publish_date_obj ) && 'future' === $status ) {
-			$args['post_date'] = $publish_date_obj->format( 'Y-m-d H:i:s' );
-			$args['post_date_gmt'] = '0000-00-00 00:00:00';
+			$args['date_gmt'] = get_gmt_from_date( $publish_date_obj->format( 'Y-m-d H:i:s' ) );
 		} else {
-			$args['post_date_gmt'] = $args['post_date'] = '0000-00-00 00:00:00';
+			$args['date_gmt'] = '0000-00-00 00:00:00';
 		}
 		$r = $this->snapshot->save( $args );
 
