@@ -106,10 +106,15 @@ class Post_Type {
 		$post_type_obj->show_ui = true;
 		$post_type_obj->show_in_menu = true;
 		$post_type_obj->_edit_link = 'post.php?post=%d';
-		$post_type_obj->cap->edit_published_posts = 'customize';
-		$post_type_obj->cap->edit_others_posts = 'edit_others_posts';
-		$post_type_obj->cap->publish_posts = 'customize_publish';
-		$post_type_obj->cap->delete_others_posts = 'delete_others_posts';
+		$arg = array(
+			'capability_type' => Post_Type::SLUG,
+			'map_meta_cap' => true,
+			'capabilities' => array(
+				'publish_posts' => 'customize_publish',
+			),
+		);
+		$arg = (object) $arg;
+		$post_type_obj->cap = get_post_type_capabilities( $arg );
 		$post_type_obj->show_in_customizer = false;
 		$post_type_obj->customize_snapshot_post_type_obj = $this;
 		$post_type_obj->show_in_rest = true;

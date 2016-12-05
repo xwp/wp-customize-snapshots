@@ -6,7 +6,6 @@
  */
 
 namespace CustomizeSnapshots;
-use Aws\S3\Exception\PermanentRedirectException;
 
 /**
  * Class Test_Post_type
@@ -125,10 +124,15 @@ class Test_Post_Type extends \WP_UnitTestCase {
 		$this->assertTrue( $post_type_obj->show_ui );
 		$this->assertTrue( $post_type_obj->show_in_menu );
 		$this->assertEquals( 'post.php?post=%d', $post_type_obj->_edit_link );
-		$this->assertEquals( 'customize', $post_type_obj->cap->edit_published_posts );
 		$this->assertEquals( 'customize_publish', $post_type_obj->cap->publish_posts );
-		$this->assertEquals( 'edit_others_posts', $post_type_obj->cap->edit_others_posts );
-		$this->assertEquals( 'delete_others_posts', $post_type_obj->cap->delete_others_posts );
+		$caps = (array) $post_type_obj->cap;
+		foreach ( $caps as $key => $value ) {
+			if ( in_array( $key, array( 'read', 'publish_posts' ), true ) ) {
+				continue;
+			} else {
+				$this->assertTrue( 0 < strpos( $value, Post_Type::SLUG ) );
+			}
+		}
 		$this->assertFalse( $post_type_obj->show_in_customizer );
 		$this->assertInstanceOf( __NAMESPACE__ . '\\Post_Type', $post_type_obj->customize_snapshot_post_type_obj );
 		$this->assertTrue( $post_type_obj->show_in_rest );
