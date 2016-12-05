@@ -104,10 +104,6 @@ class Customize_Snapshot_Manager {
 		add_action( 'admin_bar_menu', array( $this, 'remove_all_non_snapshot_admin_bar_links' ), 100000 );
 		add_action( 'wp_before_admin_bar_render', array( $this, 'print_admin_bar_styles' ) );
 		add_filter( 'removable_query_args', array( $this, 'filter_removable_query_args' ) );
-
-		// @todo Remove after https://core.trac.wordpress.org/ticket/38943 patch is merged.
-		add_filter( 'wp_insert_post_data', array( $this, 'reset_post_date' ), 10, 2 );
-
 		add_filter( 'wp_insert_post_data', array( $this, 'prepare_snapshot_post_content_for_publish' ) );
 	}
 
@@ -854,51 +850,5 @@ class Customize_Snapshot_Manager {
 	 */
 	public function get_customize_uuid_param() {
 		return constant( get_class( $this->post_type ) . '::CUSTOMIZE_UUID_PARAM_NAME' );
-	}
-
-	/**
-	 * Reset post date to today's date if status is non future.
-	 *
-	 * @param array $data     Processed post data.
-	 * @param array $post_arr raw post data.
-	 *
-	 * @return array {array} $data.
-	 */
-	public function reset_post_date( $data, $post_arr ) {
-		if ( ! isset( $data['post_type'] ) || 'customize_changeset' !== $data['post_type'] || ! $this->doing_customize_save_ajax() ) {
-			return $data;
-		}
-
-		// wp_insert_post checks future status post's dates and if it is past date it publishes the post.
-		$is_future_request_being_published = isset( $post_arr['post_status'], $data['post_status'] )
-											 &&
-											 'future' === $post_arr['post_status']
-											 &&
-											 'publish' === $data['post_status'];
-
-		if ( $is_future_request_being_published ) {
-			wp_send_json_error( array(
-				'error' => 'not_future_date',
-			) );
-		}
-
-		if ( isset( $post_arr['ID'], $post_arr['post_status'], $data['post_date_gmt'] ) && $post_arr['ID'] && 'future' !== $post_arr['post_status'] ) {
-			// Make sure existing date is current/future date.
-			$now = gmdate( 'Y-m-d H:i:s' );
-			$is_future_dated = ( mysql2date( 'U', $data['post_date_gmt'], false ) > mysql2date( 'U', $now, false ) );
-			if ( ! $is_future_dated ) {
-				$data['post_date_gmt'] = $now;
-				$data['post_date'] = get_date_from_gmt( $now );
-			}
-		}
-
-		if ( isset( $post_arr['post_status'] ) && 'publish' === $post_arr['post_status'] ) {
-			$now = gmdate( 'Y-m-d H:i:s' );
-			$data['post_date_gmt'] = $now;
-			$data['post_date'] = get_date_from_gmt( $now );
-			$data['post_status'] = 'publish';
-		}
-
-		return $data;
 	}
 }
