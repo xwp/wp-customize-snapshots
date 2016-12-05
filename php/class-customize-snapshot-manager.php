@@ -573,9 +573,7 @@ class Customize_Snapshot_Manager {
 	 * Underscore (JS) templates for dialog windows.
 	 */
 	public function render_templates() {
-		$data = $this->get_month_choices();
-
-		$this->add_snapshot_buttons();
+		$this->add_edit_box_template();
 		?>
 		<script type="text/html" id="tmpl-snapshot-preview-link">
 			<a href="#" target="frontend-preview" id="snapshot-preview-link" class="dashicons dashicons-welcome-view-site" title="<?php esc_attr_e( 'View on frontend', 'customize-snapshots' ) ?>">
@@ -587,6 +585,57 @@ class Customize_Snapshot_Manager {
 			<a href="javascript:void(0)" id="snapshot-expand-button" role="button" aria-controls="snapshot-schedule" aria-pressed="false" class="dashicons dashicons-edit"></a>
 		</script>
 
+		<script type="text/html" id="tmpl-snapshot-submit">
+			<button id="snapshot-submit" class="button button-primary">
+				{{ data.buttonText }}
+			</button>
+		</script>
+
+		<script type="text/html" id="tmpl-snapshot-dialog-error">
+			<div id="snapshot-dialog-error" title="{{ data.title }}">
+				<p>{{ data.message }}</p>
+			</div>
+		</script>
+
+		<script type="text/html" id="tmpl-snapshot-status-button">
+			<?php
+				$data = array(
+					'choices' => array(
+						'draft' => __( 'Draft' , 'customize-snapshots' ),
+						'future' => __( 'Scheduled' , 'customize-snapshots' ),
+						'pending' => __( 'Pending' , 'customize-snapshots' ),
+						'publish' => __( 'Publish' , 'customize-snapshots' ),
+					),
+					'selected' => 'draft',
+				);
+			?>
+
+			<# _.defaults( data, <?php echo wp_json_encode( $data ) ?> ); #>
+
+			<div id="snapshot-status-button-wrapper">
+				<label class="screen-reader-text" for="snapshot-status-button"><?php esc_attr_e( 'Snapshot Status', 'customize-snapshots' ); ?></label>
+				<select id="snapshot-status-button">
+					<# _.each( data.choices, function( buttonText, status ) { #>
+							<option value="{{ status }}"
+								<# if ( data.selected == status ) { #>
+									selected="selected"
+								<# } #> >
+								{{ buttonText }}
+							</option>
+					<# } ); #>
+				</select>
+				<button class="snapshot-status-button-overlay button button-secondary">{{ data.choices[ data.selected ] }}</button>
+			</div>
+		</script>
+		<?php
+	}
+
+	/**
+	 * Add edit box template.
+	 */
+	public function add_edit_box_template() {
+		$data = $this->get_month_choices();
+		?>
 		<script type="text/html" id="tmpl-snapshot-edit-container">
 			<div id="customize-snapshot">
 				<div class="snapshot-schedule-title">
@@ -619,9 +668,7 @@ class Customize_Snapshot_Manager {
 							<div class="snapshot-schedule-control date-inputs clear">
 								<label>
 									<span class="screen-reader-text"><?php esc_html_e( 'Month', 'customize-snapshots' ); ?></span>
-									<#
-											_.defaults( data, <?php echo wp_json_encode( $data ) ?> );
-											#>
+									<# _.defaults( data, <?php echo wp_json_encode( $data ) ?> ); #>
 										<select id="snapshot-date-month" class="date-input month" data-date-input="month">
 											<# _.each( data.month_choices, function( choice ) { #>
 												<# if ( _.isObject( choice ) && ! _.isUndefined( choice.text ) && ! _.isUndefined( choice.value ) ) {
@@ -706,51 +753,6 @@ class Customize_Snapshot_Manager {
 				?>
 
 				<# } #>
-		</script>
-
-		<script type="text/html" id="tmpl-snapshot-submit">
-			<button id="snapshot-submit" class="button button-primary">
-				{{ data.buttonText }}
-			</button>
-		</script>
-
-		<script type="text/html" id="tmpl-snapshot-dialog-error">
-			<div id="snapshot-dialog-error" title="{{ data.title }}">
-				<p>{{ data.message }}</p>
-			</div>
-		</script>
-		<?php
-	}
-
-	/**
-	 * Add drop down button template.
-	 *
-	 * @return void
-	 */
-	public function add_snapshot_buttons() {
-		?>
-		<script type="text/html" id="tmpl-snapshot-save-draft-button">
-			<button id="snapshot-save-draft" class="button button-secondary hidden">
-				<?php esc_attr_e( 'Save Draft', 'customize-snapshots' ); ?>
-			</button>
-		</script>
-
-		<script type="text/html" id="tmpl-snapshot-status-button">
-			<div id="snapshot-status-button-wrapper" class="hidden">
-				<label class="screen-reader-text" for="snapshot-status-button"><?php esc_attr_e( 'Snapshot Status', 'customize-snapshots' ); ?></label>
-				<select id="snapshot-status-button">
-					<option value="draft"><?php esc_attr_e( 'Draft' , 'customize-snapshots' ); ?></option>
-					<option value="future"><?php esc_attr_e( 'Scheduled' , 'customize-snapshots' ); ?></option>
-					<option value="pending"><?php esc_attr_e( 'Pending' , 'customize-snapshots' ); ?></option>
-				</select>
-				<button class="snapshot-status-button-overlay button button-secondary"><?php esc_attr_e( 'Draft' , 'customize-snapshots' ); ?></button>
-			</div>
-		</script>
-
-		<script type="text/html" id="tmpl-snapshot-schedule-button">
-			<button class="button button-primary hidden" id="snapshot-schedule-button">
-				<?php esc_html_e( 'Schedule', 'customize-snapshots' ); ?>
-			</button>
 		</script>
 		<?php
 	}

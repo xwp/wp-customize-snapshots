@@ -218,12 +218,6 @@
 	margin: 0;
 }
 
-#snapshot-save-draft{
-	float: right;
-	margin-top: 9px;
-	margin-right:5px;
-}
-
 .snapshot-future-date-notification.notice{
 	margin-bottom: 5px;
 	border-top: 1px solid #eee;
@@ -296,7 +290,7 @@
 .ui-selectmenu-button span.ui-icon:before{
     display: inline-block;
     font-size: 20px;
-    margin-left: -3px;
+    margin-left: -10px;
 }
 
 .ui-selectmenu-button span.ui-selectmenu-text {

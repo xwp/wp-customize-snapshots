@@ -192,7 +192,6 @@
 				var url = api.previewer.previewUrl(),
 				    customizeUrl = window.location.href;
 
-				snapshot.saveDraftButton.addClass( 'hidden' );
 				snapshot.statusButton.container.removeClass( 'hidden' );
 
 				api.state( 'snapshot-exists' ).set( true );
@@ -276,36 +275,16 @@
 			snapshot.publishButton = $( '#save' );
 			snapshot.dirtyEditSettings = new api.Values();
 
+			snapshot.publishButton.addClass( 'hidden' );
 			snapshot.statusButton = snapshot.addSelectButton();
-			snapshot.saveDraftButton = $( $.trim( wp.template( 'snapshot-save-draft-button' )() ) );
 
 			// Select/save-draft button.
 			if ( api.state( 'snapshot-exists' ).get() && 'auto-draft' !== snapshot.data.postStatus ) {
 				snapshot.isFirstSave = false;
-				snapshot.statusButton.container.removeClass( 'hidden' );
 				api.state( 'snapshot-status' ).set( snapshot.data.postStatus );
 			} else {
-				snapshot.saveDraftButton.removeClass( 'hidden' );
 				snapshot.isFirstSave = true;
 			}
-
-			snapshot.saveDraftButton.prop( 'disabled', true ).on( 'click', function( event ) {
-				event.preventDefault();
-				snapshot.updateSnapshot( 'draft' );
-			} );
-
-			snapshot.publishButton.after( snapshot.saveDraftButton );
-
-			// Schedule button.
-			snapshot.scheduleButton = $( $.trim( wp.template( 'snapshot-schedule-button' )() ) );
-			snapshot.scheduleButton.on( 'click', function( event ) {
-				event.preventDefault();
-				snapshot.updateSnapshot( 'future' ).done( function() {
-					snapshot.scheduleButton.addClass( 'hidden' );
-					snapshot.publishButton.removeClass( 'hidden' );
-				} );
-			} );
-			snapshot.publishButton.after( snapshot.scheduleButton );
 
 			// Preview link.
 			snapshot.previewLink = $( $.trim( wp.template( 'snapshot-preview-link' )() ) );
@@ -333,6 +312,7 @@
 
 			if ( ! snapshot.data.editLink ) {
 				snapshot.snapshotExpandButton.hide();
+				snapshot.previewLink.hide();
 			}
 
 			api.state( 'change', function() {
@@ -341,31 +321,11 @@
 
 			api.state( 'snapshot-exists' ).bind( function( exist ) {
 				snapshot.snapshotExpandButton.toggle( exist );
-			} );
-
-			api.state( 'snapshot-saved' ).bind( function( saved ) {
-				snapshot.saveDraftButton.prop( 'disabled', saved );
-			} );
-
-			// @todo remove it since its not longer visible?.
-			api.state( 'saved' ).bind( function( saved ) {
-				if ( saved ) {
-					snapshot.saveDraftButton.prop( 'disabled', true );
-				}
+				snapshot.previewLink.toggle( exist );
 			} );
 
 			api.bind( 'change', function() {
-				snapshot.saveDraftButton.prop( 'disabled', false );
-			} );
-
-			// @todo not required?.
-			api.state( 'snapshot-exists' ).bind( function( exists ) {
-				var permsMsg;
-				if ( ! snapshot.data.currentUserCanPublish ) {
-					permsMsg = exists ? snapshot.data.i18n.permsMsg.update : snapshot.data.i18n.permsMsg.save;
-					snapshot.statusButton.container.attr( 'title', permsMsg );
-					snapshot.saveDraftButton.attr( 'title', permsMsg );
-				}
+				snapshot.statusButton.state( 'disabled' ).set( false );
 			} );
 
 			// Submit for review button.
@@ -529,16 +489,12 @@
 			snapshot.dirtyEditSettings.bind( 'date', function( dirty ) {
 				if ( ! snapshot.updatePending && ! snapshot.isFirstSave ) {
 					if ( dirty ) {
-						snapshot.publishButton.addClass( 'hidden' );
-						snapshot.scheduleButton.removeClass( 'hidden' );
 						if ( 'future' !== api.state( 'snapshot-status' ).get() ) {
 							snapshot.updateSnapshot( api.state( 'snapshot-status' ).get() );
 						}
 					}
 					if ( ! snapshot.isFutureDate() ) {
 						updateSnapshot( 'draft' );
-						snapshot.publishButton.removeClass( 'hidden' );
-						snapshot.scheduleButton.addClass( 'hidden' );
 					}
 				}
 			} );
@@ -856,7 +812,9 @@
 			statusButton.state.create( 'disabled-select' );
 			statusButton.state.create( 'disabled-button' );
 
-			statusButton.container = $( $.trim( wp.template( 'snapshot-status-button' )() ) );
+			statusButton.container = $( $.trim( wp.template( 'snapshot-status-button' )({
+				selected: api.state( 'snapshot-status' ).get() || 'draft'
+			}) ) );
 			statusButton.button = statusButton.container.find( '.snapshot-status-button-overlay' );
 			statusButton.select = statusButton.container.find( 'select' );
 			statusButton.select.selectmenu({
@@ -882,8 +840,6 @@
 				} else {
 					snapshot.updateSnapshot( status );
 					snapshot.snapshotEditContainerDisplayed.set( false );
-					snapshot.publishButton.removeClass( 'hidden' );
-					snapshot.scheduleButton.addClass( 'hidden' );
 				}
 			} );
 

@@ -1023,19 +1023,35 @@ class Customize_Snapshot_Manager_Back_Compat extends Customize_Snapshot_Manager 
 	 * Underscore (JS) templates.
 	 */
 	public function render_templates() {
+		$this->add_edit_box_template();
 		?>
 		<script type="text/html" id="tmpl-snapshot-save">
 			<button id="snapshot-save" class="button button-secondary">
 				{{ data.buttonText }}
 			</button>
 		</script>
+
+		<script type="text/html" id="tmpl-snapshot-preview-link">
+			<a href="#" target="frontend-preview" id="snapshot-preview-link" class="dashicons dashicons-welcome-view-site" title="<?php esc_attr_e( 'View on frontend', 'customize-snapshots' ) ?>">
+				<span class="screen-reader-text"><?php esc_html_e( 'View on frontend', 'customize-snapshots' ) ?></span>
+			</a>
+		</script>
+
+		<script type="text/html" id="tmpl-snapshot-expand-button">
+			<a href="javascript:void(0)" id="snapshot-expand-button" role="button" aria-controls="snapshot-schedule" aria-pressed="false" class="dashicons dashicons-edit"></a>
+		</script>
+
+		<script type="text/html" id="tmpl-snapshot-submit">
+			<button id="snapshot-submit" class="button button-primary">
+				{{ data.buttonText }}
+			</button>
+		</script>
+
+		<script type="text/html" id="tmpl-snapshot-dialog-error">
+			<div id="snapshot-dialog-error" title="{{ data.title }}">
+				<p>{{ data.message }}</p>
+			</div>
+		</script>
 		<?php
-
-		parent::render_templates();
 	}
-
-	/**
-	 * Override add drop down button template for less than 4.7.
-	 */
-	public function add_snapshot_buttons() {}
 }
