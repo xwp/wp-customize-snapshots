@@ -26,7 +26,7 @@
 		uuidParam: 'customize_changeset_uuid',
 
 		initialize: function initialize( snapshotsConfig ) {
-			var snapshot = this, snapshotExists;
+			var snapshot = this, snapshotExists, snapshotStatus;
 
 			snapshot.schedule = {};
 
@@ -43,10 +43,11 @@
 
 			api.bind( 'ready', function() {
 				snapshotExists = '{}' !== api.previewer.query().customized;
+				snapshotStatus = ! snapshot.data.postStatus && snapshotExists ? 'auto-draft' : snapshot.data.postStatus;
 				api.state.create( 'snapshot-exists', snapshotExists );
 				api.state.create( 'snapshot-saved', true );
 				api.state.create( 'snapshot-submitted', true );
-				api.state.create( 'snapshot-status', snapshot.data.postStatus || 'auto-draft' );
+				api.state.create( 'snapshot-status', snapshotStatus );
 
 				snapshot.data.uuid = snapshot.data.uuid || api.settings.changeset.uuid;
 				snapshot.data.title = snapshot.data.title || snapshot.data.uuid;
@@ -119,6 +120,7 @@
 		 */
 		updateSnapshot: function updateSnapshot( status ) {
 			var snapshot = this, scheduleDate,
+			    confirmText,
 				deferred = new $.Deferred(),
 				request,
 				requestData = {
@@ -126,9 +128,10 @@
 				};
 
 			if ( 'publish' === status && 'publish' !== api.state( 'snapshot-status' ).get() && snapshot.statusButton ) {
-				if ( snapshot.statusButton.state( 'button-text' ).get() !== snapshot.statusButton.button.data( 'confirm-text' ) ) {
+				confirmText = snapshot.statusButton.button.data( 'confirm-text' );
+				if ( confirmText && snapshot.statusButton.button.text() !== confirmText ) {
 					snapshot.statusButton.state( 'disabled-button' ).set( false );
-					snapshot.statusButton.state( 'button-text' ).set( snapshot.statusButton.button.data( 'confirm-text' ) );
+					snapshot.statusButton.updateButtonText( 'confirm-text' );
 					return deferred.promise();
 				}
 			}
@@ -143,6 +146,9 @@
 					requestData.date = snapshot.formatDate( scheduleDate );
 					request = snapshot.sendUpdateSnapshotRequest( requestData );
 				}
+			} else if ( 'publish' === status ) {
+				request = snapshot.sendUpdateSnapshotRequest( requestData );
+
 			} else {
 				if ( ! _.isEmpty( snapshot.editContainer ) && snapshot.isFutureDate() ) {
 					scheduleDate = snapshot.getDateFromInputs();
@@ -164,7 +170,7 @@
 		sendUpdateSnapshotRequest: function sendUpdateSnapshotRequest( options ) {
 			var snapshot = this,
 				spinner = $( '#customize-header-actions' ).find( '.spinner' ),
-				request, data;
+				request, data, publishStatus;
 
 			data = _.extend(
 				{
@@ -174,11 +180,12 @@
 			);
 
 			snapshot.updatePending = true;
-			snapshot.statusButton.state( 'disabled-select' ).set( true );
-			snapshot.statusButton.state( 'disabled-button' ).set( true );
+			snapshot.statusButton.disable( true );
 			spinner.addClass( 'is-active' );
 
-			request = wp.customize.previewer.save( data );
+			request = api.previewer.save( data );
+
+			publishStatus = 'publish' === data.status;
 
 			request.always( function( response ) {
 				spinner.removeClass( 'is-active' );
@@ -192,7 +199,6 @@
 					snapshot.data.title = response.title;
 				}
 				snapshot.updateSnapshotEditControls();
-				snapshot.statusButton.state( 'disabled-select' ).set( false );
 				snapshot.data.dirty = false;
 				snapshot.updatePending = false;
 			} );
@@ -204,14 +210,17 @@
 				api.state( 'snapshot-exists' ).set( true );
 				api.state( 'snapshot-saved' ).set( true );
 				api.state( 'snapshot-status' ).set( data.status );
-				snapshot.statusButton.state( 'disabled-button' ).set( true );
-				snapshot.isFirstSave = false;
 
 				if ( 'pending' === data.status ) {
 					api.state( 'snapshot-submitted' ).set( true );
 				}
 
-				snapshot.statusButton.state( 'button-text' ).set( snapshot.statusButton.button.data( 'alt-text' ) );
+				snapshot.statusButton.state( 'disabled-select' ).set( publishStatus );
+				snapshot.statusButton.state( 'disabled-button' ).set( true );
+				snapshot.previewLink.toggle( ! publishStatus );
+				snapshot.snapshotExpandButton.toggle( ! publishStatus );
+
+				snapshot.statusButton.updateButtonText( 'alt-text' );
 
 				// Trigger an event for plugins to use.
 				api.trigger( 'customize-snapshots-update', {
@@ -229,6 +238,8 @@
 					messages = snapshot.data.i18n.errorMsg,
 					invalidityCount = 0,
 					dialogElement;
+
+				snapshot.statusButton.state( 'disabled-select' ).set( false );
 
 				// @todo is this required in 4.7?.
 				if ( response.setting_validities ) {
@@ -286,21 +297,17 @@
 			snapshot.dirtyEditSettings = new api.Values();
 
 			snapshot.publishButton.addClass( 'hidden' );
-			snapshot.statusButton = snapshot.addSelectButton();
-
-			snapshot.isFirstSave = 'auto-draft' === api.state( 'snapshot-status' ).get();
-
+			snapshot.statusButton = snapshot.addStatusButton();
 			snapshot.statusButton.state( 'disabled-button' ).set( true );
 
-			if ( 'auto-draft' === api.state( 'snapshot-status' ).get() ) {
-				if ( api.state( 'snapshot-exists' ).get() ) {
-					snapshot.statusButton.state( 'disabled-button' ).set( false );
-					snapshot.statusButton.state( 'disabled-select' ).set( false );
+			if ( api.state( 'snapshot-status' ).get() ) {
+				if ( 'auto-draft' === api.state( 'snapshot-status' ).get() ) {
+					snapshot.statusButton.disable( false );
 				} else {
-					snapshot.statusButton.state( 'disabled-select' ).set( true );
+					snapshot.statusButton.updateButtonText( 'alt-text' );
 				}
 			} else {
-				snapshot.statusButton.state( 'button-text' ).set( snapshot.statusButton.button.data( 'alt-text' ) );
+				snapshot.statusButton.disable( true );
 			}
 
 			// Preview link.
@@ -342,9 +349,8 @@
 			} );
 
 			api.bind( 'change', function() {
-				snapshot.statusButton.state( 'disabled-button' ).set( false );
-				snapshot.statusButton.state( 'disabled-select' ).set( false );
-				snapshot.statusButton.state( 'button-text' ).set( snapshot.statusButton.button.data( 'button-text' ) );
+				snapshot.statusButton.disable( false );
+				snapshot.statusButton.updateButtonText( 'button-text' );
 			} );
 
 			// Submit for review button.
@@ -499,14 +505,16 @@
 		 * @return {void}.
 		 */
 		autoSaveEditBox: function autoSaveEditor() {
-			var snapshot = this, updateSnapshot, delay = 1000;
+			var snapshot = this, updateSnapshot, delay = 1000, isFirstSave;
+
+			isFirstSave = ! api.state( 'snapshot-status' ).get() || 'auto-draft' === api.state( 'snapshot-status' ).get();
 
 			updateSnapshot = _.debounce( function( status ) {
 				snapshot.updateSnapshot( status );
 			}, delay );
 
 			snapshot.dirtyEditSettings.bind( 'date', function( dirty ) {
-				if ( ! snapshot.updatePending && ! snapshot.isFirstSave ) {
+				if ( ! snapshot.updatePending && ! isFirstSave ) {
 					if ( dirty ) {
 						if ( 'future' !== api.state( 'snapshot-status' ).get() ) {
 							snapshot.updateSnapshot( api.state( 'snapshot-status' ).get() );
@@ -823,16 +831,15 @@
 		 *
 		 * @return {object} status button.
 		 */
-		addSelectButton: function addSelectButton() {
+		addStatusButton: function addStatusButton() {
 			var snapshot = this, selectMenuButton, statusButton = {}, selectedOption;
 
 			statusButton.state = new api.Values();
 			statusButton.state.create( 'disabled-select' );
 			statusButton.state.create( 'disabled-button' );
-			statusButton.state.create( 'button-text' );
 
 			statusButton.container = $( $.trim( wp.template( 'snapshot-status-button' )({
-				selected: 'auto-draft' !== api.state( 'snapshot-status' ).get() ? api.state( 'snapshot-status' ).get() : 'publish'
+				selected: api.state( 'snapshot-status' ).get() && 'auto-draft' !== api.state( 'snapshot-status' ).get() ? api.state( 'snapshot-status' ).get() : 'publish'
 			}) ) );
 			statusButton.button = statusButton.container.find( '.snapshot-status-button-overlay' );
 			statusButton.select = statusButton.container.find( 'select' );
@@ -879,10 +886,16 @@
 				statusButton.dropDown.toggleClass( 'disabled', disabled );
 			} );
 
-			statusButton.state( 'button-text' ).bind( function( text ) {
-				statusButton.button.text( text );
-				statusButton.hiddenButton.text( text );
-			} );
+			statusButton.updateButtonText = function( dataAttr ) {
+				var buttonText = statusButton.button.data( dataAttr );
+				statusButton.button.text( buttonText );
+				statusButton.hiddenButton.text( buttonText );
+			};
+
+			statusButton.disable = function( disable ) {
+				statusButton.state( 'disabled-select' ).set( disable );
+				statusButton.state( 'disabled-button' ).set( disable );
+			};
 
 			statusButton.button.on( 'click', function( event ) {
 				event.preventDefault();
