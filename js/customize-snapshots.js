@@ -52,6 +52,8 @@
 				snapshot.data.uuid = snapshot.data.uuid || api.settings.changeset.uuid;
 				snapshot.data.title = snapshot.data.title || snapshot.data.uuid;
 
+				snapshot.extendPreviewerQuery();
+
 				// Suppress the AYS dialog.
 				api.bind( 'changeset-saved', function() {
 					if ( 'auto-draft' !== api.state( 'changesetStatus' ).get() ) {
@@ -73,6 +75,12 @@
 				$( '#snapshot-submit' ).on( 'click', function( event ) {
 					event.preventDefault();
 					snapshot.updateSnapshot( 'pending' );
+				} );
+
+				api.bind( 'changeset-save', function() {
+
+					// @todo extend preview query with changeset save.
+					snapshot.extendPreviewerQuery();
 				} );
 
 				api.trigger( 'snapshots-ready', snapshot );
@@ -217,7 +225,6 @@
 
 				snapshot.statusButton.state( 'disabled-select' ).set( publishStatus );
 				snapshot.statusButton.state( 'disabled-button' ).set( true );
-				snapshot.previewLink.toggle( ! publishStatus );
 				snapshot.snapshotExpandButton.toggle( ! publishStatus );
 
 				snapshot.statusButton.updateButtonText( 'alt-text' );
@@ -281,6 +288,27 @@
 			} );
 
 			return request;
+		},
+
+		/**
+		 * Amend the preview query so we can update the snapshot during `customize_save`.
+		 *
+		 * @return {void}
+		 */
+		extendPreviewerQuery: function extendPreviewerQuery() {
+			var snapshot = this, originalQuery = api.previewer.query, scheduleDate;
+
+			api.previewer.query = function() {
+				var retval = originalQuery.apply( this, arguments );
+				if ( snapshot.snapshotTitle && snapshot.snapshotTitle.val() ) {
+					retval.title = snapshot.snapshotTitle.val();
+				}
+				if ( ! _.isEmpty( snapshot.editContainer ) && snapshot.isFutureDate() ) {
+					scheduleDate = snapshot.getDateFromInputs();
+					retval.date = snapshot.formatDate( scheduleDate );
+				}
+				return retval;
+			};
 		},
 
 		/**
@@ -495,36 +523,6 @@
 					snapshot.snapshotEditContainerDisplayed.set( false );
 				}
 			} );
-
-			snapshot.autoSaveEditBox();
-		},
-
-		/**
-		 * Auto save edit box when the dates are changed.
-		 *
-		 * @return {void}.
-		 */
-		autoSaveEditBox: function autoSaveEditor() {
-			var snapshot = this, updateSnapshot, delay = 1000, isFirstSave;
-
-			isFirstSave = ! api.state( 'snapshot-status' ).get() || 'auto-draft' === api.state( 'snapshot-status' ).get();
-
-			updateSnapshot = _.debounce( function( status ) {
-				snapshot.updateSnapshot( status );
-			}, delay );
-
-			snapshot.dirtyEditSettings.bind( 'date', function( dirty ) {
-				if ( ! snapshot.updatePending && ! isFirstSave ) {
-					if ( dirty ) {
-						if ( 'future' !== api.state( 'snapshot-status' ).get() ) {
-							snapshot.updateSnapshot( api.state( 'snapshot-status' ).get() );
-						}
-					}
-					if ( ! snapshot.isFutureDate() ) {
-						updateSnapshot( 'draft' );
-					}
-				}
-			} );
 		},
 
 		/**
@@ -535,7 +533,7 @@
 		toggleDateNotification: function showDateNotification() {
 			var snapshot = this;
 			if ( ! _.isEmpty( snapshot.dateNotification ) ) {
-				snapshot.dateNotification.toggle( ! snapshot.isFutureDate() && 'future' === snapshot.statusButton.select.val() );
+				snapshot.dateNotification.toggle( ! snapshot.isFutureDate() );
 			}
 		},
 
@@ -866,11 +864,13 @@
 				statusButton.button.data( 'alt-text', selectedOption.data( 'alt-text' ) );
 				statusButton.button.data( 'button-text', selectedOption.text() );
 				if ( 'publish' === status ) {
+					snapshot.snapshotExpandButton.hide();
 					statusButton.button.data( 'confirm-text', selectedOption.data( 'confirm-text' ) );
 				}
 
 				if ( 'future' === status ) {
 					snapshot.snapshotEditContainerDisplayed.set( true );
+					snapshot.snapshotExpandButton.show();
 				} else {
 					snapshot.updateSnapshot( status );
 					snapshot.snapshotEditContainerDisplayed.set( false );

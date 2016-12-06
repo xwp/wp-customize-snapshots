@@ -680,7 +680,7 @@ class Customize_Snapshot_Manager {
 								<?php esc_html_e( 'Schedule changes to publish (go live) at a future date.', 'customize-snapshots' ); ?>
 							</p>
 							<div class="snapshot-future-date-notification notice notice-error ">
-								<?php esc_html_e( 'Select a future date to schedule.', 'customize-snapshots' ); ?>
+								<?php esc_html_e( 'Please select a future date.', 'customize-snapshots' ); ?>
 							</div>
 							<div class="snapshot-schedule-control date-inputs clear">
 								<label>
