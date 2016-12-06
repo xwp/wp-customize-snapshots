@@ -34,13 +34,24 @@ class Test_Post_type extends \WP_UnitTestCase {
 	public $snapshot_merge_sample_data;
 
 	/**
+	 * Post type slug.
+	 *
+	 * @var string
+	 */
+	public $post_type_slug;
+
+	/**
 	 * Set up.
 	 */
 	function setUp() {
 		parent::setUp();
 		$GLOBALS['wp_customize'] = null; // WPCS: Global override ok.
 		$this->plugin = get_plugin_instance();
-		unregister_post_type( Post_Type::SLUG );
+		if ( $this->plugin->compat ) {
+			$this->post_type_slug = Post_Type_Back_Compat::SLUG;
+		} else {
+			$this->post_type_slug = Post_Type::SLUG;
+		}
 		$this->snapshot_merge_sample_data = array(
 			'foo' => array(
 				'value' => 'bar',
@@ -68,38 +79,113 @@ class Test_Post_type extends \WP_UnitTestCase {
 	}
 
 	/**
+	 * Get plugin instance accoding to WP version.
+	 *
+	 * @param Customize_Snapshot_Manager|Customize_Snapshot_Manager_Back_Compat $manager Manager.
+	 *
+	 * @return Post_Type|Post_Type_Back_Compat Post type object.
+	 */
+	public function get_new_post_type_instance( $manager ) {
+		if ( $this->plugin->compat ) {
+			return new Post_Type_Back_Compat( $manager );
+		} else {
+			return new Post_Type( $manager );
+		}
+	}
+
+	/**
+	 * Mark test incomplete as it is only for new versions.
+	 */
+	public function mark_incompatible() {
+		if ( $this->plugin->compat ) {
+			$this->markTestSkipped( 'This unit-test require WP version 4.7 or up.' );
+		}
+	}
+
+	/**
 	 * Test register post type.
 	 *
-	 * @see Post_Type::register()
+	 * @see Post_Type::init()
 	 */
-	public function test_register() {
-		$this->assertFalse( post_type_exists( Post_Type::SLUG ) );
-		$post_type = new Post_Type( $this->plugin->customize_snapshot_manager );
+	public function test_init() {
+		$this->mark_incompatible();
+		$post_type_obj = $this->get_new_post_type_instance( $this->plugin->customize_snapshot_manager );
 		$this->plugin->customize_snapshot_manager->init();
-		$post_type->register();
-		$this->assertTrue( post_type_exists( Post_Type::SLUG ) );
+		$post_type_obj->init();
 
-		$this->assertEquals( 10, has_filter( 'post_type_link', array( $post_type, 'filter_post_type_link' ) ) );
-		$this->assertEquals( 100, has_action( 'add_meta_boxes_' . Post_Type::SLUG, array( $post_type, 'remove_slug_metabox' ) ) );
-		$this->assertEquals( 10, has_action( 'load-revision.php', array( $post_type, 'suspend_kses_for_snapshot_revision_restore' ) ) );
-		$this->assertEquals( 10, has_filter( 'get_the_excerpt', array( $post_type, 'filter_snapshot_excerpt' ) ) );
-		$this->assertEquals( 10, has_filter( 'post_row_actions', array( $post_type, 'filter_post_row_actions' ) ) );
-		$this->assertEquals( 10, has_filter( 'wp_insert_post_data', array( $post_type, 'preserve_post_name_in_insert_data' ) ) );
-		$this->assertEquals( 10, has_filter( 'user_has_cap', array( $post_type, 'filter_user_has_cap' ) ) );
-		$this->assertEquals( 10, has_action( 'transition_post_status', array( $post_type->snapshot_manager, 'save_settings_with_publish_snapshot' ) ) );
-		$this->assertEquals( 10, has_filter( 'wp_insert_post_data', array( $post_type->snapshot_manager, 'prepare_snapshot_post_content_for_publish' ) ) );
-		$this->assertEquals( 10, has_action( 'display_post_states', array( $post_type, 'display_post_states' ) ) );
-		$this->assertEquals( 10, has_filter( 'content_save_pre', array( $post_type, 'filter_out_settings_if_removed_in_metabox' ) ) );
+		$this->assertEquals( 10, has_filter( 'post_link', array( $post_type_obj, 'filter_post_type_link' ) ) );
+		$this->assertEquals( 10, has_action( 'add_meta_boxes_' . Post_Type::SLUG, array( $post_type_obj, 'setup_metaboxes' ) ) );
+		$this->assertEquals( 10, has_action( 'admin_menu', array( $post_type_obj, 'add_admin_menu_item' ) ) );
+		$this->assertEquals( 5, has_filter( 'map_meta_cap', array( $post_type_obj, 'remap_customize_meta_cap' ) ) );
+		$this->assertEquals( 10, has_filter( 'bulk_actions-edit-' . Post_Type::SLUG, array( $post_type_obj, 'add_snapshot_bulk_actions' ) ) );
+		$this->assertEquals( 10, has_filter( 'handle_bulk_actions-edit-' . Post_Type::SLUG, array( $post_type_obj, 'handle_snapshot_merge' ) ) );
+		$this->assertEquals( 10, has_action( 'admin_print_styles-edit.php', array( $post_type_obj, 'hide_add_new_changeset_button' ) ) );
+	}
 
-		if ( version_compare( get_bloginfo( 'version' ), '4.7', '>=' ) ) {
-			$this->assertEquals( 10, has_filter( 'bulk_actions-edit-' . Post_Type::SLUG, array( $post_type, 'add_snapshot_bulk_actions' ) ) );
-			$this->assertEquals( 10, has_filter( 'handle_bulk_actions-edit-' . Post_Type::SLUG, array( $post_type, 'handle_snapshot_bulk_actions' ) ) );
-		} else {
-			$this->assertEquals( 10, has_action( 'admin_footer-edit.php', array( $post_type, 'snapshot_merge_print_script' ) ) );
-			$this->assertEquals( 10, has_action( 'load-edit.php', array( $post_type, 'handle_snapshot_bulk_actions_workaround' ) ) );
+	/**
+	 * Test common hooks
+	 *
+	 * @see Post_Type::hooks()
+	 */
+	public function test_hooks() {
+		$post_type_obj = $this->get_new_post_type_instance( $this->plugin->customize_snapshot_manager );
+		$post_type_obj->hooks();
+
+		$this->assertEquals( 100, has_action( 'add_meta_boxes_' . $this->post_type_slug, array( $post_type_obj, 'remove_slug_metabox' ) ) );
+		$this->assertEquals( 10, has_action( 'load-revision.php', array( $post_type_obj, 'suspend_kses_for_snapshot_revision_restore' ) ) );
+		$this->assertEquals( 10, has_filter( 'get_the_excerpt', array( $post_type_obj, 'filter_snapshot_excerpt' ) ) );
+		$this->assertEquals( 10, has_filter( 'post_row_actions', array( $post_type_obj, 'filter_post_row_actions' ) ) );
+		$this->assertEquals( 10, has_filter( 'user_has_cap', array( $post_type_obj, 'filter_user_has_cap' ) ) );
+		$this->assertEquals( 10, has_action( 'post_submitbox_minor_actions', array( $post_type_obj, 'hide_disabled_publishing_actions' ) ) );
+		$this->assertEquals( 10, has_filter( 'content_save_pre', array( $post_type_obj, 'filter_out_settings_if_removed_in_metabox' ) ) );
+		$this->assertEquals( 10, has_action( 'admin_print_scripts-revision.php', array( $post_type_obj, 'disable_revision_ui_for_published_posts' ) ) );
+		$this->assertEquals( 10, has_action( 'admin_notices', array( $post_type_obj, 'admin_show_merge_error' ) ) );
+		$this->assertEquals( 10, has_action( 'admin_notices', array( $post_type_obj, 'admin_show_merge_error' ) ) );
+		$this->assertEquals( 11, has_filter( 'content_save_pre', array( $post_type_obj, 'filter_selected_conflict_setting' ) ) );
+	}
+
+	/**
+	 * Test extend_changeset_post_type_object
+	 *
+	 * @covers CustomizeSnapshots\Post_Type::extend_changeset_post_type_object()
+	 */
+	public function test_extend_changeset_post_type_object() {
+		global $_wp_post_type_features;
+		$this->mark_incompatible();
+		$post_type_obj = get_post_type_object( Post_Type::SLUG );
+		$this->assertArrayHasKey( 'revisions', $_wp_post_type_features[ Post_Type::SLUG ] );
+		$this->assertTrue( $post_type_obj->show_ui );
+		$this->assertTrue( $post_type_obj->show_in_menu );
+		$this->assertEquals( 'post.php?post=%d', $post_type_obj->_edit_link );
+		$this->assertEquals( 'customize_publish', $post_type_obj->cap->publish_posts );
+		$caps = (array) $post_type_obj->cap;
+		foreach ( $caps as $key => $value ) {
+			if ( in_array( $key, array( 'read', 'publish_posts' ), true ) ) {
+				continue;
+			} else {
+				$this->assertTrue( 0 < strpos( $value, Post_Type::SLUG ) );
+			}
 		}
-		$this->assertEquals( 10, has_action( 'admin_notices', array( $post_type, 'admin_show_merge_error' ) ) );
-		$this->assertEquals( 11, has_filter( 'content_save_pre', array( $post_type, 'filter_selected_conflict_setting' ) ) );
+		$this->assertFalse( $post_type_obj->show_in_customizer );
+		$this->assertInstanceOf( __NAMESPACE__ . '\\Post_Type', $post_type_obj->customize_snapshot_post_type_obj );
+		$this->assertTrue( $post_type_obj->show_in_rest );
+		$this->assertEquals( 'customize_changesets', $post_type_obj->rest_base );
+		$this->assertEquals( __NAMESPACE__ . '\\Snapshot_REST_API_Controller', $post_type_obj->rest_controller_class );
+	}
+
+	/**
+	 * Test add_admin_menu_item.
+	 *
+	 * @covers CustomizeSnapshots\Post_Type::add_admin_menu_item()
+	 */
+	public function test_add_admin_menu_item() {
+		$this->mark_incompatible();
+		global $admin_page_hooks, $_parent_pages;
+		$post_type_obj = new Post_Type( $this->plugin->customize_snapshot_manager );
+		$post_type_obj->add_admin_menu_item();
+		$menu_slug = 'edit.php?post_type=' . Post_Type::SLUG;
+		$this->assertFalse( $_parent_pages[ $menu_slug ] );
+		$this->assertArrayHasKey( $menu_slug, $admin_page_hooks );
 	}
 
 	/**
@@ -108,7 +194,7 @@ class Test_Post_type extends \WP_UnitTestCase {
 	 * @covers CustomizeSnapshots\Post_Type::filter_post_type_link()
 	 */
 	function test_filter_post_type_link() {
-		$post_type = new Post_Type( $this->plugin->customize_snapshot_manager );
+		$post_type = $this->get_new_post_type_instance( $this->plugin->customize_snapshot_manager );
 
 		$post_id = $post_type->save( array(
 			'uuid' => self::UUID,
@@ -116,15 +202,15 @@ class Test_Post_type extends \WP_UnitTestCase {
 				'blogname' => array( 'value' => 'Hello' ),
 			),
 		) );
-
+		$param = $this->plugin->customize_snapshot_manager->get_front_uuid_param();
 		$this->assertContains(
-			'customize_snapshot_uuid=' . self::UUID,
+			$param . '=' . self::UUID,
 			$post_type->filter_post_type_link( '', get_post( $post_id ) )
 		);
 
 		remove_all_filters( 'post_type_link' );
-		$post_type->register();
-		$this->assertContains( 'customize_snapshot_uuid=' . self::UUID, get_permalink( $post_id ) );
+		$post_type->init();
+		$this->assertContains( $param . '=' . self::UUID, get_permalink( $post_id ) );
 	}
 
 	/**
@@ -138,7 +224,7 @@ class Test_Post_type extends \WP_UnitTestCase {
 			kses_init_filters();
 		}
 
-		$post_type = new Post_Type( $this->plugin->customize_snapshot_manager );
+		$post_type = $this->get_new_post_type_instance( $this->plugin->customize_snapshot_manager );
 		$post_type->suspend_kses();
 		$this->assertFalse( has_filter( 'content_save_pre', 'wp_filter_post_kses' ) );
 		$post_type->restore_kses();
@@ -157,18 +243,18 @@ class Test_Post_type extends \WP_UnitTestCase {
 	 * @see Post_Type::remove_metaboxes()
 	 */
 	public function test_setup_metaboxes() {
-		set_current_screen( Post_Type::SLUG );
+		set_current_screen( $this->post_type_slug );
 		global $wp_meta_boxes;
-		$post_type = new Post_Type( $this->plugin->customize_snapshot_manager );
-		$post_type->register();
+		$post_type = $this->get_new_post_type_instance( $this->plugin->customize_snapshot_manager );
+		$post_type->init();
 
-		$post_id = $this->factory()->post->create( array( 'post_type' => Post_Type::SLUG, 'post_status' => 'draft' ) );
+		$post_id = $this->factory()->post->create( array( 'post_type' => $this->post_type_slug, 'post_status' => 'draft' ) );
 
 		$wp_meta_boxes = array(); // WPCS: global override ok.
-		$metabox_id = Post_Type::SLUG;
-		$this->assertFalse( ! empty( $wp_meta_boxes[ Post_Type::SLUG ]['normal']['high'][ $metabox_id ] ) );
-		do_action( 'add_meta_boxes_' . Post_Type::SLUG, $post_id );
-		$this->assertTrue( ! empty( $wp_meta_boxes[ Post_Type::SLUG ]['normal']['high'][ $metabox_id ] ) );
+		$metabox_id = $this->post_type_slug;
+		$this->assertFalse( ! empty( $wp_meta_boxes[ $this->post_type_slug ]['normal']['high'][ $metabox_id ] ) );
+		do_action( 'add_meta_boxes_' . $this->post_type_slug, $post_id );
+		$this->assertTrue( ! empty( $wp_meta_boxes[ $this->post_type_slug ]['normal']['high'][ $metabox_id ] ) );
 	}
 
 	/* Note: Code coverage ignored on Post_Type::remove_publish_metabox(). */
@@ -183,8 +269,8 @@ class Test_Post_type extends \WP_UnitTestCase {
 	public function test_filter_snapshot_excerpt() {
 		global $post;
 
-		$post_type = new Post_Type( $this->plugin->customize_snapshot_manager );
-		$post_type->register();
+		$post_type = $this->get_new_post_type_instance( $this->plugin->customize_snapshot_manager );
+		$post_type->init();
 		$post_id = $post_type->save( array(
 			'uuid' => self::UUID,
 			'data' => array(
@@ -209,8 +295,8 @@ class Test_Post_type extends \WP_UnitTestCase {
 		$admin_user_id = $this->factory()->user->create( array( 'role' => 'administrator' ) );
 		$subscriber_user_id = $this->factory()->user->create( array( 'role' => 'subscriber' ) );
 
-		$post_type = new Post_Type( $this->plugin->customize_snapshot_manager );
-		$post_type->register();
+		$post_type = $this->get_new_post_type_instance( $this->plugin->customize_snapshot_manager );
+		$post_type->init();
 		$data = array(
 			'blogdescription' => array( 'value' => 'Another Snapshot Test' ),
 		);
@@ -230,7 +316,7 @@ class Test_Post_type extends \WP_UnitTestCase {
 
 		wp_set_current_user( $admin_user_id );
 		$filtered_actions = apply_filters( 'post_row_actions', $original_actions, get_post( $post_id ) );
-		$this->assertArrayHasKey( 'inline hide-if-no-js', $filtered_actions );
+		$this->assertArrayNotHasKey( 'inline hide-if-no-js', $filtered_actions );
 		$this->assertArrayHasKey( 'customize', $filtered_actions );
 		$this->assertArrayHasKey( 'front-view', $filtered_actions );
 
@@ -268,42 +354,13 @@ class Test_Post_type extends \WP_UnitTestCase {
 	}
 
 	/**
-	 * Tests preservation of the post_name when submitting a snapshot for review.
-	 *
-	 * @see Post_Type::preserve_post_name_in_insert_data()
-	 */
-	public function test_preserve_post_name_in_insert_data() {
-		$post_type = new Post_Type( $this->plugin->customize_snapshot_manager );
-		$post_type->register();
-
-		$post_data = array(
-			'post_name' => '',
-			'post_type' => 'no',
-			'post_status' => 'pending',
-		);
-		$original_post_data = array(
-			'post_type' => 'no',
-			'post_name' => '!original!',
-			'post_status' => 'pending',
-		);
-		$filtered_post_data = $post_type->preserve_post_name_in_insert_data( $post_data, $original_post_data );
-		$this->assertEquals( $post_data, $filtered_post_data );
-
-		$post_data['post_type'] = Post_Type::SLUG;
-		$original_post_data['post_type'] = Post_Type::SLUG;
-
-		$filtered_post_data = $post_type->preserve_post_name_in_insert_data( $post_data, $original_post_data );
-		$this->assertEquals( $original_post_data['post_name'], $filtered_post_data['post_name'] );
-	}
-
-	/**
 	 * Test rendering the metabox.
 	 *
 	 * @see Post_Type::render_data_metabox()
 	 */
 	public function test_render_data_metabox() {
-		$post_type = new Post_Type( $this->plugin->customize_snapshot_manager );
-		$post_type->register();
+		$post_type = $this->get_new_post_type_instance( $this->plugin->customize_snapshot_manager );
+		$post_type->init();
 		$data = array(
 			'knoa8sdhpasidg0apbdpahcas' => array(
 				'value' => 'a09sad0as9hdgw22dutacs',
@@ -430,10 +487,11 @@ class Test_Post_type extends \WP_UnitTestCase {
 	 * Find a snapshot post by UUID.
 	 *
 	 * @see Post_Type::find_post()
+	 * @see Post_Type_Back_Compat::find_post()
 	 */
 	public function test_find_post() {
-		$post_type = new Post_Type( $this->plugin->customize_snapshot_manager );
-		$post_type->register();
+		$post_type = $this->get_new_post_type_instance( $this->plugin->customize_snapshot_manager );
+		$post_type->init();
 		$data = array(
 			'foo' => array(
 				'value' => 'bar',
@@ -471,8 +529,8 @@ class Test_Post_type extends \WP_UnitTestCase {
 	 * @expectedException \PHPUnit_Framework_Error_Warning
 	 */
 	public function test_get_post_content() {
-		$post_type = new Post_Type( $this->plugin->customize_snapshot_manager );
-		$post_type->register();
+		$post_type = $this->get_new_post_type_instance( $this->plugin->customize_snapshot_manager );
+		$post_type->init();
 
 		// Bad post type.
 		$page_post_id = $this->factory()->post->create( array( 'post_type' => 'page' ) );
@@ -492,6 +550,9 @@ class Test_Post_type extends \WP_UnitTestCase {
 			'status' => 'publish',
 		) );
 		$snapshot_post = get_post( $post_id );
+		if ( ! $this->plugin->compat ) {
+			unset( $data['foo']['publish_error'] );
+		}
 		$this->assertEquals( $data, $post_type->get_post_content( $snapshot_post ) );
 
 		// Revision.
@@ -509,7 +570,7 @@ class Test_Post_type extends \WP_UnitTestCase {
 		$this->assertEquals( 'baz', $content['foo']['value'] );
 
 		// Bad post data.
-		$bad_post_id = $this->factory()->post->create( array( 'post_type' => Post_Type::SLUG, 'post_content' => 'BADJSON' ) );
+		$bad_post_id = $this->factory()->post->create( array( 'post_type' => $this->post_type_slug, 'post_content' => 'BADJSON' ) );
 		$bad_post = get_post( $bad_post_id );
 		$content = $post_type->get_post_content( $bad_post );
 		$this->assertEquals( array(), $content );
@@ -521,8 +582,8 @@ class Test_Post_type extends \WP_UnitTestCase {
 	 * @see Post_Type::save()
 	 */
 	public function test_save() {
-		$post_type = new Post_Type( $this->plugin->customize_snapshot_manager );
-		$post_type->register();
+		$post_type = $this->get_new_post_type_instance( $this->plugin->customize_snapshot_manager );
+		$post_type->init();
 
 		// Error: missing_valid_uuid.
 		$r = $post_type->save( array( 'id' => 'nouuid' ) );
@@ -577,7 +638,11 @@ class Test_Post_type extends \WP_UnitTestCase {
 			'theme' => get_stylesheet(),
 		) );
 		$this->assertInternalType( 'int', $r );
-		$this->assertEquals( $data, $post_type->get_post_content( get_post( $r ) ) );
+		$expected = $data;
+		if ( ! $this->plugin->compat ) {
+			unset( $expected['foo']['publish_error'] );
+		}
+		$this->assertEquals( $expected, $post_type->get_post_content( get_post( $r ) ) );
 
 		$this->assertEquals( get_stylesheet(), get_post_meta( $r, '_snapshot_theme', true ) );
 		$this->assertEquals( $this->plugin->version, get_post_meta( $r, '_snapshot_version', true ) );
@@ -603,101 +668,6 @@ class Test_Post_type extends \WP_UnitTestCase {
 	}
 
 	/**
-	 * Snapshot publish.
-	 *
-	 * @see Post_Type::save()
-	 */
-	function test_publish_snapshot() {
-		$admin_user_id = $this->factory()->user->create( array( 'role' => 'administrator' ) );
-		wp_set_current_user( $admin_user_id );
-		$post_type = get_plugin_instance()->customize_snapshot_manager->post_type;
-		$post_type->register();
-		$tag_line = 'Snapshot blog';
-
-		$data = array(
-			'blogdescription' => array(
-				'value' => $tag_line,
-			),
-			'foo' => array(
-				'value' => 'bar',
-			),
-			'baz' => array(
-				'value' => null,
-			),
-		);
-
-		$validated_content = array(
-			'blogdescription' => array(
-				'value' => $tag_line,
-			),
-			'foo' => array(
-				'value' => 'bar',
-				'publish_error' => 'unrecognized_setting',
-			),
-			'baz' => array(
-				'value' => null,
-				'publish_error' => 'null_value',
-			),
-		);
-
-		/*
-		 * Ensure that directly updating a post succeeds with invalid settings
-		 * works because the post is a draft. Note that if using
-		 * Customize_Snapshot::set() this would fail because it does validation.
-		 */
-		$post_id = $post_type->save( array(
-			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
-			'data' => $data,
-			'status' => 'draft',
-		) );
-		wp_update_post( array( 'ID' => $post_id, 'post_status' => 'draft' ) );
-		$content = $post_type->get_post_content( get_post( $post_id ) );
-		$this->assertEquals( $data, $content );
-
-		/*
-		 * Ensure that attempting to publish a snapshot with invalid settings
-		 * will get the publish_errors added as well as kick it back to pending.
-		 */
-		remove_all_filters( 'redirect_post_location' );
-		$post_id = $post_type->save( array(
-			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
-			'data' => $data,
-			'status' => 'draft',
-		) );
-		wp_publish_post( $post_id );
-		$snapshot_post = get_post( $post_id );
-		$content = $post_type->get_post_content( $snapshot_post );
-		$this->assertEquals( 'pending', $snapshot_post->post_status );
-		$this->assertEquals( $validated_content, $content );
-		$this->assertContains(
-			'snapshot_error_on_publish=1',
-			apply_filters( 'redirect_post_location', get_edit_post_link( $snapshot_post->ID ), $snapshot_post->ID )
-		);
-
-		/*
-		 * Remove invalid settings and now attempt publish.
-		 */
-		remove_all_filters( 'redirect_post_location' );
-		unset( $data['foo'] );
-		unset( $data['baz'] );
-		$post_id = $post_type->save( array(
-			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
-			'data' => $data,
-			'status' => 'draft',
-		) );
-		wp_publish_post( $post_id );
-		$snapshot_post = get_post( $post_id );
-		$content = $post_type->get_post_content( $snapshot_post );
-		$this->assertEquals( 'publish', $snapshot_post->post_status );
-		$this->assertEquals( $data, $content );
-		$this->assertEquals( $tag_line, get_bloginfo( 'description' ) );
-		$this->assertNotContains(
-			'snapshot_error_on_publish=1',
-			apply_filters( 'redirect_post_location', get_edit_post_link( $snapshot_post->ID ), $snapshot_post->ID )
-		);
-	}
-
-	/**
 	 * Test granting customize capability.
 	 *
 	 * @see Post_Type::filter_user_has_cap()
@@ -705,8 +675,8 @@ class Test_Post_type extends \WP_UnitTestCase {
 	function test_filter_user_has_cap() {
 		remove_all_filters( 'user_has_cap' );
 
-		$post_type = new Post_Type( $this->plugin->customize_snapshot_manager );
-		$post_type->register();
+		$post_type = $this->get_new_post_type_instance( $this->plugin->customize_snapshot_manager );
+		$post_type->init();
 
 		$post_id = $post_type->save( array(
 			'uuid' => self::UUID,
@@ -720,71 +690,12 @@ class Test_Post_type extends \WP_UnitTestCase {
 	}
 
 	/**
-	 * Tests display_post_states.
-	 *
-	 * @covers CustomizeSnapshots\Post_Type::display_post_states()
-	 */
-	public function test_display_post_states() {
-		$post_type = new Post_Type( $this->plugin->customize_snapshot_manager );
-
-		$post_id = $post_type->save( array(
-			'uuid' => self::UUID,
-			'data' => array( 'foo' => array( 'value' => 'bar' ) ),
-		) );
-		$states = $post_type->display_post_states( array(), get_post( $post_id ) );
-		$this->assertArrayNotHasKey( 'snapshot_error', $states );
-
-		update_post_meta( $post_id, 'snapshot_error_on_publish', true );
-		$states = $post_type->display_post_states( array(), get_post( $post_id ) );
-		$this->assertArrayHasKey( 'snapshot_error', $states );
-	}
-
-	/**
-	 * Tests show_publish_error_admin_notice.
-	 *
-	 * @covers CustomizeSnapshots\Post_Type::show_publish_error_admin_notice()
-	 */
-	public function test_show_publish_error_admin_notice() {
-		global $current_screen, $post;
-		wp_set_current_user( $this->factory()->user->create( array( 'role' => 'administrator' ) ) );
-		$post_type = new Post_Type( $this->plugin->customize_snapshot_manager );
-		$post_type->register();
-		$post_id = $post_type->save( array(
-			'uuid' => self::UUID,
-			'data' => array(),
-		) );
-
-		ob_start();
-		$post_type->show_publish_error_admin_notice();
-		$this->assertEmpty( ob_get_clean() );
-
-		$current_screen = \WP_Screen::get( 'customize_snapshot' ); // WPCS: Override ok.
-		$current_screen->id = 'customize_snapshot';
-		$current_screen->base = 'edit';
-		ob_start();
-		$post_type->show_publish_error_admin_notice();
-		$this->assertEmpty( ob_get_clean() );
-
-		$current_screen->base = 'post';
-		ob_start();
-		$post_type->show_publish_error_admin_notice();
-		$this->assertEmpty( ob_get_clean() );
-
-		$_REQUEST['snapshot_error_on_publish'] = '1';
-		wp_update_post( array( 'ID' => $post_id, 'post_status' => 'pending' ) );
-		$post = get_post( $post_id ); // WPCS: override ok.
-		ob_start();
-		$post_type->show_publish_error_admin_notice();
-		$this->assertContains( 'notice-error', ob_get_clean() );
-	}
-
-	/**
 	 * Tests disable_revision_ui_for_published_posts.
 	 *
 	 * @covers CustomizeSnapshots\Post_Type::disable_revision_ui_for_published_posts()
 	 */
 	public function test_disable_revision_ui_for_published_posts() {
-		$post_type = new Post_Type( $this->plugin->customize_snapshot_manager );
+		$post_type = $this->get_new_post_type_instance( $this->plugin->customize_snapshot_manager );
 		$post_id = $post_type->save( array(
 			'uuid' => self::UUID,
 			'data' => array(),
@@ -813,7 +724,7 @@ class Test_Post_type extends \WP_UnitTestCase {
 	 * @covers CustomizeSnapshots\Post_Type::hide_disabled_publishing_actions()
 	 */
 	public function test_hide_disabled_publishing_actions() {
-		$post_type = new Post_Type( $this->plugin->customize_snapshot_manager );
+		$post_type = $this->get_new_post_type_instance( $this->plugin->customize_snapshot_manager );
 		$post_id = $post_type->save( array(
 			'uuid' => self::UUID,
 			'data' => array(),
@@ -841,7 +752,7 @@ class Test_Post_type extends \WP_UnitTestCase {
 	 * @covers CustomizeSnapshots\Post_Type::add_snapshot_bulk_actions()
 	 */
 	public function test_add_snapshot_bulk_actions() {
-		$post_type = new Post_Type( $this->plugin->customize_snapshot_manager );
+		$post_type = $this->get_new_post_type_instance( $this->plugin->customize_snapshot_manager );
 		$data = $post_type->add_snapshot_bulk_actions( array() );
 		$this->assertArrayHasKey( 'merge_snapshot', $data );
 	}
@@ -849,46 +760,64 @@ class Test_Post_type extends \WP_UnitTestCase {
 	/**
 	 * Test handle_snapshot_bulk_actions
 	 *
-	 * @covers CustomizeSnapshots\Post_Type::handle_snapshot_bulk_actions()
+	 * @see Post_Type::handle_snapshot_merge()
 	 */
-	public function test_handle_snapshot_bulk_actions() {
-		$post_type = new Post_Type( $this->plugin->customize_snapshot_manager );
-		$date1 = gmdate( 'Y-m-d H:i:s', ( time() + ( get_option( 'gmt_offset' ) * HOUR_IN_SECONDS ) ) );
-		$post_1 = $post_type->save( array(
-			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
-			'status' => 'draft',
-			'data' => array(
-				'foo' => array(
-					'value' => 'bar',
+	public function test_handle_snapshot_merge() {
+		$ids = $this->factory()->post->create_many( 2 );
+		$posts = array_map( 'get_post', $ids );
+		$post_type_obj = $this->getMockBuilder( 'CustomizeSnapshots\Post_Type' )
+		                      ->setConstructorArgs( array( $this->plugin->customize_snapshot_manager ) )
+		                      ->setMethods( array( 'merge_snapshots' ) )
+		                      ->getMock();
+		$post_type_obj->expects( $this->once() )
+		              ->method( 'merge_snapshots' )
+			->with( $posts )
+			->will( $this->returnValue( null ) );
+		$post_type_obj->handle_snapshot_merge( '', 'merge_snapshot', $ids );
+	}
+
+	/**
+	 * Test merge_snapshots
+	 *
+	 * @see Post_Type::merge_snapshots()
+	 */
+	public function test_merge_snapshots() {
+		$post_type = $this->get_new_post_type_instance( $this->plugin->customize_snapshot_manager );
+		$date1 = gmdate( 'Y-m-d H:i:s' );
+		$value_1 = array(
+			'foo' => array(
+				'value' => 'bar',
+			),
+			'qux' => array(
+				'value' => 'same',
+			),
+			'quux' => array(
+				'value' => 'foo val',
+				'merged_uuid' => array(
+					'a-uuid',
 				),
-				'qux' => array(
-					'value' => 'same',
-				),
-				'quux' => array(
-					'value' => 'foo val',
-					'merged_uuid' => array(
-						'a-uuid',
+			),
+			'corge' => array(
+				'value' => 'foo val 4',
+				'merge_conflict' => array(
+					array(
+						'uuid' => 'c-uuid',
+						'value' => 'foo val 3',
 					),
-				),
-				'corge' => array(
-					'value' => 'foo val 4',
-					'merge_conflict' => array(
-						array(
-							'uuid' => 'c-uuid',
-							'value' => 'foo val 3',
-						),
-						array(
-							'uuid' => 'd-uuid',
-							'value' => 'foo val 4',
-						),
+					array(
+						'uuid' => 'd-uuid',
+						'value' => 'foo val 4',
 					),
 				),
 			),
-			'post_date' => $date1,
-			'post_date_gmt' => $date1,
-			'edit_date' => $date1,
+		);
+		$post_1 = $post_type->save( array(
+			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
+			'status' => 'draft',
+			'data' => $value_1,
+			'date_gmt' => $date1,
 		) );
-		$value = array(
+		$value_2 = array(
 			'foo' => array(
 				'value' => 'baz',
 			),
@@ -915,21 +844,18 @@ class Test_Post_type extends \WP_UnitTestCase {
 				),
 			),
 		);
-		$date2 = gmdate( 'Y-m-d H:i:s', ( time() + 60 + ( get_option( 'gmt_offset' ) * HOUR_IN_SECONDS ) ) );
+		$date2 = gmdate( 'Y-m-d H:i:s', ( time() + 60 ) );
 		$post_2 = $post_type->save( array(
 			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
 			'status' => 'draft',
-			'data' => $value,
-			'post_date' => $date2,
-			'post_date_gmt' => $date2,
-			'edit_date' => $date2,
+			'data' => $value_2,
+			'date_gmt' => $date2,
 		) );
 
-		$post_type->handle_snapshot_bulk_actions( '', 'merge_snapshot', array( $post_1, $post_2 ) );
+		$merged_post_id = $post_type->merge_snapshots( array( $post_1, $post_2 ) );
 		$post_1_uuid = get_post( $post_1 )->post_name;
 		$post_2_obj = get_post( $post_2 );
 		$post_2_uuid = $post_2_obj->post_name;
-		$merged_post = get_post( $post_2 + 1 );
 
 		$expected = array(
 			'foo' => array(
@@ -985,62 +911,40 @@ class Test_Post_type extends \WP_UnitTestCase {
 				),
 			),
 		);
-
+		$merged_post = get_post( $merged_post_id );
 		$this->assertSame( $expected, $post_type->get_post_content( $merged_post ) );
 
-		$input = 'http://example.com';
-		$url = $post_type->handle_snapshot_bulk_actions( $input, 'fishy_Action', array( 1, 2 ) );
-		$this->assertEquals( 'http://example.com', $url );
-
-		$url = $post_type->handle_snapshot_bulk_actions( $input, 'merge_snapshot', array( 1 ) );
-		$this->assertContains( 'merge-error=1', $url );
-	}
-
-	/**
-	 * Test snapshot_merge_print_script
-	 *
-	 * @covers CustomizeSnapshots\Post_Type::snapshot_merge_print_script()
-	 */
-	public function test_snapshot_merge_print_script() {
-		global $post_type;
-		$post_type = Post_Type::SLUG; // WPCS: global override ok.
-		$post_type_obj = new Post_Type( $this->plugin->customize_snapshot_manager );
-		ob_start();
-		$post_type_obj->snapshot_merge_print_script();
-		$script_content = ob_get_clean();
-
-		$this->assertContains( 'select[name="action"]', $script_content );
-		$this->assertContains( 'select[name="action2"]', $script_content );
-		$this->assertContains( 'merge_snapshot', $script_content );
-		$this->assertContains( 'text/javascript', $script_content );
-	}
-
-	/**
-	 * Test handle_snapshot_bulk_actions_workaround
-	 *
-	 * @covers CustomizeSnapshots\Post_Type::handle_snapshot_bulk_actions_workaround()
-	 */
-	public function test_handle_snapshot_bulk_actions_workaround() {
-		$GLOBALS['hook_suffix'] = 'posts-' . Post_Type::SLUG; // WPCS: global override ok.
-		$_POST['action'] = $_REQUEST['action'] = $_GET['action'] = 'merge_snapshot';
-		$_POST['post_type'] = $_REQUEST['post_type'] = $_GET['post_type'] = Post_Type::SLUG;
-		$_POST['post'] = $_REQUEST['post'] = $_GET['post'] = array( 1, 2 );
-		$_POST['_wpnonce'] = $_REQUEST['_wpnonce'] = $_GET['_wpnonce'] = wp_create_nonce( 'bulk-posts' );
-		$_POST['_wp_http_referer'] = $_REQUEST['_wp_http_referer'] = $_GET['_wp_http_referer'] = admin_url();
-		$post_type_obj = $this->getMockBuilder( 'CustomizeSnapshots\Post_Type' )
-		                      ->setConstructorArgs( array( $this->plugin->customize_snapshot_manager ) )
-		                      ->setMethods( array( 'handle_snapshot_bulk_actions' ) )
-		                      ->getMock();
-		$post_type_obj->expects( $this->once() )
-		              ->method( 'handle_snapshot_bulk_actions' )
-		              ->will( $this->returnValue( null ) );
-		$post_type_obj->handle_snapshot_bulk_actions_workaround();
-
-		$_POST['post'] = $_REQUEST['post'] = $_GET['post'] = array();
-		$post_type_obj->handle_snapshot_bulk_actions_workaround();
-
-		$_POST['action'] = $_REQUEST['action'] = $_GET['action'] = 'fishy_action';
-		$post_type_obj->handle_snapshot_bulk_actions_workaround();
+		$date3 = gmdate( 'Y-m-d H:i:s', ( time() + 120 ) );
+		$value_3 = array(
+			'baz' => array(
+				'value' => 'z',
+			),
+		);
+		$post_3 = $post_type->save( array(
+				'uuid' => Customize_Snapshot_Manager::generate_uuid(),
+				'status' => 'draft',
+				'data' => $value_3,
+				'date_gmt' => $date3,
+		) );
+		$post_3 = get_post( $post_3 );
+		$merge_result_post = get_post( $post_type->merge_snapshots( array( $post_1, $post_2, $post_3 ) ) );
+		$baz_confict_expected = array(
+			'value'          => 'z',
+			'merge_conflict' => array(
+				array(
+					'uuid'  => $post_2_uuid,
+					'value' => 'zab',
+				),
+				array(
+					'uuid'  => $post_3->post_name,
+					'value' => 'z',
+				),
+			),
+			'selected_uuid' => $post_3->post_name,
+		);
+		$result_content = $post_type->get_post_content( $merge_result_post );
+		$this->assertArrayHasKey( 'baz', $result_content );
+		$this->assertSame( $baz_confict_expected, $result_content['baz'] );
 	}
 
 	/**
@@ -1049,7 +953,7 @@ class Test_Post_type extends \WP_UnitTestCase {
 	 * @covers CustomizeSnapshots\Post_Type::admin_show_merge_error()
 	 */
 	public function test_admin_show_merge_error() {
-		$post_type_obj = new Post_Type( $this->plugin->customize_snapshot_manager );
+		$post_type_obj = $this->get_new_post_type_instance( $this->plugin->customize_snapshot_manager );
 		ob_start();
 		$post_type_obj->admin_show_merge_error();
 		$notice_content = ob_get_clean();
@@ -1073,8 +977,8 @@ class Test_Post_type extends \WP_UnitTestCase {
 	 */
 	public function test_filter_out_settings_if_removed_in_metabox() {
 		global $post;
-		$post_type_obj = new Post_Type( $this->plugin->customize_snapshot_manager );
-		$post_type_obj->register();
+		$post_type_obj = $this->get_new_post_type_instance( $this->plugin->customize_snapshot_manager );
+		$post_type_obj->init();
 		wp_set_current_user( $admin_user_id = $this->factory()->user->create( array( 'role' => 'administrator' ) ) );
 		$post_id = $post_type_obj->save( array(
 			'uuid' => self::UUID,
@@ -1089,9 +993,9 @@ class Test_Post_type extends \WP_UnitTestCase {
 			'status' => 'draft',
 		) );
 		$post = get_post( $post_id ); // WPCS: override ok.
-		$nonce_key = Post_Type::SLUG;
-		$key_for_settings = Post_Type::SLUG . '_remove_settings';
-		$_REQUEST[ $nonce_key ] = $_POST[ $nonce_key ] = wp_create_nonce( Post_Type::SLUG . '_settings' );
+		$nonce_key = $this->post_type_slug;
+		$key_for_settings = $this->post_type_slug . '_remove_settings';
+		$_REQUEST[ $nonce_key ] = $_POST[ $nonce_key ] = wp_create_nonce( $this->post_type_slug . '_settings' );
 		$_REQUEST[ $key_for_settings ] = $_POST[ $key_for_settings ] = array( 'foo' );
 		$content = $post_type_obj->filter_out_settings_if_removed_in_metabox( $post->post_content );
 		$data = json_decode( $content, true );
@@ -1123,8 +1027,8 @@ class Test_Post_type extends \WP_UnitTestCase {
 	 */
 	public function test_filter_selected_conflict_setting() {
 		global $post;
-		$post_type_obj = new Post_Type( $this->plugin->customize_snapshot_manager );
-		$post_type_obj->register();
+		$post_type_obj = $this->get_new_post_type_instance( $this->plugin->customize_snapshot_manager );
+		$post_type_obj->init();
 		wp_set_current_user( $admin_user_id = $this->factory()->user->create( array( 'role' => 'administrator' ) ) );
 		$post_id = $post_type_obj->save( array(
 			'uuid' => self::UUID,
@@ -1132,9 +1036,9 @@ class Test_Post_type extends \WP_UnitTestCase {
 			'status' => 'draft',
 		) );
 		$post = get_post( $post_id );
-		$nonce_key = Post_Type::SLUG;
-		$resolve_setting_key = Post_Type::SLUG . '_resolve_conflict_uuid';
-		$_REQUEST[ $nonce_key ] = $_POST[ $nonce_key ] = wp_create_nonce( Post_Type::SLUG . '_settings' );
+		$nonce_key = $this->post_type_slug;
+		$resolve_setting_key = $this->post_type_slug . '_resolve_conflict_uuid';
+		$_REQUEST[ $nonce_key ] = $_POST[ $nonce_key ] = wp_create_nonce( $this->post_type_slug . '_settings' );
 		$_REQUEST[ $resolve_setting_key ] = $_POST[ $resolve_setting_key ] = array(
 			wp_json_encode( array(
 				'setting_id' => 'foo',
@@ -1155,7 +1059,7 @@ class Test_Post_type extends \WP_UnitTestCase {
 	 * @covers CustomizeSnapshots\Post_Type::get_snapshot_merged_uuid()
 	 */
 	public function test_get_snapshot_merged_uuid() {
-		$post_type_obj = new Post_Type( $this->plugin->customize_snapshot_manager );
+		$post_type_obj = $this->get_new_post_type_instance( $this->plugin->customize_snapshot_manager );
 		$uuid = $post_type_obj->get_snapshot_merged_uuid( array(
 			'foo' => array( 'merged_uuid' => array( 'uuid-1' ) ),
 			'bar' => array(
@@ -1166,4 +1070,32 @@ class Test_Post_type extends \WP_UnitTestCase {
 		) );
 		$this->assertSame( array( 'uuid-1', 'uuid-2' ), $uuid );
 	}
+
+	/**
+	 * Test remap_customize_meta_cap
+	 *
+	 * @covers CustomizeSnapshots\Post_Type::remap_customize_meta_cap()
+	 */
+	public function test_remap_customize_meta_cap() {
+		$this->mark_incompatible();
+		$this->markTestIncomplete();
+	}
+
+	/**
+	 * Test hide_add_new_changeset_button
+	 *
+	 * @covers CustomizeSnapshots\Post_Type::hide_add_new_changeset_button()
+	 */
+	public function test_hide_add_new_changeset_button() {
+		$this->mark_incompatible();
+		$post_type_obj = new Post_Type( $this->plugin->customize_snapshot_manager );
+		global $typenow;
+		$typenow = Post_Type::SLUG; // WPCS: Global override ok.
+		ob_start();
+		$post_type_obj->hide_add_new_changeset_button();
+		$content = ob_get_clean();
+		$this->assertContains( 'a.page-title-action', $content );
+		$this->assertContains( 'display: none;', $content );
+	}
+
 }

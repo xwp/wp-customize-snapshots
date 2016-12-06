@@ -60,7 +60,7 @@ var CustomizeSnapshotsPreview = (function( api, $ ) {
 		var customized = {};
 		api.each( function( setting ) {
 			if ( setting._dirty || -1 !== _.indexOf( component.data.initial_dirty_settings, setting.id ) ) {
-				customized[ setting.id ] = setting.get();
+				customized[setting.id] = setting.get();
 			}
 		} );
 		return {
@@ -194,7 +194,7 @@ var CustomizeSnapshotsPreview = (function( api, $ ) {
 
 			// Now preventDefault as is done on the normal submit.preview handler in customize-preview.js.
 			event.preventDefault();
-		});
+		} );
 	};
 
 	return component;

@@ -33,7 +33,12 @@ function get_plugin_instance() {
  * @return bool Whether previewing settings.
  */
 function is_previewing_settings() {
-	return get_plugin_instance()->customize_snapshot_manager->is_previewing_settings();
+	$manager = get_plugin_instance()->customize_snapshot_manager;
+	if ( get_plugin_instance()->compat ) {
+		return $manager->is_previewing_settings();
+	} else {
+		return isset( $manager->customize_manager ) && $manager->customize_manager->is_preview();
+	}
 }
 
 /**

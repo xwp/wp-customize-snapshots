@@ -1,894 +1,894 @@
-/* global jQuery, _customizeSnapshots */
+/* global jQuery, wp */
+/* eslint no-magic-numbers: [ "error", { "ignore": [0,1] } ], consistent-this: [ "error", "snapshot" ] */
 
-( function( api, $ ) {
+(function( api, $ ) {
 	'use strict';
 
-	var component, escKeyCode = 27;
+	var escKeyCode = 27;
 
-	if ( ! api.Snapshots ) {
-		api.Snapshots = {};
-	}
+	api.Snapshots = api.Class.extend( {
 
-	component = api.Snapshots;
+		data: {
+			action: '',
+			uuid: '',
+			editLink: '',
+			title: '',
+			publishDate: '',
+			postStatus: '',
+			currentUserCanPublish: true,
+			initialServerDate: '',
+			initialServerTimestamp: 0,
+			initialClientTimestamp: 0,
+			i18n: {},
+			dirty: false
+		},
 
-	component.schedule = {};
+		uuidParam: 'customize_changeset_uuid',
 
-	component.data = {
-		action: '',
-		uuid: '',
-		editLink: '',
-		title: '',
-		publishDate: '',
-		postStatus: '',
-		currentUserCanPublish: true,
-		initialServerDate: '',
-		initialServerTimestamp: 0,
-		initialClientTimestamp: 0,
-		i18n: {},
-		dirty: false
-	};
+		initialize: function initialize( snapshotsConfig ) {
+			var snapshot = this, snapshotExists;
 
-	if ( 'undefined' !== typeof _customizeSnapshots ) {
-		_.extend( component.data, _customizeSnapshots );
-	}
+			snapshot.schedule = {};
 
-	/**
-	 * Inject the functionality.
-	 *
-	 * @return {void}
-	 */
-	component.init = function() {
-		window._wpCustomizeControlsL10n.save = component.data.i18n.publish;
-		window._wpCustomizeControlsL10n.saved = component.data.i18n.published;
-
-		// Set the initial client timestamp.
-		component.data.initialClientTimestamp = component.dateValueOf();
-
-		api.bind( 'ready', function() {
-			api.state.create( 'snapshot-exists', component.data.snapshotExists );
-			api.state.create( 'snapshot-saved', true );
-			api.state.create( 'snapshot-submitted', true );
-			api.bind( 'change', function() {
-				api.state( 'snapshot-saved' ).set( false );
-				api.state( 'snapshot-submitted' ).set( false );
-			} );
-			component.frontendPreviewUrl = new api.Value( api.previewer.previewUrl.get() );
-			component.frontendPreviewUrl.link( api.previewer.previewUrl );
-
-			component.extendPreviewerQuery();
-			component.addButtons();
-			component.editSnapshotUI();
-
-			$( '#snapshot-save' ).on( 'click', function( event ) {
-				var scheduleDate,
-					requestData = {
-						status: 'draft'
-					};
-				event.preventDefault();
-
-				if ( component.snapshotTitle && component.snapshotTitle.val() ) {
-					requestData.title = component.snapshotTitle.val();
-				}
-				if ( ! _.isEmpty( component.editContainer ) && component.isFutureDate() ) {
-					scheduleDate = component.getDateFromInputs();
-					requestData.status = 'future';
-					requestData.publish_date = component.formatDate( scheduleDate );
-					component.sendUpdateSnapshotRequest( requestData );
-				} else {
-					component.sendUpdateSnapshotRequest( requestData );
-				}
-			} );
-			$( '#snapshot-submit' ).on( 'click', function( event ) {
-				var requestData = {
-					status: 'pending'
-				};
-				event.preventDefault();
-				if ( component.snapshotTitle && component.snapshotTitle.val() ) {
-					requestData.title = component.snapshotTitle.val();
-				}
-				component.sendUpdateSnapshotRequest( requestData );
-			} );
-
-			if ( api.state( 'snapshot-exists' ).get() ) {
-				api.state( 'saved' ).set( false );
-				component.resetSavedStateQuietly();
+			if ( _.isObject( snapshotsConfig ) ) {
+				_.extend( snapshot.data, snapshotsConfig );
 			}
 
-			api.trigger( 'snapshots-ready', component );
-		} );
+			window._wpCustomizeControlsL10n.save = snapshot.data.i18n.publish;
+			window._wpCustomizeControlsL10n.saved = snapshot.data.i18n.published;
 
-		api.bind( 'save', function( request ) {
+			// Set the initial client timestamp.
+			snapshot.data.initialClientTimestamp = snapshot.dateValueOf();
+			snapshot.updatePending = false;
 
-			// Make sure that saved state is false so that Published button behaves as expected.
-			api.state( 'saved' ).set( false );
+			api.bind( 'ready', function() {
+				snapshotExists = '{}' !== api.previewer.query().customized;
+				api.state.create( 'snapshot-exists', snapshotExists );
+				api.state.create( 'snapshot-saved', true );
+				api.state.create( 'snapshot-submitted', true );
+				api.state.create( 'snapshot-status', snapshot.data.postStatus );
+
+				snapshot.data.uuid = snapshot.data.uuid || api.settings.changeset.uuid;
+				snapshot.data.title = snapshot.data.title || snapshot.data.uuid;
+
+				// Suppress the AYS dialog.
+				api.bind( 'changeset-saved', function() {
+					if ( 'auto-draft' !== api.state( 'changesetStatus' ).get() ) {
+						api.state( 'saved' ).set( true );
+					}
+				});
+
+				api.bind( 'change', function() {
+					api.state( 'snapshot-saved' ).set( false );
+					api.state( 'snapshot-submitted' ).set( false );
+				} );
+
+				snapshot.frontendPreviewUrl = new api.Value( api.previewer.previewUrl.get() );
+				snapshot.frontendPreviewUrl.link( api.previewer.previewUrl );
+
+				snapshot.addButtons();
+				snapshot.editSnapshotUI();
+
+				$( '#snapshot-submit' ).on( 'click', function( event ) {
+					event.preventDefault();
+					snapshot.updateSnapshot( 'pending' );
+				} );
+
+				api.trigger( 'snapshots-ready', snapshot );
+			} );
+
+			api.bind( 'save', function( request ) {
+
+				// Make sure that saved state is false so that Published button behaves as expected.
+				api.state( 'saved' ).set( false );
+
+				request.fail( function( response ) {
+					var id = 'snapshot-dialog-error',
+						hashedID = '#' + id,
+						snapshotDialogPublishError = wp.template( id ),
+						spinner = $( '#customize-header-actions' ).find( '.spinner' );
+
+					if ( response.responseText ) {
+
+						// Insert the dialog error template.
+						if ( 0 === $( hashedID ).length ) {
+							$( 'body' ).append( snapshotDialogPublishError( {
+								title: snapshot.data.i18n.publish,
+								message: api.state( 'snapshot-exists' ).get() ? snapshot.data.i18n.permsMsg.update : snapshot.data.i18n.permsMsg.save
+							} ) );
+						}
+
+						spinner.removeClass( 'is-active' );
+
+						// Open the dialog.
+						$( hashedID ).dialog( {
+							autoOpen: true,
+							modal: true
+						} );
+					}
+				} );
+				return request;
+			} );
+		},
+
+		/**
+		 * Update snapshot.
+		 *
+		 * @param {string} status post status.
+		 * @returns {jQuery.promise} Request or promise.
+		 */
+		updateSnapshot: function updateSnapshot( status ) {
+			var snapshot = this, scheduleDate,
+				deferred = new $.Deferred(),
+				request,
+				requestData = {
+					status: status
+				};
+
+			if ( 'publish' === status && 'publish' !== api.state( 'snapshot-status' ).get() && snapshot.statusButton ) {
+				if ( snapshot.statusButton.state( 'button-text' ).get() !== snapshot.statusButton.button.data( 'confirm-text' ) ) {
+					snapshot.statusButton.state( 'disabled' ).set( false );
+					snapshot.statusButton.state( 'button-text' ).set( snapshot.statusButton.button.data( 'confirm-text' ) );
+					return deferred.promise();
+				}
+			}
+
+			if ( snapshot.snapshotTitle && snapshot.snapshotTitle.val() ) {
+				requestData.title = snapshot.snapshotTitle.val();
+			}
+
+			if ( 'future' === status ) {
+				if ( ! _.isEmpty( snapshot.editContainer ) && snapshot.isFutureDate() ) {
+					scheduleDate = snapshot.getDateFromInputs();
+					requestData.date = snapshot.formatDate( scheduleDate );
+					request = snapshot.sendUpdateSnapshotRequest( requestData );
+				}
+			} else {
+				if ( ! _.isEmpty( snapshot.editContainer ) && snapshot.isFutureDate() ) {
+					scheduleDate = snapshot.getDateFromInputs();
+					requestData.date = snapshot.formatDate( scheduleDate );
+				}
+				request = snapshot.sendUpdateSnapshotRequest( requestData );
+			}
+
+			return request ? request : deferred.promise();
+		},
+
+		/**
+		 * Make the AJAX request to update/save a snapshot.
+		 *
+		 * @param {object} options Options.
+		 * @param {string} options.status The post status for the snapshot.
+		 * @return {object} request.
+		 */
+		sendUpdateSnapshotRequest: function sendUpdateSnapshotRequest( options ) {
+			var snapshot = this,
+				spinner = $( '#customize-header-actions' ).find( '.spinner' ),
+				request, data;
+
+			data = _.extend(
+				{
+					status: 'draft'
+				},
+				options
+			);
+
+			snapshot.updatePending = true;
+			snapshot.statusButton.state( 'disabled' ).set( true );
+			spinner.addClass( 'is-active' );
+
+			request = wp.customize.previewer.save( data );
+
+			request.always( function( response ) {
+				spinner.removeClass( 'is-active' );
+				if ( response.edit_link ) {
+					snapshot.data.editLink = response.edit_link;
+				}
+				if ( response.publish_date ) {
+					snapshot.data.publishDate = response.publish_date;
+				}
+				if ( response.title ) {
+					snapshot.data.title = response.title;
+				}
+				snapshot.updateSnapshotEditControls();
+				snapshot.statusButton.state( 'disabled-select' ).set( false );
+				snapshot.data.dirty = false;
+				snapshot.updatePending = false;
+			} );
+
+			request.done( function( response ) {
+				var url = api.previewer.previewUrl(),
+					customizeUrl = window.location.href;
+
+				api.state( 'snapshot-exists' ).set( true );
+				api.state( 'snapshot-saved' ).set( true );
+				api.state( 'snapshot-status' ).set( data.status );
+				snapshot.statusButton.state( 'disabled-button' ).set( true );
+				snapshot.isFirstSave = false;
+
+				if ( 'pending' === data.status ) {
+					api.state( 'snapshot-submitted' ).set( true );
+				}
+
+				snapshot.statusButton.state( 'button-text' ).set( snapshot.statusButton.button.data( 'alt-text' ) );
+
+				// Trigger an event for plugins to use.
+				api.trigger( 'customize-snapshots-update', {
+					previewUrl: url,
+					customizeUrl: customizeUrl,
+					uuid: snapshot.data.uuid,
+					response: response
+				} );
+			} );
 
 			request.fail( function( response ) {
 				var id = 'snapshot-dialog-error',
-					snapshotDialogPublishError = wp.template( id );
+					hashedID = '#' + id,
+					snapshotDialogShareError = wp.template( id ),
+					messages = snapshot.data.i18n.errorMsg,
+					invalidityCount = 0,
+					dialogElement;
 
-				if ( response.responseText ) {
-
-					// Insert the dialog error template.
-					if ( 0 === $( '#' + id ).length ) {
-						$( 'body' ).append( snapshotDialogPublishError( {
-							title: component.data.i18n.publish,
-							message: api.state( 'snapshot-exists' ).get() ? component.data.i18n.permsMsg.update : component.data.i18n.permsMsg.save
-						} ) );
-					}
-
-					$( '#customize-header-actions .spinner' ).removeClass( 'is-active' );
-
-					// Open the dialog.
-					$( '#' + id ).dialog( {
-						autoOpen: true,
-						modal: true
+				// @todo is this required in 4.7?.
+				if ( response.setting_validities ) {
+					invalidityCount = _.size( response.setting_validities, function( validity ) {
+						return true !== validity;
 					} );
 				}
-			} );
-			return request;
-		} );
 
-		api.bind( 'saved', function( response ) {
-			var url = window.location.href,
-				updatedUrl,
-				urlParts;
-
-			// Update the UUID.
-			if ( response.new_customize_snapshot_uuid ) {
-				component.data.uuid = response.new_customize_snapshot_uuid;
-				component.previewLink.attr( 'target', component.data.uuid );
-			}
-
-			api.state( 'snapshot-exists' ).set( false );
-
-			// Replace the history state with an updated Customizer URL that does not include the Snapshot UUID.
-			urlParts = url.split( '?' );
-			if ( history.replaceState && urlParts[1] ) {
-				updatedUrl = urlParts[0] + '?' + _.filter( urlParts[1].split( '&' ), function( queryPair ) {
-					return ! /^(customize_snapshot_uuid)=/.test( queryPair );
-				} ).join( '&' );
-				updatedUrl = updatedUrl.replace( /\?$/, '' );
-				if ( updatedUrl !== url ) {
-					history.replaceState( {}, document.title, updatedUrl );
-				}
-			}
-		} );
-	};
-
-	/**
-	 * Amend the preview query so we can update the snapshot during `customize_save`.
-	 *
-	 * @return {void}
-	 */
-	component.extendPreviewerQuery = function() {
-		var originalQuery = api.previewer.query;
-
-		api.previewer.query = function() {
-			var retval = originalQuery.apply( this, arguments );
-			if ( api.state( 'snapshot-exists' ).get() ) {
-				retval.customize_snapshot_uuid = component.data.uuid;
-				if ( component.snapshotTitle && component.snapshotTitle.val() ) {
-					retval.title = component.snapshotTitle.val();
-				}
-			}
-			return retval;
-		};
-	};
-
-	/**
-	 * Get the preview URL with the snapshot UUID attached.
-	 *
-	 * @returns {string} URL.
-	 */
-	component.getSnapshotFrontendPreviewUrl = function getSnapshotFrontendPreviewUrl() {
-		var a = document.createElement( 'a' );
-		a.href = component.frontendPreviewUrl.get();
-		if ( a.search ) {
-			a.search += '&';
-		}
-		a.search += 'customize_snapshot_uuid=' + component.data.uuid;
-		return a.href;
-	};
-
-	/**
-	 * Create the snapshot buttons.
-	 *
-	 * @return {void}
-	 */
-	component.addButtons = function() {
-		var header = $( '#customize-header-actions' ),
-			publishButton = header.find( '#save' ),
-			submitButton, templateData = {}, setPreviewLinkHref;
-
-		component.dirtySnapshotPostSetting = new api.Value();
-		component.dirtyScheduleDate = new api.Value();
-
-		// Save/update button.
-		if ( api.state( 'snapshot-exists' ).get() ) {
-			if ( 'future' === component.data.postStatus ) {
-				templateData.buttonText = component.data.i18n.scheduleButton;
-			} else {
-				templateData.buttonText = component.data.i18n.updateButton;
-			}
-		} else {
-			templateData.buttonText = component.data.i18n.saveButton;
-		}
-		component.snapshotButton = $( $.trim( wp.template( 'snapshot-save' )( templateData ) ) );
-		if ( ! component.data.currentUserCanPublish ) {
-			component.snapshotButton.attr( 'title', api.state( 'snapshot-exists' ).get() ? component.data.i18n.permsMsg.update : component.data.i18n.permsMsg.save );
-		}
-		component.snapshotButton.prop( 'disabled', true );
-		component.snapshotButton.insertAfter( publishButton );
-
-		// Preview link.
-		component.previewLink = $( $.trim( wp.template( 'snapshot-preview-link' )() ) );
-		component.previewLink.toggle( api.state( 'snapshot-saved' ).get() );
-		component.previewLink.attr( 'target', component.data.uuid );
-		setPreviewLinkHref = _.debounce( function() {
-			if ( api.state( 'snapshot-exists' ).get() ) {
-				component.previewLink.attr( 'href', component.getSnapshotFrontendPreviewUrl() );
-			} else {
-				component.previewLink.attr( 'href', component.frontendPreviewUrl.get() );
-			}
-		} );
-		component.frontendPreviewUrl.bind( setPreviewLinkHref );
-		setPreviewLinkHref();
-		api.state.bind( 'change', setPreviewLinkHref );
-		api.bind( 'saved', setPreviewLinkHref );
-		component.snapshotButton.after( component.previewLink );
-		api.state( 'snapshot-saved' ).bind( function( saved ) {
-			component.previewLink.toggle( saved );
-		} );
-
-		// Edit button.
-		component.snapshotExpandButton = $( $.trim( wp.template( 'snapshot-expand-button' )( {} ) ) );
-		component.snapshotExpandButton.insertAfter( component.snapshotButton );
-
-		if ( ! component.data.editLink ) {
-			component.snapshotExpandButton.hide();
-		}
-
-		api.state( 'change', function() {
-			component.snapshotExpandButton.toggle( api.state( 'snapshot-saved' ).get() && api.state( 'snapshot-exists' ).get() );
-		} );
-
-		api.state( 'snapshot-exists' ).bind( function( exist ) {
-			component.snapshotExpandButton.toggle( exist );
-		} );
-
-		api.state( 'snapshot-saved' ).bind( function( saved ) {
-			component.snapshotButton.prop( 'disabled', saved );
-		} );
-
-		api.state( 'saved' ).bind( function( saved ) {
-			if ( saved ) {
-				component.snapshotButton.prop( 'disabled', true );
-			}
-		} );
-		api.bind( 'change', function() {
-			component.snapshotButton.prop( 'disabled', false );
-		} );
-
-		api.state( 'snapshot-exists' ).bind( function( exists ) {
-			var buttonText, permsMsg;
-			if ( exists ) {
-				buttonText = component.data.i18n.updateButton;
-				permsMsg = component.data.i18n.permsMsg.update;
-			} else {
-				buttonText = component.data.i18n.saveButton;
-				permsMsg = component.data.i18n.permsMsg.save;
-			}
-
-			component.snapshotButton.text( buttonText );
-			if ( ! component.data.currentUserCanPublish ) {
-				component.snapshotButton.attr( 'title', permsMsg );
-			}
-		} );
-
-		component.dirtySnapshotPostSetting.bind( function( dirty ) {
-			if ( dirty ) {
-				component.snapshotButton.prop( 'disabled', false );
-			} else {
-				component.snapshotButton.prop( 'disabled', ! component.data.dirty );
-			}
-			component.updateButtonText();
-		} );
-		component.dirtyScheduleDate.bind( function( dirty ) {
-			var date;
-			if ( dirty ) {
-				date = component.getDateFromInputs();
-				if ( ! date || ! component.data.currentUserCanPublish ) {
+				/*
+				 * Short-circuit if there are setting validation errors, since the error messages
+				 * will be displayed with the controls themselves. Eventually, once we have
+				 * a global notification area in the Customizer, we can eliminate this
+				 * short-circuit and instead display the messages in there.
+				 * See https://core.trac.wordpress.org/ticket/35210
+				 */
+				if ( invalidityCount > 0 ) {
 					return;
 				}
-				component.snapshotButton.text( component.data.i18n.scheduleButton );
-			} else {
-				component.updateButtonText();
-			}
-		} );
 
-		// Submit for review button.
-		if ( ! component.data.currentUserCanPublish ) {
-			publishButton.hide();
-			submitButton = wp.template( 'snapshot-submit' );
-			submitButton = $( $.trim( submitButton( {
-				buttonText: component.data.i18n.submit
-			} ) ) );
-			submitButton.prop( 'disabled', ! api.state( 'snapshot-exists' ).get() );
-			submitButton.insertBefore( component.snapshotButton );
-			api.state( 'snapshot-submitted' ).bind( function( submitted ) {
-				submitButton.prop( 'disabled', submitted );
-			} );
-		}
+				if ( response.errors ) {
+					messages += ' ' + _.pluck( response.errors, 'message' ).join( ' ' );
+				}
 
-		header.addClass( 'button-added' );
-	};
+				// Insert the snapshot dialog error template.
+				dialogElement = $( hashedID );
+				if ( ! dialogElement.length ) {
+					dialogElement = $( snapshotDialogShareError( {
+						title: snapshot.data.i18n.errorTitle,
+						message: messages
+					} ) );
+					$( 'body' ).append( dialogElement );
+				}
 
-	/**
-	 * Update button text.
-	 *
-	 * @returns {void}
-	 */
-	component.updateButtonText = function updateButtonText() {
-		var date = component.getDateFromInputs();
-		if ( component.isFutureDate() && date && component.data.currentUserCanPublish ) {
-			component.snapshotButton.text( component.data.i18n.scheduleButton );
-		} else {
-			component.snapshotButton.text( api.state( 'snapshot-exists' ).get() ? component.data.i18n.updateButton : component.data.i18n.saveButton );
-		}
-	};
-
-	/**
-	 * Renders snapshot schedule and handles it's events.
-	 *
-	 * @returns {void}
-	 */
-	component.editSnapshotUI = function editSnapshotUI() {
-		var sliceBegin = 0,
-			sliceEnd = -2, updateUI;
-
-		component.snapshotEditContainerDisplayed = new api.Value();
-
-		updateUI = function() {
-			component.populateSetting();
-		};
-
-		// Inject the UI.
-		if ( _.isEmpty( component.editContainer ) ) {
-			if ( '0000-00-00 00:00:00' === component.data.publishDate ) {
-				component.data.publishDate = component.getCurrentTime();
-			}
-
-			// Normalize date with secs set as zeros removed.
-			component.data.publishDate = component.data.publishDate.slice( sliceBegin, sliceEnd ) + '00';
-
-			// Extend the components data object and add the parsed datetime strings.
-			component.data = _.extend( component.data, component.parseDateTime( component.data.publishDate ) );
-
-			// Add the template to the DOM.
-			component.editContainer = $( $.trim( wp.template( 'snapshot-edit-container' )( component.data ) ) );
-			component.editContainer.hide().appendTo( $( '#customize-header-actions' ) );
-
-			if ( component.data.currentUserCanPublish ) {
-
-				// Store the date inputs.
-				component.schedule.inputs = component.editContainer.find( '.date-input' );
-
-				component.schedule.inputs.on( 'input', updateUI );
-
-				component.schedule.inputs.on( 'blur', function() {
-					component.populateInputs();
-					component.populateSetting();
+				// Open the dialog.
+				$( hashedID ).dialog( {
+					autoOpen: true,
+					modal: true
 				} );
+			} );
 
-				component.updateCountdown();
+			return request;
+		},
 
-				component.editContainer.find( '.reset-time a' ).on( 'click', function( event ) {
+		/**
+		 * Create the snapshot buttons.
+		 *
+		 * @return {void}
+		 */
+		addButtons: function addButtons() {
+			var snapshot = this,
+				header = $( '#customize-header-actions' ),
+				submitButton, setPreviewLinkHref;
+
+			snapshot.publishButton = $( '#save' );
+			snapshot.dirtyEditSettings = new api.Values();
+
+			snapshot.publishButton.addClass( 'hidden' );
+			snapshot.statusButton = snapshot.addSelectButton();
+
+			// Select/save-draft button.
+			if ( api.state( 'snapshot-exists' ).get() && 'auto-draft' !== snapshot.data.postStatus ) {
+				snapshot.isFirstSave = false;
+				api.state( 'snapshot-status' ).set( snapshot.data.postStatus );
+			} else {
+				snapshot.isFirstSave = true;
+			}
+
+			// Preview link.
+			snapshot.previewLink = $( $.trim( wp.template( 'snapshot-preview-link' )() ) );
+			snapshot.previewLink.toggle( api.state( 'snapshot-saved' ).get() );
+			snapshot.previewLink.attr( 'target', snapshot.data.uuid );
+			setPreviewLinkHref = _.debounce( function() {
+				if ( api.state( 'snapshot-exists' ).get() ) {
+					snapshot.previewLink.attr( 'href', snapshot.getSnapshotFrontendPreviewUrl() );
+				} else {
+					snapshot.previewLink.attr( 'href', snapshot.frontendPreviewUrl.get() );
+				}
+			} );
+			snapshot.frontendPreviewUrl.bind( setPreviewLinkHref );
+			setPreviewLinkHref();
+			api.state.bind( 'change', setPreviewLinkHref );
+			api.bind( 'saved', setPreviewLinkHref );
+			snapshot.statusButton.container.after( snapshot.previewLink );
+			api.state( 'snapshot-saved' ).bind( function( saved ) {
+				snapshot.previewLink.toggle( saved );
+			} );
+
+			// Edit button.
+			snapshot.snapshotExpandButton = $( $.trim( wp.template( 'snapshot-expand-button' )( {} ) ) );
+			snapshot.statusButton.container.after( snapshot.snapshotExpandButton );
+
+			if ( ! snapshot.data.editLink ) {
+				snapshot.snapshotExpandButton.hide();
+				snapshot.previewLink.hide();
+			}
+
+			api.state( 'change', function() {
+				snapshot.snapshotExpandButton.toggle( api.state( 'snapshot-saved' ).get() && api.state( 'snapshot-exists' ).get() );
+			} );
+
+			api.state( 'snapshot-exists' ).bind( function( exist ) {
+				snapshot.snapshotExpandButton.toggle( exist );
+				snapshot.previewLink.toggle( exist );
+			} );
+
+			api.bind( 'change', function() {
+				snapshot.statusButton.state( 'disabled' ).set( false );
+			} );
+
+			// Submit for review button.
+			if ( ! snapshot.data.currentUserCanPublish ) {
+				submitButton = wp.template( 'snapshot-submit' );
+				submitButton = $( $.trim( submitButton( {
+					buttonText: snapshot.data.i18n.submit
+				} ) ) );
+				submitButton.prop( 'disabled', ! api.state( 'snapshot-exists' ).get() );
+				submitButton.insertBefore( snapshot.statusButton.container );
+				api.state( 'snapshot-submitted' ).bind( function( submitted ) {
+					submitButton.prop( 'disabled', submitted );
+				} );
+			}
+
+			header.addClass( 'button-added' );
+		},
+
+		/**
+		 * Renders snapshot schedule and handles it's events.
+		 *
+		 * @returns {void}
+		 */
+		editSnapshotUI: function editSnapshotUI() {
+			var snapshot = this, sliceBegin = 0,
+				sliceEnd = -2, updateUI;
+
+			snapshot.snapshotEditContainerDisplayed = new api.Value();
+
+			updateUI = function() {
+				snapshot.populateSetting();
+			};
+
+			// Inject the UI.
+			if ( _.isEmpty( snapshot.editContainer ) ) {
+				if ( '0000-00-00 00:00:00' === snapshot.data.publishDate ) {
+					snapshot.data.publishDate = snapshot.getCurrentTime();
+				}
+
+				// Normalize date with secs set as zeros removed.
+				snapshot.data.publishDate = snapshot.data.publishDate.slice( sliceBegin, sliceEnd ) + '00';
+
+				// Extend the snapshots data object and add the parsed datetime strings.
+				snapshot.data = _.extend( snapshot.data, snapshot.parseDateTime( snapshot.data.publishDate ) );
+
+				// Add the template to the DOM.
+				snapshot.editContainer = $( $.trim( wp.template( 'snapshot-edit-container' )( snapshot.data ) ) );
+				snapshot.editContainer.hide().appendTo( $( '#customize-header-actions' ) );
+				snapshot.dateNotification = snapshot.editContainer.find( '.snapshot-future-date-notification' );
+
+				if ( snapshot.data.currentUserCanPublish ) {
+
+					// Store the date inputs.
+					snapshot.schedule.inputs = snapshot.editContainer.find( '.date-input' );
+
+					snapshot.schedule.inputs.on( 'input', updateUI );
+
+					snapshot.schedule.inputs.on( 'blur', function() {
+						snapshot.populateInputs();
+						snapshot.populateSetting();
+					} );
+
+					snapshot.updateCountdown();
+
+					snapshot.editContainer.find( '.reset-time a' ).on( 'click', function( event ) {
+						event.preventDefault();
+						snapshot.updateSnapshotEditControls();
+					} );
+				}
+
+				snapshot.snapshotTitle = snapshot.editContainer.find( '#snapshot-title' );
+				snapshot.snapshotTitle.on( 'input', updateUI );
+			}
+
+			// Set up toggling of the schedule container.
+			snapshot.snapshotEditContainerDisplayed.bind( function( isDisplayed ) {
+				if ( isDisplayed ) {
+					snapshot.editContainer.stop().slideDown( 'fast' ).attr( 'aria-expanded', 'true' );
+					snapshot.snapshotExpandButton.attr( 'aria-pressed', 'true' );
+					snapshot.snapshotExpandButton.prop( 'title', snapshot.data.i18n.collapseSnapshotScheduling );
+					snapshot.toggleDateNotification();
+				} else {
+					snapshot.editContainer.stop().slideUp( 'fast' ).attr( 'aria-expanded', 'false' );
+					snapshot.snapshotExpandButton.attr( 'aria-pressed', 'false' );
+					snapshot.snapshotExpandButton.prop( 'title', snapshot.data.i18n.expandSnapshotScheduling );
+				}
+			} );
+
+			// Toggle schedule container when clicking the button.
+			snapshot.snapshotExpandButton.on( 'click', function( event ) {
+				event.preventDefault();
+				snapshot.snapshotEditContainerDisplayed.set( ! snapshot.snapshotEditContainerDisplayed.get() );
+			} );
+
+			// Collapse the schedule container when Esc is pressed while the button is focused.
+			snapshot.snapshotExpandButton.on( 'keydown', function( event ) {
+				if ( escKeyCode === event.which && snapshot.snapshotEditContainerDisplayed.get() ) {
+					event.stopPropagation();
 					event.preventDefault();
-					component.updateSnapshotEditControls();
-				} );
-			}
-
-			component.snapshotTitle = component.editContainer.find( '#snapshot-title' );
-			component.snapshotTitle.on( 'input', updateUI );
-		}
-
-		// Set up toggling of the schedule container.
-		component.snapshotEditContainerDisplayed.bind( function( isDisplayed ) {
-			if ( isDisplayed ) {
-				component.editContainer.stop().slideDown( 'fast' ).attr( 'aria-expanded', 'true' );
-				component.snapshotExpandButton.attr( 'aria-pressed', 'true' );
-				component.snapshotExpandButton.prop( 'title', component.data.i18n.collapseSnapshotScheduling );
-			} else {
-				component.editContainer.stop().slideUp( 'fast' ).attr( 'aria-expanded', 'false' );
-				component.snapshotExpandButton.attr( 'aria-pressed', 'false' );
-				component.snapshotExpandButton.prop( 'title', component.data.i18n.expandSnapshotScheduling );
-			}
-		} );
-
-		// Toggle schedule container when clicking the button.
-		component.snapshotExpandButton.on( 'click', function( event ) {
-			event.preventDefault();
-			component.snapshotEditContainerDisplayed.set( ! component.snapshotEditContainerDisplayed.get() );
-		} );
-
-		// Collapse the schedule container when Esc is pressed while the button is focused.
-		component.snapshotExpandButton.on( 'keydown', function( event ) {
-			if ( escKeyCode === event.which && component.snapshotEditContainerDisplayed.get() ) {
-				event.stopPropagation();
-				event.preventDefault();
-				component.snapshotEditContainerDisplayed.set( false );
-			}
-		});
-
-		// Collapse the schedule container when Esc is pressed inside of the schedule container.
-		component.editContainer.on( 'keydown', function( event ) {
-			if ( escKeyCode === event.which && component.snapshotEditContainerDisplayed.get() ) {
-				event.stopPropagation();
-				event.preventDefault();
-				component.snapshotEditContainerDisplayed.set( false );
-				component.snapshotExpandButton.focus();
-			}
-		});
-
-		// Collapse the schedule container interacting outside the schedule container.
-		$( 'body' ).on( 'mousedown', function( event ) {
-			if ( component.snapshotEditContainerDisplayed.get() && ! $.contains( component.editContainer[0], event.target ) && ! component.snapshotExpandButton.is( event.target ) ) {
-				component.snapshotEditContainerDisplayed.set( false );
-			}
-		});
-
-		component.snapshotEditContainerDisplayed.set( false );
-
-		api.state( 'snapshot-saved' ).bind( function( saved ) {
-			if ( saved ) {
-				component.updateSnapshotEditControls();
-			}
-		} );
-
-		api.bind( 'change', function() {
-			component.data.dirty = true;
-			component.editContainer.find( 'a.snapshot-edit-link' ).hide();
-		} );
-
-		api.state( 'saved' ).bind( function( saved ) {
-			if ( saved && ! _.isEmpty( component.editContainer ) ) {
-				component.data.dirty = false;
-				component.data.publishDate = component.getCurrentTime();
-				component.snapshotEditContainerDisplayed.set( false );
-				component.updateSnapshotEditControls();
-			}
-		} );
-
-		api.state( 'snapshot-exists' ).bind( function( exists ) {
-			if ( exists && ! _.isEmpty( component.editContainer ) ) {
-				component.updateSnapshotEditControls();
-			} else {
-				component.snapshotEditContainerDisplayed.set( false );
-			}
-		} );
-	};
-
-	/**
-	 * Updates snapshot schedule with `component.data`.
-	 *
-	 * @return {void}
-	 */
-	component.updateSnapshotEditControls = function updateSnapshotEditControls() {
-		var parsed,
-			sliceBegin = 0,
-			sliceEnd = -2;
-
-		if ( _.isEmpty( component.editContainer ) ) {
-			return;
-		}
-
-		if ( component.data.currentUserCanPublish ) {
-			if ( '0000-00-00 00:00:00' === component.data.publishDate ) {
-				component.data.publishDate = component.getCurrentTime();
-			}
-
-			// Normalize date with seconds removed.
-			component.data.publishDate = component.data.publishDate.slice( sliceBegin, sliceEnd ) + '00';
-			parsed = component.parseDateTime( component.data.publishDate );
-
-			// Update date controls.
-			component.schedule.inputs.each( function() {
-				var input = $( this ),
-					fieldName = input.data( 'date-input' );
-
-				$( this ).val( parsed[fieldName] );
+					snapshot.snapshotEditContainerDisplayed.set( false );
+				}
 			} );
-		}
 
-		component.editContainer.find( 'a.snapshot-edit-link' )
-			.attr( 'href', component.data.editLink )
-			.show();
-		if ( ! _.isEmpty( component.data.title ) ) {
-			component.snapshotTitle.val( component.data.title );
-		}
-		component.populateSetting();
-	};
-
-	/**
-	 * Update the scheduled countdown text.
-	 *
-	 * Hides countdown if post_status is not already future.
-	 * Toggles the countdown if there is no remaining time.
-	 *
-	 * @returns {boolean} True if date inputs are valid.
-	 */
-	component.updateCountdown = function updateCountdown() {
-		var countdown = component.editContainer.find( '.snapshot-scheduled-countdown' ),
-			countdownTemplate = wp.template( 'snapshot-scheduled-countdown' ),
-			dateTimeFromInput = component.getDateFromInputs(),
-			millisecondsDivider = 1000,
-			remainingTime;
-
-		if ( ! dateTimeFromInput ) {
-			return false;
-		}
-
-		remainingTime = dateTimeFromInput.valueOf();
-		remainingTime -= component.dateValueOf( component.getCurrentTime() );
-		remainingTime = Math.ceil( remainingTime / millisecondsDivider );
-
-		if ( 0 < remainingTime ) {
-			countdown.text( countdownTemplate( {
-				remainingTime: remainingTime
-			} ) );
-			countdown.show();
-		} else {
-			countdown.hide();
-		}
-
-		return true;
-	};
-
-	/**
-	 * Silently update the saved state to be true without triggering the
-	 * changed event so that the AYS beforeunload dialog won't appear
-	 * if no settings have been changed after saving a snapshot. Note
-	 * that it would be better if jQuery's callbacks allowed them to
-	 * disabled and then re-enabled later, for example:
-	 *   wp.customize.state.topics.change.disable();
-	 *   wp.customize.state( 'saved' ).set( true );
-	 *   wp.customize.state.topics.change.enable();
-	 * But unfortunately there is no such enable method.
-	 *
-	 * @return {void}
-	 */
-	component.resetSavedStateQuietly = function() {
-		api.state( 'saved' )._value = true;
-	};
-
-	/**
-	 * Make the AJAX request to update/save a snapshot.
-	 *
-	 * @param {object} options Options.
-	 * @param {string} options.status The post status for the snapshot.
-	 * @return {void}
-	 */
-	component.sendUpdateSnapshotRequest = function( options ) {
-		var spinner = $( '#customize-header-actions .spinner' ),
-			request, data;
-
-		data = _.extend(
-			{
-				status: 'draft'
-			},
-			api.previewer.query(),
-			options,
-			{
-				nonce: api.settings.nonce.snapshot,
-				customize_snapshot_uuid: component.data.uuid
-			}
-		);
-		request = wp.ajax.post( 'customize_update_snapshot', data );
-
-		spinner.addClass( 'is-active' );
-		request.always( function( response ) {
-			spinner.removeClass( 'is-active' );
-			if ( response.edit_link ) {
-				component.data.editLink = response.edit_link;
-			}
-			if ( response.snapshot_publish_date ) {
-				component.data.publishDate = response.snapshot_publish_date;
-			}
-			if ( response.title ) {
-				component.data.title = response.title;
-			}
-			component.updateSnapshotEditControls();
-			component.data.dirty = false;
-
-			// @todo Remove privateness from _handleSettingValidities in Core.
-			if ( api._handleSettingValidities && response.setting_validities ) {
-				api._handleSettingValidities( {
-					settingValidities: response.setting_validities,
-					focusInvalidControl: true
-				} );
-			}
-		} );
-
-		request.done( function( response ) {
-			var url = api.previewer.previewUrl(),
-				regex = new RegExp( '([?&])customize_snapshot_uuid=.*?(&|$)', 'i' ),
-				notFound = -1,
-				separator = url.indexOf( '?' ) !== notFound ? '&' : '?',
-				customizeUrl = window.location.href,
-				customizeSeparator = customizeUrl.indexOf( '?' ) !== notFound ? '&' : '?';
-
-			if ( url.match( regex ) ) {
-				url = url.replace( regex, '$1customize_snapshot_uuid=' + encodeURIComponent( component.data.uuid ) + '$2' );
-			} else {
-				url = url + separator + 'customize_snapshot_uuid=' + encodeURIComponent( component.data.uuid );
-			}
-
-			// Change the save button text to update.
-			api.state( 'snapshot-exists' ).set( true );
-
-			// Replace the history state with an updated Customizer URL that includes the Snapshot UUID.
-			if ( history.replaceState && ! customizeUrl.match( regex ) ) {
-				customizeUrl += customizeSeparator + 'customize_snapshot_uuid=' + encodeURIComponent( component.data.uuid );
-				history.replaceState( {}, document.title, customizeUrl );
-			}
-
-			api.state( 'snapshot-saved' ).set( true );
-			if ( 'pending' === data.status ) {
-				api.state( 'snapshot-submitted' ).set( true );
-			}
-			component.resetSavedStateQuietly();
-
-			// Trigger an event for plugins to use.
-			api.trigger( 'customize-snapshots-update', {
-				previewUrl: url,
-				customizeUrl: customizeUrl,
-				uuid: component.data.uuid,
-				response: response
+			// Collapse the schedule container when Esc is pressed inside of the schedule container.
+			snapshot.editContainer.on( 'keydown', function( event ) {
+				if ( escKeyCode === event.which && snapshot.snapshotEditContainerDisplayed.get() ) {
+					event.stopPropagation();
+					event.preventDefault();
+					snapshot.snapshotEditContainerDisplayed.set( false );
+					snapshot.snapshotExpandButton.focus();
+				}
 			} );
-		} );
 
-		request.fail( function( response ) {
-			var id = 'snapshot-dialog-error',
-				snapshotDialogShareError = wp.template( id ),
-				messages = component.data.i18n.errorMsg,
-				invalidityCount = 0,
-				dialogElement;
+			// Collapse the schedule container interacting outside the schedule container.
+			$( 'body' ).on( 'mousedown', function( event ) {
+				var isDisplayed = snapshot.snapshotEditContainerDisplayed.get(),
+					isTargetEditContainer = snapshot.editContainer.is( event.target ) || 0 !== snapshot.editContainer.has( event.target ).length,
+					isTargetExpandButton = snapshot.snapshotExpandButton.is( event.target );
 
-			if ( response.setting_validities ) {
-				invalidityCount = _.size( response.setting_validities, function( validity ) {
-					return true !== validity;
-				} );
+				if ( isDisplayed && ! isTargetEditContainer && ! isTargetExpandButton ) {
+					snapshot.snapshotEditContainerDisplayed.set( false );
+				}
+			} );
+
+			snapshot.snapshotEditContainerDisplayed.set( false );
+
+			api.state( 'snapshot-saved' ).bind( function( saved ) {
+				if ( saved ) {
+					snapshot.updateSnapshotEditControls();
+				}
+			} );
+
+			api.bind( 'change', function() {
+				snapshot.data.dirty = true;
+				snapshot.editContainer.find( 'a.snapshot-edit-link' ).hide();
+			} );
+
+			api.state( 'snapshot-exists' ).bind( function( exists ) {
+				if ( exists && ! _.isEmpty( snapshot.editContainer ) ) {
+					snapshot.updateSnapshotEditControls();
+				} else {
+					snapshot.snapshotEditContainerDisplayed.set( false );
+				}
+			} );
+
+			snapshot.autoSaveEditBox();
+		},
+
+		/**
+		 * Auto save edit box when the dates are changed.
+		 *
+		 * @return {void}.
+		 */
+		autoSaveEditBox: function autoSaveEditor() {
+			var snapshot = this, updateSnapshot, delay = 1000;
+
+			updateSnapshot = _.debounce( function( status ) {
+				snapshot.updateSnapshot( status );
+			}, delay );
+
+			snapshot.dirtyEditSettings.bind( 'date', function( dirty ) {
+				if ( ! snapshot.updatePending && ! snapshot.isFirstSave ) {
+					if ( dirty ) {
+						if ( 'future' !== api.state( 'snapshot-status' ).get() ) {
+							snapshot.updateSnapshot( api.state( 'snapshot-status' ).get() );
+						}
+					}
+					if ( ! snapshot.isFutureDate() ) {
+						updateSnapshot( 'draft' );
+					}
+				}
+			} );
+		},
+
+		/**
+		 * Toggles date notification.
+		 *
+		 * @return {void}.
+		 */
+		toggleDateNotification: function showDateNotification() {
+			var snapshot = this;
+			if ( ! _.isEmpty( snapshot.dateNotification ) ) {
+				snapshot.dateNotification.toggle( ! snapshot.isFutureDate() && 'future' === snapshot.statusButton.select.val() );
 			}
+		},
 
-			/*
-			 * Short-circuit if there are setting validation errors, since the error messages
-			 * will be displayed with the controls themselves. Eventually, once we have
-			 * a global notification area in the Customizer, we can eliminate this
-			 * short-circuit and instead display the messages in there.
-			 * See https://core.trac.wordpress.org/ticket/35210
-			 */
-			if ( invalidityCount > 0 ) {
+		/**
+		 * Get the preview URL with the snapshot UUID attached.
+		 *
+		 * @returns {string} URL.
+		 */
+		getSnapshotFrontendPreviewUrl: function getSnapshotFrontendPreviewUrl() {
+			var snapshot = this, a = document.createElement( 'a' );
+			a.href = snapshot.frontendPreviewUrl.get();
+			if ( a.search ) {
+				a.search += '&';
+			}
+			a.search += snapshot.uuidParam + '=' + snapshot.data.uuid;
+			return a.href;
+		},
+
+		/**
+		 * Updates snapshot schedule with `snapshot.data`.
+		 *
+		 * @return {void}
+		 */
+		updateSnapshotEditControls: function updateSnapshotEditControls() {
+			var snapshot = this,
+				parsed,
+				sliceBegin = 0,
+				sliceEnd = -2;
+
+			if ( _.isEmpty( snapshot.editContainer ) ) {
 				return;
 			}
 
-			if ( response.errors ) {
-				messages += ' ' + _.pluck( response.errors, 'message' ).join( ' ' );
+			if ( snapshot.data.currentUserCanPublish ) {
+				if ( '0000-00-00 00:00:00' === snapshot.data.publishDate ) {
+					snapshot.data.publishDate = snapshot.getCurrentTime();
+				}
+
+				// Normalize date with seconds removed.
+				snapshot.data.publishDate = snapshot.data.publishDate.slice( sliceBegin, sliceEnd ) + '00';
+				parsed = snapshot.parseDateTime( snapshot.data.publishDate );
+
+				// Update date controls.
+				snapshot.schedule.inputs.each( function() {
+					var input = $( this ),
+						fieldName = input.data( 'date-input' );
+					$( this ).val( parsed[fieldName] );
+				} );
 			}
 
-			// Insert the snapshot dialog error template.
-			dialogElement = $( '#' + id );
-			if ( ! dialogElement.length ) {
-				dialogElement = $( snapshotDialogShareError( {
-					title: component.data.i18n.errorTitle,
-					message: messages
+			snapshot.editContainer.find( 'a.snapshot-edit-link' )
+				.attr( 'href', snapshot.data.editLink )
+				.show();
+			if ( ! _.isEmpty( snapshot.data.title ) ) {
+				snapshot.snapshotTitle.val( snapshot.data.title );
+			}
+			snapshot.populateSetting();
+		},
+
+		/**
+		 * Update the scheduled countdown text.
+		 *
+		 * Hides countdown if post_status is not already future.
+		 * Toggles the countdown if there is no remaining time.
+		 *
+		 * @returns {boolean} True if date inputs are valid.
+		 */
+		updateCountdown: function updateCountdown() {
+			var snapshot = this, countdown = snapshot.editContainer.find( '.snapshot-scheduled-countdown' ),
+				countdownTemplate = wp.template( 'snapshot-scheduled-countdown' ),
+				dateTimeFromInput = snapshot.getDateFromInputs(),
+				millisecondsDivider = 1000,
+				remainingTime;
+
+			if ( ! dateTimeFromInput ) {
+				return false;
+			}
+
+			remainingTime = dateTimeFromInput.valueOf();
+			remainingTime -= snapshot.dateValueOf( snapshot.getCurrentTime() );
+			remainingTime = Math.ceil( remainingTime / millisecondsDivider );
+
+			if ( 0 < remainingTime ) {
+				countdown.text( countdownTemplate( {
+					remainingTime: remainingTime
 				} ) );
-				$( 'body' ).append( dialogElement );
+				countdown.show();
+			} else {
+				countdown.hide();
 			}
 
-			// Open the dialog.
-			dialogElement.dialog( {
-				autoOpen: true,
-				modal: true
+			return true;
+		},
+
+		/**
+		 * Get date from inputs.
+		 *
+		 * @returns {Date|null} Date created from inputs or null if invalid date.
+		 */
+		getDateFromInputs: function getDateFromInputs() {
+			var snapshot = this,
+				template = snapshot.editContainer,
+				monthOffset = 1,
+				date;
+
+			date = new Date(
+				parseInt( template.find( '[data-date-input="year"]' ).val(), 10 ),
+				parseInt( template.find( '[data-date-input="month"]' ).val(), 10 ) - monthOffset,
+				parseInt( template.find( '[data-date-input="day"]' ).val(), 10 ),
+				parseInt( template.find( '[data-date-input="hour"]' ).val(), 10 ),
+				parseInt( template.find( '[data-date-input="minute"]' ).val(), 10 )
+			);
+
+			if ( isNaN( date.valueOf() ) ) {
+				return null;
+			}
+
+			date.setSeconds( 0 );
+
+			return date;
+		},
+
+		/**
+		 * Parse datetime string.
+		 *
+		 * @param {string} datetime Date/Time string.
+		 * @returns {object|null} Returns object containing date components or null if parse error.
+		 */
+		parseDateTime: function parseDateTime( datetime ) {
+			var matches = datetime.match( /^(\d\d\d\d)-(\d\d)-(\d\d) (\d\d):(\d\d):(\d\d)$/ );
+
+			if ( ! matches ) {
+				return null;
+			}
+
+			matches.shift();
+
+			return {
+				year: matches.shift(),
+				month: matches.shift(),
+				day: matches.shift(),
+				hour: matches.shift(),
+				minute: matches.shift(),
+				second: matches.shift()
+			};
+		},
+
+		/**
+		 * Format a Date Object. Returns 'Y-m-d H:i:s' format.
+		 *
+		 * @props http://stackoverflow.com/questions/10073699/pad-a-number-with-leading-zeros-in-javascript#comment33639551_10073699
+		 *
+		 * @param {Date} date A Date object.
+		 * @returns {string} A formatted date String.
+		 */
+		formatDate: function formatDate( date ) {
+			var formattedDate,
+				yearLength = 4,
+				nonYearLength = 2,
+				monthOffset = 1;
+
+			formattedDate = ( '0000' + date.getFullYear() ).substr( -yearLength, yearLength );
+			formattedDate += '-' + ( '00' + ( date.getMonth() + monthOffset ) ).substr( -nonYearLength, nonYearLength );
+			formattedDate += '-' + ( '00' + date.getDate() ).substr( -nonYearLength, nonYearLength );
+			formattedDate += ' ' + ( '00' + date.getHours() ).substr( -nonYearLength, nonYearLength );
+			formattedDate += ':' + ( '00' + date.getMinutes() ).substr( -nonYearLength, nonYearLength );
+			formattedDate += ':' + ( '00' + date.getSeconds() ).substr( -nonYearLength, nonYearLength );
+
+			return formattedDate;
+		},
+
+		/**
+		 * Populate inputs from the setting value, if none of them are currently focused.
+		 *
+		 * @returns {boolean} Whether the inputs were populated.
+		 */
+		populateInputs: function populateInputs() {
+			var snapshot = this, parsed;
+
+			if ( snapshot.schedule.inputs.is( ':focus' ) || '0000-00-00 00:00:00' === snapshot.data.publishDate ) {
+				return false;
+			}
+
+			parsed = snapshot.parseDateTime( snapshot.data.publishDate );
+			if ( ! parsed ) {
+				return false;
+			}
+
+			snapshot.schedule.inputs.each( function() {
+				var input = $( this ),
+					fieldName = input.data( 'date-input' );
+
+				if ( ! $( this ).is( 'select' ) && '' === $( this ).val() ) {
+					$( this ).val( parsed[fieldName] );
+				}
 			} );
-		} );
-	};
+			return true;
+		},
 
-	/**
-	 * Get date from inputs.
-	 *
-	 * @returns {Date|null} Date created from inputs or null if invalid date.
-	 */
-	component.getDateFromInputs = function getDateFromInputs() {
-		var template = component.editContainer,
-			monthOffset = 1,
-			date;
+		/**
+		 * Populate setting value from the inputs.
+		 *
+		 * @returns {void}
+		 */
+		populateSetting: function populateSetting() {
+			var snapshot = this,
+				date = snapshot.getDateFromInputs(),
+				scheduled, isDirtyTitle, isDirtyDate;
 
-		date = new Date(
-			parseInt( template.find( '[data-date-input="year"]' ).val(), 10 ),
-			parseInt( template.find( '[data-date-input="month"]' ).val(), 10 ) - monthOffset,
-			parseInt( template.find( '[data-date-input="day"]' ).val(), 10 ),
-			parseInt( template.find( '[data-date-input="hour"]' ).val(), 10 ),
-			parseInt( template.find( '[data-date-input="minute"]' ).val(), 10 )
-		);
-
-		if ( isNaN( date.valueOf() ) ) {
-			return null;
-		}
-
-		date.setSeconds( 0 );
-
-		return date;
-	};
-
-	/**
-	 * Parse datetime string.
-	 *
-	 * @param {string} datetime Date/Time string.
-	 * @returns {object|null} Returns object containing date components or null if parse error.
-	 */
-	component.parseDateTime = function parseDateTime( datetime ) {
-		var matches = datetime.match( /^(\d\d\d\d)-(\d\d)-(\d\d) (\d\d):(\d\d):(\d\d)$/ );
-
-		if ( ! matches ) {
-			return null;
-		}
-
-		matches.shift();
-
-		return {
-			year: matches.shift(),
-			month: matches.shift(),
-			day: matches.shift(),
-			hour: matches.shift(),
-			minute: matches.shift(),
-			second: matches.shift()
-		};
-	};
-
-	/**
-	 * Format a Date Object. Returns 'Y-m-d H:i:s' format.
-	 *
-	 * @props http://stackoverflow.com/questions/10073699/pad-a-number-with-leading-zeros-in-javascript#comment33639551_10073699
-	 *
-	 * @param {Date} date A Date object.
-	 * @returns {string} A formatted date String.
-	 */
-	component.formatDate = function formatDate( date ) {
-		var formattedDate,
-			yearLength = 4,
-			nonYearLength = 2,
-			monthOffset = 1;
-
-		formattedDate = ( '0000' + date.getFullYear() ).substr( -yearLength, yearLength );
-		formattedDate += '-' + ( '00' + ( date.getMonth() + monthOffset ) ).substr( -nonYearLength, nonYearLength );
-		formattedDate += '-' + ( '00' + date.getDate() ).substr( -nonYearLength, nonYearLength );
-		formattedDate += ' ' + ( '00' + date.getHours() ).substr( -nonYearLength, nonYearLength );
-		formattedDate += ':' + ( '00' + date.getMinutes() ).substr( -nonYearLength, nonYearLength );
-		formattedDate += ':' + ( '00' + date.getSeconds() ).substr( -nonYearLength, nonYearLength );
-
-		return formattedDate;
-	};
-
-	/**
-	 * Populate inputs from the setting value, if none of them are currently focused.
-	 *
-	 * @returns {boolean} Whether the inputs were populated.
-	 */
-	component.populateInputs = function populateInputs() {
-		var parsed;
-
-		if ( component.schedule.inputs.is( ':focus' ) || '0000-00-00 00:00:00' === component.data.publishDate ) {
-			return false;
-		}
-
-		parsed = component.parseDateTime( component.data.publishDate );
-		if ( ! parsed ) {
-			return false;
-		}
-
-		component.schedule.inputs.each( function() {
-			var input = $( this ),
-				fieldName = input.data( 'date-input' );
-
-			if ( ! $( this ).is( 'select' ) && '' === $( this ).val() ) {
-				$( this ).val( parsed[fieldName] );
+			if ( ! date || ! snapshot.data.currentUserCanPublish ) {
+				snapshot.dirtyEditSettings.trigger( 'title', snapshot.data.title !== snapshot.snapshotTitle.val() );
+				return;
 			}
-		} );
-		return true;
-	};
 
-	/**
-	 * Populate setting value from the inputs.
-	 *
-	 * @returns {void}
-	 */
-	component.populateSetting = function populateSetting() {
-		var date = component.getDateFromInputs(),
-			scheduled;
+			date.setSeconds( 0 );
+			scheduled = snapshot.formatDate( date ) !== snapshot.data.publishDate;
 
-		if ( ! date || ! component.data.currentUserCanPublish ) {
-			component.dirtySnapshotPostSetting.set( component.data.title !== component.snapshotTitle.val() );
-			return;
+			isDirtyTitle = snapshot.data.title !== snapshot.snapshotTitle.val();
+			snapshot.dirtyEditSettings.trigger( 'title', isDirtyTitle );
+
+			isDirtyDate = scheduled && snapshot.isFutureDate();
+			snapshot.dirtyEditSettings.trigger( 'date', isDirtyDate );
+
+			snapshot.updateCountdown();
+			snapshot.editContainer.find( '.reset-time' ).toggle( scheduled );
+			snapshot.toggleDateNotification();
+		},
+
+		/**
+		 * Check if the schedule date is in the future.
+		 *
+		 * @returns {boolean} True if future date.
+		 */
+		isFutureDate: function isFutureDate() {
+			var snapshot = this,
+				date = snapshot.getDateFromInputs(),
+				millisecondsDivider = 1000,
+				remainingTime;
+
+			if ( ! date ) {
+				return false;
+			}
+
+			remainingTime = snapshot.dateValueOf( date );
+			remainingTime -= snapshot.dateValueOf( snapshot.getCurrentTime() );
+			remainingTime = Math.ceil( remainingTime / millisecondsDivider );
+
+			return 0 < remainingTime;
+		},
+
+		/**
+		 * Get current date/time in the site's timezone.
+		 *
+		 * Same functionality as the `current_time( 'mysql', false )` function in PHP.
+		 *
+		 * @returns {string} Current datetime string.
+		 */
+		getCurrentTime: function getCurrentTime() {
+			var snapshot = this,
+				currentDate = new Date( snapshot.data.initialServerDate ),
+				currentTimestamp = snapshot.dateValueOf(),
+				timestampDifferential;
+
+			timestampDifferential = currentTimestamp - snapshot.data.initialClientTimestamp;
+			timestampDifferential += snapshot.data.initialClientTimestamp - snapshot.data.initialServerTimestamp;
+			currentDate.setTime( currentDate.getTime() + timestampDifferential );
+
+			return snapshot.formatDate( currentDate );
+		},
+
+		/**
+		 * Get the primitive value of a Date object.
+		 *
+		 * @param {string|Date} dateString The post status for the snapshot.
+		 * @returns {object|string} The primitive value or date object.
+		 */
+		dateValueOf: function dateValueOf( dateString ) {
+			var date;
+
+			if ( 'string' === typeof dateString ) {
+				date = new Date( dateString );
+			} else if ( dateString instanceof Date ) {
+				date = dateString;
+			} else {
+				date = new Date();
+			}
+
+			return date.valueOf();
+		},
+
+		/**
+		 * Add select drop down button.
+		 *
+		 * @return {object} status button.
+		 */
+		addSelectButton: function addSelectButton() {
+			var snapshot = this, selectMenuButton, statusButton = {}, selectedOption;
+
+			statusButton.state = new api.Values();
+			statusButton.state.create( 'disabled' );
+			statusButton.state.create( 'disabled-select' );
+			statusButton.state.create( 'disabled-button' );
+			statusButton.state.create( 'button-text' );
+
+			statusButton.container = $( $.trim( wp.template( 'snapshot-status-button' )({
+				selected: api.state( 'snapshot-status' ).get() || 'publish'
+			}) ) );
+			statusButton.button = statusButton.container.find( '.snapshot-status-button-overlay' );
+			statusButton.select = statusButton.container.find( 'select' );
+			statusButton.select.selectmenu({
+				width: 'auto',
+				icons: {
+					button: 'dashicons dashicons-arrow-down'
+				},
+				change: function( event, ui ) {
+					statusButton.state.trigger( 'select-change', ui.item.value );
+				}
+			});
+
+			selectMenuButton = statusButton.container.find( '.ui-selectmenu-button' );
+			statusButton.hiddenButton = selectMenuButton.find( '.ui-selectmenu-text' );
+			statusButton.hiddenButton.addClass( 'button button-primary' );
+
+			statusButton.dropDown = selectMenuButton.find( '.ui-icon' );
+			statusButton.dropDown.addClass( 'button button-primary' );
+
+			statusButton.state.bind( 'select-change', function( status ) {
+				selectedOption = statusButton.select.find( 'option:selected' );
+				statusButton.button.text( selectedOption.text() );
+				statusButton.button.data( 'alt-text', selectedOption.data( 'alt-text' ) );
+				statusButton.button.data( 'button-text', selectedOption.text() );
+				if ( 'publish' === status ) {
+					statusButton.button.data( 'confirm-text', selectedOption.data( 'confirm-text' ) );
+				}
+
+				if ( 'future' === status ) {
+					snapshot.snapshotEditContainerDisplayed.set( true );
+				} else {
+					snapshot.updateSnapshot( status );
+					snapshot.snapshotEditContainerDisplayed.set( false );
+				}
+			} );
+
+			statusButton.state( 'disabled-button' ).bind( function( disabled ) {
+				statusButton.button.prop( 'disabled', disabled );
+			} );
+
+			statusButton.state( 'disabled-select' ).bind( function( disabled ) {
+				statusButton.select.selectmenu( disabled ? 'disable' : 'enable' );
+				statusButton.dropDown.toggleClass( 'disabled', disabled );
+			} );
+
+			statusButton.state( 'disabled' ).bind( function( disabled ) {
+				statusButton.state( 'disabled-select' ).set( disabled );
+				statusButton.state( 'disabled-button' ).set( disabled );
+			} );
+
+			statusButton.state( 'button-text' ).bind( function( text ) {
+				statusButton.button.text( text );
+				statusButton.hiddenButton.text( text );
+			} );
+
+			statusButton.button.on( 'click', function( event ) {
+				event.preventDefault();
+				snapshot.updateSnapshot( statusButton.select.val() );
+			} );
+
+			snapshot.publishButton.after( statusButton.container );
+
+			return statusButton;
 		}
+	} );
 
-		date.setSeconds( 0 );
-		scheduled = component.formatDate( date ) !== component.data.publishDate;
-
-		if ( component.data.title !== component.snapshotTitle.val() || scheduled ) {
-			component.dirtySnapshotPostSetting.set( true );
-		} else {
-			component.dirtySnapshotPostSetting.set( false );
-		}
-
-		if ( scheduled && component.isFutureDate() ) {
-			component.dirtyScheduleDate.set( true );
-		} else {
-			component.dirtyScheduleDate.set( false );
-		}
-		component.updateCountdown();
-		component.editContainer.find( '.reset-time' ).toggle( scheduled );
-	};
-
-	/**
-	 * Check if the schedule date is in the future.
-	 *
-	 * @returns {boolean} True if future date.
-	 */
-	component.isFutureDate = function isFutureDate() {
-		var date = component.getDateFromInputs(),
-			millisecondsDivider = 1000,
-			remainingTime;
-
-		if ( ! date ) {
-			return false;
-		}
-
-		remainingTime = component.dateValueOf( date );
-		remainingTime -= component.dateValueOf( component.getCurrentTime() );
-		remainingTime = Math.ceil( remainingTime / millisecondsDivider );
-
-		return 0 < remainingTime;
-	};
-
-	/**
-	 * Get current date/time in the site's timezone.
-	 *
-	 * Same functionality as the `current_time( 'mysql', false )` function in PHP.
-	 *
-	 * @returns {string} Current datetime string.
-	 */
-	component.getCurrentTime = function getCurrentTime() {
-		var currentDate = new Date( component.data.initialServerDate ),
-			currentTimestamp = component.dateValueOf(),
-			timestampDifferential;
-
-		timestampDifferential = currentTimestamp - component.data.initialClientTimestamp;
-		timestampDifferential += component.data.initialClientTimestamp - component.data.initialServerTimestamp;
-		currentDate.setTime( currentDate.getTime() + timestampDifferential );
-
-		return component.formatDate( currentDate );
-	};
-
-	/**
-	 * Get the primitive value of a Date object.
-	 *
-	 * @param {string|Date} dateString The post status for the snapshot.
-	 * @returns {object|string} The primitive value or date object.
-	 */
-	component.dateValueOf = function( dateString ) {
-		var date;
-
-		if ( 'string' === typeof dateString ) {
-			date = new Date( dateString );
-		} else if ( dateString instanceof Date ) {
-			date = dateString;
-		} else {
-			date = new Date();
-		}
-
-		return date.valueOf();
-	};
-
-	component.init();
-
-} )( wp.customize, jQuery );
+})( wp.customize, jQuery );
