@@ -12,6 +12,7 @@ node_js:
     - stable
 
 env:
+    - WP_VERSION=trunk WP_MULTISITE=0
     - WP_VERSION=latest WP_MULTISITE=0
     - WP_VERSION=latest WP_MULTISITE=1
 

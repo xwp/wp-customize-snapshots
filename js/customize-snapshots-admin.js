@@ -4,6 +4,10 @@ var CustomizeSnapshotsAdmin = (function( $, wp ) {
 	'use strict';
 	var component = {};
 
+	component.data = {
+		deleteInputName: 'customize_snapshot_remove_settings[]'
+	};
+
 	/**
 	 * Handles snapshot fork actions.
 	 *
@@ -57,8 +61,7 @@ var CustomizeSnapshotsAdmin = (function( $, wp ) {
 	component.deleteSetting = function() {
 		var $linkToRemoveOrRestore = $( '.snapshot-toggle-setting-removal' ),
 			linkActions = ['remove', 'restore'],
-			dataSlug = 'cs-action',
-			inputName = 'customize_snapshot_remove_settings[]';
+			dataSlug = 'cs-action';
 
 		$linkToRemoveOrRestore.data( dataSlug, linkActions[0] );
 
@@ -96,10 +99,10 @@ var CustomizeSnapshotsAdmin = (function( $, wp ) {
 
 		component.constructHiddenInputWithValue = function( settingId ) {
 			return $( '<input>' ).attr( {
-				'name': inputName,
+				'name': component.data.deleteInputName,
 				'type': 'hidden'
 			} )
-				.val( settingId );
+			.val( settingId );
 		};
 
 		component.changeLinkText = function( $link ) {
@@ -123,7 +126,7 @@ var CustomizeSnapshotsAdmin = (function( $, wp ) {
 		};
 
 		component.removeHiddenInputWithValue = function( settingId ) {
-			$( 'input[name="' + inputName + '"][value="' + settingId + '"]' ).remove();
+			$( 'input[name="' + component.data.deleteInputName + '"][value="' + settingId + '"]' ).remove();
 		};
 
 		$linkToRemoveOrRestore.on( 'click', function( event ) {
