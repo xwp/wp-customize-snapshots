@@ -46,7 +46,7 @@
 				api.state.create( 'snapshot-exists', snapshotExists );
 				api.state.create( 'snapshot-saved', true );
 				api.state.create( 'snapshot-submitted', true );
-				api.state.create( 'snapshot-status', snapshot.data.postStatus );
+				api.state.create( 'snapshot-status', snapshot.data.postStatus || 'auto-draft' );
 
 				snapshot.data.uuid = snapshot.data.uuid || api.settings.changeset.uuid;
 				snapshot.data.title = snapshot.data.title || snapshot.data.uuid;
@@ -127,7 +127,7 @@
 
 			if ( 'publish' === status && 'publish' !== api.state( 'snapshot-status' ).get() && snapshot.statusButton ) {
 				if ( snapshot.statusButton.state( 'button-text' ).get() !== snapshot.statusButton.button.data( 'confirm-text' ) ) {
-					snapshot.statusButton.state( 'disabled' ).set( false );
+					snapshot.statusButton.state( 'disabled-button' ).set( false );
 					snapshot.statusButton.state( 'button-text' ).set( snapshot.statusButton.button.data( 'confirm-text' ) );
 					return deferred.promise();
 				}
@@ -174,7 +174,8 @@
 			);
 
 			snapshot.updatePending = true;
-			snapshot.statusButton.state( 'disabled' ).set( true );
+			snapshot.statusButton.state( 'disabled-select' ).set( true );
+			snapshot.statusButton.state( 'disabled-button' ).set( true );
 			spinner.addClass( 'is-active' );
 
 			request = wp.customize.previewer.save( data );
@@ -287,12 +288,19 @@
 			snapshot.publishButton.addClass( 'hidden' );
 			snapshot.statusButton = snapshot.addSelectButton();
 
-			// Select/save-draft button.
-			if ( api.state( 'snapshot-exists' ).get() && 'auto-draft' !== snapshot.data.postStatus ) {
-				snapshot.isFirstSave = false;
-				api.state( 'snapshot-status' ).set( snapshot.data.postStatus );
+			snapshot.isFirstSave = 'auto-draft' === api.state( 'snapshot-status' ).get();
+
+			snapshot.statusButton.state( 'disabled-button' ).set( true );
+
+			if ( 'auto-draft' === api.state( 'snapshot-status' ).get() ) {
+				if ( api.state( 'snapshot-exists' ).get() ) {
+					snapshot.statusButton.state( 'disabled-button' ).set( false );
+					snapshot.statusButton.state( 'disabled-select' ).set( false );
+				} else {
+					snapshot.statusButton.state( 'disabled-select' ).set( true );
+				}
 			} else {
-				snapshot.isFirstSave = true;
+				snapshot.statusButton.state( 'button-text' ).set( snapshot.statusButton.button.data( 'alt-text' ) );
 			}
 
 			// Preview link.
@@ -334,7 +342,9 @@
 			} );
 
 			api.bind( 'change', function() {
-				snapshot.statusButton.state( 'disabled' ).set( false );
+				snapshot.statusButton.state( 'disabled-button' ).set( false );
+				snapshot.statusButton.state( 'disabled-select' ).set( false );
+				snapshot.statusButton.state( 'button-text' ).set( snapshot.statusButton.button.data( 'button-text' ) );
 			} );
 
 			// Submit for review button.
@@ -817,13 +827,12 @@
 			var snapshot = this, selectMenuButton, statusButton = {}, selectedOption;
 
 			statusButton.state = new api.Values();
-			statusButton.state.create( 'disabled' );
 			statusButton.state.create( 'disabled-select' );
 			statusButton.state.create( 'disabled-button' );
 			statusButton.state.create( 'button-text' );
 
 			statusButton.container = $( $.trim( wp.template( 'snapshot-status-button' )({
-				selected: api.state( 'snapshot-status' ).get() || 'publish'
+				selected: 'auto-draft' !== api.state( 'snapshot-status' ).get() ? api.state( 'snapshot-status' ).get() : 'publish'
 			}) ) );
 			statusButton.button = statusButton.container.find( '.snapshot-status-button-overlay' );
 			statusButton.select = statusButton.container.find( 'select' );
@@ -868,11 +877,6 @@
 			statusButton.state( 'disabled-select' ).bind( function( disabled ) {
 				statusButton.select.selectmenu( disabled ? 'disable' : 'enable' );
 				statusButton.dropDown.toggleClass( 'disabled', disabled );
-			} );
-
-			statusButton.state( 'disabled' ).bind( function( disabled ) {
-				statusButton.state( 'disabled-select' ).set( disabled );
-				statusButton.state( 'disabled-button' ).set( disabled );
 			} );
 
 			statusButton.state( 'button-text' ).bind( function( text ) {
