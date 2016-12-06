@@ -228,97 +228,104 @@
 /** @todo Need to add snapshot specific class for all ui classes. **/
 
 #snapshot-status-button-wrapper{
-    float: right;
-    position: relative;
-    margin-top: 9px;
-    margin-right:5px;
-    height:28px;
+	float: right;
+	position: relative;
+	margin-top: 9px;
+	height:28px;
+}
+
+#snapshot-status-button-wrapper .button-primary{
+	margin-top:0;
+	-webkit-touch-callout: none; /* iOS Safari */
+	-webkit-user-select: none; /* Chrome/Safari/Opera */
+	-moz-user-select: none; /* Firefox */
+	-ms-user-select: none; /* Internet Explorer/Edge */
+	user-select: none;
 }
 
 .ui-selectmenu-menu {
-    padding: 0;
-    margin: 0;
-    position: absolute;
-    top: 0;
-    left: 0;
-    display: none;
+	padding: 0;
+	margin: 0;
+	position: absolute;
+	top: 0;
+	left: 0;
+	display: none;
 }
 .ui-selectmenu-menu .ui-menu {
-    overflow: auto;
-    /* Support: IE7 */
-    overflow-x: hidden;
-    background: #FFFFFF;
-    border: 1px solid #eee;
-    border-top: 0;
-    margin: 0;
-    border-radius: 0 0 5px 5px;
-    box-shadow: 0 1px 4px 0 rgba( 33,38,34,.12 ), 0 2px 11px 0 rgba( 30,36,37,.14 )
+	overflow: auto;
+	/* Support: IE7 */
+	overflow-x: hidden;
+	background: #FFFFFF;
+	border-top: 0;
+	margin: 0;
+	border-radius: 0 0 5px 5px;
+	box-shadow: 0 1px 4px 0 rgba( 33,38,34,.12 ), 0 2px 11px 0 rgba( 30,36,37,.14 )
 }
 
 .ui-selectmenu-menu .ui-menu li{
-    padding: 5px 10px 5px 5px;
-    margin: 0;
+	padding: 5px 10px 5px 5px;
+	margin: 0;
 }
 
 .ui-selectmenu-menu .ui-menu .ui-state-focus{
-    background: #0073aa;
-    color: #FFFFFF;
-    cursor: pointer;
+	background: #0073aa;
+	color: #FFFFFF;
+	cursor: pointer;
 }
 
 .ui-selectmenu-menu .ui-menu .ui-selectmenu-optgroup {
-    font-size: 1em;
-    font-weight: bold;
-    line-height: 1.5;
-    padding: 2px 0.4em;
-    margin: 0.5em 0 0 0;
-    height: auto;
-    border: 0;
+	font-size: 1em;
+	font-weight: bold;
+	line-height: 1.5;
+	padding: 2px 0.4em;
+	margin: 0.5em 0 0 0;
+	height: auto;
+	border: 0;
 }
 .ui-selectmenu-open {
-    display: block;
+	display: block;
 }
 
 .ui-selectmenu-button span.ui-icon {
-    text-indent: 0;
-    float: right;
-    border-radius: 0 3px 3px 0;
-    padding-left:0;
-    padding-right:0;
+	text-indent: 0;
+	float: right;
+	border-radius: 0 3px 3px 0;
+	padding-left:0;
+	padding-right:0;
 }
 
 .ui-selectmenu-button span.ui-icon:before{
-    display: inline-block;
-    font-size: 20px;
-    margin-left: -10px;
+	display: inline-block;
+	font-size: 20px;
+	margin-left: -10px;
 }
 
 .ui-selectmenu-button span.ui-selectmenu-text {
-    border-radius: 3px 0 0 3px;
-    opacity:0;
+	border-radius: 3px 0 0 3px;
+	opacity:0;
 }
 
 .ui-selectmenu-menu.ui-front{
-    z-index: 999999;
+	z-index: 999999;
 }
 
 .snapshot-status-button-overlay.button{
-    width: calc( 100% - 20px );
-    height: 28px;
-    position: absolute;
-    top: 0;
-    left: 0;
-    z-index: 1;
-    border-radius: 3px 0 0 3px;
-    box-shadow: none;
+	width: calc( 100% - 20px );
+	height: 28px;
+	position: absolute;
+	top: 0;
+	left: 0;
+	z-index: 1;
+	border-radius: 3px 0 0 3px;
+	box-shadow: none;
 }
 
 #customize-header-actions .ui-selectmenu-button{
-    padding-right: 0;
-    position: relative;
-    display: inline-block;
-    height: 28px;
-    overflow: hidden;
-    outline-width: 2px;
-    outline-offset: -2px;
+	padding-right: 0;
+	position: relative;
+	display: inline-block;
+	height: 28px;
+	overflow: hidden;
+	outline-width: 2px;
+	outline-offset: -2px;
 }

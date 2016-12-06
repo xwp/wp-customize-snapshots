@@ -601,12 +601,25 @@ class Customize_Snapshot_Manager {
 			<?php
 				$data = array(
 					'choices' => array(
-						'draft' => __( 'Draft' , 'customize-snapshots' ),
-						'future' => __( 'Scheduled' , 'customize-snapshots' ),
-						'pending' => __( 'Pending' , 'customize-snapshots' ),
-						'publish' => __( 'Publish' , 'customize-snapshots' ),
+						'publish' => array(
+							'option_text' => esc_attr__( 'Publish' , 'customize-snapshots' ),
+							'alt_text' => esc_attr__( 'Published' , 'customize-snapshots' ),
+						),
+						'draft' => array(
+							'option_text' => esc_attr__( 'Save Draft' , 'customize-snapshots' ),
+							'alt_text' => esc_attr__( 'Draft' , 'customize-snapshots' ),
+						),
+						'future' => array(
+							'option_text' => esc_attr__( 'Schedule' , 'customize-snapshots' ),
+							'alt_text' => esc_attr__( 'Scheduled' , 'customize-snapshots' ),
+						),
+						'pending' => array(
+							'option_text' => esc_attr__( 'Save Pending' , 'customize-snapshots' ),
+							'alt_text' => esc_attr__( 'Pending' , 'customize-snapshots' ),
+						),
 					),
-					'selected' => 'draft',
+					'selected' => 'publish',
+					'confirm_publish_text' => esc_attr__( 'Confirm Publish', 'customize-snapshots' ),
 				);
 			?>
 
@@ -616,15 +629,19 @@ class Customize_Snapshot_Manager {
 				<label class="screen-reader-text" for="snapshot-status-button"><?php esc_attr_e( 'Snapshot Status', 'customize-snapshots' ); ?></label>
 				<select id="snapshot-status-button">
 					<# _.each( data.choices, function( buttonText, status ) { #>
-							<option value="{{ status }}"
+							<option value="{{ status }}" data-alt-text="{{ buttonText.alt_text }}"
 								<# if ( data.selected == status ) { #>
 									selected="selected"
-								<# } #> >
-								{{ buttonText }}
-							</option>
+								<# } #>
+								<# if ( 'publish' == status ) { #>
+									data-confirm-text="{{ data.confirm_publish_text }}"
+								<# } #>
+								>{{ buttonText.option_text }}</option>
 					<# } ); #>
 				</select>
-				<button class="snapshot-status-button-overlay button button-secondary">{{ data.choices[ data.selected ] }}</button>
+				<button class="snapshot-status-button-overlay button button-primary" data-button-text="{{ data.choices[ data.selected ].option_text }}" data-alt-text="{{ data.choices[ data.selected ].alt_text }}">
+					{{ data.choices[ data.selected ].option_text }}
+				</button>
 			</div>
 		</script>
 		<?php
