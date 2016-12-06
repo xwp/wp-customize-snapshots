@@ -233,9 +233,9 @@
 		 */
 		addButtons: function addButtons() {
 			var snapshot = this,
-			    header = $( '#customize-header-actions' ),
-			    publishButton = header.find( '#save' ),
-			    submitButton, templateData = {}, setPreviewLinkHref;
+				header = $( '#customize-header-actions' ),
+				publishButton = header.find( '#save' ),
+				submitButton, templateData = {}, setPreviewLinkHref;
 
 			snapshot.dirtySnapshotPostSetting = new api.Value();
 			snapshot.dirtyScheduleDate = new api.Value();
@@ -436,8 +436,8 @@
 		 */
 		populateSetting: function populateSetting() {
 			var snapshot = this,
-			    date = snapshot.getDateFromInputs(),
-			    scheduled, isDirtySetting, isDirtyDate;
+				date = snapshot.getDateFromInputs(),
+				scheduled, isDirtySetting, isDirtyDate;
 
 			if ( ! date || ! snapshot.data.currentUserCanPublish ) {
 				snapshot.dirtySnapshotPostSetting.set( snapshot.data.title !== snapshot.snapshotTitle.val() );
