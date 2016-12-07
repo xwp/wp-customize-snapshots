@@ -71,7 +71,7 @@
 
 				api.bind( 'changeset-save', function() {
 
-					// @todo hold edit box auto save when core saves changeset.
+					// @todo hold edit box auto save when core saves changeset ?
 				} );
 
 				api.trigger( 'snapshots-ready', snapshot );
@@ -572,6 +572,7 @@
 		updateSnapshotEditControls: function updateSnapshotEditControls() {
 			var snapshot = this,
 				parsed,
+				status,
 				sliceBegin = 0,
 				sliceEnd = -2;
 
@@ -579,8 +580,10 @@
 				return;
 			}
 
+			status = api.state( 'changesetStatus' ).get();
+
 			if ( snapshot.data.currentUserCanPublish ) {
-				if ( '0000-00-00 00:00:00' === snapshot.data.publishDate ) {
+				if ( '0000-00-00 00:00:00' === snapshot.data.publishDate || ! status || 'auto-draft' === status ) {
 					snapshot.data.publishDate = snapshot.getCurrentTime();
 				}
 
@@ -882,6 +885,7 @@
 				}
 
 				if ( 'future' === status ) {
+					snapshot.updateSnapshotEditControls();
 					snapshot.snapshotEditContainerDisplayed.set( true );
 					snapshot.snapshotExpandButton.show();
 				} else {
