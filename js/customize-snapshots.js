@@ -52,8 +52,6 @@
 				snapshot.data.uuid = snapshot.data.uuid || api.settings.changeset.uuid;
 				snapshot.data.title = snapshot.data.title || snapshot.data.uuid;
 
-				snapshot.extendPreviewerQuery();
-
 				// Suppress the AYS dialog.
 				api.bind( 'changeset-saved', function() {
 					if ( 'auto-draft' !== api.state( 'changesetStatus' ).get() ) {
@@ -79,8 +77,7 @@
 
 				api.bind( 'changeset-save', function() {
 
-					// @todo extend preview query with changeset save.
-					snapshot.extendPreviewerQuery();
+					// @todo hold edit box auto save when core saves changeset.
 				} );
 
 				api.trigger( 'snapshots-ready', snapshot );
@@ -288,27 +285,6 @@
 			} );
 
 			return request;
-		},
-
-		/**
-		 * Amend the preview query so we can update the snapshot during `customize_save`.
-		 *
-		 * @return {void}
-		 */
-		extendPreviewerQuery: function extendPreviewerQuery() {
-			var snapshot = this, originalQuery = api.previewer.query, scheduleDate;
-
-			api.previewer.query = function() {
-				var retval = originalQuery.apply( this, arguments );
-				if ( snapshot.snapshotTitle && snapshot.snapshotTitle.val() ) {
-					retval.title = snapshot.snapshotTitle.val();
-				}
-				if ( ! _.isEmpty( snapshot.editContainer ) && snapshot.isFutureDate() ) {
-					scheduleDate = snapshot.getDateFromInputs();
-					retval.date = snapshot.formatDate( scheduleDate );
-				}
-				return retval;
-			};
 		},
 
 		/**
