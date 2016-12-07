@@ -81,7 +81,11 @@ class Test_Migrate extends \WP_UnitTestCase {
 		$constructor->invoke( $mock );
 		set_current_screen( 'index' );
 		$constructor->invoke( $mock );
-		wp_set_current_user( $this->factory()->user->create( array( 'role' => 'administrator' ) ) );
+		$user_id = $this->factory()->user->create( array( 'role' => 'administrator' ) );
+		if ( is_multisite() ) {
+			grant_super_admin( $user_id );
+		}
+		wp_set_current_user( $user_id );
 		$constructor->invoke( $mock );
 	}
 
