@@ -26,7 +26,7 @@
 		uuidParam: 'customize_changeset_uuid',
 
 		initialize: function initialize( snapshotsConfig ) {
-			var snapshot = this, snapshotExists, snapshotStatus;
+			var snapshot = this, snapshotExists;
 
 			snapshot.schedule = {};
 
@@ -34,20 +34,14 @@
 				_.extend( snapshot.data, snapshotsConfig );
 			}
 
-			window._wpCustomizeControlsL10n.save = snapshot.data.i18n.publish;
-			window._wpCustomizeControlsL10n.saved = snapshot.data.i18n.published;
-
 			// Set the initial client timestamp.
 			snapshot.data.initialClientTimestamp = snapshot.dateValueOf();
-			snapshot.updatePending = false;
 
 			api.bind( 'ready', function() {
 				snapshotExists = '{}' !== api.previewer.query().customized;
-				snapshotStatus = ! snapshot.data.postStatus && snapshotExists ? 'auto-draft' : snapshot.data.postStatus;
 				api.state.create( 'snapshot-exists', snapshotExists );
 				api.state.create( 'snapshot-saved', true );
 				api.state.create( 'snapshot-submitted', true );
-				api.state.create( 'snapshot-status', snapshotStatus );
 
 				snapshot.data.uuid = snapshot.data.uuid || api.settings.changeset.uuid;
 				snapshot.data.title = snapshot.data.title || snapshot.data.uuid;
@@ -132,7 +126,7 @@
 					status: status
 				};
 
-			if ( 'publish' === status && 'publish' !== api.state( 'snapshot-status' ).get() && snapshot.statusButton ) {
+			if ( 'publish' === status && 'publish' !== api.state( 'changesetStatus' ).get() && snapshot.statusButton ) {
 				confirmText = snapshot.statusButton.button.data( 'confirm-text' );
 				if ( confirmText && snapshot.statusButton.button.text() !== confirmText ) {
 					snapshot.statusButton.state( 'disabled-button' ).set( false );
@@ -184,7 +178,6 @@
 				options
 			);
 
-			snapshot.updatePending = true;
 			snapshot.statusButton.disable( true );
 			spinner.addClass( 'is-active' );
 
@@ -203,9 +196,8 @@
 				if ( response.title ) {
 					snapshot.data.title = response.title;
 				}
-				snapshot.updateSnapshotEditControls();
+
 				snapshot.data.dirty = false;
-				snapshot.updatePending = false;
 			} );
 
 			request.done( function( response ) {
@@ -214,7 +206,6 @@
 
 				api.state( 'snapshot-exists' ).set( true );
 				api.state( 'snapshot-saved' ).set( true );
-				api.state( 'snapshot-status' ).set( data.status );
 
 				if ( 'pending' === data.status ) {
 					api.state( 'snapshot-submitted' ).set( true );
@@ -298,14 +289,13 @@
 				submitButton, setPreviewLinkHref;
 
 			snapshot.publishButton = $( '#save' );
-			snapshot.dirtyEditSettings = new api.Values();
 
 			snapshot.publishButton.addClass( 'hidden' );
 			snapshot.statusButton = snapshot.addStatusButton();
 			snapshot.statusButton.state( 'disabled-button' ).set( true );
 
-			if ( api.state( 'snapshot-status' ).get() ) {
-				if ( 'auto-draft' === api.state( 'snapshot-status' ).get() ) {
+			if ( api.state( 'changesetStatus' ).get() ) {
+				if ( 'auto-draft' === api.state( 'changesetStatus' ).get() ) {
 					snapshot.statusButton.disable( false );
 				} else {
 					snapshot.statusButton.updateButtonText( 'alt-text' );
@@ -382,7 +372,11 @@
 			var snapshot = this, sliceBegin = 0,
 				sliceEnd = -2, updateUI;
 
-			snapshot.snapshotEditContainerDisplayed = new api.Value();
+			snapshot.editControlSettings = new api.Value( {
+				title: snapshot.data.title,
+				date: snapshot.data.publishDate
+			} );
+			snapshot.snapshotEditContainerDisplayed = new api.Value( false );
 
 			updateUI = function() {
 				snapshot.populateSetting();
@@ -414,7 +408,7 @@
 
 					snapshot.schedule.inputs.on( 'blur', function() {
 						snapshot.populateInputs();
-						snapshot.populateSetting();
+						updateUI();
 					} );
 
 					snapshot.updateCountdown();
@@ -441,6 +435,10 @@
 					snapshot.snapshotExpandButton.attr( 'aria-pressed', 'false' );
 					snapshot.snapshotExpandButton.prop( 'title', snapshot.data.i18n.expandSnapshotScheduling );
 				}
+			} );
+
+			snapshot.editControlSettings.bind( function() {
+				snapshot.toggleDateNotification();
 			} );
 
 			// Toggle schedule container when clicking the button.
@@ -497,6 +495,44 @@
 					snapshot.updateSnapshotEditControls();
 				} else {
 					snapshot.snapshotEditContainerDisplayed.set( false );
+				}
+			} );
+
+			snapshot.autoSaveEditBox();
+		},
+
+		/**
+		 * Auto save the edit box values.
+		 *
+		 * @return {void}
+		 */
+		autoSaveEditBox: function() {
+			var snapshot = this, update, delay = 1500, status;
+
+			snapshot.updatePending = false;
+			snapshot.dirtyEditControlValues = false;
+
+			update = _.debounce( function() {
+				snapshot.updatePending = true;
+				status = snapshot.statusButton.select.val();
+				snapshot.updateSnapshot( status ).always( function() {
+				    snapshot.updatePending = snapshot.dirtyEditControlValues;
+				    if ( ! snapshot.updatePending ) {
+					    snapshot.updateSnapshotEditControls();
+				    } else if ( snapshot.dirtyEditControlValues ) {
+					    update();
+				    }
+					snapshot.dirtyEditControlValues = false;
+				} );
+			}, delay );
+
+			snapshot.editControlSettings.bind( function() {
+				if ( snapshot.isFutureDate() ) {
+					if ( snapshot.updatePending ) {
+						snapshot.dirtyEditControlValues = true;
+					} else {
+						update();
+					}
 				}
 			} );
 		},
@@ -717,25 +753,26 @@
 		populateSetting: function populateSetting() {
 			var snapshot = this,
 				date = snapshot.getDateFromInputs(),
-				scheduled, isDirtyTitle, isDirtyDate;
+				scheduled, editControlSettings;
+
+			editControlSettings = _.extend( {}, snapshot.editControlSettings.get() );
 
 			if ( ! date || ! snapshot.data.currentUserCanPublish ) {
-				snapshot.dirtyEditSettings.trigger( 'title', snapshot.data.title !== snapshot.snapshotTitle.val() );
+				editControlSettings.title = snapshot.snapshotTitle.val();
+				snapshot.editControlSettings.set( editControlSettings );
 				return;
 			}
 
 			date.setSeconds( 0 );
 			scheduled = snapshot.formatDate( date ) !== snapshot.data.publishDate;
 
-			isDirtyTitle = snapshot.data.title !== snapshot.snapshotTitle.val();
-			snapshot.dirtyEditSettings.trigger( 'title', isDirtyTitle );
+			editControlSettings.title = snapshot.snapshotTitle.val();
+			editControlSettings.date = snapshot.formatDate( date );
 
-			isDirtyDate = scheduled && snapshot.isFutureDate();
-			snapshot.dirtyEditSettings.trigger( 'date', isDirtyDate );
+			snapshot.editControlSettings.set( editControlSettings );
 
 			snapshot.updateCountdown();
 			snapshot.editContainer.find( '.reset-time' ).toggle( scheduled );
-			snapshot.toggleDateNotification();
 		},
 
 		/**
@@ -813,7 +850,7 @@
 			statusButton.state.create( 'disabled-button' );
 
 			statusButton.container = $( $.trim( wp.template( 'snapshot-status-button' )({
-				selected: api.state( 'snapshot-status' ).get() && 'auto-draft' !== api.state( 'snapshot-status' ).get() ? api.state( 'snapshot-status' ).get() : 'publish'
+				selected: api.state( 'changesetStatus' ).get() && 'auto-draft' !== api.state( 'changesetStatus' ).get() ? api.state( 'changesetStatus' ).get() : 'publish'
 			}) ) );
 			statusButton.button = statusButton.container.find( '.snapshot-status-button-overlay' );
 			statusButton.select = statusButton.container.find( 'select' );

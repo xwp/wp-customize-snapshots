@@ -19,6 +19,9 @@
 				_.extend( snapshot.data, snapshotsConfig );
 			}
 
+			window._wpCustomizeControlsL10n.save = snapshot.data.i18n.publish;
+			window._wpCustomizeControlsL10n.saved = snapshot.data.i18n.published;
+
 			api.bind( 'ready', function() {
 				api.state.create( 'snapshot-exists', snapshot.data.snapshotExists );
 				snapshot.extendPreviewerQuery();
