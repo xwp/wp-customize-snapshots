@@ -46,6 +46,16 @@
 				snapshot.data.uuid = snapshot.data.uuid || api.settings.changeset.uuid;
 				snapshot.data.title = snapshot.data.title || snapshot.data.uuid;
 
+				snapshot.editControlSettings = new api.Value( {
+					title: snapshot.data.title,
+					date: snapshot.data.publishDate
+				} );
+
+				// Batch edit box settings with core changeset save.
+				api.bind( 'changeset-save', function() {
+					snapshot.extendPreviewerQuery();
+				} );
+
 				// Suppress the AYS dialog.
 				api.bind( 'changeset-saved', function() {
 					if ( 'auto-draft' !== api.state( 'changesetStatus' ).get() ) {
@@ -67,11 +77,6 @@
 				$( '#snapshot-submit' ).on( 'click', function( event ) {
 					event.preventDefault();
 					snapshot.updateSnapshot( 'pending' );
-				} );
-
-				api.bind( 'changeset-save', function() {
-
-					// @todo hold edit box auto save when core saves changeset ?
 				} );
 
 				api.trigger( 'snapshots-ready', snapshot );
@@ -372,10 +377,6 @@
 			var snapshot = this, sliceBegin = 0,
 				sliceEnd = -2, updateUI;
 
-			snapshot.editControlSettings = new api.Value( {
-				title: snapshot.data.title,
-				date: snapshot.data.publishDate
-			} );
 			snapshot.snapshotEditContainerDisplayed = new api.Value( false );
 
 			updateUI = function() {
@@ -507,33 +508,50 @@
 		 * @return {void}
 		 */
 		autoSaveEditBox: function() {
-			var snapshot = this, update, delay = 1500, status;
+			var snapshot = this, update, delay = 1000, status, priorityUpdate, delayedUpdate;
 
 			snapshot.updatePending = false;
 			snapshot.dirtyEditControlValues = false;
 
-			update = _.debounce( function() {
+			update = function() {
 				snapshot.updatePending = true;
 				status = snapshot.statusButton.select.val();
 				snapshot.updateSnapshot( status ).always( function() {
-				    snapshot.updatePending = snapshot.dirtyEditControlValues;
-				    if ( ! snapshot.updatePending ) {
-					    snapshot.updateSnapshotEditControls();
-				    } else if ( snapshot.dirtyEditControlValues ) {
-					    update();
-				    }
+					snapshot.updatePending = snapshot.dirtyEditControlValues;
+					if ( ! snapshot.updatePending ) {
+						snapshot.updateSnapshotEditControls();
+					} else if ( snapshot.dirtyEditControlValues ) {
+						update();
+					}
 					snapshot.dirtyEditControlValues = false;
 				} );
-			}, delay );
+			};
+
+			delayedUpdate = _.debounce( update, delay );
 
 			snapshot.editControlSettings.bind( function() {
 				if ( snapshot.isFutureDate() ) {
-					if ( snapshot.updatePending ) {
-						snapshot.dirtyEditControlValues = true;
-					} else {
-						update();
+					snapshot.dirtyEditControlValues = true;
+					if ( ! snapshot.updatePending ) {
+						delayedUpdate();
 					}
 				}
+			} );
+
+			priorityUpdate = function() {
+				if ( ! snapshot.updatePending && snapshot.dirtyEditControlValues && snapshot.isFutureDate() ) {
+					update();
+				}
+			};
+
+			// Save when focus removed from window.
+			$( window ).on( 'blur.wp-customize-changeset-update', function() {
+				priorityUpdate();
+			} );
+
+			// Save before unloading window.
+			$( window ).on( 'beforeunload.wp-customize-changeset-update', function() {
+				priorityUpdate();
 			} );
 		},
 
@@ -841,6 +859,26 @@
 		},
 
 		/**
+		 * Amend the preview query so we can update the snapshot during `changeset_save`.
+		 *
+		 * @return {void}
+		 */
+		extendPreviewerQuery: function extendPreviewerQuery() {
+			var snapshot = this, originalQuery = api.previewer.query;
+
+			api.previewer.query = function() {
+				var retval = originalQuery.apply( this, arguments );
+				if ( ! _.isEmpty( snapshot.editControlSettings.get() ) ) {
+					retval.title = snapshot.editControlSettings.get().title;
+					if ( snapshot.isFutureDate() ) {
+						retval.date = snapshot.editControlSettings.get().date;
+					}
+				}
+				return retval;
+			};
+		},
+
+		/**
 		 * Add select drop down button.
 		 *
 		 * @return {object} status button.
@@ -863,7 +901,7 @@
 					button: 'dashicons dashicons-arrow-down'
 				},
 				change: function( event, ui ) {
-					statusButton.state.trigger( 'select-change', ui.item.value );
+					statusButton.state.trigger( 'status-change', ui.item.value );
 				}
 			});
 
@@ -874,7 +912,7 @@
 			statusButton.dropDown = selectMenuButton.find( '.ui-icon' );
 			statusButton.dropDown.addClass( 'button button-primary' );
 
-			statusButton.state.bind( 'select-change', function( status ) {
+			statusButton.state.bind( 'status-change', function( status ) {
 				selectedOption = statusButton.select.find( 'option:selected' );
 				statusButton.button.text( selectedOption.text() );
 				statusButton.button.data( 'alt-text', selectedOption.data( 'alt-text' ) );
