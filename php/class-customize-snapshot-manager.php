@@ -451,6 +451,7 @@ class Customize_Snapshot_Manager {
 	 */
 	public function customize_menu( $wp_admin_bar ) {
 		add_action( 'wp_before_admin_bar_render', 'wp_customize_support_script' );
+		$this->replace_customize_link( $wp_admin_bar );
 		$this->add_resume_snapshot_link( $wp_admin_bar );
 		$this->add_post_edit_screen_link( $wp_admin_bar );
 		$this->add_snapshot_exit_link( $wp_admin_bar );
@@ -479,6 +480,44 @@ class Customize_Snapshot_Manager {
 			}
 		</style>
 		<?php
+	}
+
+	/**
+	 * Replaces the "Customize" link in the Toolbar.
+	 *
+	 * @param \WP_Admin_Bar $wp_admin_bar WP_Admin_Bar instance.
+	 */
+	public function replace_customize_link( $wp_admin_bar ) {
+		if ( empty( $this->snapshot ) ) {
+			return;
+		}
+
+		$customize_node = $wp_admin_bar->get_node( 'customize' );
+		if ( empty( $customize_node ) ) {
+			return;
+		}
+
+		// Remove customize_snapshot_uuid query param from url param to be previewed in Customizer.
+		$preview_url_query_params = array();
+		$preview_url_parsed = wp_parse_url( $customize_node->href );
+		parse_str( $preview_url_parsed['query'], $preview_url_query_params );
+		if ( ! empty( $preview_url_query_params['url'] ) ) {
+			$preview_url_query_params['url'] = remove_query_arg( array( $this->get_front_uuid_param() ), $preview_url_query_params['url'] );
+			$customize_node->href = preg_replace(
+				'/(?<=\?).*?(?=#|$)/',
+				build_query( $preview_url_query_params ),
+				$customize_node->href
+			);
+		}
+
+		// Add customize_snapshot_uuid param as param to customize.php itself.
+		$customize_node->href = add_query_arg(
+			array( $this->get_customize_uuid_param() => $this->current_snapshot_uuid ),
+			$customize_node->href
+		);
+
+		$customize_node->meta['class'] .= ' ab-customize-snapshots-item';
+		$wp_admin_bar->add_menu( (array) $customize_node );
 	}
 
 	/**
