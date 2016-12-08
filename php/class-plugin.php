@@ -46,15 +46,11 @@ class Plugin extends Plugin_Base {
 	 * Plugin constructor.
 	 */
 	public function __construct() {
-
 		// Parse plugin version.
 		if ( preg_match( '/Version:\s*(\S+)/', file_get_contents( __DIR__ . '/../customize-snapshots.php' ), $matches ) ) {
 			$this->version = $matches[1];
 		}
-
-		// Todo change this 4.7-beta1 to 4.7.
-		$this->compat = version_compare( get_bloginfo( 'version' ), '4.7-beta1', '<' );
-
+		$this->compat = is_back_compat();
 		load_plugin_textdomain( 'customize-snapshots' );
 
 		parent::__construct();

@@ -34,22 +34,27 @@
 				_.extend( snapshot.data, snapshotsConfig );
 			}
 
-			window._wpCustomizeControlsL10n.save = snapshot.data.i18n.publish;
-			window._wpCustomizeControlsL10n.saved = snapshot.data.i18n.published;
-
 			// Set the initial client timestamp.
 			snapshot.data.initialClientTimestamp = snapshot.dateValueOf();
-			snapshot.updatePending = false;
 
 			api.bind( 'ready', function() {
 				snapshotExists = '{}' !== api.previewer.query().customized;
 				api.state.create( 'snapshot-exists', snapshotExists );
 				api.state.create( 'snapshot-saved', true );
 				api.state.create( 'snapshot-submitted', true );
-				api.state.create( 'snapshot-status', snapshot.data.postStatus );
 
 				snapshot.data.uuid = snapshot.data.uuid || api.settings.changeset.uuid;
 				snapshot.data.title = snapshot.data.title || snapshot.data.uuid;
+
+				snapshot.editControlSettings = new api.Value( {
+					title: snapshot.data.title,
+					date: snapshot.data.publishDate
+				} );
+
+				// Batch edit box settings with core changeset save.
+				api.bind( 'changeset-save', function() {
+					snapshot.extendPreviewerQuery();
+				} );
 
 				// Suppress the AYS dialog.
 				api.bind( 'changeset-saved', function() {
@@ -119,16 +124,18 @@
 		 */
 		updateSnapshot: function updateSnapshot( status ) {
 			var snapshot = this, scheduleDate,
+			    confirmText,
 				deferred = new $.Deferred(),
 				request,
 				requestData = {
 					status: status
 				};
 
-			if ( 'publish' === status && 'publish' !== api.state( 'snapshot-status' ).get() && snapshot.statusButton ) {
-				if ( snapshot.statusButton.state( 'button-text' ).get() !== snapshot.statusButton.button.data( 'confirm-text' ) ) {
-					snapshot.statusButton.state( 'disabled' ).set( false );
-					snapshot.statusButton.state( 'button-text' ).set( snapshot.statusButton.button.data( 'confirm-text' ) );
+			if ( 'publish' === status && 'publish' !== api.state( 'changesetStatus' ).get() && snapshot.statusButton ) {
+				confirmText = snapshot.statusButton.button.data( 'confirm-text' );
+				if ( confirmText && snapshot.statusButton.button.text() !== confirmText ) {
+					snapshot.statusButton.state( 'disabled-button' ).set( false );
+					snapshot.statusButton.updateButtonText( 'confirm-text' );
 					return deferred.promise();
 				}
 			}
@@ -143,6 +150,9 @@
 					requestData.date = snapshot.formatDate( scheduleDate );
 					request = snapshot.sendUpdateSnapshotRequest( requestData );
 				}
+			} else if ( 'publish' === status ) {
+				request = snapshot.sendUpdateSnapshotRequest( requestData );
+
 			} else {
 				if ( ! _.isEmpty( snapshot.editContainer ) && snapshot.isFutureDate() ) {
 					scheduleDate = snapshot.getDateFromInputs();
@@ -164,7 +174,7 @@
 		sendUpdateSnapshotRequest: function sendUpdateSnapshotRequest( options ) {
 			var snapshot = this,
 				spinner = $( '#customize-header-actions' ).find( '.spinner' ),
-				request, data;
+				request, data, publishStatus;
 
 			data = _.extend(
 				{
@@ -173,11 +183,12 @@
 				options
 			);
 
-			snapshot.updatePending = true;
-			snapshot.statusButton.state( 'disabled' ).set( true );
+			snapshot.statusButton.disable( true );
 			spinner.addClass( 'is-active' );
 
-			request = wp.customize.previewer.save( data );
+			request = api.previewer.save( data );
+
+			publishStatus = 'publish' === data.status;
 
 			request.always( function( response ) {
 				spinner.removeClass( 'is-active' );
@@ -190,10 +201,8 @@
 				if ( response.title ) {
 					snapshot.data.title = response.title;
 				}
-				snapshot.updateSnapshotEditControls();
-				snapshot.statusButton.state( 'disabled-select' ).set( false );
+
 				snapshot.data.dirty = false;
-				snapshot.updatePending = false;
 			} );
 
 			request.done( function( response ) {
@@ -202,15 +211,16 @@
 
 				api.state( 'snapshot-exists' ).set( true );
 				api.state( 'snapshot-saved' ).set( true );
-				api.state( 'snapshot-status' ).set( data.status );
-				snapshot.statusButton.state( 'disabled-button' ).set( true );
-				snapshot.isFirstSave = false;
 
 				if ( 'pending' === data.status ) {
 					api.state( 'snapshot-submitted' ).set( true );
 				}
 
-				snapshot.statusButton.state( 'button-text' ).set( snapshot.statusButton.button.data( 'alt-text' ) );
+				snapshot.statusButton.state( 'disabled-select' ).set( publishStatus );
+				snapshot.statusButton.state( 'disabled-button' ).set( true );
+				snapshot.snapshotExpandButton.toggle( ! publishStatus );
+
+				snapshot.statusButton.updateButtonText( 'alt-text' );
 
 				// Trigger an event for plugins to use.
 				api.trigger( 'customize-snapshots-update', {
@@ -228,6 +238,8 @@
 					messages = snapshot.data.i18n.errorMsg,
 					invalidityCount = 0,
 					dialogElement;
+
+				snapshot.statusButton.state( 'disabled-select' ).set( false );
 
 				// @todo is this required in 4.7?.
 				if ( response.setting_validities ) {
@@ -282,17 +294,19 @@
 				submitButton, setPreviewLinkHref;
 
 			snapshot.publishButton = $( '#save' );
-			snapshot.dirtyEditSettings = new api.Values();
 
 			snapshot.publishButton.addClass( 'hidden' );
-			snapshot.statusButton = snapshot.addSelectButton();
+			snapshot.statusButton = snapshot.addStatusButton();
+			snapshot.statusButton.state( 'disabled-button' ).set( true );
 
-			// Select/save-draft button.
-			if ( api.state( 'snapshot-exists' ).get() && 'auto-draft' !== snapshot.data.postStatus ) {
-				snapshot.isFirstSave = false;
-				api.state( 'snapshot-status' ).set( snapshot.data.postStatus );
+			if ( api.state( 'changesetStatus' ).get() ) {
+				if ( 'auto-draft' === api.state( 'changesetStatus' ).get() ) {
+					snapshot.statusButton.disable( false );
+				} else {
+					snapshot.statusButton.updateButtonText( 'alt-text' );
+				}
 			} else {
-				snapshot.isFirstSave = true;
+				snapshot.statusButton.disable( true );
 			}
 
 			// Preview link.
@@ -334,7 +348,8 @@
 			} );
 
 			api.bind( 'change', function() {
-				snapshot.statusButton.state( 'disabled' ).set( false );
+				snapshot.statusButton.disable( false );
+				snapshot.statusButton.updateButtonText( 'button-text' );
 			} );
 
 			// Submit for review button.
@@ -362,7 +377,7 @@
 			var snapshot = this, sliceBegin = 0,
 				sliceEnd = -2, updateUI;
 
-			snapshot.snapshotEditContainerDisplayed = new api.Value();
+			snapshot.snapshotEditContainerDisplayed = new api.Value( false );
 
 			updateUI = function() {
 				snapshot.populateSetting();
@@ -394,7 +409,7 @@
 
 					snapshot.schedule.inputs.on( 'blur', function() {
 						snapshot.populateInputs();
-						snapshot.populateSetting();
+						updateUI();
 					} );
 
 					snapshot.updateCountdown();
@@ -421,6 +436,10 @@
 					snapshot.snapshotExpandButton.attr( 'aria-pressed', 'false' );
 					snapshot.snapshotExpandButton.prop( 'title', snapshot.data.i18n.expandSnapshotScheduling );
 				}
+			} );
+
+			snapshot.editControlSettings.bind( function() {
+				snapshot.toggleDateNotification();
 			} );
 
 			// Toggle schedule container when clicking the button.
@@ -484,28 +503,55 @@
 		},
 
 		/**
-		 * Auto save edit box when the dates are changed.
+		 * Auto save the edit box values.
 		 *
-		 * @return {void}.
+		 * @return {void}
 		 */
-		autoSaveEditBox: function autoSaveEditor() {
-			var snapshot = this, updateSnapshot, delay = 1000;
+		autoSaveEditBox: function() {
+			var snapshot = this, update, delay = 1000, status, priorityUpdate, delayedUpdate;
 
-			updateSnapshot = _.debounce( function( status ) {
-				snapshot.updateSnapshot( status );
-			}, delay );
+			snapshot.updatePending = false;
+			snapshot.dirtyEditControlValues = false;
 
-			snapshot.dirtyEditSettings.bind( 'date', function( dirty ) {
-				if ( ! snapshot.updatePending && ! snapshot.isFirstSave ) {
-					if ( dirty ) {
-						if ( 'future' !== api.state( 'snapshot-status' ).get() ) {
-							snapshot.updateSnapshot( api.state( 'snapshot-status' ).get() );
-						}
+			update = function() {
+				snapshot.updatePending = true;
+				status = snapshot.statusButton.select.val();
+				snapshot.updateSnapshot( status ).always( function() {
+					snapshot.updatePending = snapshot.dirtyEditControlValues;
+					if ( ! snapshot.updatePending ) {
+						snapshot.updateSnapshotEditControls();
+					} else if ( snapshot.dirtyEditControlValues ) {
+						update();
 					}
-					if ( ! snapshot.isFutureDate() ) {
-						updateSnapshot( 'draft' );
+					snapshot.dirtyEditControlValues = false;
+				} );
+			};
+
+			delayedUpdate = _.debounce( update, delay );
+
+			snapshot.editControlSettings.bind( function() {
+				if ( snapshot.isFutureDate() ) {
+					snapshot.dirtyEditControlValues = true;
+					if ( ! snapshot.updatePending ) {
+						delayedUpdate();
 					}
 				}
+			} );
+
+			priorityUpdate = function() {
+				if ( ! snapshot.updatePending && snapshot.dirtyEditControlValues && snapshot.isFutureDate() ) {
+					update();
+				}
+			};
+
+			// Save when focus removed from window.
+			$( window ).on( 'blur.wp-customize-changeset-update', function() {
+				priorityUpdate();
+			} );
+
+			// Save before unloading window.
+			$( window ).on( 'beforeunload.wp-customize-changeset-update', function() {
+				priorityUpdate();
 			} );
 		},
 
@@ -517,7 +563,7 @@
 		toggleDateNotification: function showDateNotification() {
 			var snapshot = this;
 			if ( ! _.isEmpty( snapshot.dateNotification ) ) {
-				snapshot.dateNotification.toggle( ! snapshot.isFutureDate() && 'future' === snapshot.statusButton.select.val() );
+				snapshot.dateNotification.toggle( ! snapshot.isFutureDate() );
 			}
 		},
 
@@ -544,6 +590,7 @@
 		updateSnapshotEditControls: function updateSnapshotEditControls() {
 			var snapshot = this,
 				parsed,
+				status,
 				sliceBegin = 0,
 				sliceEnd = -2;
 
@@ -551,8 +598,10 @@
 				return;
 			}
 
+			status = api.state( 'changesetStatus' ).get();
+
 			if ( snapshot.data.currentUserCanPublish ) {
-				if ( '0000-00-00 00:00:00' === snapshot.data.publishDate ) {
+				if ( '0000-00-00 00:00:00' === snapshot.data.publishDate || ! status || 'auto-draft' === status ) {
 					snapshot.data.publishDate = snapshot.getCurrentTime();
 				}
 
@@ -725,25 +774,26 @@
 		populateSetting: function populateSetting() {
 			var snapshot = this,
 				date = snapshot.getDateFromInputs(),
-				scheduled, isDirtyTitle, isDirtyDate;
+				scheduled, editControlSettings;
+
+			editControlSettings = _.extend( {}, snapshot.editControlSettings.get() );
 
 			if ( ! date || ! snapshot.data.currentUserCanPublish ) {
-				snapshot.dirtyEditSettings.trigger( 'title', snapshot.data.title !== snapshot.snapshotTitle.val() );
+				editControlSettings.title = snapshot.snapshotTitle.val();
+				snapshot.editControlSettings.set( editControlSettings );
 				return;
 			}
 
 			date.setSeconds( 0 );
 			scheduled = snapshot.formatDate( date ) !== snapshot.data.publishDate;
 
-			isDirtyTitle = snapshot.data.title !== snapshot.snapshotTitle.val();
-			snapshot.dirtyEditSettings.trigger( 'title', isDirtyTitle );
+			editControlSettings.title = snapshot.snapshotTitle.val();
+			editControlSettings.date = snapshot.formatDate( date );
 
-			isDirtyDate = scheduled && snapshot.isFutureDate();
-			snapshot.dirtyEditSettings.trigger( 'date', isDirtyDate );
+			snapshot.editControlSettings.set( editControlSettings );
 
 			snapshot.updateCountdown();
 			snapshot.editContainer.find( '.reset-time' ).toggle( scheduled );
-			snapshot.toggleDateNotification();
 		},
 
 		/**
@@ -809,21 +859,39 @@
 		},
 
 		/**
+		 * Amend the preview query so we can update the snapshot during `changeset_save`.
+		 *
+		 * @return {void}
+		 */
+		extendPreviewerQuery: function extendPreviewerQuery() {
+			var snapshot = this, originalQuery = api.previewer.query;
+
+			api.previewer.query = function() {
+				var retval = originalQuery.apply( this, arguments );
+				if ( ! _.isEmpty( snapshot.editControlSettings.get() ) ) {
+					retval.title = snapshot.editControlSettings.get().title;
+					if ( snapshot.isFutureDate() ) {
+						retval.date = snapshot.editControlSettings.get().date;
+					}
+				}
+				return retval;
+			};
+		},
+
+		/**
 		 * Add select drop down button.
 		 *
 		 * @return {object} status button.
 		 */
-		addSelectButton: function addSelectButton() {
+		addStatusButton: function addStatusButton() {
 			var snapshot = this, selectMenuButton, statusButton = {}, selectedOption;
 
 			statusButton.state = new api.Values();
-			statusButton.state.create( 'disabled' );
 			statusButton.state.create( 'disabled-select' );
 			statusButton.state.create( 'disabled-button' );
-			statusButton.state.create( 'button-text' );
 
 			statusButton.container = $( $.trim( wp.template( 'snapshot-status-button' )({
-				selected: api.state( 'snapshot-status' ).get() || 'publish'
+				selected: api.state( 'changesetStatus' ).get() && 'auto-draft' !== api.state( 'changesetStatus' ).get() ? api.state( 'changesetStatus' ).get() : 'publish'
 			}) ) );
 			statusButton.button = statusButton.container.find( '.snapshot-status-button-overlay' );
 			statusButton.select = statusButton.container.find( 'select' );
@@ -833,7 +901,7 @@
 					button: 'dashicons dashicons-arrow-down'
 				},
 				change: function( event, ui ) {
-					statusButton.state.trigger( 'select-change', ui.item.value );
+					statusButton.state.trigger( 'status-change', ui.item.value );
 				}
 			});
 
@@ -844,17 +912,20 @@
 			statusButton.dropDown = selectMenuButton.find( '.ui-icon' );
 			statusButton.dropDown.addClass( 'button button-primary' );
 
-			statusButton.state.bind( 'select-change', function( status ) {
+			statusButton.state.bind( 'status-change', function( status ) {
 				selectedOption = statusButton.select.find( 'option:selected' );
 				statusButton.button.text( selectedOption.text() );
 				statusButton.button.data( 'alt-text', selectedOption.data( 'alt-text' ) );
 				statusButton.button.data( 'button-text', selectedOption.text() );
 				if ( 'publish' === status ) {
+					snapshot.snapshotExpandButton.hide();
 					statusButton.button.data( 'confirm-text', selectedOption.data( 'confirm-text' ) );
 				}
 
 				if ( 'future' === status ) {
+					snapshot.updateSnapshotEditControls();
 					snapshot.snapshotEditContainerDisplayed.set( true );
+					snapshot.snapshotExpandButton.show();
 				} else {
 					snapshot.updateSnapshot( status );
 					snapshot.snapshotEditContainerDisplayed.set( false );
@@ -870,15 +941,16 @@
 				statusButton.dropDown.toggleClass( 'disabled', disabled );
 			} );
 
-			statusButton.state( 'disabled' ).bind( function( disabled ) {
-				statusButton.state( 'disabled-select' ).set( disabled );
-				statusButton.state( 'disabled-button' ).set( disabled );
-			} );
+			statusButton.updateButtonText = function( dataAttr ) {
+				var buttonText = statusButton.button.data( dataAttr );
+				statusButton.button.text( buttonText );
+				statusButton.hiddenButton.text( buttonText );
+			};
 
-			statusButton.state( 'button-text' ).bind( function( text ) {
-				statusButton.button.text( text );
-				statusButton.hiddenButton.text( text );
-			} );
+			statusButton.disable = function( disable ) {
+				statusButton.state( 'disabled-select' ).set( disable );
+				statusButton.state( 'disabled-button' ).set( disable );
+			};
 
 			statusButton.button.on( 'click', function( event ) {
 				event.preventDefault();

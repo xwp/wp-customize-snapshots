@@ -27,7 +27,7 @@ class Migrate {
 	 * Migrate constructor.
 	 */
 	public function __construct() {
-		$this->compat = version_compare( get_bloginfo( 'version' ), '4.7-beta1', '<' );
+		$this->compat = is_back_compat();
 		if ( ! $this->compat && is_admin() && is_super_admin() ) {
 			$this->maybe_migrate();
 		}

@@ -329,3 +329,8 @@
 	outline-width: 2px;
 	outline-offset: -2px;
 }
+
+.animated {
+	animation-duration: 0.5s;
+	animation-fill-mode: both;
+}
