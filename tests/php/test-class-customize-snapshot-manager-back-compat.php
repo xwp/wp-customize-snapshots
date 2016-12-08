@@ -743,47 +743,4 @@ class Test_Customize_Snapshot_Manager_Back_Compat extends \WP_UnitTestCase {
 		$this->assertEquals( self::UUID, $query_params['customize_snapshot_uuid'] );
 	}
 
-	/**
-	 * Test replace_customize_link.
-	 *
-	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::replace_customize_link()
-	 */
-	public function test_replace_customize_link() {
-		global $wp_admin_bar;
-		set_current_screen( 'front' );
-
-		require_once ABSPATH . WPINC . '/class-wp-admin-bar.php';
-		remove_all_actions( 'admin_bar_menu' );
-		$this->go_to( home_url( '?customize_snapshot_uuid=' . self::UUID ) );
-		$_REQUEST['customize_snapshot_uuid'] = self::UUID;
-
-		$manager = new Customize_Snapshot_Manager_Back_Compat( $this->plugin );
-		$manager->init();
-
-		// Ensure customize link remains unknown if user lacks cap.
-		wp_set_current_user( 0 );
-		$wp_admin_bar = new \WP_Admin_Bar(); // WPCS: Override OK.
-		$wp_admin_bar->initialize();
-		$wp_admin_bar->add_menus();
-		do_action_ref_array( 'admin_bar_menu', array( &$wp_admin_bar ) );
-		$this->assertEmpty( $wp_admin_bar->get_node( 'customize' ) );
-
-		// Ensure customize link modified.
-		wp_set_current_user( $this->user_id );
-		$wp_admin_bar = new \WP_Admin_Bar(); // WPCS: Override OK.
-		$wp_admin_bar->initialize();
-		$wp_admin_bar->add_menus();
-		do_action_ref_array( 'admin_bar_menu', array( &$wp_admin_bar ) );
-		$node = $wp_admin_bar->get_node( 'customize' );
-		$this->assertTrue( is_object( $node ) );
-		$parsed_url = wp_parse_url( $node->href );
-		$query_params = array();
-		parse_str( $parsed_url['query'], $query_params );
-		$this->assertArrayHasKey( 'customize_snapshot_uuid', $query_params );
-		$this->assertEquals( self::UUID, $query_params['customize_snapshot_uuid'] );
-		$this->assertArrayHasKey( 'url', $query_params );
-		$parsed_preview_url = wp_parse_url( $query_params['url'] );
-		$this->assertArrayNotHasKey( 'query', $parsed_preview_url );
-	}
-
 }
