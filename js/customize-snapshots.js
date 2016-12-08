@@ -124,7 +124,7 @@
 		 */
 		updateSnapshot: function updateSnapshot( status ) {
 			var snapshot = this, scheduleDate,
-			    confirmText,
+				confirmText,
 				deferred = new $.Deferred(),
 				request,
 				requestData = {
@@ -508,15 +508,15 @@
 		 * @return {void}
 		 */
 		autoSaveEditBox: function() {
-			var snapshot = this, update, delay = 1000, status, priorityUpdate, delayedUpdate;
+			var snapshot = this, update, delay = 1000, status;
 
 			snapshot.updatePending = false;
 			snapshot.dirtyEditControlValues = false;
 
-			update = function() {
+			update = _.debounce( function() {
 				snapshot.updatePending = true;
 				status = snapshot.statusButton.select.val();
-				snapshot.updateSnapshot( status ).always( function() {
+				snapshot.updateSnapshot( status ).done( function() {
 					snapshot.updatePending = snapshot.dirtyEditControlValues;
 					if ( ! snapshot.updatePending ) {
 						snapshot.updateSnapshotEditControls();
@@ -524,34 +524,26 @@
 						update();
 					}
 					snapshot.dirtyEditControlValues = false;
+				} ).fail( function() {
+					snapshot.updatePending = false;
 				} );
-			};
-
-			delayedUpdate = _.debounce( update, delay );
+			}, delay );
 
 			snapshot.editControlSettings.bind( function() {
 				if ( snapshot.isFutureDate() ) {
-					snapshot.dirtyEditControlValues = true;
 					if ( ! snapshot.updatePending ) {
-						delayedUpdate();
+						update();
+					} else {
+						snapshot.dirtyEditControlValues = true;
 					}
 				}
 			} );
 
-			priorityUpdate = function() {
-				if ( ! snapshot.updatePending && snapshot.dirtyEditControlValues && snapshot.isFutureDate() ) {
-					update();
-				}
-			};
-
-			// Save when focus removed from window.
-			$( window ).on( 'blur.wp-customize-changeset-update', function() {
-				priorityUpdate();
-			} );
-
 			// Save before unloading window.
 			$( window ).on( 'beforeunload.wp-customize-changeset-update', function() {
-				priorityUpdate();
+				if ( snapshot.updatePending || snapshot.dirtyEditControlValues ) {
+					return false;
+				}
 			} );
 		},
 
