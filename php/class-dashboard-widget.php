@@ -146,7 +146,7 @@ class Dashboard_Widget {
 			return;
 		}
 		$query = new \WP_Query( array(
-			'post_type' => Post_Type::SLUG,
+			'post_type' => $this->manager->get_post_type(),
 			'post_status' => 'future',
 			'date_query' => array(
 				'before' => $date->format( 'Y-m-d H:i:s' ),
@@ -172,7 +172,7 @@ class Dashboard_Widget {
 				) );
 			} else {
 				// Merge posts.
-				$merged_snapshot_post_id = $this->manager->post_type->handle_snapshot_merge_bulk_actions( '', 'merge_snapshot', $mergable_posts, true );
+				$merged_snapshot_post_id = $this->manager->post_type->merge_snapshots( $mergable_posts, 'auto-draft' );
 			}
 
 			if ( $merged_snapshot_post_id ) {

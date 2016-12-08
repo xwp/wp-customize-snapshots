@@ -69,12 +69,22 @@ class Test_Dashboard_Widget extends \WP_UnitTestCase {
 	}
 
 	/**
+	 * Get snapshot manager instance.
+	 */
+	public function get_new_plugin_instance() {
+		$plugin = new Plugin();
+		$plugin->init();
+		return $plugin;
+	}
+
+	/**
 	 * Test handle_future_snapshot_preview_request
 	 */
 	public function test_handle_future_snapshot_preview_request() {
 		// Setup.
-		$manager = new Customize_Snapshot_Manager( new Plugin() );
-		$post_type_obj = new Post_Type( $manager );
+		$plugin = $this->get_new_plugin_instance();
+		$manager = $plugin->customize_snapshot_manager;
+		$post_type_obj = $manager->post_type;
 		$date = gmdate( 'Y-m-d H:i:s', ( time() + DAY_IN_SECONDS + ( get_option( 'gmt_offset' ) * HOUR_IN_SECONDS ) ) );
 		$search_date = gmdate( 'Y-m-d H:i:s', ( time() + DAY_IN_SECONDS + DAY_IN_SECONDS + ( get_option( 'gmt_offset' ) * HOUR_IN_SECONDS ) ) );
 		$date_time = new \DateTime( $search_date );
@@ -82,18 +92,14 @@ class Test_Dashboard_Widget extends \WP_UnitTestCase {
 		$post_id_1 = $post_type_obj->save( array(
 			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
 			'status' => 'future',
-			'post_date' => $date,
-			'post_date_gmt' => '0000-00-00 00:00:00',
+			'date_gmt' => $date,
 			'data' => $data,
-			'edit_date' => current_time( 'mysql' ),
 		) );
 		$post_id_2 = $post_type_obj->save( array(
 			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
 			'status' => 'future',
-			'post_date' => $date,
-			'post_date_gmt' => '0000-00-00 00:00:00',
+			'date_gmt' => $date,
 			'data' => $data,
-			'edit_date' => current_time( 'mysql' ),
 		) );
 
 		// Setup post var.
@@ -109,12 +115,12 @@ class Test_Dashboard_Widget extends \WP_UnitTestCase {
 		$_SERVER['REQUEST_METHOD'] = 'POST';
 
 		// Mock handle_snapshot_merge_bulk_actions.
-		$post_type_obj = $this->getMockBuilder( 'CustomizeSnapshots\Post_Type' )
+		$post_type_obj = $this->getMockBuilder( get_class( $post_type_obj ) )
 		                      ->setConstructorArgs( array( $manager ) )
-		                      ->setMethods( array( 'handle_snapshot_merge_bulk_actions' ) )
+		                      ->setMethods( array( 'merge_snapshots' ) )
 		                      ->getMock();
 		$post_type_obj->expects( $this->once() )
-		              ->method( 'handle_snapshot_merge_bulk_actions' )
+		              ->method( 'merge_snapshots' )
 		              ->will( $this->returnValue( null ) );
 		$manager->post_type = $post_type_obj;
 		$dashboard = new Dashboard_Widget( $manager );

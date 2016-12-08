@@ -141,7 +141,7 @@ class Snapshot_REST_API_Controller extends \WP_REST_Posts_Controller {
 	 * @return boolean Can we read it?
 	 */
 	public function check_read_permission( $post ) {
-		$post_type_obj = get_post_type_object( 'customize_snapshot' );
+		$post_type_obj = get_post_type_object( $this->snapshot_post_type->snapshot_manager->get_post_type() );
 		if ( ! current_user_can( $post_type_obj->cap->edit_post, $post->ID ) ) {
 			return false;
 		}
@@ -159,6 +159,17 @@ class Snapshot_REST_API_Controller extends \WP_REST_Posts_Controller {
 		$response = parent::prepare_item_for_response( $post, $request );
 		$response->data['content'] = $this->snapshot_post_type->get_post_content( $post );
 		return $response;
+	}
+
+	/**
+	 * Creates a snapshot/changeset post.
+	 *
+	 * @param \WP_REST_Request $request Full details about the request.
+	 * @return \WP_Error WP_Error object.
+	 */
+	public function create_item( $request ) {
+		unset( $request );
+		return new \WP_Error( 'rest_cannot_create', __( 'Now allowed to create post', 'customize-snapshots' ), array( 'status' => rest_authorization_required_code() ) );
 	}
 
 	/**

@@ -4,15 +4,21 @@ var CustomizeSnapshotsAdmin = (function( $ ) {
 	'use strict';
 	var component = {};
 
+	component.data = {
+		deleteInputName: 'customize_snapshot_remove_settings[]'
+	};
+
 	/**
 	 * Initialize component.
 	 *
+	 * @param {object} args Args.
 	 * @return {void}
 	 */
-	component.init = function() {
+	component.init = function( args ) {
+		component.data = _.extend( component.data, args );
 		$( function() {
 			component.deleteSetting();
-			component.conflict_setting();
+			component.conflictSetting();
 		} );
 	};
 
@@ -24,8 +30,7 @@ var CustomizeSnapshotsAdmin = (function( $ ) {
 	component.deleteSetting = function() {
 		var $linkToRemoveOrRestore = $( '.snapshot-toggle-setting-removal' ),
 			linkActions = ['remove', 'restore'],
-			dataSlug = 'cs-action',
-			inputName = 'customize_snapshot_remove_settings[]';
+			dataSlug = 'cs-action';
 
 		$linkToRemoveOrRestore.data( dataSlug, linkActions[0] );
 
@@ -63,10 +68,10 @@ var CustomizeSnapshotsAdmin = (function( $ ) {
 
 		component.constructHiddenInputWithValue = function( settingId ) {
 			return $( '<input>' ).attr( {
-				'name': inputName,
+				'name': component.data.deleteInputName,
 				'type': 'hidden'
 			} )
-				.val( settingId );
+			.val( settingId );
 		};
 
 		component.changeLinkText = function( $link ) {
@@ -90,7 +95,7 @@ var CustomizeSnapshotsAdmin = (function( $ ) {
 		};
 
 		component.removeHiddenInputWithValue = function( settingId ) {
-			$( 'input[name="' + inputName + '"][value="' + settingId + '"]' ).remove();
+			$( 'input[name="' + component.data.deleteInputName + '"][value="' + settingId + '"]' ).remove();
 		};
 
 		$linkToRemoveOrRestore.on( 'click', function( event ) {
@@ -111,7 +116,7 @@ var CustomizeSnapshotsAdmin = (function( $ ) {
 	 *
 	 * @return {void}
 	 */
-	component.conflict_setting = function() {
+	component.conflictSetting = function() {
 		$( 'input.snapshot-resolved-settings' ).change( function() {
 			var $this = $( this ),
 				selector = '#' + $this.data( 'settingValueSelector' );
