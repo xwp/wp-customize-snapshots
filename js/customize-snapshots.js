@@ -51,18 +51,6 @@
 					date: snapshot.data.publishDate
 				} );
 
-				// Batch edit box settings with core changeset save.
-				api.bind( 'changeset-save', function() {
-					snapshot.extendPreviewerQuery();
-				} );
-
-				// Suppress the AYS dialog.
-				api.bind( 'changeset-saved', function() {
-					if ( 'auto-draft' !== api.state( 'changesetStatus' ).get() ) {
-						api.state( 'saved' ).set( true );
-					}
-				});
-
 				api.bind( 'change', function() {
 					api.state( 'snapshot-saved' ).set( false );
 					api.state( 'snapshot-submitted' ).set( false );
@@ -90,8 +78,7 @@
 				request.fail( function( response ) {
 					var id = 'snapshot-dialog-error',
 						hashedID = '#' + id,
-						snapshotDialogPublishError = wp.template( id ),
-						spinner = $( '#customize-header-actions' ).find( '.spinner' );
+						snapshotDialogPublishError = wp.template( id );
 
 					if ( response.responseText ) {
 
@@ -103,7 +90,7 @@
 							} ) );
 						}
 
-						spinner.removeClass( 'is-active' );
+						snapshot.spinner.removeClass( 'is-active' );
 
 						// Open the dialog.
 						$( hashedID ).dialog( {
@@ -173,7 +160,6 @@
 		 */
 		sendUpdateSnapshotRequest: function sendUpdateSnapshotRequest( options ) {
 			var snapshot = this,
-				spinner = $( '#customize-header-actions' ).find( '.spinner' ),
 				request, data, publishStatus;
 
 			data = _.extend(
@@ -184,14 +170,14 @@
 			);
 
 			snapshot.statusButton.disable( true );
-			spinner.addClass( 'is-active' );
+			snapshot.spinner.addClass( 'is-active' );
 
 			request = api.previewer.save( data );
 
 			publishStatus = 'publish' === data.status;
 
 			request.always( function( response ) {
-				spinner.removeClass( 'is-active' );
+				snapshot.spinner.removeClass( 'is-active' );
 				if ( response.edit_link ) {
 					snapshot.data.editLink = response.edit_link;
 				}
@@ -290,9 +276,9 @@
 		 */
 		addButtons: function addButtons() {
 			var snapshot = this,
-				header = $( '#customize-header-actions' ),
 				submitButton, setPreviewLinkHref;
 
+			snapshot.spinner = $( '#customize-header-actions' ).find( '.spinner' );
 			snapshot.publishButton = $( '#save' );
 
 			snapshot.publishButton.addClass( 'hidden' );
@@ -364,8 +350,6 @@
 					submitButton.prop( 'disabled', submitted );
 				} );
 			}
-
-			header.addClass( 'button-added' );
 		},
 
 		/**
@@ -499,6 +483,7 @@
 				}
 			} );
 
+			snapshot.updateSnapshotEditControls(); // @todo remove it for 4.6.
 			snapshot.autoSaveEditBox();
 		},
 
@@ -508,7 +493,8 @@
 		 * @return {void}
 		 */
 		autoSaveEditBox: function() {
-			var snapshot = this, update, delay = 1000, status;
+			var snapshot = this, update,
+				delay = 1000, status;
 
 			snapshot.updatePending = false;
 			snapshot.dirtyEditControlValues = false;
@@ -539,12 +525,32 @@
 				}
 			} );
 
-			// Save before unloading window.
+			// Hold before unloading window if there are unsaved changes.
 			$( window ).on( 'beforeunload.wp-customize-changeset-update', function() {
 				if ( snapshot.updatePending || snapshot.dirtyEditControlValues ) {
 					return false;
 				}
 			} );
+
+			api.bind( 'changeset-save', function() {
+				if ( api.state( 'changesetStatus' ).get() && 'auto-draft' !== api.state( 'changesetStatus' ).get() ) {
+					snapshot.updatePending = true;
+					snapshot.statusButton.disable( true );
+					snapshot.spinner.addClass( 'is-active' );
+					snapshot.extendPreviewerQuery(); // Batch edit box settings with core changeset.
+				}
+			} );
+
+			api.bind( 'changeset-saved', function() {
+				api.state( 'saved' ).set( true ); // Suppress the AYS dialog.
+
+				if ( api.state( 'changesetStatus' ).get() && 'auto-draft' !== api.state( 'changesetStatus' ).get() ) {
+					snapshot.updatePending = false;
+					snapshot.spinner.removeClass( 'is-active' );
+					snapshot.statusButton.state( 'disabled-select' ).set( false );
+					snapshot.statusButton.updateButtonText( 'alt-text' );
+				}
+			});
 		},
 
 		/**
@@ -556,6 +562,11 @@
 			var snapshot = this;
 			if ( ! _.isEmpty( snapshot.dateNotification ) ) {
 				snapshot.dateNotification.toggle( ! snapshot.isFutureDate() );
+
+				// @todo Remove .val() and use ( 'status-change' ).get().
+				if ( 'future' === snapshot.statusButton.select.val() ) {
+					snapshot.statusButton.state( 'disabled-button' ).set( ! snapshot.isFutureDate() );
+				}
 			}
 		},
 
@@ -915,7 +926,6 @@
 				}
 
 				if ( 'future' === status ) {
-					snapshot.updateSnapshotEditControls();
 					snapshot.snapshotEditContainerDisplayed.set( true );
 					snapshot.snapshotExpandButton.show();
 				} else {

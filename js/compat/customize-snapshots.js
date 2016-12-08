@@ -240,6 +240,7 @@
 				publishButton = header.find( '#save' ),
 				submitButton, templateData = {}, setPreviewLinkHref;
 
+			snapshot.spinner = header.find( '.spinner' );
 			snapshot.dirtySnapshotPostSetting = new api.Value();
 			snapshot.dirtyScheduleDate = new api.Value();
 
