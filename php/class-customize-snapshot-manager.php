@@ -271,8 +271,10 @@ class Customize_Snapshot_Manager {
 		if ( $this->snapshot ) {
 			$post_id = $this->customize_manager->changeset_post_id();
 			$post = get_post( $post_id );
-			$this->override_post_date_default_data( $post );
-			$edit_link = $this->snapshot->get_edit_link( $post );
+			if ( $post instanceof \WP_Post ) {
+				$this->override_post_date_default_data( $post );
+				$edit_link = $this->snapshot->get_edit_link( $post );
+			}
 		}
 
 		// Script data array.
