@@ -473,6 +473,9 @@ class Post_Type {
 	 * Persist the data in the snapshot post content.
 	 *
 	 * @param array $args Args.
+	 *
+	 * @internal For saving changesets use \WP_Customize_Manager::save_changeset_post().
+	 *
 	 * @return int|\WP_Error Post ID for snapshot or WP_Error instance.
 	 */
 	public function save( array $args ) {
