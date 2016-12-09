@@ -242,9 +242,9 @@
 		addButtons: function addButtons() {
 			var snapshot = this,
 				header = $( '#customize-header-actions' ),
-				publishButton = header.find( '#save' ),
-				submitButton, templateData = {}, setPreviewLinkHref, disableSubmitButton;
+				templateData = {}, setPreviewLinkHref;
 
+			snapshot.publishButton = header.find( '#save' );
 			snapshot.spinner = header.find( '.spinner' );
 			snapshot.dirtyScheduleDate = new api.Value();
 
@@ -275,7 +275,7 @@
 				}
 			} );
 
-			snapshot.snapshotButton.insertAfter( publishButton );
+			snapshot.snapshotButton.insertAfter( snapshot.publishButton );
 
 			// Preview link.
 			snapshot.previewLink = $( $.trim( wp.template( 'snapshot-preview-link' )() ) );
@@ -361,27 +361,7 @@
 
 			// Submit for review button.
 			if ( ! snapshot.data.currentUserCanPublish ) {
-				publishButton.hide();
-				disableSubmitButton = 'pending' === snapshot.data.postStatus || ! api.state( 'snapshot-exists' ).get();
-				submitButton = wp.template( 'snapshot-submit' );
-				submitButton = $( $.trim( submitButton( {
-					buttonText: snapshot.data.i18n.submit
-				} ) ) );
-				submitButton.prop( 'disabled', disableSubmitButton );
-				submitButton.insertBefore( snapshot.snapshotButton );
-				api.state( 'snapshot-submitted' ).bind( function( submitted ) {
-					submitButton.prop( 'disabled', submitted );
-				} );
-
-				submitButton.on( 'click', function( event ) {
-					event.preventDefault();
-					submitButton.prop( 'disabled', true );
-					snapshot.updateSnapshot( 'pending' ).done( function() {
-						submitButton.prop( 'disabled', true );
-					} ).fail( function() {
-						submitButton.prop( 'disabled', false );
-					} );
-				} );
+				snapshot.addSubmitButton();
 			}
 
 			header.addClass( 'button-added' );

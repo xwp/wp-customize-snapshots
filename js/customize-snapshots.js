@@ -257,8 +257,7 @@
 		 * @return {void}
 		 */
 		addButtons: function addButtons() {
-			var snapshot = this,
-				submitButton, setPreviewLinkHref, disableSubmitButton;
+			var snapshot = this, setPreviewLinkHref;
 
 			snapshot.spinner = $( '#customize-header-actions' ).find( '.spinner' );
 			snapshot.publishButton = $( '#save' );
@@ -320,30 +319,50 @@
 				snapshot.statusButton.updateButtonText( 'button-text' );
 			} );
 
-			// Submit for review button.
 			if ( ! snapshot.data.currentUserCanPublish ) {
-				disableSubmitButton = snapshot.data.postStatus || ! api.state( 'snapshot-exists' ).get();
-				snapshot.statusButton.container.hide();
-				submitButton = wp.template( 'snapshot-submit' );
-				submitButton = $( $.trim( submitButton( {
-					buttonText: snapshot.data.i18n.submit
-				} ) ) );
-				submitButton.prop( 'disabled', disableSubmitButton );
-				submitButton.insertBefore( snapshot.statusButton.container );
-				api.state( 'snapshot-submitted' ).bind( function( submitted ) {
-					submitButton.prop( 'disabled', submitted );
-				} );
-
-				submitButton.on( 'click', function( event ) {
-					event.preventDefault();
-					submitButton.prop( 'disabled', true );
-					snapshot.updateSnapshot( 'pending' ).done( function() {
-						submitButton.prop( 'disabled', true );
-					} ).fail( function() {
-						submitButton.prop( 'disabled', false );
-					} );
-				} );
+				snapshot.addSubmitButton();
 			}
+		},
+
+		/**
+		 * Adds Submit Button.
+		 *
+		 * @return {void}
+		 */
+		addSubmitButton: function() {
+			var snapshot = this, disableSubmitButton;
+
+			disableSubmitButton = snapshot.data.postStatus || ! api.state( 'snapshot-exists' ).get();
+
+			if ( snapshot.statusButton ) {
+				snapshot.statusButton.container.hide();
+			} else {
+				snapshot.publishButton.hide();
+			}
+
+			snapshot.submitButton = $( $.trim( wp.template( 'snapshot-submit' )( {
+				buttonText: snapshot.data.i18n.submit
+			} ) ) );
+
+			snapshot.submitButton.prop( 'disabled', disableSubmitButton );
+			snapshot.submitButton.insertBefore( snapshot.statusButton.container );
+			api.state( 'snapshot-submitted' ).bind( function( submitted ) {
+				snapshot.submitButton.prop( 'disabled', submitted );
+			} );
+
+			snapshot.submitButton.on( 'click', function( event ) {
+				event.preventDefault();
+				snapshot.submitButton.prop( 'disabled', true );
+				snapshot.updateSnapshot( 'pending' ).done( function() {
+					snapshot.submitButton.prop( 'disabled', true );
+				} ).fail( function() {
+					snapshot.submitButton.prop( 'disabled', false );
+				} );
+			} );
+
+			snapshot.editControlSettings.bind( function() {
+				snapshot.submitButton.prop( 'disabled', false );
+			} );
 		},
 
 		/**
@@ -541,6 +560,9 @@
 					snapshot.updatePending = true;
 					snapshot.statusButton.disable( true );
 					snapshot.spinner.addClass( 'is-active' );
+					if ( snapshot.submitButton ) {
+						snapshot.submitButton.prop( 'disabled', true );
+					}
 					snapshot.extendPreviewerQuery();
 				}
 			} );
