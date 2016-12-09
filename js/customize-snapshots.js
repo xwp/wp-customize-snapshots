@@ -91,7 +91,6 @@
 
 						snapshot.spinner.removeClass( 'is-active' );
 
-						// Open the dialog.
 						$( id ).dialog( {
 							autoOpen: true,
 							modal: true
@@ -124,7 +123,7 @@
 				return deferred.promise();
 			}
 
-			if ( snapshot.snapshotTitle && snapshot.snapshotTitle.val() ) {
+			if ( snapshot.snapshotTitle && snapshot.snapshotTitle.val() && 'publish' !== status ) {
 				requestData.title = snapshot.editControlSettings.get().title;
 			}
 
@@ -211,16 +210,14 @@
 			} );
 
 			request.fail( function( response ) {
-				var id = 'snapshot-dialog-error',
-					hashedID = '#' + id,
-					snapshotDialogShareError = wp.template( id ),
+				var id = '#snapshot-dialog-error',
+					snapshotDialogShareError = wp.template( 'snapshot-dialog-error' ),
 					messages = snapshot.data.i18n.errorMsg,
 					invalidityCount = 0,
 					dialogElement;
 
 				snapshot.statusButton.disableSelect.set( false );
 
-				// @todo is this required in 4.7?.
 				if ( response.setting_validities ) {
 					invalidityCount = _.size( response.setting_validities, function( validity ) {
 						return true !== validity;
@@ -243,7 +240,7 @@
 				}
 
 				// Insert the snapshot dialog error template.
-				dialogElement = $( hashedID );
+				dialogElement = $( id );
 				if ( ! dialogElement.length ) {
 					dialogElement = $( snapshotDialogShareError( {
 						title: snapshot.data.i18n.errorTitle,
@@ -253,7 +250,7 @@
 				}
 
 				// Open the dialog.
-				$( hashedID ).dialog( {
+				$( id ).dialog( {
 					autoOpen: true,
 					modal: true
 				} );
@@ -493,8 +490,11 @@
 			snapshot.dirtyEditControlValues = false;
 
 			update = _.debounce( function() {
-				snapshot.updatePending = true;
 				status = snapshot.statusButton.value.get();
+				if ( 'publish' === status ) {
+					return;
+				}
+				snapshot.updatePending = true;
 				snapshot.updateSnapshot( status ).done( function() {
 					snapshot.updatePending = snapshot.dirtyEditControlValues;
 					if ( ! snapshot.updatePending ) {
@@ -518,12 +518,13 @@
 				}
 			} );
 
-			// Hold before unloading window if there are unsaved changes.
-			$( window ).on( 'beforeunload.wp-customize-changeset-update', function() {
+			/* eslint-disable */
+			$( window ).on( 'beforeunload.customize-confirm', function() {
 				if ( snapshot.updatePending || snapshot.dirtyEditControlValues ) {
-					return false;
+					return snapshot.data.i18n.aysMsg;
 				}
 			} );
+			/* eslint-enable */
 
 			isValidChangesetStatus = function() {
 				return _.contains( [ 'future', 'pending', 'draft' ], api.state( 'changesetStatus' ).get() );
@@ -543,8 +544,8 @@
 
 				if ( isValidChangesetStatus() ) {
 					snapshot.updatePending = false;
-					snapshot.spinner.removeClass( 'is-active' );
 					snapshot.statusButton.disableSelect.set( false );
+					snapshot.spinner.removeClass( 'is-active' );
 					snapshot.statusButton.updateButtonText( 'alt-text' );
 				}
 			});
@@ -791,7 +792,7 @@
 
 			snapshot.editControlSettings.set( editControlSettings );
 
-			snapshot.updateCountdown();
+			snapshot.updateCountdown(); // @todo Update countdown only for future status?
 			snapshot.editContainer.find( '.reset-time' ).toggle( scheduled );
 		},
 
@@ -884,7 +885,7 @@
 		 */
 		addStatusButton: function addStatusButton() {
 			var snapshot = this, selectMenuButton, statusButton = {},
-			    selectedOption, buttonText, changesetStatus = api.state( 'changesetStatus' ).get();
+				selectedOption, buttonText, changesetStatus = api.state( 'changesetStatus' ).get();
 
 			statusButton.value = new api.Value();
 			statusButton.disbleButton = new api.Value();
