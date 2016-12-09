@@ -267,7 +267,9 @@ class Customize_Snapshot_Manager {
 
 		wp_enqueue_style( 'customize-snapshots' );
 		wp_enqueue_script( 'customize-snapshots' );
+
 		$post = null;
+
 		if ( $this->snapshot ) {
 			$post_id = $this->customize_manager->changeset_post_id();
 			$post = get_post( $post_id );
@@ -287,13 +289,8 @@ class Customize_Snapshot_Manager {
 			'initialServerDate' => current_time( 'mysql', false ),
 			'initialServerTimestamp' => floor( microtime( true ) * 1000 ),
 			'i18n' => array(
-				'saveButton' => __( 'Save', 'customize-snapshots' ),
-				'updateButton' => __( 'Update', 'customize-snapshots' ),
-				'scheduleButton' => __( 'Schedule', 'customize-snapshots' ),
 				'submit' => __( 'Submit', 'customize-snapshots' ),
 				'submitted' => __( 'Submitted', 'customize-snapshots' ),
-				'publish' => __( 'Publish', 'customize-snapshots' ),
-				'published' => __( 'Published', 'customize-snapshots' ),
 				'permsMsg' => array(
 					'save' => __( 'You do not have permission to publish changes, but you can create a snapshot by clicking the "Save" button.', 'customize-snapshots' ),
 					'update' => __( 'You do not have permission to publish changes, but you can modify this snapshot by clicking the "Update" button.', 'customize-snapshots' ),
@@ -307,7 +304,7 @@ class Customize_Snapshot_Manager {
 		) );
 
 		wp_add_inline_script(
-			$this->plugin->slug,
+			'customize-snapshots',
 			sprintf( 'new wp.customize.Snapshots( %s )', wp_json_encode( $exports ) ),
 			'after'
 		);
