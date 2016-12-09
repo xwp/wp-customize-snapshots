@@ -529,10 +529,12 @@ class Post_Type {
 		}
 		if ( ! empty( $args['date_gmt'] ) ) {
 			$post_arr['post_date_gmt'] = $args['date_gmt'];
+			$post_arr['post_date'] = get_date_from_gmt( $args['date_gmt'] );
 		}
 
 		$this->suspend_kses();
 		if ( $is_update ) {
+			$post_arr['edit_date'] = true;
 			$r = wp_update_post( wp_slash( $post_arr ), true );
 		} else {
 			$r = wp_insert_post( wp_slash( $post_arr ), true );
