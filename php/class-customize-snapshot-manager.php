@@ -33,7 +33,7 @@ class Customize_Snapshot_Manager {
 	/**
 	 * Post type.
 	 *
-	 * @var Post_Type|Post_Type_Back_Compt
+	 * @var Post_Type|Post_Type_Back_Compat
 	 */
 	public $post_type;
 
@@ -267,7 +267,7 @@ class Customize_Snapshot_Manager {
 
 		wp_enqueue_style( 'customize-snapshots' );
 		wp_enqueue_script( 'customize-snapshots' );
-
+		$post = null;
 		if ( $this->snapshot ) {
 			$post_id = $this->customize_manager->changeset_post_id();
 			$post = get_post( $post_id );

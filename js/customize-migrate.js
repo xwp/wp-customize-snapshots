@@ -30,7 +30,7 @@
 			limit: limit
 		};
 		request = wp.ajax.post( 'customize_snapshot_migration', requestData );
-		request.always( function( data ) {
+		request.done( function( data ) {
 			var outerDiv = $( 'div.customize-snapshot-migration' ), delay = 100, newLimit;
 			if ( data.remaining_posts ) {
 				newLimit = data.remaining_posts > limit ? limit : data.remaining_posts;
@@ -39,6 +39,13 @@
 				component.spinner.css( 'visibility', 'hidden' );
 				outerDiv.removeClass( 'notice-error' ).addClass( 'notice-success' ).find( 'p' ).html( component.el.data( 'migration-success' ) );
 				component.doingAjax = false;
+			}
+		} );
+		request.fail( function() {
+			component.spinner.css( 'visibility', 'initial' );
+			component.doingAjax = false;
+			if ( window.console ) {
+				window.console.error( 'Migration ajax failed. Click notice to start it again.' );
 			}
 		} );
 	};

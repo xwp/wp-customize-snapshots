@@ -32,22 +32,23 @@ class Customize_Snapshot_Command {
 	 * @param array $assoc_args assoc args.
 	 */
 	public function migrate( $arg, $assoc_args ) {
+		unset( $arg );
 		$migrate_obj = new Migrate();
 		if ( $migrate_obj->compat ) {
-			\WP_CLI::error( 'You\'re using older WordPress version please upgrade 4.7 or above to migrate.' );
+			\WP_CLI::error( __( 'You\'re using older WordPress version please upgrade 4.7 or above to migrate.', 'customize-snapshots' ) );
 			return;
 		}
 		if ( $migrate_obj->is_migrated() ) {
-			\WP_CLI::success( 'Already migrated.' );
+			\WP_CLI::success( __( 'Already migrated.', 'customize-snapshots' ) );
 			return;
 		}
 		$dry_mode = isset( $assoc_args['dry-run'] );
 		if ( ! $dry_mode ) {
 			$post_count = $migrate_obj->changeset_migrate();
-			\WP_CLI::success( $post_count . ' posts migrated.' );
+			\WP_CLI::success( $post_count . ' ' . __( 'posts migrated.', 'customize-snapshots' ) );
 		} else {
 			$ids = $migrate_obj->changeset_migrate( - 1, true );
-			\WP_CLI::success( count( $ids ) . ' posts migrated: ' . implode( ',', $ids ) );
+			\WP_CLI::success( count( $ids ) . ' ' . __( 'posts migrated:', 'customize-snapshots' ) . ' ' . implode( ',', $ids ) );
 		}
 	}
 }

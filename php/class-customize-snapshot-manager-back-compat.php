@@ -39,6 +39,15 @@ class Customize_Snapshot_Manager_Back_Compat extends Customize_Snapshot_Manager 
 	}
 
 	/**
+	 * Get the Customize_Snapshot instance.
+	 *
+	 * @return Customize_Snapshot_Back_Compat
+	 */
+	public function snapshot() {
+		return $this->snapshot;
+	}
+
+	/**
 	 * Ensure Customizer manager is instantiated.
 	 *
 	 * @global \WP_Customize_Manager $wp_customize
@@ -207,10 +216,10 @@ class Customize_Snapshot_Manager_Back_Compat extends Customize_Snapshot_Manager 
 	/**
 	 * Determine whether the current snapshot can be previewed.
 	 *
-	 * @param Customize_Snapshot $snapshot Snapshot to check.
+	 * @param Customize_Snapshot_Back_Compat $snapshot Snapshot to check.
 	 * @return true|\WP_Error Returns true if previewable, or `WP_Error` if cannot.
 	 */
-	public function should_import_and_preview_snapshot( Customize_Snapshot $snapshot ) {
+	public function should_import_and_preview_snapshot( Customize_Snapshot_Back_Compat $snapshot ) {
 		global $pagenow;
 
 		// Ignore if in the admin, but not Admin Ajax or Customizer.

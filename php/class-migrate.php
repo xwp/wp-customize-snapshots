@@ -135,7 +135,7 @@ class Migrate {
 				kses_init_filters();
 			}
 		}
-		if ( - 1 === $limit ) {
+		if ( -1 === $limit ) {
 			update_option( self::KEY, 1 );
 			return count( $query->posts );
 		} else {
