@@ -518,13 +518,12 @@
 				}
 			} );
 
-			/* eslint-disable */
 			$( window ).on( 'beforeunload.customize-confirm', function() {
 				if ( snapshot.updatePending || snapshot.dirtyEditControlValues ) {
 					return snapshot.data.i18n.aysMsg;
 				}
+				return undefined;
 			} );
-			/* eslint-enable */
 
 			isValidChangesetStatus = function() {
 				return _.contains( [ 'future', 'pending', 'draft' ], api.state( 'changesetStatus' ).get() );
@@ -884,8 +883,9 @@
 		 * @return {object} status button.
 		 */
 		addStatusButton: function addStatusButton() {
-			var snapshot = this, selectMenuButton, statusButton = {},
-				selectedOption, buttonText, changesetStatus = api.state( 'changesetStatus' ).get();
+			var snapshot = this, selectMenuButton, statusButton, selectedOption, buttonText, changesetStatus;
+			changesetStatus = api.state( 'changesetStatus' ).get();
+			statusButton = {};
 
 			statusButton.value = new api.Value();
 			statusButton.disbleButton = new api.Value();
