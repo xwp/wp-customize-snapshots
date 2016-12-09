@@ -899,11 +899,8 @@ class Customize_Snapshot_Manager_Back_Compat extends Customize_Snapshot_Manager 
 			$args['post_title'] = sanitize_text_field( wp_unslash( $_POST['title'] ) );
 		}
 
-		$args['edit_date'] = current_time( 'mysql' );
 		if ( isset( $publish_date_obj ) && 'future' === $status ) {
 			$args['date_gmt'] = get_gmt_from_date( $publish_date_obj->format( 'Y-m-d H:i:s' ) );
-		} else {
-			$args['date_gmt'] = '0000-00-00 00:00:00';
 		}
 		$r = $this->snapshot->save( $args );
 
