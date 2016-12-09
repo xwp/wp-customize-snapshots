@@ -62,11 +62,6 @@
 				snapshot.addButtons();
 				snapshot.editSnapshotUI();
 
-				$( '#snapshot-submit' ).on( 'click', function( event ) {
-					event.preventDefault();
-					snapshot.updateSnapshot( 'pending' );
-				} );
-
 				api.trigger( 'snapshots-ready', snapshot );
 			} );
 
@@ -263,7 +258,7 @@
 		 */
 		addButtons: function addButtons() {
 			var snapshot = this,
-				submitButton, setPreviewLinkHref;
+				submitButton, setPreviewLinkHref, disableSubmitButton;
 
 			snapshot.spinner = $( '#customize-header-actions' ).find( '.spinner' );
 			snapshot.publishButton = $( '#save' );
@@ -327,14 +322,26 @@
 
 			// Submit for review button.
 			if ( ! snapshot.data.currentUserCanPublish ) {
+				disableSubmitButton = snapshot.data.postStatus || ! api.state( 'snapshot-exists' ).get();
+				snapshot.statusButton.container.hide();
 				submitButton = wp.template( 'snapshot-submit' );
 				submitButton = $( $.trim( submitButton( {
 					buttonText: snapshot.data.i18n.submit
 				} ) ) );
-				submitButton.prop( 'disabled', ! api.state( 'snapshot-exists' ).get() );
+				submitButton.prop( 'disabled', disableSubmitButton );
 				submitButton.insertBefore( snapshot.statusButton.container );
 				api.state( 'snapshot-submitted' ).bind( function( submitted ) {
 					submitButton.prop( 'disabled', submitted );
+				} );
+
+				submitButton.on( 'click', function( event ) {
+					event.preventDefault();
+					submitButton.prop( 'disabled', true );
+					snapshot.updateSnapshot( 'pending' ).done( function() {
+						submitButton.prop( 'disabled', true );
+					} ).fail( function() {
+						submitButton.prop( 'disabled', false );
+					} );
 				} );
 			}
 		},

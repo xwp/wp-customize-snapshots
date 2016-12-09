@@ -243,10 +243,9 @@
 			var snapshot = this,
 				header = $( '#customize-header-actions' ),
 				publishButton = header.find( '#save' ),
-				submitButton, templateData = {}, setPreviewLinkHref;
+				submitButton, templateData = {}, setPreviewLinkHref, disableSubmitButton;
 
 			snapshot.spinner = header.find( '.spinner' );
-			snapshot.dirtySnapshotPostSetting = new api.Value();
 			snapshot.dirtyScheduleDate = new api.Value();
 
 			// Save/update button.
@@ -343,12 +342,8 @@
 				}
 			} );
 
-			snapshot.dirtySnapshotPostSetting.bind( function( dirty ) {
-				if ( dirty ) {
-					snapshot.snapshotButton.prop( 'disabled', false );
-				} else {
-					snapshot.snapshotButton.prop( 'disabled', ! snapshot.data.dirty );
-				}
+			snapshot.editControlSettings.bind( function() {
+				snapshot.snapshotButton.prop( 'disabled', false );
 				snapshot.updateButtonText();
 			} );
 			snapshot.dirtyScheduleDate.bind( function( dirty ) {
@@ -367,14 +362,25 @@
 			// Submit for review button.
 			if ( ! snapshot.data.currentUserCanPublish ) {
 				publishButton.hide();
+				disableSubmitButton = 'pending' === snapshot.data.postStatus || ! api.state( 'snapshot-exists' ).get();
 				submitButton = wp.template( 'snapshot-submit' );
 				submitButton = $( $.trim( submitButton( {
 					buttonText: snapshot.data.i18n.submit
 				} ) ) );
-				submitButton.prop( 'disabled', ! api.state( 'snapshot-exists' ).get() );
+				submitButton.prop( 'disabled', disableSubmitButton );
 				submitButton.insertBefore( snapshot.snapshotButton );
 				api.state( 'snapshot-submitted' ).bind( function( submitted ) {
 					submitButton.prop( 'disabled', submitted );
+				} );
+
+				submitButton.on( 'click', function( event ) {
+					event.preventDefault();
+					submitButton.prop( 'disabled', true );
+					snapshot.updateSnapshot( 'pending' ).done( function() {
+						submitButton.prop( 'disabled', true );
+					} ).fail( function() {
+						submitButton.prop( 'disabled', false );
+					} );
 				} );
 			}
 
@@ -399,7 +405,7 @@
 		},
 
 		/**
-		 * Hides the future date notification used for 4.7.
+		 * Hides the future date notification used for 4.6.
 		 *
 		 * @return {void}.
 		 */
@@ -487,21 +493,26 @@
 		populateSetting: function populateSetting() {
 			var snapshot = this,
 				date = snapshot.getDateFromInputs(),
-				scheduled, isDirtySetting, isDirtyDate;
+				scheduled, isDirtyDate, editControlSettings;
+
+			editControlSettings = _.extend( {}, snapshot.editControlSettings.get() );
 
 			if ( ! date || ! snapshot.data.currentUserCanPublish ) {
-				snapshot.dirtySnapshotPostSetting.set( snapshot.data.title !== snapshot.snapshotTitle.val() );
+				editControlSettings.title = snapshot.snapshotTitle.val();
+				snapshot.editControlSettings.set( editControlSettings );
 				return;
 			}
 
 			date.setSeconds( 0 );
 			scheduled = snapshot.formatDate( date ) !== snapshot.data.publishDate;
 
-			isDirtySetting = snapshot.data.title !== snapshot.snapshotTitle.val() || scheduled;
-			snapshot.dirtySnapshotPostSetting.set( isDirtySetting );
-
 			isDirtyDate = scheduled && snapshot.isFutureDate();
 			snapshot.dirtyScheduleDate.set( isDirtyDate );
+
+			editControlSettings.title = snapshot.snapshotTitle.val();
+			editControlSettings.date = snapshot.formatDate( date );
+
+			snapshot.editControlSettings.set( editControlSettings );
 
 			snapshot.updateCountdown();
 			snapshot.editContainer.find( '.reset-time' ).toggle( scheduled );
