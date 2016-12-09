@@ -72,9 +72,6 @@
 
 			api.bind( 'save', function( request ) {
 
-				// Make sure that saved state is false so that Published button behaves as expected.
-				api.state( 'saved' ).set( false ); // @todo Move it to compat.
-
 				request.fail( function( response ) {
 					var id = '#snapshot-dialog-error',
 						snapshotDialogPublishError = wp.template( 'snapshot-dialog-error' );
@@ -116,7 +113,7 @@
 					status: status
 				};
 
-			if ( snapshot.statusButton.needConfirm ) {
+			if ( snapshot.statusButton && snapshot.statusButton.needConfirm ) {
 				snapshot.statusButton.disbleButton.set( false );
 				snapshot.statusButton.updateButtonText( 'confirm-text' );
 				snapshot.statusButton.needConfirm = false;
@@ -473,7 +470,10 @@
 				}
 			} );
 
-			snapshot.updateSnapshotEditControls(); // @todo remove it for 4.6.
+			if ( snapshot.statusButton ) {
+				snapshot.updateSnapshotEditControls();
+			}
+
 			snapshot.autoSaveEditBox();
 		},
 

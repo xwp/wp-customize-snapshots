@@ -32,6 +32,11 @@
 				}
 			} );
 
+			// Make sure that saved state is false so that Published button behaves as expected.
+			api.bind( 'save', function() {
+				api.state( 'saved' ).set( false );
+			} );
+
 			api.bind( 'saved', function( response ) {
 				var url = window.location.href,
 					updatedUrl,
@@ -406,7 +411,7 @@
 		},
 
 		/**
-		 * Auto save edit box when the dates are changed.
+		 * Auto save edit box when the dates are changed for 4.7.
 		 *
 		 * @return {void}
 		 */
@@ -431,6 +436,47 @@
 					snapshot.updateSnapshotEditControls();
 				}
 			} );
+		},
+
+		/**
+		 * Updates snapshot schedule with `snapshot.data`.
+		 *
+		 * @return {void}
+		 */
+		updateSnapshotEditControls: function updateSnapshotEditControls() {
+			var snapshot = this, parsed,
+				sliceBegin = 0,
+				sliceEnd = -2;
+
+			if ( _.isEmpty( snapshot.editContainer ) ) {
+				return;
+			}
+
+			if ( snapshot.data.currentUserCanPublish ) {
+				if ( '0000-00-00 00:00:00' === snapshot.data.publishDate ) {
+					snapshot.data.publishDate = snapshot.getCurrentTime();
+				}
+
+				// Normalize date with seconds removed.
+				snapshot.data.publishDate = snapshot.data.publishDate.slice( sliceBegin, sliceEnd ) + '00';
+				parsed = snapshot.parseDateTime( snapshot.data.publishDate );
+
+				// Update date controls.
+				snapshot.schedule.inputs.each( function() {
+					var input = $( this ),
+						fieldName = input.data( 'date-input' );
+
+					$( this ).val( parsed[fieldName] );
+				} );
+			}
+
+			snapshot.editContainer.find( 'a.snapshot-edit-link' )
+				.attr( 'href', snapshot.data.editLink )
+				.show();
+			if ( ! _.isEmpty( snapshot.data.title ) ) {
+				snapshot.snapshotTitle.val( snapshot.data.title );
+			}
+			snapshot.populateSetting();
 		},
 
 		/**
