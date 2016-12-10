@@ -19,16 +19,18 @@ class Migrate {
 	/**
 	 * Plugin instance.
 	 *
-	 * @var bool
+	 * @var Plugin
 	 */
-	public $compat;
+	public $plugin;
 
 	/**
 	 * Migrate constructor.
+	 *
+	 * @param Plugin $plugin plugin.
 	 */
-	public function __construct() {
-		$this->compat = is_back_compat();
-		if ( ! $this->compat && is_admin() && is_super_admin() ) {
+	public function __construct( Plugin $plugin ) {
+		$this->plugin = $plugin;
+		if ( ! $plugin->compat && is_admin() && is_super_admin() ) {
 			$this->maybe_migrate();
 		}
 	}
