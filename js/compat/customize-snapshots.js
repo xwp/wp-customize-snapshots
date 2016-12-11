@@ -1,12 +1,8 @@
-/* global jQuery, wp */
+/* global jQuery, wp, _customizeSnapshotsCompatSettings */
 /* eslint consistent-this: ["error", "snapshot"] */
 
 ( function( api, $ ) {
 	'use strict';
-
-	if ( ! api.Snapshots ) {
-		return;
-	}
 
 	api.SnapshotsCompat = api.Snapshots.extend( {
 
@@ -385,14 +381,14 @@
 		},
 
 		/**
-		 * Hides the future date notification used for 4.6.
+		 * Toggles date notification.
 		 *
 		 * @return {void}.
 		 */
 		toggleDateNotification: function showDateNotification() {
 			var snapshot = this;
 			if ( ! _.isEmpty( snapshot.dateNotification ) ) {
-				snapshot.dateNotification.addClass( 'hidden' );
+				snapshot.dateNotification.toggle( ! snapshot.isFutureDate() );
 			}
 		},
 
@@ -498,5 +494,7 @@
 			snapshot.editContainer.find( '.reset-time' ).toggle( scheduled );
 		}
 	} );
+
+	api.snapshotsCompat = new api.SnapshotsCompat( _customizeSnapshotsCompatSettings );
 
 } )( wp.customize, jQuery );

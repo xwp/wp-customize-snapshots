@@ -1,4 +1,4 @@
-/* global jQuery, wp */
+/* global jQuery, wp, _customizeSnapshotsSettings */
 /* eslint no-magic-numbers: [ "error", { "ignore": [0,1] } ], consistent-this: [ "error", "snapshot" ] */
 
 (function( api, $ ) {
@@ -38,8 +38,7 @@
 			snapshot.data.initialClientTimestamp = snapshot.dateValueOf();
 
 			api.bind( 'ready', function() {
-				snapshotExists = '{}' !== api.previewer.query().customized;
-				api.state.create( 'snapshot-exists', snapshotExists );
+				api.state.create( 'snapshot-exists', api.state( 'changesetStatus' ).get() );
 				api.state.create( 'snapshot-saved', true );
 				api.state.create( 'snapshot-submitted', true );
 
@@ -996,5 +995,9 @@
 			return statusButton;
 		}
 	} );
+
+	if ( 'undefined' !== typeof _customizeSnapshotsSettings ) {
+		api.snapshots = new api.Snapshots( _customizeSnapshotsSettings );
+	}
 
 })( wp.customize, jQuery );

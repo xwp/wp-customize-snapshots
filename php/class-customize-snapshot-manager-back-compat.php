@@ -124,11 +124,7 @@ class Customize_Snapshot_Manager_Back_Compat extends Customize_Snapshot_Manager 
 			'snapshotExists' => ( $this->snapshot && $this->snapshot->saved() ),
 		) );
 
-		wp_add_inline_script(
-			'customize-snapshots-compat',
-			sprintf( 'new wp.customize.SnapshotsCompat( %s )', wp_json_encode( $exports ) ),
-			'after'
-		);
+		wp_localize_script( 'customize-snapshots-compat', '_customizeSnapshotsCompatSettings', $exports );
 	}
 
 	/**

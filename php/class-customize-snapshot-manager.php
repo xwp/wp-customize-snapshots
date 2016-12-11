@@ -303,11 +303,7 @@ class Customize_Snapshot_Manager {
 			),
 		) );
 
-		wp_add_inline_script(
-			'customize-snapshots',
-			sprintf( 'new wp.customize.Snapshots( %s )', wp_json_encode( $exports ) ),
-			'after'
-		);
+		wp_localize_script( 'customize-snapshots', '_customizeSnapshotsSettings', $exports );
 	}
 
 	/**
@@ -641,24 +637,24 @@ class Customize_Snapshot_Manager {
 				$data = array(
 					'choices' => array(
 						'publish' => array(
-							'option_text' => esc_attr__( 'Publish' , 'customize-snapshots' ),
-							'alt_text' => esc_attr__( 'Published' , 'customize-snapshots' ),
+							'option_text' => __( 'Publish' , 'customize-snapshots' ),
+							'alt_text' => __( 'Published' , 'customize-snapshots' ),
 						),
 						'draft' => array(
-							'option_text' => esc_attr__( 'Save Draft' , 'customize-snapshots' ),
-							'alt_text' => esc_attr__( 'Draft' , 'customize-snapshots' ),
+							'option_text' => __( 'Save Draft' , 'customize-snapshots' ),
+							'alt_text' => __( 'Draft' , 'customize-snapshots' ),
 						),
 						'future' => array(
-							'option_text' => esc_attr__( 'Schedule' , 'customize-snapshots' ),
-							'alt_text' => esc_attr__( 'Scheduled' , 'customize-snapshots' ),
+							'option_text' => __( 'Schedule' , 'customize-snapshots' ),
+							'alt_text' => __( 'Scheduled' , 'customize-snapshots' ),
 						),
 						'pending' => array(
-							'option_text' => esc_attr__( 'Save Pending' , 'customize-snapshots' ),
-							'alt_text' => esc_attr__( 'Pending' , 'customize-snapshots' ),
+							'option_text' => __( 'Save Pending' , 'customize-snapshots' ),
+							'alt_text' => __( 'Pending' , 'customize-snapshots' ),
 						),
 					),
 					'selected' => 'publish',
-					'confirm_publish_text' => esc_attr__( 'Confirm Publish', 'customize-snapshots' ),
+					'confirm_publish_text' => __( 'Confirm Publish', 'customize-snapshots' ),
 				);
 			?>
 
