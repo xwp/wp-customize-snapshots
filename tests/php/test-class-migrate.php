@@ -145,7 +145,7 @@ class Test_Migrate extends \WP_UnitTestCase {
 			'data' => array(),
 		) );
 		$migrate = new Migrate( $this->plugin );
-		$posts_count = $migrate->changeset_migrate( - 1, true );
+		$posts_count = $migrate->changeset_migrate( -1, true );
 		$this->assertEquals( $post_id, array_shift( $posts_count ) );
 
 		$migrate_obj = $this->getMockBuilder( 'CustomizeSnapshots\Migrate' )
@@ -155,7 +155,7 @@ class Test_Migrate extends \WP_UnitTestCase {
 		$migrate_obj->expects( $this->once() )
 		            ->method( 'migrate_post' )
 		            ->will( $this->returnValue( null ) );
-		$migrate_obj->changeset_migrate( - 1 );
+		$migrate_obj->changeset_migrate( -1 );
 	}
 
 	/**

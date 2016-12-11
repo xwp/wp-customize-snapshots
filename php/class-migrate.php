@@ -101,7 +101,7 @@ class Migrate {
 	 *
 	 * @return int|array migration status or posts.
 	 */
-	public function changeset_migrate( $limit = - 1, $dry_run = false ) {
+	public function changeset_migrate( $limit = -1, $dry_run = false ) {
 		$query = new \WP_Query();
 		$arg = array(
 			'post_type' => 'customize_snapshot',
@@ -113,7 +113,7 @@ class Migrate {
 			'fields' => 'ids', // We will use get_post() to fetch each posts.
 		);
 
-		if ( - 1 === $limit ) {
+		if ( -1 === $limit ) {
 			$arg['no_found_rows'] = true;
 		}
 
