@@ -26,7 +26,7 @@
 		uuidParam: 'customize_changeset_uuid',
 
 		initialize: function initialize( snapshotsConfig ) {
-			var snapshot = this, snapshotExists;
+			var snapshot = this;
 
 			snapshot.schedule = {};
 
