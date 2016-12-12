@@ -39,6 +39,15 @@ class Customize_Snapshot_Manager_Back_Compat extends Customize_Snapshot_Manager 
 	}
 
 	/**
+	 * Get the Customize_Snapshot instance.
+	 *
+	 * @return Customize_Snapshot_Back_Compat
+	 */
+	public function snapshot() {
+		return $this->snapshot;
+	}
+
+	/**
 	 * Ensure Customizer manager is instantiated.
 	 *
 	 * @global \WP_Customize_Manager $wp_customize
@@ -115,11 +124,7 @@ class Customize_Snapshot_Manager_Back_Compat extends Customize_Snapshot_Manager 
 			'snapshotExists' => ( $this->snapshot && $this->snapshot->saved() ),
 		) );
 
-		wp_add_inline_script(
-			$this->plugin->slug . '-compat',
-			sprintf( 'new wp.customize.SnapshotsCompat( %s )', wp_json_encode( $exports ) ),
-			'after'
-		);
+		wp_localize_script( 'customize-snapshots-compat', '_customizeSnapshotsCompatSettings', $exports );
 	}
 
 	/**
@@ -207,10 +212,10 @@ class Customize_Snapshot_Manager_Back_Compat extends Customize_Snapshot_Manager 
 	/**
 	 * Determine whether the current snapshot can be previewed.
 	 *
-	 * @param Customize_Snapshot $snapshot Snapshot to check.
+	 * @param Customize_Snapshot_Back_Compat $snapshot Snapshot to check.
 	 * @return true|\WP_Error Returns true if previewable, or `WP_Error` if cannot.
 	 */
-	public function should_import_and_preview_snapshot( Customize_Snapshot $snapshot ) {
+	public function should_import_and_preview_snapshot( Customize_Snapshot_Back_Compat $snapshot ) {
 		global $pagenow;
 
 		// Ignore if in the admin, but not Admin Ajax or Customizer.
@@ -890,11 +895,8 @@ class Customize_Snapshot_Manager_Back_Compat extends Customize_Snapshot_Manager 
 			$args['post_title'] = sanitize_text_field( wp_unslash( $_POST['title'] ) );
 		}
 
-		$args['edit_date'] = current_time( 'mysql' );
 		if ( isset( $publish_date_obj ) && 'future' === $status ) {
 			$args['date_gmt'] = get_gmt_from_date( $publish_date_obj->format( 'Y-m-d H:i:s' ) );
-		} else {
-			$args['date_gmt'] = '0000-00-00 00:00:00';
 		}
 		$r = $this->snapshot->save( $args );
 

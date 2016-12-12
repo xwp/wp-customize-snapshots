@@ -63,10 +63,11 @@ function current_snapshot_uuid() {
  * @return bool is compat.
  */
 function is_back_compat() {
-	// Fix in case version contains 'src' for example 4.7-src in that case php version compare fails to compare correctly.
 	$wp_version = get_bloginfo( 'version' );
-	if ( $pos = strpos( $wp_version, 'src' ) ) {
-		$wp_version = substr( $wp_version, 0, $pos - 1 );
+
+	// Fix in case version contains extra string for example 4.7-src in that case php version_compare fails.
+	if ( $pos = strpos( $wp_version, '-' ) ) {
+		$wp_version = substr( $wp_version, 0, $pos );
 	}
 	return version_compare( $wp_version, '4.7', '<' );
 }
