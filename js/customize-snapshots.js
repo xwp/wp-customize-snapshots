@@ -911,18 +911,20 @@
 		 * @return {object} status button.
 		 */
 		addStatusButton: function addStatusButton() {
-			var snapshot = this, selectMenuButton, statusButton, selectedOption, buttonText, changesetStatus;
+			var snapshot = this, selectMenuButton, statusButton, selectedOption, buttonText, changesetStatus, selectedStatus;
 			changesetStatus = api.state( 'changesetStatus' ).get();
 			statusButton = {};
 
-			statusButton.value = new api.Value();
+			selectedStatus = changesetStatus && 'auto-draft' !== changesetStatus ? changesetStatus : 'publish';
+
+			statusButton.value = new api.Value( selectedStatus );
 			statusButton.disbleButton = new api.Value();
 			statusButton.disableSelect = new api.Value();
 			statusButton.buttonText = new api.Value();
 			statusButton.needConfirm = false;
 
 			statusButton.container = $( $.trim( wp.template( 'snapshot-status-button' )({
-				selected: changesetStatus && 'auto-draft' !== changesetStatus ? changesetStatus : 'publish'
+				selected: selectedStatus
 			}) ) );
 			statusButton.button = statusButton.container.find( '.snapshot-status-button-overlay' );
 			statusButton.select = statusButton.container.find( 'select' );
@@ -933,6 +935,11 @@
 				},
 				change: function( event, ui ) {
 					statusButton.value.set( ui.item.value );
+				},
+				select: function() {
+					if ( statusButton.hiddenButton ) {
+						statusButton.hiddenButton.text( statusButton.buttonText.get() );
+					}
 				}
 			});
 

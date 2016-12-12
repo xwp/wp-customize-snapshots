@@ -220,7 +220,7 @@
 	margin: 0;
 }
 
-.snapshot-future-date-notification .notice {
+.snapshot-future-date-notification.notice {
 	margin-bottom: 5px;
 	border-top: 1px solid #eee;
 	padding: 5px;
