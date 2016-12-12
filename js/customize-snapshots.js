@@ -395,6 +395,7 @@
 				snapshot.editContainer = $( $.trim( wp.template( 'snapshot-edit-container' )( snapshot.data ) ) );
 				snapshot.editContainer.hide().appendTo( $( '#customize-header-actions' ) );
 				snapshot.dateNotification = snapshot.editContainer.find( '.snapshot-future-date-notification' );
+				snapshot.countdown = snapshot.editContainer.find( '.snapshot-scheduled-countdown' );
 
 				if ( snapshot.data.currentUserCanPublish ) {
 
@@ -414,6 +415,10 @@
 						event.preventDefault();
 						snapshot.updateSnapshotEditControls();
 					} );
+				}
+
+				if ( snapshot.statusButton && 'future' !== snapshot.statusButton.value.get() ) {
+					snapshot.countdown.hide();
 				}
 
 				snapshot.snapshotTitle = snapshot.editContainer.find( '#snapshot-title' );
@@ -516,7 +521,8 @@
 
 			update = _.debounce( function() {
 				status = snapshot.statusButton.value.get();
-				if ( 'publish' === status ) {
+				if ( 'publish' === status || ! snapshot.isFutureDate() ) {
+					snapshot.updatePending = false;
 					return;
 				}
 				snapshot.updatePending = true;
@@ -662,7 +668,7 @@
 		 * @returns {boolean} True if date inputs are valid.
 		 */
 		updateCountdown: function updateCountdown() {
-			var snapshot = this, countdown = snapshot.editContainer.find( '.snapshot-scheduled-countdown' ),
+			var snapshot = this,
 				countdownTemplate = wp.template( 'snapshot-scheduled-countdown' ),
 				dateTimeFromInput = snapshot.getDateFromInputs(),
 				millisecondsDivider = 1000,
@@ -677,12 +683,12 @@
 			remainingTime = Math.ceil( remainingTime / millisecondsDivider );
 
 			if ( 0 < remainingTime ) {
-				countdown.text( countdownTemplate( {
+				snapshot.countdown.text( countdownTemplate( {
 					remainingTime: remainingTime
 				} ) );
-				countdown.show();
+				snapshot.countdown.show();
 			} else {
-				countdown.hide();
+				snapshot.countdown.hide();
 			}
 
 			return true;
@@ -975,9 +981,14 @@
 				if ( 'future' === status ) {
 					snapshot.snapshotEditContainerDisplayed.set( true );
 					snapshot.snapshotExpandButton.show();
+					if ( snapshot.isFutureDate() ) {
+						snapshot.countdown.show();
+						snapshot.updateSnapshot( status );
+					}
 				} else {
 					snapshot.updateSnapshot( status );
 					snapshot.snapshotEditContainerDisplayed.set( false );
+					snapshot.countdown.hide();
 				}
 			} );
 
