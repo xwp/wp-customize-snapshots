@@ -38,12 +38,16 @@
 			snapshot.data.initialClientTimestamp = snapshot.dateValueOf();
 
 			api.bind( 'ready', function() {
-				api.state.create( 'snapshot-exists', api.state.has( 'changesetStatus' ) ? api.state( 'changesetStatus' ).get() : false );
+				api.state.create( 'snapshot-exists', false );
 				api.state.create( 'snapshot-saved', true );
 				api.state.create( 'snapshot-submitted', true );
 
 				snapshot.data.uuid = snapshot.data.uuid || api.settings.changeset.uuid;
 				snapshot.data.title = snapshot.data.title || snapshot.data.uuid;
+
+				if ( api.state.has( 'changesetStatus' ) && api.state( 'changesetStatus' ).get() ) {
+					api.state( 'snapshot-exists' ).set( true );
+				}
 
 				snapshot.editControlSettings = new api.Value( {
 					title: snapshot.data.title,
