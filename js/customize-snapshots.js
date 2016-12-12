@@ -188,6 +188,7 @@
 				snapshot.statusButton.disableSelect.set( publishStatus );
 				snapshot.statusButton.disbleButton.set( true );
 				snapshot.snapshotExpandButton.toggle( ! publishStatus );
+				snapshot.previewLink.toggle( ! publishStatus );
 
 				snapshot.statusButton.updateButtonText( 'alt-text' );
 
