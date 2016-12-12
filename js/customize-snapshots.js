@@ -819,7 +819,10 @@
 
 			snapshot.editControlSettings.set( editControlSettings );
 
-			snapshot.updateCountdown(); // @todo Update countdown only for future status?
+			if ( 'future' === snapshot.statusButton.value.get() ) {
+				snapshot.updateCountdown();
+			}
+
 			snapshot.editContainer.find( '.reset-time' ).toggle( scheduled );
 		},
 
