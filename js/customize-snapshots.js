@@ -38,7 +38,7 @@
 			snapshot.data.initialClientTimestamp = snapshot.dateValueOf();
 
 			api.bind( 'ready', function() {
-				api.state.create( 'snapshot-exists', api.state( 'changesetStatus' ).get() );
+				api.state.create( 'snapshot-exists', api.state.has( 'changesetStatus' ) ? api.state( 'changesetStatus' ).get() : false );
 				api.state.create( 'snapshot-saved', true );
 				api.state.create( 'snapshot-submitted', true );
 
@@ -316,6 +316,9 @@
 			api.bind( 'change', function() {
 				snapshot.statusButton.disable( false );
 				snapshot.statusButton.updateButtonText( 'button-text' );
+				if ( snapshot.submitButton ) {
+					snapshot.submitButton.prop( 'disabled', false );
+				}
 			} );
 
 			if ( ! snapshot.data.currentUserCanPublish ) {
@@ -344,7 +347,7 @@
 			} ) ) );
 
 			snapshot.submitButton.prop( 'disabled', disableSubmitButton );
-			snapshot.submitButton.insertBefore( snapshot.statusButton.container );
+			snapshot.submitButton.insertBefore( snapshot.publishButton );
 			api.state( 'snapshot-submitted' ).bind( function( submitted ) {
 				snapshot.submitButton.prop( 'disabled', submitted );
 			} );
@@ -850,7 +853,6 @@
 			remainingTime = snapshot.dateValueOf( date );
 			remainingTime -= snapshot.dateValueOf( snapshot.getCurrentTime() );
 			remainingTime = Math.ceil( remainingTime / millisecondsDivider );
-
 			return 0 < remainingTime;
 		},
 
