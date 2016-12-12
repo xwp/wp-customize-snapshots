@@ -194,7 +194,7 @@ var CustomizeSnapshotsPreview = (function( api, $ ) {
 
 			// Now preventDefault as is done on the normal submit.preview handler in customize-preview.js.
 			event.preventDefault();
-		});
+		} );
 	};
 
 	return component;
