@@ -33,7 +33,7 @@ class Customize_Snapshot_Manager {
 	/**
 	 * Post type.
 	 *
-	 * @var Post_Type|Post_Type_Back_Compt
+	 * @var Post_Type|Post_Type_Back_Compat
 	 */
 	public $post_type;
 
@@ -268,11 +268,15 @@ class Customize_Snapshot_Manager {
 		wp_enqueue_style( 'customize-snapshots' );
 		wp_enqueue_script( 'customize-snapshots' );
 
+		$post = null;
+
 		if ( $this->snapshot ) {
 			$post_id = $this->customize_manager->changeset_post_id();
 			$post = get_post( $post_id );
-			$this->override_post_date_default_data( $post );
-			$edit_link = $this->snapshot->get_edit_link( $post );
+			if ( $post instanceof \WP_Post ) {
+				$this->override_post_date_default_data( $post );
+				$edit_link = $this->snapshot->get_edit_link( $post );
+			}
 		}
 
 		// Script data array.
@@ -285,17 +289,13 @@ class Customize_Snapshot_Manager {
 			'initialServerDate' => current_time( 'mysql', false ),
 			'initialServerTimestamp' => floor( microtime( true ) * 1000 ),
 			'i18n' => array(
-				'saveButton' => __( 'Save', 'customize-snapshots' ),
-				'updateButton' => __( 'Update', 'customize-snapshots' ),
-				'scheduleButton' => __( 'Schedule', 'customize-snapshots' ),
 				'submit' => __( 'Submit', 'customize-snapshots' ),
 				'submitted' => __( 'Submitted', 'customize-snapshots' ),
-				'publish' => __( 'Publish', 'customize-snapshots' ),
-				'published' => __( 'Published', 'customize-snapshots' ),
 				'permsMsg' => array(
 					'save' => __( 'You do not have permission to publish changes, but you can create a snapshot by clicking the "Save" button.', 'customize-snapshots' ),
 					'update' => __( 'You do not have permission to publish changes, but you can modify this snapshot by clicking the "Update" button.', 'customize-snapshots' ),
 				),
+				'aysMsg' => __( 'Changes that you made may not be saved.', 'customize-snapshots' ),
 				'errorMsg' => __( 'The snapshot could not be saved.', 'customize-snapshots' ),
 				'errorTitle' => __( 'Error', 'customize-snapshots' ),
 				'collapseSnapshotScheduling' => __( 'Collapse snapshot scheduling', 'customize-snapshots' ),
@@ -303,11 +303,7 @@ class Customize_Snapshot_Manager {
 			),
 		) );
 
-		wp_add_inline_script(
-			$this->plugin->slug,
-			sprintf( 'new wp.customize.Snapshots( %s )', wp_json_encode( $exports ) ),
-			'after'
-		);
+		wp_localize_script( 'customize-snapshots', '_customizeSnapshotsSettings', $exports );
 	}
 
 	/**
@@ -640,24 +636,24 @@ class Customize_Snapshot_Manager {
 				$data = array(
 					'choices' => array(
 						'publish' => array(
-							'option_text' => esc_attr__( 'Publish' , 'customize-snapshots' ),
-							'alt_text' => esc_attr__( 'Published' , 'customize-snapshots' ),
+							'option_text' => __( 'Publish' , 'customize-snapshots' ),
+							'alt_text' => __( 'Published' , 'customize-snapshots' ),
 						),
 						'draft' => array(
-							'option_text' => esc_attr__( 'Save Draft' , 'customize-snapshots' ),
-							'alt_text' => esc_attr__( 'Draft' , 'customize-snapshots' ),
+							'option_text' => __( 'Save Draft' , 'customize-snapshots' ),
+							'alt_text' => __( 'Draft' , 'customize-snapshots' ),
 						),
 						'future' => array(
-							'option_text' => esc_attr__( 'Schedule' , 'customize-snapshots' ),
-							'alt_text' => esc_attr__( 'Scheduled' , 'customize-snapshots' ),
+							'option_text' => __( 'Schedule' , 'customize-snapshots' ),
+							'alt_text' => __( 'Scheduled' , 'customize-snapshots' ),
 						),
 						'pending' => array(
-							'option_text' => esc_attr__( 'Save Pending' , 'customize-snapshots' ),
-							'alt_text' => esc_attr__( 'Pending' , 'customize-snapshots' ),
+							'option_text' => __( 'Save Pending' , 'customize-snapshots' ),
+							'alt_text' => __( 'Pending' , 'customize-snapshots' ),
 						),
 					),
 					'selected' => 'publish',
-					'confirm_publish_text' => esc_attr__( 'Confirm Publish', 'customize-snapshots' ),
+					'confirm_publish_text' => __( 'Confirm Publish', 'customize-snapshots' ),
 				);
 			?>
 

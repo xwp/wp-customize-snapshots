@@ -9,6 +9,7 @@
 #snapshot-expand-button {
 	display: block;
 }
+
 #snapshot-expand-button:hover,
 #snapshot-expand-button:focus,
 #snapshot-expand-button:active {
@@ -72,8 +73,8 @@
 	top: 46px;
 	position: absolute;
 	width: 100%;
-	box-shadow: 0 5px 0 0 rgba(0,0,0,0.05);
-	padding:10px;
+	box-shadow: 0 5px 0 0 rgba(0, 0, 0, 0.05);
+	padding: 10px;
 	box-sizing: border-box;
 }
 
@@ -89,6 +90,7 @@
 	margin-bottom: 0.5em;
 	margin-top: 0;
 }
+
 #customize-snapshot .timezone-info {
 	margin-top: 0.5em;
 	font-size: smaller;
@@ -169,13 +171,13 @@
 	min-width: 4em;
 }
 
-.snapshot-schedule-control input[type="number"]{
-	width:100%;
+.snapshot-schedule-control input[type="number"] {
+	width: 100%;
 }
 
 .snapshot-schedule-control .time-special-char {
-	padding-left:2px;
-	padding-right:2px;
+	padding-left: 2px;
+	padding-right: 2px;
 }
 
 .snapshot-schedule-control select {
@@ -203,22 +205,22 @@
 	z-index: 500100 !important;
 }
 
-.snapshot-control input[type="text"]{
+.snapshot-control input[type="text"] {
 	width: 100%;
 	line-height: 18px;
 	margin: 0;
 }
 
-#customize-snapshot .snapshot-schedule-title h3{
+#customize-snapshot .snapshot-schedule-title h3 {
 	font-size: 16px;
 }
 
-#customize-snapshot .snapshot-controls{
+#customize-snapshot .snapshot-controls {
 	list-style: none;
 	margin: 0;
 }
 
-.snapshot-future-date-notification.notice{
+.snapshot-future-date-notification.notice {
 	margin-bottom: 5px;
 	border-top: 1px solid #eee;
 	padding: 5px;
@@ -227,15 +229,15 @@
 /*Status Button*/
 /** @todo Need to add snapshot specific class for all ui classes. **/
 
-#snapshot-status-button-wrapper{
+#snapshot-status-button-wrapper {
 	float: right;
 	position: relative;
 	margin-top: 9px;
-	height:28px;
+	height: 28px;
 }
 
-#snapshot-status-button-wrapper .button-primary{
-	margin-top:0;
+#snapshot-status-button-wrapper .button-primary {
+	margin-top: 0;
 	-webkit-touch-callout: none; /* iOS Safari */
 	-webkit-user-select: none; /* Chrome/Safari/Opera */
 	-moz-user-select: none; /* Firefox */
@@ -251,23 +253,24 @@
 	left: 0;
 	display: none;
 }
+
 .ui-selectmenu-menu .ui-menu {
 	overflow: auto;
-	/* Support: IE7 */
+	margin: 0;
+	margin-top: 2px;
 	overflow-x: hidden;
 	background: #FFFFFF;
 	border-top: 0;
-	margin: 0;
 	border-radius: 0 0 5px 5px;
-	box-shadow: 0 1px 4px 0 rgba( 33,38,34,.12 ), 0 2px 11px 0 rgba( 30,36,37,.14 )
+	box-shadow: 0 1px 4px 0 rgba(33, 38, 34, .12), 0 2px 11px 0 rgba(30, 36, 37, .14)
 }
 
-.ui-selectmenu-menu .ui-menu li{
+.ui-selectmenu-menu .ui-menu li {
 	padding: 5px 10px 5px 5px;
 	margin: 0;
 }
 
-.ui-selectmenu-menu .ui-menu .ui-state-focus{
+.ui-selectmenu-menu .ui-menu .ui-state-focus {
 	background: #0073aa;
 	color: #FFFFFF;
 	cursor: pointer;
@@ -282,34 +285,45 @@
 	height: auto;
 	border: 0;
 }
+
 .ui-selectmenu-open {
 	display: block;
 }
 
-.ui-selectmenu-button span.ui-icon {
+#snapshot-status-button-wrapper .ui-selectmenu-button span.dashicons {
 	text-indent: 0;
 	float: right;
 	border-radius: 0 3px 3px 0;
-	padding-left:0;
-	padding-right:0;
+	padding-left: 0;
+	padding-right: 0;
+	-webkit-box-shadow: none;
+	-moz-box-shadow: none;
+	box-shadow: none;
+	font-size: 20px;
+	width: 20px;
 }
 
-.ui-selectmenu-button span.ui-icon:before{
+#snapshot-status-button-wrapper .ui-selectmenu-button span.dashicons:before {
 	display: inline-block;
-	font-size: 20px;
-	margin-left: -10px;
+	margin-left: -3px;
+}
+
+@media screen and ( max-width: 640px ) {
+	#snapshot-status-button-wrapper .ui-selectmenu-button span.dashicons {
+		font-size: 17px;
+	}
 }
 
 .ui-selectmenu-button span.ui-selectmenu-text {
 	border-radius: 3px 0 0 3px;
-	opacity:0;
+	opacity: 0;
 }
 
-.ui-selectmenu-menu.ui-front{
+.ui-selectmenu-menu.ui-front {
 	z-index: 999999;
 }
 
-.snapshot-status-button-overlay.button{
+.snapshot-status-button-overlay.button {
 	width: calc( 100% - 20px );
 	height: 28px;
 	position: absolute;
@@ -320,17 +334,8 @@
 	box-shadow: none;
 }
 
-#customize-header-actions .ui-selectmenu-button{
-	padding-right: 0;
-	position: relative;
+#customize-header-actions .ui-selectmenu-button {
 	display: inline-block;
-	height: 28px;
-	overflow: hidden;
 	outline-width: 2px;
 	outline-offset: -2px;
-}
-
-.animated {
-	animation-duration: 0.5s;
-	animation-fill-mode: both;
 }

@@ -1,11 +1,11 @@
 === Customize Snapshots ===
-Contributors: westonruter, valendesigns, xwp, newscorpau
+Contributors: xwp, westonruter, valendesigns, utkarshpatel, sayedwp, newscorpau
 Requires at least: 4.5.3
-Tested up to: 4.6
+Tested up to: 4.7
 Stable tag: 0.5.2
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
-Tags: customizer, customize, snapshots
+Tags: customizer, customize, changesets
 
 Allow Customizer states to be drafted, and previewed with a private URL.
 
