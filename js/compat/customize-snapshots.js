@@ -393,9 +393,10 @@
 		},
 
 		/**
-		 * Auto save edit box when the dates are changed for 4.7.
+		 * Overrides the autoSaveEditBox method used in api.Snapshots
+		 * because we do not auto save in < 4.7.
 		 *
-		 * @return {void}
+		 * @inheritdoc
 		 */
 		autoSaveEditBox: function autoSaveEditor() {
 
