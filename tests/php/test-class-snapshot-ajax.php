@@ -39,6 +39,7 @@ class Test_Snapshot_Ajax extends \WP_Ajax_UnitTestCase {
 		delete_option( Migrate::KEY );
 		$migrate_obj = $this->getMockBuilder( 'CustomizeSnapshots\Migrate' )
 		                    ->setMethods( array( 'changeset_migrate' ) )
+							->setConstructorArgs( array( $this->plugin ) )
 		                    ->getMock();
 		$migrate_obj->expects( $this->once() )
 		            ->method( 'changeset_migrate' )

@@ -19,16 +19,18 @@ class Migrate {
 	/**
 	 * Plugin instance.
 	 *
-	 * @var bool
+	 * @var Plugin
 	 */
-	public $compat;
+	public $plugin;
 
 	/**
 	 * Migrate constructor.
+	 *
+	 * @param Plugin $plugin plugin.
 	 */
-	public function __construct() {
-		$this->compat = version_compare( get_bloginfo( 'version' ), '4.7-beta1', '<' );
-		if ( ! $this->compat && is_admin() && is_super_admin() ) {
+	public function __construct( Plugin $plugin ) {
+		$this->plugin = $plugin;
+		if ( ! $plugin->compat && is_admin() && is_super_admin() ) {
 			$this->maybe_migrate();
 		}
 	}
@@ -99,7 +101,7 @@ class Migrate {
 	 *
 	 * @return int|array migration status or posts.
 	 */
-	public function changeset_migrate( $limit = - 1, $dry_run = false ) {
+	public function changeset_migrate( $limit = -1, $dry_run = false ) {
 		$query = new \WP_Query();
 		$arg = array(
 			'post_type' => 'customize_snapshot',
@@ -111,7 +113,7 @@ class Migrate {
 			'fields' => 'ids', // We will use get_post() to fetch each posts.
 		);
 
-		if ( - 1 === $limit ) {
+		if ( -1 === $limit ) {
 			$arg['no_found_rows'] = true;
 		}
 
@@ -135,7 +137,7 @@ class Migrate {
 				kses_init_filters();
 			}
 		}
-		if ( - 1 === $limit ) {
+		if ( -1 === $limit ) {
 			update_option( self::KEY, 1 );
 			return count( $query->posts );
 		} else {

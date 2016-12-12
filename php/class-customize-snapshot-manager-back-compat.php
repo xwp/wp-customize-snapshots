@@ -39,6 +39,15 @@ class Customize_Snapshot_Manager_Back_Compat extends Customize_Snapshot_Manager 
 	}
 
 	/**
+	 * Get the Customize_Snapshot instance.
+	 *
+	 * @return Customize_Snapshot_Back_Compat
+	 */
+	public function snapshot() {
+		return $this->snapshot;
+	}
+
+	/**
 	 * Ensure Customizer manager is instantiated.
 	 *
 	 * @global \WP_Customize_Manager $wp_customize
@@ -115,11 +124,7 @@ class Customize_Snapshot_Manager_Back_Compat extends Customize_Snapshot_Manager 
 			'snapshotExists' => ( $this->snapshot && $this->snapshot->saved() ),
 		) );
 
-		wp_add_inline_script(
-			$this->plugin->slug . '-compat',
-			sprintf( 'new wp.customize.SnapshotsCompat( %s )', wp_json_encode( $exports ) ),
-			'after'
-		);
+		wp_localize_script( 'customize-snapshots-compat', '_customizeSnapshotsCompatSettings', $exports );
 	}
 
 	/**
@@ -207,10 +212,10 @@ class Customize_Snapshot_Manager_Back_Compat extends Customize_Snapshot_Manager 
 	/**
 	 * Determine whether the current snapshot can be previewed.
 	 *
-	 * @param Customize_Snapshot $snapshot Snapshot to check.
+	 * @param Customize_Snapshot_Back_Compat $snapshot Snapshot to check.
 	 * @return true|\WP_Error Returns true if previewable, or `WP_Error` if cannot.
 	 */
-	public function should_import_and_preview_snapshot( Customize_Snapshot $snapshot ) {
+	public function should_import_and_preview_snapshot( Customize_Snapshot_Back_Compat $snapshot ) {
 		global $pagenow;
 
 		// Ignore if in the admin, but not Admin Ajax or Customizer.
@@ -890,11 +895,8 @@ class Customize_Snapshot_Manager_Back_Compat extends Customize_Snapshot_Manager 
 			$args['post_title'] = sanitize_text_field( wp_unslash( $_POST['title'] ) );
 		}
 
-		$args['edit_date'] = current_time( 'mysql' );
 		if ( isset( $publish_date_obj ) && 'future' === $status ) {
 			$args['date_gmt'] = get_gmt_from_date( $publish_date_obj->format( 'Y-m-d H:i:s' ) );
-		} else {
-			$args['date_gmt'] = '0000-00-00 00:00:00';
 		}
 		$r = $this->snapshot->save( $args );
 
@@ -913,54 +915,6 @@ class Customize_Snapshot_Manager_Back_Compat extends Customize_Snapshot_Manager 
 		/** This filter is documented in wp-includes/class-wp-customize-manager.php */
 		$data = apply_filters( 'customize_save_response', $data, $this->customize_manager );
 		wp_send_json_success( $data );
-	}
-
-	/**
-	 * Toolbar modifications for Customize Snapshot
-	 *
-	 * @param \WP_Admin_Bar $wp_admin_bar WP_Admin_Bar instance.
-	 */
-	public function customize_menu( $wp_admin_bar ) {
-		$this->replace_customize_link( $wp_admin_bar );
-		parent::customize_menu( $wp_admin_bar );
-	}
-
-	/**
-	 * Replaces the "Customize" link in the Toolbar.
-	 *
-	 * @param \WP_Admin_Bar $wp_admin_bar WP_Admin_Bar instance.
-	 */
-	public function replace_customize_link( $wp_admin_bar ) {
-		if ( empty( $this->snapshot ) ) {
-			return;
-		}
-
-		$customize_node = $wp_admin_bar->get_node( 'customize' );
-		if ( empty( $customize_node ) ) {
-			return;
-		}
-
-		// Remove customize_snapshot_uuid query param from url param to be previewed in Customizer.
-		$preview_url_query_params = array();
-		$preview_url_parsed = wp_parse_url( $customize_node->href );
-		parse_str( $preview_url_parsed['query'], $preview_url_query_params );
-		if ( ! empty( $preview_url_query_params['url'] ) ) {
-			$preview_url_query_params['url'] = remove_query_arg( array( $this->get_front_uuid_param() ), $preview_url_query_params['url'] );
-			$customize_node->href = preg_replace(
-				'/(?<=\?).*?(?=#|$)/',
-				build_query( $preview_url_query_params ),
-				$customize_node->href
-			);
-		}
-
-		// Add customize_snapshot_uuid param as param to customize.php itself.
-		$customize_node->href = add_query_arg(
-			array( $this->get_customize_uuid_param() => $this->current_snapshot_uuid ),
-			$customize_node->href
-		);
-
-		$customize_node->meta['class'] .= ' ab-customize-snapshots-item';
-		$wp_admin_bar->add_menu( (array) $customize_node );
 	}
 
 	/**

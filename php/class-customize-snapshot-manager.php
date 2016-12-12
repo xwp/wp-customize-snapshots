@@ -33,7 +33,7 @@ class Customize_Snapshot_Manager {
 	/**
 	 * Post type.
 	 *
-	 * @var Post_Type|Post_Type_Back_Compt
+	 * @var Post_Type|Post_Type_Back_Compat
 	 */
 	public $post_type;
 
@@ -268,11 +268,15 @@ class Customize_Snapshot_Manager {
 		wp_enqueue_style( 'customize-snapshots' );
 		wp_enqueue_script( 'customize-snapshots' );
 
+		$post = null;
+
 		if ( $this->snapshot ) {
 			$post_id = $this->customize_manager->changeset_post_id();
 			$post = get_post( $post_id );
-			$this->override_post_date_default_data( $post );
-			$edit_link = $this->snapshot->get_edit_link( $post );
+			if ( $post instanceof \WP_Post ) {
+				$this->override_post_date_default_data( $post );
+				$edit_link = $this->snapshot->get_edit_link( $post );
+			}
 		}
 
 		// Script data array.
@@ -285,17 +289,13 @@ class Customize_Snapshot_Manager {
 			'initialServerDate' => current_time( 'mysql', false ),
 			'initialServerTimestamp' => floor( microtime( true ) * 1000 ),
 			'i18n' => array(
-				'saveButton' => __( 'Save', 'customize-snapshots' ),
-				'updateButton' => __( 'Update', 'customize-snapshots' ),
-				'scheduleButton' => __( 'Schedule', 'customize-snapshots' ),
 				'submit' => __( 'Submit', 'customize-snapshots' ),
 				'submitted' => __( 'Submitted', 'customize-snapshots' ),
-				'publish' => __( 'Publish', 'customize-snapshots' ),
-				'published' => __( 'Published', 'customize-snapshots' ),
 				'permsMsg' => array(
 					'save' => __( 'You do not have permission to publish changes, but you can create a snapshot by clicking the "Save" button.', 'customize-snapshots' ),
 					'update' => __( 'You do not have permission to publish changes, but you can modify this snapshot by clicking the "Update" button.', 'customize-snapshots' ),
 				),
+				'aysMsg' => __( 'Changes that you made may not be saved.', 'customize-snapshots' ),
 				'errorMsg' => __( 'The snapshot could not be saved.', 'customize-snapshots' ),
 				'errorTitle' => __( 'Error', 'customize-snapshots' ),
 				'collapseSnapshotScheduling' => __( 'Collapse snapshot scheduling', 'customize-snapshots' ),
@@ -303,11 +303,7 @@ class Customize_Snapshot_Manager {
 			),
 		) );
 
-		wp_add_inline_script(
-			$this->plugin->slug,
-			sprintf( 'new wp.customize.Snapshots( %s )', wp_json_encode( $exports ) ),
-			'after'
-		);
+		wp_localize_script( 'customize-snapshots', '_customizeSnapshotsSettings', $exports );
 	}
 
 	/**
@@ -451,6 +447,7 @@ class Customize_Snapshot_Manager {
 	 */
 	public function customize_menu( $wp_admin_bar ) {
 		add_action( 'wp_before_admin_bar_render', 'wp_customize_support_script' );
+		$this->replace_customize_link( $wp_admin_bar );
 		$this->add_resume_snapshot_link( $wp_admin_bar );
 		$this->add_post_edit_screen_link( $wp_admin_bar );
 		$this->add_snapshot_exit_link( $wp_admin_bar );
@@ -479,6 +476,44 @@ class Customize_Snapshot_Manager {
 			}
 		</style>
 		<?php
+	}
+
+	/**
+	 * Replaces the "Customize" link in the Toolbar.
+	 *
+	 * @param \WP_Admin_Bar $wp_admin_bar WP_Admin_Bar instance.
+	 */
+	public function replace_customize_link( $wp_admin_bar ) {
+		if ( empty( $this->snapshot ) ) {
+			return;
+		}
+
+		$customize_node = $wp_admin_bar->get_node( 'customize' );
+		if ( empty( $customize_node ) ) {
+			return;
+		}
+
+		// Remove customize_snapshot_uuid query param from url param to be previewed in Customizer.
+		$preview_url_query_params = array();
+		$preview_url_parsed = wp_parse_url( $customize_node->href );
+		parse_str( $preview_url_parsed['query'], $preview_url_query_params );
+		if ( ! empty( $preview_url_query_params['url'] ) ) {
+			$preview_url_query_params['url'] = remove_query_arg( array( $this->get_front_uuid_param() ), $preview_url_query_params['url'] );
+			$customize_node->href = preg_replace(
+				'/(?<=\?).*?(?=#|$)/',
+				build_query( $preview_url_query_params ),
+				$customize_node->href
+			);
+		}
+
+		// Add customize_snapshot_uuid param as param to customize.php itself.
+		$customize_node->href = add_query_arg(
+			array( $this->get_customize_uuid_param() => $this->current_snapshot_uuid ),
+			$customize_node->href
+		);
+
+		$customize_node->meta['class'] .= ' ab-customize-snapshots-item';
+		$wp_admin_bar->add_menu( (array) $customize_node );
 	}
 
 	/**
@@ -602,24 +637,24 @@ class Customize_Snapshot_Manager {
 				$data = array(
 					'choices' => array(
 						'publish' => array(
-							'option_text' => esc_attr__( 'Publish' , 'customize-snapshots' ),
-							'alt_text' => esc_attr__( 'Published' , 'customize-snapshots' ),
+							'option_text' => __( 'Publish' , 'customize-snapshots' ),
+							'alt_text' => __( 'Published' , 'customize-snapshots' ),
 						),
 						'draft' => array(
-							'option_text' => esc_attr__( 'Save Draft' , 'customize-snapshots' ),
-							'alt_text' => esc_attr__( 'Draft' , 'customize-snapshots' ),
+							'option_text' => __( 'Save Draft' , 'customize-snapshots' ),
+							'alt_text' => __( 'Draft' , 'customize-snapshots' ),
 						),
 						'future' => array(
-							'option_text' => esc_attr__( 'Schedule' , 'customize-snapshots' ),
-							'alt_text' => esc_attr__( 'Scheduled' , 'customize-snapshots' ),
+							'option_text' => __( 'Schedule' , 'customize-snapshots' ),
+							'alt_text' => __( 'Scheduled' , 'customize-snapshots' ),
 						),
 						'pending' => array(
-							'option_text' => esc_attr__( 'Save Pending' , 'customize-snapshots' ),
-							'alt_text' => esc_attr__( 'Pending' , 'customize-snapshots' ),
+							'option_text' => __( 'Save Pending' , 'customize-snapshots' ),
+							'alt_text' => __( 'Pending' , 'customize-snapshots' ),
 						),
 					),
 					'selected' => 'publish',
-					'confirm_publish_text' => esc_attr__( 'Confirm Publish', 'customize-snapshots' ),
+					'confirm_publish_text' => __( 'Confirm Publish', 'customize-snapshots' ),
 				);
 			?>
 
@@ -680,7 +715,7 @@ class Customize_Snapshot_Manager {
 								<?php esc_html_e( 'Schedule changes to publish (go live) at a future date.', 'customize-snapshots' ); ?>
 							</p>
 							<div class="snapshot-future-date-notification notice notice-error ">
-								<?php esc_html_e( 'Select a future date to schedule.', 'customize-snapshots' ); ?>
+								<?php esc_html_e( 'Please select a future date.', 'customize-snapshots' ); ?>
 							</div>
 							<div class="snapshot-schedule-control date-inputs clear">
 								<label>

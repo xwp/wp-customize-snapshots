@@ -56,3 +56,18 @@ function current_snapshot_uuid() {
 		return $customize_snapshot_uuid;
 	}
 }
+
+/**
+ * Returns whether it is back compat or not.
+ *
+ * @return bool is compat.
+ */
+function is_back_compat() {
+	$wp_version = get_bloginfo( 'version' );
+
+	// Fix in case version contains extra string for example 4.7-src in that case php version_compare fails.
+	if ( $pos = strpos( $wp_version, '-' ) ) {
+		$wp_version = substr( $wp_version, 0, $pos );
+	}
+	return version_compare( $wp_version, '4.7', '<' );
+}

@@ -5,6 +5,12 @@
 		doingAjax: false,
 		postMigrationCount: 20
 	};
+
+	/**
+	 * Initialize js.
+	 *
+	 * @return {void}
+	 */
 	component.init = function() {
 		$( function() {
 			component.el = $( '#customize-snapshot-migration' );
@@ -13,6 +19,12 @@
 			component.spinner.css( 'margin', '0' );
 		} );
 	};
+
+	/**
+	 * Bind migrate click event.
+	 *
+	 * @return {void}
+	 */
 	component.bindClick = function() {
 		component.el.click( function() {
 			if ( component.doingAjax ) {
@@ -23,14 +35,25 @@
 			component.migrate( component.el.data( 'nonce' ), component.postMigrationCount );
 		} );
 	};
+
+	/**
+	 * Initiate migrate ajax request.
+	 *
+	 * @param {String} nonce Nonce.
+	 * @param {Number} limit Limit for migrate posts.
+	 *
+	 * @return {void}
+	 */
 	component.migrate = function( nonce, limit ) {
-		var requestData, request;
-		requestData = {
-			nonce: nonce,
-			limit: limit
-		};
+		var request,
+			requestData = {
+				nonce: nonce,
+				limit: limit
+			};
+
 		request = wp.ajax.post( 'customize_snapshot_migration', requestData );
-		request.always( function( data ) {
+
+		request.done( function( data ) {
 			var outerDiv = $( 'div.customize-snapshot-migration' ), delay = 100, newLimit;
 			if ( data.remaining_posts ) {
 				newLimit = data.remaining_posts > limit ? limit : data.remaining_posts;
@@ -41,6 +64,16 @@
 				component.doingAjax = false;
 			}
 		} );
+
+		request.fail( function() {
+			component.spinner.css( 'visibility', 'initial' );
+			component.doingAjax = false;
+			if ( window.console ) {
+				window.console.error( 'Migration ajax failed. Click notice to start it again.' );
+			}
+		} );
 	};
+
 	component.init();
+
 })( jQuery );

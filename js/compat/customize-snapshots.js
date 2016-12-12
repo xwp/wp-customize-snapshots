@@ -1,12 +1,8 @@
-/* global jQuery, wp */
+/* global jQuery, wp, _customizeSnapshotsCompatSettings */
 /* eslint consistent-this: ["error", "snapshot"] */
 
 ( function( api, $ ) {
 	'use strict';
-
-	if ( ! api.Snapshots ) {
-		return;
-	}
 
 	api.SnapshotsCompat = api.Snapshots.extend( {
 
@@ -19,6 +15,9 @@
 				_.extend( snapshot.data, snapshotsConfig );
 			}
 
+			window._wpCustomizeControlsL10n.save = snapshot.data.i18n.publish;
+			window._wpCustomizeControlsL10n.saved = snapshot.data.i18n.published;
+
 			api.bind( 'ready', function() {
 				api.state.create( 'snapshot-exists', snapshot.data.snapshotExists );
 				snapshot.extendPreviewerQuery();
@@ -27,6 +26,11 @@
 					api.state( 'saved' ).set( false );
 					snapshot.resetSavedStateQuietly();
 				}
+			} );
+
+			// Make sure that saved state is false so that Published button behaves as expected.
+			api.bind( 'save', function() {
+				api.state( 'saved' ).set( false );
 			} );
 
 			api.bind( 'saved', function( response ) {
@@ -234,10 +238,10 @@
 		addButtons: function addButtons() {
 			var snapshot = this,
 				header = $( '#customize-header-actions' ),
-				publishButton = header.find( '#save' ),
-				submitButton, templateData = {}, setPreviewLinkHref;
+				templateData = {}, setPreviewLinkHref;
 
-			snapshot.dirtySnapshotPostSetting = new api.Value();
+			snapshot.publishButton = header.find( '#save' );
+			snapshot.spinner = header.find( '.spinner' );
 			snapshot.dirtyScheduleDate = new api.Value();
 
 			// Save/update button.
@@ -267,7 +271,7 @@
 				}
 			} );
 
-			snapshot.snapshotButton.insertAfter( publishButton );
+			snapshot.snapshotButton.insertAfter( snapshot.publishButton );
 
 			// Preview link.
 			snapshot.previewLink = $( $.trim( wp.template( 'snapshot-preview-link' )() ) );
@@ -334,12 +338,8 @@
 				}
 			} );
 
-			snapshot.dirtySnapshotPostSetting.bind( function( dirty ) {
-				if ( dirty ) {
-					snapshot.snapshotButton.prop( 'disabled', false );
-				} else {
-					snapshot.snapshotButton.prop( 'disabled', ! snapshot.data.dirty );
-				}
+			snapshot.editControlSettings.bind( function() {
+				snapshot.snapshotButton.prop( 'disabled', false );
 				snapshot.updateButtonText();
 			} );
 			snapshot.dirtyScheduleDate.bind( function( dirty ) {
@@ -357,16 +357,7 @@
 
 			// Submit for review button.
 			if ( ! snapshot.data.currentUserCanPublish ) {
-				publishButton.hide();
-				submitButton = wp.template( 'snapshot-submit' );
-				submitButton = $( $.trim( submitButton( {
-					buttonText: snapshot.data.i18n.submit
-				} ) ) );
-				submitButton.prop( 'disabled', ! api.state( 'snapshot-exists' ).get() );
-				submitButton.insertBefore( snapshot.snapshotButton );
-				api.state( 'snapshot-submitted' ).bind( function( submitted ) {
-					submitButton.prop( 'disabled', submitted );
-				} );
+				snapshot.addSubmitButton();
 			}
 
 			header.addClass( 'button-added' );
@@ -390,21 +381,22 @@
 		},
 
 		/**
-		 * Hides the future date notification used for 4.7.
+		 * Toggles date notification.
 		 *
 		 * @return {void}.
 		 */
 		toggleDateNotification: function showDateNotification() {
 			var snapshot = this;
 			if ( ! _.isEmpty( snapshot.dateNotification ) ) {
-				snapshot.dateNotification.addClass( 'hidden' );
+				snapshot.dateNotification.toggle( ! snapshot.isFutureDate() );
 			}
 		},
 
 		/**
-		 * Auto save edit box when the dates are changed.
+		 * Overrides the autoSaveEditBox method used in api.Snapshots
+		 * because we do not auto save in < 4.7.
 		 *
-		 * @return {void}
+		 * @inheritdoc
 		 */
 		autoSaveEditBox: function autoSaveEditor() {
 
@@ -430,6 +422,47 @@
 		},
 
 		/**
+		 * Updates snapshot schedule with `snapshot.data`.
+		 *
+		 * @return {void}
+		 */
+		updateSnapshotEditControls: function updateSnapshotEditControls() {
+			var snapshot = this, parsed,
+				sliceBegin = 0,
+				sliceEnd = -2;
+
+			if ( _.isEmpty( snapshot.editContainer ) ) {
+				return;
+			}
+
+			if ( snapshot.data.currentUserCanPublish ) {
+				if ( '0000-00-00 00:00:00' === snapshot.data.publishDate ) {
+					snapshot.data.publishDate = snapshot.getCurrentTime();
+				}
+
+				// Normalize date with seconds removed.
+				snapshot.data.publishDate = snapshot.data.publishDate.slice( sliceBegin, sliceEnd ) + '00';
+				parsed = snapshot.parseDateTime( snapshot.data.publishDate );
+
+				// Update date controls.
+				snapshot.schedule.inputs.each( function() {
+					var input = $( this ),
+						fieldName = input.data( 'date-input' );
+
+					$( this ).val( parsed[fieldName] );
+				} );
+			}
+
+			snapshot.editContainer.find( 'a.snapshot-edit-link' )
+				.attr( 'href', snapshot.data.editLink )
+				.show();
+			if ( ! _.isEmpty( snapshot.data.title ) ) {
+				snapshot.snapshotTitle.val( snapshot.data.title );
+			}
+			snapshot.populateSetting();
+		},
+
+		/**
 		 * Populate setting value from the inputs.
 		 *
 		 * @returns {void}
@@ -437,25 +470,32 @@
 		populateSetting: function populateSetting() {
 			var snapshot = this,
 				date = snapshot.getDateFromInputs(),
-				scheduled, isDirtySetting, isDirtyDate;
+				scheduled, isDirtyDate, editControlSettings;
+
+			editControlSettings = _.extend( {}, snapshot.editControlSettings.get() );
 
 			if ( ! date || ! snapshot.data.currentUserCanPublish ) {
-				snapshot.dirtySnapshotPostSetting.set( snapshot.data.title !== snapshot.snapshotTitle.val() );
+				editControlSettings.title = snapshot.snapshotTitle.val();
+				snapshot.editControlSettings.set( editControlSettings );
 				return;
 			}
 
 			date.setSeconds( 0 );
 			scheduled = snapshot.formatDate( date ) !== snapshot.data.publishDate;
 
-			isDirtySetting = snapshot.data.title !== snapshot.snapshotTitle.val() || scheduled;
-			snapshot.dirtySnapshotPostSetting.set( isDirtySetting );
-
 			isDirtyDate = scheduled && snapshot.isFutureDate();
 			snapshot.dirtyScheduleDate.set( isDirtyDate );
+
+			editControlSettings.title = snapshot.snapshotTitle.val();
+			editControlSettings.date = snapshot.formatDate( date );
+
+			snapshot.editControlSettings.set( editControlSettings );
 
 			snapshot.updateCountdown();
 			snapshot.editContainer.find( '.reset-time' ).toggle( scheduled );
 		}
 	} );
+
+	api.snapshotsCompat = new api.SnapshotsCompat( _customizeSnapshotsCompatSettings );
 
 } )( wp.customize, jQuery );

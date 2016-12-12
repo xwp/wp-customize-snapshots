@@ -516,6 +516,9 @@ class Post_Type {
 	 * Persist the data in the snapshot post content.
 	 *
 	 * @param array $args Args.
+	 *
+	 * @internal For saving changesets use \WP_Customize_Manager::save_changeset_post().
+	 *
 	 * @return int|\WP_Error Post ID for snapshot or WP_Error instance.
 	 */
 	public function save( array $args ) {
@@ -572,10 +575,12 @@ class Post_Type {
 		}
 		if ( ! empty( $args['date_gmt'] ) ) {
 			$post_arr['post_date_gmt'] = $args['date_gmt'];
+			$post_arr['post_date'] = get_date_from_gmt( $args['date_gmt'] );
 		}
 
 		$this->suspend_kses();
 		if ( $is_update ) {
+			$post_arr['edit_date'] = true;
 			$r = wp_update_post( wp_slash( $post_arr ), true );
 		} else {
 			$r = wp_insert_post( wp_slash( $post_arr ), true );

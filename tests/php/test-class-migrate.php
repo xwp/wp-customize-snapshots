@@ -78,11 +78,15 @@ class Test_Migrate extends \WP_UnitTestCase {
 		     ->method( 'maybe_migrate' );
 		$reflected_class = new \ReflectionClass( $class_name );
 		$constructor = $reflected_class->getConstructor();
-		$constructor->invoke( $mock );
+		$constructor->invoke( $mock, $this->plugin );
 		set_current_screen( 'index' );
-		$constructor->invoke( $mock );
-		wp_set_current_user( $this->factory()->user->create( array( 'role' => 'administrator' ) ) );
-		$constructor->invoke( $mock );
+		$constructor->invoke( $mock, $this->plugin );
+		$user_id = $this->factory()->user->create( array( 'role' => 'administrator' ) );
+		if ( is_multisite() ) {
+			grant_super_admin( $user_id );
+		}
+		wp_set_current_user( $user_id );
+		$constructor->invoke( $mock, $this->plugin );
 	}
 
 	/**
@@ -91,7 +95,7 @@ class Test_Migrate extends \WP_UnitTestCase {
 	 * @see Migrate::is_migrated()
 	 */
 	function test_is_migrated() {
-		$migrate = new Migrate();
+		$migrate = new Migrate( $this->plugin );
 		update_option( Migrate::KEY, 0 );
 		$this->assertFalse( $migrate->is_migrated() );
 		update_option( Migrate::KEY, 1 );
@@ -104,7 +108,7 @@ class Test_Migrate extends \WP_UnitTestCase {
 	 * @see Migrate::maybe_migrate()
 	 */
 	function test_maybe_migrate() {
-		$migrate = new Migrate();
+		$migrate = new Migrate( $this->plugin );
 		$migrate->maybe_migrate();
 		$this->assertEquals( 10, has_action( 'admin_notices', array( $migrate, 'show_migration_notice' ) ) );
 		$this->assertEquals( 10, has_action( 'admin_enqueue_scripts', array( $migrate, 'enqueue_script' ) ) );
@@ -117,7 +121,7 @@ class Test_Migrate extends \WP_UnitTestCase {
 	 * @see Migrate::show_migration_notice()
 	 */
 	function test_show_migration_notice() {
-		$migrate = new Migrate();
+		$migrate = new Migrate( $this->plugin );
 		ob_start();
 		$migrate->show_migration_notice();
 		$data = ob_get_clean();
@@ -140,17 +144,18 @@ class Test_Migrate extends \WP_UnitTestCase {
 			'status' => 'draft',
 			'data' => array(),
 		) );
-		$migrate = new Migrate();
-		$posts_count = $migrate->changeset_migrate( - 1, true );
+		$migrate = new Migrate( $this->plugin );
+		$posts_count = $migrate->changeset_migrate( -1, true );
 		$this->assertEquals( $post_id, array_shift( $posts_count ) );
 
 		$migrate_obj = $this->getMockBuilder( 'CustomizeSnapshots\Migrate' )
 		                    ->setMethods( array( 'migrate_post' ) )
-		                    ->getMock();
+							->setConstructorArgs( array( $this->plugin ) )
+							->getMock();
 		$migrate_obj->expects( $this->once() )
 		            ->method( 'migrate_post' )
 		            ->will( $this->returnValue( null ) );
-		$migrate_obj->changeset_migrate( - 1 );
+		$migrate_obj->changeset_migrate( -1 );
 	}
 
 	/**
@@ -178,7 +183,7 @@ class Test_Migrate extends \WP_UnitTestCase {
 		$wp_customize->add_setting( 'foo', array( 'default' => 'foo_default' ) );
 		$this->action_customize_register_for_dynamic_settings();
 
-		$migrate = new Migrate();
+		$migrate = new Migrate( $this->plugin );
 
 		$has_kses = ( false !== has_filter( 'content_save_pre', 'wp_filter_post_kses' ) );
 		if ( $has_kses ) {
