@@ -300,9 +300,9 @@ class Customize_Snapshot_Manager {
 				'aysMsg' => __( 'Changes that you made may not be saved.', 'customize-snapshots' ),
 				'errorMsg' => __( 'The snapshot could not be saved.', 'customize-snapshots' ),
 				'errorTitle' => __( 'Error', 'customize-snapshots' ),
-				'collapseSnapshotScheduling' => __( 'Collapse snapshot scheduling', 'customize-snapshots' ),
-				'expandSnapshotScheduling' => __( 'Expand snapshot scheduling', 'customize-snapshots' ),
-				'conflictNotification' => __( 'Potential Snapshot conflicts', 'customize-snapshots' ),
+				'collapseSnapshotScheduling' => __( 'Collapse changeset scheduling', 'customize-snapshots' ),
+				'expandSnapshotScheduling' => __( 'Expand changeset scheduling', 'customize-snapshots' ),
+				'conflictNotification' => __( 'Potential changeset conflicts', 'customize-snapshots' ),
 			),
 		) );
 
@@ -815,7 +815,7 @@ class Customize_Snapshot_Manager {
 			<?php $title_text = __( 'click to expand', 'customize-snapshots' ); ?>
 			<# id= data.setting_id.replace( /\]/g, '\\]' ).replace( /\[/g, '\\[' ); #>
 			<span>
-				<?php esc_html_e( 'Snapshot conflicts', 'customize-snapshots' ); ?>
+				<?php esc_html_e( 'Conflicts', 'customize-snapshots' ); ?>
 				<a href="<?php echo esc_url( '#TB_inline?width=600&height=550&inlineId=snapshot-conflicts-' ); ?>{{id}}" class="dashicons dashicons-warning thickbox snapshot-conflicts-button" title="<?php echo esc_attr( $title_text ); ?>"></a>
 			</span>
 		</script>
