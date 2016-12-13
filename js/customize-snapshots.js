@@ -38,12 +38,16 @@
 			snapshot.data.initialClientTimestamp = snapshot.dateValueOf();
 
 			api.bind( 'ready', function() {
-				api.state.create( 'snapshot-exists', api.state( 'changesetStatus' ).get() );
+				api.state.create( 'snapshot-exists', false );
 				api.state.create( 'snapshot-saved', true );
 				api.state.create( 'snapshot-submitted', true );
 
 				snapshot.data.uuid = snapshot.data.uuid || api.settings.changeset.uuid;
 				snapshot.data.title = snapshot.data.title || snapshot.data.uuid;
+
+				if ( api.state.has( 'changesetStatus' ) && api.state( 'changesetStatus' ).get() ) {
+					api.state( 'snapshot-exists' ).set( true );
+				}
 
 				snapshot.editControlSettings = new api.Value( {
 					title: snapshot.data.title,
@@ -188,6 +192,7 @@
 				snapshot.statusButton.disableSelect.set( publishStatus );
 				snapshot.statusButton.disbleButton.set( true );
 				snapshot.snapshotExpandButton.toggle( ! publishStatus );
+				snapshot.previewLink.toggle( ! publishStatus );
 
 				snapshot.statusButton.updateButtonText( 'alt-text' );
 
@@ -316,6 +321,9 @@
 			api.bind( 'change', function() {
 				snapshot.statusButton.disable( false );
 				snapshot.statusButton.updateButtonText( 'button-text' );
+				if ( snapshot.submitButton ) {
+					snapshot.submitButton.prop( 'disabled', false );
+				}
 			} );
 
 			if ( ! snapshot.data.currentUserCanPublish ) {
@@ -344,7 +352,7 @@
 			} ) ) );
 
 			snapshot.submitButton.prop( 'disabled', disableSubmitButton );
-			snapshot.submitButton.insertBefore( snapshot.statusButton.container );
+			snapshot.submitButton.insertBefore( snapshot.publishButton );
 			api.state( 'snapshot-submitted' ).bind( function( submitted ) {
 				snapshot.submitButton.prop( 'disabled', submitted );
 			} );
@@ -395,6 +403,7 @@
 				snapshot.editContainer = $( $.trim( wp.template( 'snapshot-edit-container' )( snapshot.data ) ) );
 				snapshot.editContainer.hide().appendTo( $( '#customize-header-actions' ) );
 				snapshot.dateNotification = snapshot.editContainer.find( '.snapshot-future-date-notification' );
+				snapshot.countdown = snapshot.editContainer.find( '.snapshot-scheduled-countdown' );
 
 				if ( snapshot.data.currentUserCanPublish ) {
 
@@ -414,6 +423,10 @@
 						event.preventDefault();
 						snapshot.updateSnapshotEditControls();
 					} );
+				}
+
+				if ( snapshot.statusButton && 'future' !== snapshot.statusButton.value.get() ) {
+					snapshot.countdown.hide();
 				}
 
 				snapshot.snapshotTitle = snapshot.editContainer.find( '#snapshot-title' );
@@ -516,7 +529,8 @@
 
 			update = _.debounce( function() {
 				status = snapshot.statusButton.value.get();
-				if ( 'publish' === status ) {
+				if ( 'publish' === status || ! snapshot.isFutureDate() ) {
+					snapshot.updatePending = false;
 					return;
 				}
 				snapshot.updatePending = true;
@@ -662,7 +676,7 @@
 		 * @returns {boolean} True if date inputs are valid.
 		 */
 		updateCountdown: function updateCountdown() {
-			var snapshot = this, countdown = snapshot.editContainer.find( '.snapshot-scheduled-countdown' ),
+			var snapshot = this,
 				countdownTemplate = wp.template( 'snapshot-scheduled-countdown' ),
 				dateTimeFromInput = snapshot.getDateFromInputs(),
 				millisecondsDivider = 1000,
@@ -677,12 +691,12 @@
 			remainingTime = Math.ceil( remainingTime / millisecondsDivider );
 
 			if ( 0 < remainingTime ) {
-				countdown.text( countdownTemplate( {
+				snapshot.countdown.text( countdownTemplate( {
 					remainingTime: remainingTime
 				} ) );
-				countdown.show();
+				snapshot.countdown.show();
 			} else {
-				countdown.hide();
+				snapshot.countdown.hide();
 			}
 
 			return true;
@@ -819,7 +833,10 @@
 
 			snapshot.editControlSettings.set( editControlSettings );
 
-			snapshot.updateCountdown(); // @todo Update countdown only for future status?
+			if ( 'future' === snapshot.statusButton.value.get() ) {
+				snapshot.updateCountdown();
+			}
+
 			snapshot.editContainer.find( '.reset-time' ).toggle( scheduled );
 		},
 
@@ -841,7 +858,6 @@
 			remainingTime = snapshot.dateValueOf( date );
 			remainingTime -= snapshot.dateValueOf( snapshot.getCurrentTime() );
 			remainingTime = Math.ceil( remainingTime / millisecondsDivider );
-
 			return 0 < remainingTime;
 		},
 
@@ -972,9 +988,14 @@
 				if ( 'future' === status ) {
 					snapshot.snapshotEditContainerDisplayed.set( true );
 					snapshot.snapshotExpandButton.show();
+					if ( snapshot.isFutureDate() ) {
+						snapshot.countdown.show();
+						snapshot.updateSnapshot( status );
+					}
 				} else {
 					snapshot.updateSnapshot( status );
 					snapshot.snapshotEditContainerDisplayed.set( false );
+					snapshot.countdown.hide();
 				}
 			} );
 
