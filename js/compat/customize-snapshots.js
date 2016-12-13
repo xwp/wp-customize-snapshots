@@ -208,6 +208,8 @@
 					modal: true
 				} );
 			} );
+
+			return request;
 		},
 
 		/**
@@ -263,12 +265,14 @@
 			snapshot.snapshotButton.prop( 'disabled', true );
 
 			snapshot.snapshotButton.on( 'click', function( event ) {
+				var status;
 				event.preventDefault();
-				if ( snapshot.isFutureDate() ) {
-					snapshot.updateSnapshot( 'future' );
-				} else {
-					snapshot.updateSnapshot( 'draft' );
-				}
+				status = snapshot.isFutureDate() ? 'future' : 'draft';
+				snapshot.updateSnapshot( status ).done( function() {
+					snapshot.snapshotButton.prop( 'disabled', true );
+				} ).fail( function() {
+					snapshot.snapshotButton.prop( 'disabled', false );
+				} );
 			} );
 
 			snapshot.snapshotButton.insertAfter( snapshot.publishButton );
