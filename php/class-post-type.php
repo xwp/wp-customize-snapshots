@@ -697,7 +697,7 @@ class Post_Type {
 	 * @return mixed
 	 */
 	public function add_snapshot_bulk_actions( $bulk_actions ) {
-		$bulk_actions['merge_snapshot'] = __( 'Merge Snapshot', 'customize-snapshots' );
+		$bulk_actions['merge_snapshot'] = __( 'Merge', 'customize-snapshots' );
 		return $bulk_actions;
 	}
 
