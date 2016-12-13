@@ -916,7 +916,7 @@ class Post_Type {
 				echo '<details open>';
 				echo '<summary>';
 				$input = '<input type="radio" class="snapshot-resolved-settings" data-setting-value-selector="snapshot-setting-preview-' . $setting_id_key . '"';
-				$input .= 'name="' . self::SLUG . '_resolve_conflict_uuid[' . array_search( $setting_id, array_keys( $snapshot_content ), true ) . ']" value=' .
+				$input .= 'name="' . static::SLUG . '_resolve_conflict_uuid[' . array_search( $setting_id, array_keys( $snapshot_content ), true ) . ']" value=' .
 				                                   wp_json_encode( array(
 					                                   'setting_id' => $setting_id,
 					                                   'uuid' => $conflicted_data['uuid'],
