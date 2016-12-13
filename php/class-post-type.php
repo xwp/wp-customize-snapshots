@@ -918,12 +918,12 @@ class Post_Type {
 
 		$post_id = intval( $_POST['ID'] );
 		$parent_post = get_post( $post_id );
-		if ( self::SLUG !== $parent_post->post_type ) {
+		if ( static::SLUG !== $parent_post->post_type ) {
 			status_header( 400 );
 			wp_send_json_error( 'invalid-post' );
 		}
 
-		$post_type_object = get_post_type_object( self::SLUG );
+		$post_type_object = get_post_type_object( static::SLUG );
 		if ( ! current_user_can( $post_type_object->cap->edit_post, $post_id ) ) {
 			status_header( 403 );
 			wp_send_json_error( 'unauthorized_user' );
@@ -942,7 +942,7 @@ class Post_Type {
 			'post_password' => $parent_post->post_password,
 			'post_status' => 'draft',
 			'post_title' => ( $parent_post->post_name === $parent_post->post_title ) ? $uuid : $parent_post->post_title,
-			'post_type' => self::SLUG,
+			'post_type' => static::SLUG,
 			'post_date' => current_time( 'mysql', false ),
 			'post_date_gmt' => current_time( 'mysql', true ),
 			'post_modified' => current_time( 'mysql', false ),

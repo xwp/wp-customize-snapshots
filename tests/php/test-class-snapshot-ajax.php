@@ -24,9 +24,6 @@ class Test_Snapshot_Ajax extends \WP_Ajax_UnitTestCase {
 	 */
 	public function setUp() {
 		$this->plugin = get_plugin_instance();
-		if ( $this->plugin->compat ) {
-			$this->markTestSkipped( 'This unit-test require WP version 4.7 or up.' );
-		}
 		parent::setUp();
 	}
 	/**
@@ -35,6 +32,7 @@ class Test_Snapshot_Ajax extends \WP_Ajax_UnitTestCase {
 	 * @see Migrate::handle_migrate_changeset_request()
 	 */
 	function test_handle_migrate_changeset_request() {
+		$this->mark_incompatible();
 		remove_all_actions( 'wp_ajax_customize_snapshot_migration' );
 		delete_option( Migrate::KEY );
 		$migrate_obj = $this->getMockBuilder( 'CustomizeSnapshots\Migrate' )
@@ -82,6 +80,30 @@ class Test_Snapshot_Ajax extends \WP_Ajax_UnitTestCase {
 	}
 
 	/**
+	 * Get plugin instance accoding to WP version.
+	 *
+	 * @param Customize_Snapshot_Manager|Customize_Snapshot_Manager_Back_Compat $manager Manager.
+	 *
+	 * @return Post_Type|Post_Type_Back_Compat Post type object.
+	 */
+	public function get_new_post_type_instance( $manager ) {
+		if ( $this->plugin->compat ) {
+			return new Post_Type_Back_Compat( $manager );
+		} else {
+			return new Post_Type( $manager );
+		}
+	}
+
+	/**
+	 * Mark test incomplete as it is only for new versions.
+	 */
+	public function mark_incompatible() {
+		if ( $this->plugin->compat ) {
+			$this->markTestSkipped( 'This unit-test require WP version 4.7 or up.' );
+		}
+	}
+
+	/**
 	 * Test snapshot fork ajax request.
 	 *
 	 * @covers \CustomizeSnapshots\Post_Type::handle_snapshot_fork()
@@ -90,7 +112,7 @@ class Test_Snapshot_Ajax extends \WP_Ajax_UnitTestCase {
 		unset( $GLOBALS['wp_customize'] );
 		$user_id = $this->factory()->user->create( array( 'role' => 'administrator' ) );
 		wp_set_current_user( $user_id );
-		$post_type = new Post_Type( $this->plugin->customize_snapshot_manager );
+		$post_type = $this->get_new_post_type_instance( $this->plugin->customize_snapshot_manager );
 		$data = array(
 			'foo' => array(
 				'value' => 'bar',
