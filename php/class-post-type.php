@@ -132,7 +132,7 @@ class Post_Type {
 		$page_title = $post_type_object->labels->name;
 		$menu_title = $post_type_object->labels->name;
 		$menu_slug = 'edit.php?post_type=' . static::SLUG;
-		add_menu_page( $page_title, $menu_title, $capability, $menu_slug, '', 'dashicons-camera' );
+		add_theme_page( $page_title, $menu_title, $capability, $menu_slug );
 	}
 
 	/**
@@ -697,7 +697,7 @@ class Post_Type {
 	 * @return mixed
 	 */
 	public function add_snapshot_bulk_actions( $bulk_actions ) {
-		$bulk_actions['merge_snapshot'] = __( 'Merge Snapshot', 'customize-snapshots' );
+		$bulk_actions['merge_snapshot'] = __( 'Merge', 'customize-snapshots' );
 		return $bulk_actions;
 	}
 
@@ -917,7 +917,7 @@ class Post_Type {
 				echo '<details open>';
 				echo '<summary>';
 				$input = '<input type="radio" class="snapshot-resolved-settings" data-setting-value-selector="snapshot-setting-preview-' . $setting_id_key . '"';
-				$input .= 'name="' . self::SLUG . '_resolve_conflict_uuid[' . array_search( $setting_id, array_keys( $snapshot_content ), true ) . ']" value=' .
+				$input .= 'name="' . static::SLUG . '_resolve_conflict_uuid[' . array_search( $setting_id, array_keys( $snapshot_content ), true ) . ']" value=' .
 				                                   wp_json_encode( array(
 					                                   'setting_id' => $setting_id,
 					                                   'uuid' => $conflicted_data['uuid'],

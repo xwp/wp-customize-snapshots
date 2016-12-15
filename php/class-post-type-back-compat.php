@@ -113,7 +113,7 @@ class Post_Type_Back_Compat extends Post_Type {
 			?>
 			<script type="text/javascript">
 				jQuery( function( $ ) {
-					var optionText = <?php echo wp_json_encode( __( 'Merge Snapshot', 'customize-snapshots' ) ); ?>;
+					var optionText = <?php echo wp_json_encode( __( 'Merge', 'customize-snapshots' ) ); ?>;
 					$( 'select[name="action"], select[name="action2"]' ).each( function() {
 						var option = $( '<option>', {
 							text: optionText,
