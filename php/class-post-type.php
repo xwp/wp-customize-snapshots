@@ -132,7 +132,7 @@ class Post_Type {
 		$page_title = $post_type_object->labels->name;
 		$menu_title = $post_type_object->labels->name;
 		$menu_slug = 'edit.php?post_type=' . static::SLUG;
-		add_menu_page( $page_title, $menu_title, $capability, $menu_slug, '', 'dashicons-camera' );
+		add_theme_page( $page_title, $menu_title, $capability, $menu_slug );
 	}
 
 	/**
