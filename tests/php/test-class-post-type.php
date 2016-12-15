@@ -147,12 +147,15 @@ class Test_Post_Type extends \WP_UnitTestCase {
 	 */
 	public function test_add_admin_menu_item() {
 		$this->mark_incompatible();
-		global $admin_page_hooks, $_parent_pages;
+		global $submenu;
+		$admin_user_id = $this->factory()->user->create( array( 'role' => 'administrator' ) );
+		wp_set_current_user( $admin_user_id );
 		$post_type_obj = new Post_Type( $this->plugin->customize_snapshot_manager );
 		$post_type_obj->add_admin_menu_item();
 		$menu_slug = 'edit.php?post_type=' . Post_Type::SLUG;
-		$this->assertFalse( $_parent_pages[ $menu_slug ] );
-		$this->assertArrayHasKey( $menu_slug, $admin_page_hooks );
+		$this->assertArrayHasKey( 'themes.php', $submenu );
+		$this->assertArrayHasKey( 0, $submenu['themes.php'] );
+		$this->assertTrue( in_array( $menu_slug, $submenu['themes.php'][0], true ) );
 	}
 
 	/**

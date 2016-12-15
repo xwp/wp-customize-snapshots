@@ -1,5 +1,5 @@
 /* global jQuery, wp, _customizeSnapshotsSettings */
-/* eslint no-magic-numbers: [ "error", { "ignore": [0,1] } ], consistent-this: [ "error", "snapshot" ] */
+/* eslint no-magic-numbers: [ "error", { "ignore": [0,1,-1] } ], consistent-this: [ "error", "snapshot" ] */
 /*eslint max-nested-callbacks: ["error", 4]*/
 
 (function( api, $ ) {
@@ -77,6 +77,7 @@
 
 				snapshot.addButtons();
 				snapshot.editSnapshotUI();
+				snapshot.prefilterAjax();
 				snapshot.handleEventForConflicts();
 
 				api.trigger( 'snapshots-ready', snapshot );
@@ -543,7 +544,7 @@
 		 */
 		autoSaveEditBox: function() {
 			var snapshot = this, update,
-				delay = 1000, status, isValidChangesetStatus;
+				delay = 2000, status, isValidChangesetStatus;
 
 			snapshot.updatePending = false;
 			snapshot.dirtyEditControlValues = false;
@@ -933,9 +934,9 @@
 			api.previewer.query = function() {
 				var retval = originalQuery.apply( this, arguments );
 				if ( ! _.isEmpty( snapshot.editControlSettings.get() ) ) {
-					retval.title = snapshot.editControlSettings.get().title;
+					retval.customize_changeset_title = snapshot.editControlSettings.get().title;
 					if ( snapshot.isFutureDate() ) {
-						retval.date = snapshot.editControlSettings.get().date;
+						retval.customize_changeset_date = snapshot.editControlSettings.get().date;
 					}
 				}
 				return retval;
@@ -1042,6 +1043,38 @@
 			snapshot.publishButton.after( statusButton.container );
 
 			return statusButton;
+		},
+
+		/**
+		 * Remove 'customize_changeset_status' if its already set.
+		 *
+		 * @return {void}
+		 */
+		prefilterAjax: function prefilterAjax() {
+			var removeParam, isSameStatus;
+
+			if ( ! api.state.has( 'changesetStatus' ) ) {
+				return;
+			}
+
+			removeParam = function( queryString, parameter ) {
+				var pars = queryString.split( /[&;]/g );
+
+				_.each( pars, function( string, index ) {
+					if ( string && string.lastIndexOf( parameter, 0 ) !== -1 ) {
+						pars.splice( index, 1 );
+					}
+				} );
+
+				return pars.join( '&' );
+			};
+
+			$.ajaxPrefilter( function( options, originalOptions ) {
+				isSameStatus =  api.state( 'changesetStatus' ).get() === originalOptions.data.customize_changeset_status;
+				if ( 'customize_save' === originalOptions.data.action && isSameStatus && options.data ) {
+					options.data = removeParam( options.data, 'customize_changeset_status' );
+				}
+			} );
 		},
 
 		/**
