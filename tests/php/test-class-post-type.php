@@ -812,7 +812,8 @@ class Test_Post_Type extends \WP_UnitTestCase {
 		global $post;
 		$post_type_obj = $this->get_new_post_type_instance( $this->plugin->customize_snapshot_manager );
 		$post_type_obj->init();
-		wp_set_current_user( $admin_user_id = $this->factory()->user->create( array( 'role' => 'administrator' ) ) );
+		$admin_user_id = $this->factory()->user->create( array( 'role' => 'administrator' ) );
+		wp_set_current_user( $admin_user_id );
 		$post_id = $post_type_obj->save( array(
 			'uuid' => self::UUID,
 			'data' => array(
