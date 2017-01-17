@@ -149,10 +149,12 @@ class Migrate {
 	 * Migrate a post.
 	 *
 	 * @param int $id Post ID.
-	 *
 	 * @return int|\WP_Error maybe updated.
+	 * @global \WP_Customize_Manager $wp_customize
 	 */
 	public function migrate_post( $id ) {
+		global $wp_customize;
+
 		$post = get_post( $id );
 
 		// Get data.
@@ -161,8 +163,12 @@ class Migrate {
 			$data = array();
 		}
 
-		// Validate data.
+		// Get manager instance.
 		$manager = new \WP_Customize_Manager();
+		$original_manager = $wp_customize;
+		$wp_customize = $manager; // Export to global since some filters (like widget_customizer_setting_args) lack as $wp_customize context and need global.
+
+		// Validate data.
 		foreach ( $data as $setting_id => $setting_params ) {
 			// Amend post values with any supplied data.
 			if ( array_key_exists( 'value', $setting_params ) ) {
@@ -202,6 +208,9 @@ class Migrate {
 			'post_type' => 'customize_changeset',
 			'post_content' => Customize_Snapshot_Manager::encode_json( $post_data ),
 		) ), true );
+
+		$wp_customize = $original_manager; // Restore previous manager.
+
 		return $maybe_updated;
 	}
 }
