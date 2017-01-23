@@ -1049,7 +1049,10 @@
 			};
 
 			$.ajaxPrefilter( function( options, originalOptions ) {
-				isSameStatus =  api.state( 'changesetStatus' ).get() === originalOptions.data.customize_changeset_status;
+				if ( ! originalOptions.data ) {
+					return;
+				}
+				isSameStatus = api.state( 'changesetStatus' ).get() === originalOptions.data.customize_changeset_status;
 				if ( 'customize_save' === originalOptions.data.action && isSameStatus && options.data ) {
 					options.data = removeParam( options.data, 'customize_changeset_status' );
 				}
