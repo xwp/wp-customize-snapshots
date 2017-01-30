@@ -55,7 +55,6 @@
 				} );
 
 				api.bind( 'change', function() {
-					api.state( 'snapshot-saved' ).set( false );
 					api.state( 'snapshot-submitted' ).set( false );
 				} );
 
@@ -157,6 +156,7 @@
 				options
 			);
 
+			api.state( 'snapshot-saved' ).set( false );
 			snapshot.statusButton.disable( true );
 			snapshot.spinner.addClass( 'is-active' );
 
@@ -181,10 +181,18 @@
 
 			request.done( function( response ) {
 				var url = api.previewer.previewUrl(),
-					customizeUrl = window.location.href;
+					customizeUrl = window.location.href,
+					savedDelay = 400;
+
+				/***
+				 * Delay because api.Posts.updateSettingsQuietly updates the settings after save, which triggers
+				 * api change causing the publish button to get enabled again.
+				 */
+				_.delay( function() {
+					api.state( 'snapshot-saved' ).set( true );
+				}, savedDelay );
 
 				api.state( 'snapshot-exists' ).set( true );
-				api.state( 'snapshot-saved' ).set( true );
 
 				if ( 'pending' === data.status ) {
 					api.state( 'snapshot-submitted' ).set( true );
@@ -320,10 +328,13 @@
 			} );
 
 			api.bind( 'change', function() {
-				snapshot.statusButton.disable( false );
-				snapshot.statusButton.updateButtonText( 'button-text' );
-				if ( snapshot.submitButton ) {
-					snapshot.submitButton.prop( 'disabled', false );
+				if ( api.state( 'snapshot-saved' ).get() ) {
+					snapshot.statusButton.disable( false );
+					snapshot.statusButton.updateButtonText( 'button-text' );
+					if ( snapshot.submitButton ) {
+						snapshot.submitButton.prop( 'disabled', false );
+					}
+					api.state( 'snapshot-saved' ).set( false );
 				}
 			} );
 

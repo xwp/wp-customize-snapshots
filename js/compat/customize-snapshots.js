@@ -33,6 +33,10 @@
 				api.state( 'saved' ).set( false );
 			} );
 
+			api.bind( 'change', function() {
+				api.state( 'snapshot-saved' ).set( false );
+			} );
+
 			api.bind( 'saved', function( response ) {
 				var url = window.location.href,
 					updatedUrl,
