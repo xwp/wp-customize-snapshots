@@ -37,7 +37,7 @@ function is_previewing_settings() {
 	if ( get_plugin_instance()->compat ) {
 		return $manager->is_previewing_settings();
 	} else {
-		return isset( $manager->customize_manager ) && $manager->customize_manager->is_preview();
+		return ( isset( $manager->customize_manager ) && $manager->customize_manager->is_preview() ) || did_action( 'customize_preview_init' );
 	}
 }
 
