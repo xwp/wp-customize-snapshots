@@ -534,7 +534,7 @@
 		 */
 		autoSaveEditBox: function() {
 			var snapshot = this, update,
-				delay = 2000, status, isValidChangesetStatus;
+				delay = 2000, status, isValidChangesetStatus, needConfirm;
 
 			snapshot.updatePending = false;
 			snapshot.dirtyEditControlValues = false;
@@ -580,11 +580,17 @@
 				return _.contains( [ 'future', 'pending', 'draft' ], api.state( 'changesetStatus' ).get() );
 			};
 
+			needConfirm = function() {
+				return snapshot.statusButton.button.data( 'confirm-text' ) === snapshot.statusButton.buttonText.get();
+			};
+
 			api.bind( 'changeset-save', function() {
 				if ( isValidChangesetStatus() ) {
 					snapshot.updatePending = true;
-					snapshot.statusButton.disable( true );
-					snapshot.spinner.addClass( 'is-active' );
+					if ( ! needConfirm() ) {
+						snapshot.statusButton.disable( true );
+						snapshot.spinner.addClass( 'is-active' );
+					}
 					if ( snapshot.submitButton ) {
 						snapshot.submitButton.prop( 'disabled', true );
 					}
@@ -597,9 +603,11 @@
 
 				if ( isValidChangesetStatus() ) {
 					snapshot.updatePending = false;
-					snapshot.statusButton.disableSelect.set( false );
-					snapshot.spinner.removeClass( 'is-active' );
-					snapshot.statusButton.updateButtonText( 'alt-text' );
+					if ( ! needConfirm() ) {
+						snapshot.statusButton.disableSelect.set( false );
+						snapshot.spinner.removeClass( 'is-active' );
+						snapshot.statusButton.updateButtonText( 'alt-text' );
+					}
 				}
 			});
 		},
