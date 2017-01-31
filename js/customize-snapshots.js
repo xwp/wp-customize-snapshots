@@ -330,7 +330,9 @@
 			api.bind( 'change', function() {
 				if ( api.state( 'snapshot-saved' ).get() ) {
 					snapshot.statusButton.disable( false );
-					snapshot.statusButton.updateButtonText( 'button-text' );
+					if ( snapshot.statusButton.button.data( 'confirm-text' ) !== snapshot.statusButton.buttonText.get() ) {
+						snapshot.statusButton.updateButtonText( 'button-text' );
+					}
 					if ( snapshot.submitButton ) {
 						snapshot.submitButton.prop( 'disabled', false );
 					}
