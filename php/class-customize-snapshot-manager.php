@@ -670,6 +670,7 @@ class Customize_Snapshot_Manager {
 								<# } #>
 								<# if ( 'publish' == status ) { #>
 									data-confirm-text="{{ data.confirm_publish_text }}"
+									data-publish-text="{{ data.choices.publish.option_text }}"
 								<# } #>
 								>{{ buttonText.option_text }}</option>
 					<# } ); #>

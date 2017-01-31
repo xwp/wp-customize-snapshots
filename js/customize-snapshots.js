@@ -534,7 +534,7 @@
 		 */
 		autoSaveEditBox: function() {
 			var snapshot = this, update,
-				delay = 2000, status, isValidChangesetStatus, needConfirm;
+				delay = 2000, status, isValidChangesetStatus, isPublishButton;
 
 			snapshot.updatePending = false;
 			snapshot.dirtyEditControlValues = false;
@@ -580,14 +580,16 @@
 				return _.contains( [ 'future', 'pending', 'draft' ], api.state( 'changesetStatus' ).get() );
 			};
 
-			needConfirm = function() {
-				return snapshot.statusButton.button.data( 'confirm-text' ) === snapshot.statusButton.buttonText.get();
+			isPublishButton = function() {
+				var isConfirmText = snapshot.statusButton.button.data( 'confirm-text' ) === snapshot.statusButton.buttonText.get(),
+				    isPublishText = snapshot.statusButton.button.data( 'publish-text' ) === snapshot.statusButton.buttonText.get();
+				return isConfirmText || isPublishText;
 			};
 
 			api.bind( 'changeset-save', function() {
 				if ( isValidChangesetStatus() ) {
 					snapshot.updatePending = true;
-					if ( ! needConfirm() ) {
+					if ( ! isPublishButton() ) {
 						snapshot.statusButton.disable( true );
 						snapshot.spinner.addClass( 'is-active' );
 					}
@@ -603,7 +605,7 @@
 
 				if ( isValidChangesetStatus() ) {
 					snapshot.updatePending = false;
-					if ( ! needConfirm() ) {
+					if ( ! isPublishButton() ) {
 						snapshot.statusButton.disableSelect.set( false );
 						snapshot.spinner.removeClass( 'is-active' );
 						snapshot.statusButton.updateButtonText( 'alt-text' );
@@ -1002,6 +1004,7 @@
 				if ( 'publish' === status ) {
 					snapshot.snapshotExpandButton.hide();
 					statusButton.button.data( 'confirm-text', selectedOption.data( 'confirm-text' ) );
+					statusButton.button.data( 'publish-text', selectedOption.data( 'publish-text' ) );
 					statusButton.needConfirm = true;
 				}
 
