@@ -272,6 +272,8 @@
 				var status;
 				event.preventDefault();
 				status = snapshot.isFutureDate() ? 'future' : 'draft';
+
+				snapshot.snapshotButton.prop( 'disabled', true );
 				snapshot.updateSnapshot( status ).done( function() {
 					snapshot.snapshotButton.prop( 'disabled', true );
 				} ).fail( function() {
