@@ -190,13 +190,12 @@
 				 */
 				_.delay( function() {
 					api.state( 'snapshot-saved' ).set( true );
+					if ( 'pending' === data.status ) {
+						api.state( 'snapshot-submitted' ).set( true );
+					}
 				}, savedDelay );
 
 				api.state( 'snapshot-exists' ).set( true );
-
-				if ( 'pending' === data.status ) {
-					api.state( 'snapshot-submitted' ).set( true );
-				}
 
 				snapshot.statusButton.disableSelect.set( publishStatus );
 				snapshot.statusButton.disbleButton.set( true );
@@ -336,24 +335,28 @@
 					if ( snapshot.submitButton ) {
 						snapshot.submitButton.prop( 'disabled', false );
 					}
+					if ( snapshot.saveButton ) {
+						snapshot.saveButton.prop( 'disabled', false );
+					}
 					api.state( 'snapshot-saved' ).set( false );
 				}
 			} );
 
 			if ( ! snapshot.data.currentUserCanPublish ) {
 				snapshot.addSubmitButton();
+				snapshot.addSaveButton();
 			}
 		},
 
 		/**
-		 * Adds Submit Button.
+		 * Adds Submit Button when user does not have 'customize_publish' permission.
 		 *
 		 * @return {void}
 		 */
 		addSubmitButton: function() {
 			var snapshot = this, disableSubmitButton;
 
-			disableSubmitButton = snapshot.data.postStatus || ! api.state( 'snapshot-exists' ).get();
+			disableSubmitButton = 'pending' === snapshot.data.postStatus || ! api.state( 'snapshot-exists' ).get();
 
 			if ( snapshot.statusButton ) {
 				snapshot.statusButton.container.hide();
@@ -374,15 +377,63 @@
 			snapshot.submitButton.on( 'click', function( event ) {
 				event.preventDefault();
 				snapshot.submitButton.prop( 'disabled', true );
-				snapshot.updateSnapshot( 'pending' ).done( function() {
-					snapshot.submitButton.prop( 'disabled', true );
-				} ).fail( function() {
+				if ( snapshot.saveButton ) {
+					snapshot.saveButton.prop( 'disabled', true );
+				}
+				snapshot.updateSnapshot( 'pending' ).fail( function() {
 					snapshot.submitButton.prop( 'disabled', false );
 				} );
 			} );
 
 			snapshot.editControlSettings.bind( function() {
-				snapshot.submitButton.prop( 'disabled', false );
+				if ( api.state( 'snapshot-saved' ).get() ) {
+					snapshot.submitButton.prop( 'disabled', false );
+				}
+			} );
+		},
+
+		/**
+		 * Adds Save Button when user does not have 'customize_publish' permission.
+		 *
+		 * @return {void}
+		 */
+		addSaveButton: function() {
+			var snapshot = this, disableSaveButton, isSaved;
+
+			isSaved = _.contains( [ 'future', 'pending', 'draft' ], api.state( 'changesetStatus' ).get() );
+			disableSaveButton = isSaved || ! api.state( 'snapshot-exists' ).get();
+
+			snapshot.saveButton = $( $.trim( wp.template( 'snapshot-save' )( {
+				buttonText: isSaved ? snapshot.data.i18n.updateButton : snapshot.data.i18n.saveButton
+			} ) ) );
+
+			snapshot.saveButton.prop( 'disabled', disableSaveButton );
+			snapshot.saveButton.insertBefore( snapshot.publishButton );
+
+			api.state( 'snapshot-submitted' ).bind( function( submitted ) {
+				if ( submitted ) {
+					snapshot.saveButton.prop( 'disabled', true );
+				}
+			} );
+
+			snapshot.saveButton.on( 'click', function( event ) {
+				event.preventDefault();
+				snapshot.saveButton.prop( 'disabled', true );
+				snapshot.submitButton.prop( 'disabled', true );
+				snapshot.updateSnapshot( 'draft' ).done( function() {
+					snapshot.saveButton.prop( 'disabled', true );
+					snapshot.submitButton.prop( 'disabled', false );
+					snapshot.saveButton.text( snapshot.data.i18n.updateButton );
+				} ).fail( function() {
+					snapshot.saveButton.prop( 'disabled', false );
+					snapshot.submitButton.prop( 'disabled', false );
+				} );
+			} );
+
+			snapshot.editControlSettings.bind( function() {
+				if ( api.state( 'snapshot-saved' ).get() ) {
+					snapshot.saveButton.prop( 'disabled', false );
+				}
 			} );
 		},
 
@@ -594,9 +645,6 @@
 					if ( ! isPublishButton() ) {
 						snapshot.statusButton.disable( true );
 						snapshot.spinner.addClass( 'is-active' );
-					}
-					if ( snapshot.submitButton ) {
-						snapshot.submitButton.prop( 'disabled', true );
 					}
 					snapshot.extendPreviewerQuery();
 				}

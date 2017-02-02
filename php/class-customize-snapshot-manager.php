@@ -289,6 +289,8 @@ class Customize_Snapshot_Manager {
 			'initialServerDate' => current_time( 'mysql', false ),
 			'initialServerTimestamp' => floor( microtime( true ) * 1000 ),
 			'i18n' => array(
+				'saveButton' => __( 'Save', 'customize-snapshots' ),
+				'updateButton' => __( 'Update', 'customize-snapshots' ),
 				'submit' => __( 'Submit', 'customize-snapshots' ),
 				'submitted' => __( 'Submitted', 'customize-snapshots' ),
 				'permsMsg' => array(
@@ -618,6 +620,12 @@ class Customize_Snapshot_Manager {
 
 		<script type="text/html" id="tmpl-snapshot-expand-button">
 			<a href="javascript:void(0)" id="snapshot-expand-button" role="button" aria-controls="snapshot-schedule" aria-pressed="false" class="dashicons dashicons-edit"></a>
+		</script>
+
+		<script type="text/html" id="tmpl-snapshot-save">
+			<button id="snapshot-save" class="button button-secondary">
+				{{ data.buttonText }}
+			</button>
 		</script>
 
 		<script type="text/html" id="tmpl-snapshot-submit">
