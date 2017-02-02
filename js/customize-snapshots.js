@@ -587,7 +587,7 @@
 		 */
 		autoSaveEditBox: function() {
 			var snapshot = this, update,
-				delay = 2000, status, isValidChangesetStatus, isPublishButton;
+				delay = 2000, status, isValidChangesetStatus;
 
 			snapshot.updatePending = false;
 			snapshot.dirtyEditControlValues = false;
@@ -633,19 +633,10 @@
 				return _.contains( [ 'future', 'pending', 'draft' ], api.state( 'changesetStatus' ).get() );
 			};
 
-			isPublishButton = function() {
-				var isConfirmText = snapshot.statusButton.button.data( 'confirm-text' ) === snapshot.statusButton.buttonText.get(),
-				    isPublishText = snapshot.statusButton.button.data( 'publish-text' ) === snapshot.statusButton.buttonText.get();
-				return isConfirmText || isPublishText;
-			};
-
+			// @todo Show loader and disable button while auto saving.
 			api.bind( 'changeset-save', function() {
 				if ( isValidChangesetStatus() ) {
 					snapshot.updatePending = true;
-					if ( ! isPublishButton() ) {
-						snapshot.statusButton.disable( true );
-						snapshot.spinner.addClass( 'is-active' );
-					}
 					snapshot.extendPreviewerQuery();
 				}
 			} );
@@ -655,11 +646,6 @@
 
 				if ( isValidChangesetStatus() ) {
 					snapshot.updatePending = false;
-					if ( ! isPublishButton() ) {
-						snapshot.statusButton.disableSelect.set( false );
-						snapshot.spinner.removeClass( 'is-active' );
-						snapshot.statusButton.updateButtonText( 'alt-text' );
-					}
 				}
 			});
 		},
