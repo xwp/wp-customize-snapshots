@@ -2,7 +2,7 @@
 Contributors: xwp, westonruter, valendesigns, utkarshpatel, sayedwp, newscorpau
 Requires at least: 4.5.3
 Tested up to: 4.7
-Stable tag: 0.5.2
+Stable tag: 0.6.0-rc1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 Tags: customizer, customize, changesets
@@ -63,6 +63,14 @@ if ( ! $bypass_object_cache ) {
 7. Changes to snapshots are captured in revisions.
 
 == Changelog ==
+
+= 0.6.0 RC1 - 2017-02-06 =
+
+See [issues and PRs in milestone](https://github.com/xwp/wp-customize-snapshots/milestone/4?closed=1).
+
+See full commit log: [`0.5.2...0.6.0-rc1`](https://github.com/xwp/wp-customize-snapshots/compare/0.5.2...0.6.0-rc1)
+
+Props: Utkarsh Patel (<a href="https://github.com/PatelUtkarsh" class="user-mention">@PatelUtkarsh</a>), Sayed Taqui (<a href="https://github.com/sayedwp" class="user-mention">@sayedwp</a>), Weston Ruter (<a href="https://github.com/westonruter" class="user-mention">@westonruter</a>), Ryan Kienstra (<a href="https://github.com/kienstra" class="user-mention">@kienstra</a>), Luke Gedeon (<a href="https://github.com/lgedeon" class="user-mention">@lgedeon</a>).
 
 = 0.5.2 - 2016-08-17 =
 
