@@ -34,7 +34,7 @@ class Customize_Snapshot_Command {
 	public function migrate( $arg, $assoc_args ) {
 		unset( $arg );
 		$migrate_obj = new Migrate( get_plugin_instance() );
-		if ( $migrate_obj->compat ) {
+		if ( $migrate_obj->plugin->compat ) {
 			\WP_CLI::error( __( 'You\'re using older WordPress version please upgrade 4.7 or above to migrate.', 'customize-snapshots' ) );
 			return;
 		}
