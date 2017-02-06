@@ -74,7 +74,7 @@ class Test_Plugin_Base extends \WP_UnitTestCase {
 	 * @see Plugin_Base::add_doc_hooks()
 	 */
 	public function test_add_doc_hooks() {
-		$object = new Test_Doc_hooks();
+		$object = new Test_Doc_Hooks();
 		$this->assertFalse( has_action( 'init', array( $object, 'init_action' ) ) );
 		$this->assertFalse( has_action( 'the_content', array( $object, 'the_content_filter' ) ) );
 		$this->plugin->add_doc_hooks( $object );
@@ -115,7 +115,7 @@ class Test_Plugin_Base extends \WP_UnitTestCase {
 	 * @see Plugin_Base::remove_doc_hooks()
 	 */
 	public function test_remove_doc_hooks() {
-		$object = new Test_Doc_hooks();
+		$object = new Test_Doc_Hooks();
 		$this->plugin->add_doc_hooks( $object );
 		$this->assertEquals( 10, has_action( 'init', array( $object, 'init_action' ) ) );
 		$this->assertEquals( 10, has_action( 'the_content', array( $object, 'the_content_filter' ) ) );
@@ -126,9 +126,9 @@ class Test_Plugin_Base extends \WP_UnitTestCase {
 }
 
 /**
- * Class Test_Doc_hooks
+ * Class Test_Doc_Hooks
  */
-class Test_Doc_hooks {
+class Test_Doc_Hooks {
 
 	/**
 	 * Load this on the init action hook.

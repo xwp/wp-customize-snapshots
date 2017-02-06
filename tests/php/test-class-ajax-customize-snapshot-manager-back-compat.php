@@ -1,6 +1,6 @@
 <?php
 /**
- * Test Test_Ajax_Customize_Snapshot_Manager.
+ * Test Test_Ajax_Customize_Snapshot_Manager_Back_Compat.
  *
  * @package CustomizeSnapshots
  */
@@ -8,9 +8,9 @@
 namespace CustomizeSnapshots;
 
 /**
- * Class Test_Ajax_Customize_Snapshot_Manager
+ * Class Test_Ajax_Customize_Snapshot_Manager_Back_Compat
  */
-class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
+class Test_Ajax_Customize_Snapshot_Manager_Back_Compat extends \WP_Ajax_UnitTestCase {
 
 	/**
 	 * Plugin.
@@ -62,6 +62,13 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 	public $filtered_customizer;
 
 	/**
+	 * Post type slug.
+	 *
+	 * @var string
+	 */
+	public $post_type_slug;
+
+	/**
 	 * Set up before class.
 	 */
 	public static function setUpBeforeClass() {
@@ -74,12 +81,21 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 	 */
 	public function setUp() {
 		parent::setUp();
+		$plugin = get_plugin_instance();
+		if ( ! $plugin->compat ) {
+			$this->markTestSkipped( 'WordPress Version 4.6.x or below is required for this test-case.' );
+		}
 
 		remove_all_actions( 'wp_ajax_customize_save' );
 		remove_all_actions( 'wp_ajax_customize_update_snapshot' );
 		$this->plugin = new Plugin();
 		$this->set_input_vars();
 		$this->plugin->init();
+		if ( $this->plugin->compat ) {
+			$this->post_type_slug = Post_Type_Back_Compat::SLUG;
+		} else {
+			$this->post_type_slug = Post_Type::SLUG;
+		}
 	}
 
 	/**
@@ -282,6 +298,8 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 	 *
 	 * @param string $role              The role we're checking caps against.
 	 * @param array  $expected_results  Expected results.
+	 *
+	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager_Back_Compat::check_customize_publish_authorization()
 	 */
 	function test_ajax_update_snapshot_cap_check( $role, $expected_results ) {
 		$this->set_current_user( $role );
@@ -453,7 +471,7 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 		unset( $GLOBALS['wp_customize'] );
 		remove_all_actions( 'wp_ajax_' . Customize_Snapshot_Manager::AJAX_ACTION );
 
-		$post_type_obj = get_post_type_object( Post_Type::SLUG );
+		$post_type_obj = get_post_type_object( $this->post_type_slug );
 		$setting_key = 'anyonecanedit';
 		$tomorrow = date( 'Y-m-d H:i:s', time() + 86400 );
 		$this->set_current_user( 'administrator' );
@@ -466,7 +484,7 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 			'customize_snapshot_uuid' => self::UUID,
 			'customized' => wp_json_encode( array( $setting_key => 'Hello' ) ),
 			'status' => 'future',
-			'publish_date' => $tomorrow, // Tomorrow.
+			'date' => $tomorrow, // Tomorrow.
 		) );
 
 		$this->plugin = new Plugin();
@@ -505,7 +523,7 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 		unset( $GLOBALS['wp_customize'] );
 		remove_all_actions( 'wp_ajax_' . Customize_Snapshot_Manager::AJAX_ACTION );
 
-		$post_type_obj = get_post_type_object( Post_Type::SLUG );
+		$post_type_obj = get_post_type_object( $this->post_type_slug );
 		$setting_key = 'anyonecanedit';
 		add_filter( 'user_has_cap', function( $allcaps, $caps, $args ) {
 			$allcaps['customize'] = true;
@@ -595,9 +613,9 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 		}, 10, 2 );
 
 		$this->set_input_vars( $post_vars );
-		$this->make_ajax_call( Customize_Snapshot_Manager::AJAX_ACTION );
+		$this->make_ajax_call( Customize_Snapshot_Manager_Back_Compat::AJAX_ACTION );
 
-		$manager = new Customize_Snapshot_Manager( $this->plugin );
+		$manager = new Customize_Snapshot_Manager_Back_Compat( $this->plugin );
 		$manager->ensure_customize_manager();
 		$manager->init();
 

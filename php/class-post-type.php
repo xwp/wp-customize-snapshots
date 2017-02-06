@@ -8,9 +8,9 @@
 namespace CustomizeSnapshots;
 
 /**
- * Customize Snapshot Class
+ * Customize Changeset Post Type Class.
  *
- * Implements snapshots for Customizer settings
+ * Enhance usage of changeset.
  *
  * @package CustomizeSnapshots
  */
@@ -21,7 +21,21 @@ class Post_Type {
 	 *
 	 * @type string
 	 */
-	const SLUG = 'customize_snapshot';
+	const SLUG = 'customize_changeset';
+
+	/**
+	 * Customize front end uuid param key name.
+	 *
+	 * @type string
+	 */
+	const FRONT_UUID_PARAM_NAME = 'customize_changeset_uuid';
+
+	/**
+	 * Customize UUID Param Name.
+	 *
+	 * @type string
+	 */
+	const CUSTOMIZE_UUID_PARAM_NAME = 'changeset_uuid';
 
 	/**
 	 * Customize_Snapshot_Manager instance.
@@ -52,80 +66,72 @@ class Post_Type {
 	}
 
 	/**
-	 * Register post type.
+	 * Calls common hooks Actions and filters
 	 */
-	public function register() {
-
-		$labels = array(
-			'name'               => _x( 'Snapshots', 'post type general name', 'customize-snapshots' ),
-			'singular_name'      => _x( 'Snapshot', 'post type singular name', 'customize-snapshots' ),
-			'menu_name'          => _x( 'Snapshots', 'admin menu', 'customize-snapshots' ),
-			'name_admin_bar'     => _x( 'Snapshot', 'add new on admin bar', 'customize-snapshots' ),
-			'add_new'            => _x( 'Add New', 'Customize Snapshot', 'customize-snapshots' ),
-			'add_new_item'       => __( 'Add New Snapshot', 'customize-snapshots' ),
-			'new_item'           => __( 'New Snapshot', 'customize-snapshots' ),
-			'edit_item'          => __( 'Inspect Snapshot', 'customize-snapshots' ),
-			'view_item'          => __( 'View Snapshot', 'customize-snapshots' ),
-			'all_items'          => __( 'All Snapshots', 'customize-snapshots' ),
-			'search_items'       => __( 'Search Snapshots', 'customize-snapshots' ),
-			'not_found'          => __( 'No snapshots found.', 'customize-snapshots' ),
-			'not_found_in_trash' => __( 'No snapshots found in Trash.', 'customize-snapshots' ),
-		);
-
-		$args = array(
-			'labels' => $labels,
-			'description' => __( 'Customize Snapshots.', 'customize-snapshots' ),
-			'public' => true,
-			'publicly_queryable' => false,
-			'query_var' => false,
-			'exclude_from_search' => true,
-			'show_ui' => true,
-			'show_in_nav_menus' => false,
-			'show_in_menu' => true,
-			'show_in_admin_bar' => false,
-			'map_meta_cap' => true,
-			'hierarchical' => false,
-			'delete_with_user' => false,
-			'menu_position' => null,
-			'supports' => array( 'title', 'author', 'revisions' ),
-			'capability_type' => static::SLUG,
-			'capabilities' => array(
-				'create_posts' => 'do_not_allow',
-			),
-			'rewrite' => false,
-			'show_in_customizer' => false, // Prevent inception.
-			'show_in_rest' => true,
-			'rest_base' => 'customize_snapshots',
-			'rest_controller_class' => __NAMESPACE__ . '\\Snapshot_REST_API_Controller',
-			'customize_snapshot_post_type_obj' => $this,
-			'menu_icon' => 'dashicons-camera',
-			'register_meta_box_cb' => array( $this, 'setup_metaboxes' ),
-		);
-
-		register_post_type( static::SLUG, $args );
-
-		add_filter( 'post_type_link', array( $this, 'filter_post_type_link' ), 10, 2 );
+	public function hooks() {
 		add_action( 'add_meta_boxes_' . static::SLUG, array( $this, 'remove_slug_metabox' ), 100 );
 		add_action( 'load-revision.php', array( $this, 'suspend_kses_for_snapshot_revision_restore' ) );
 		add_filter( 'get_the_excerpt', array( $this, 'filter_snapshot_excerpt' ), 10, 2 );
 		add_filter( 'post_row_actions', array( $this, 'filter_post_row_actions' ), 10, 2 );
-		add_filter( 'wp_insert_post_data', array( $this, 'preserve_post_name_in_insert_data' ), 10, 2 );
 		add_filter( 'user_has_cap', array( $this, 'filter_user_has_cap' ), 10, 2 );
-		add_filter( 'display_post_states', array( $this, 'display_post_states' ), 10, 2 );
-		add_action( 'admin_notices', array( $this, 'show_publish_error_admin_notice' ) );
 		add_action( 'post_submitbox_minor_actions', array( $this, 'hide_disabled_publishing_actions' ) );
 		add_filter( 'content_save_pre', array( $this, 'filter_out_settings_if_removed_in_metabox' ), 10 );
 		add_action( 'admin_print_scripts-revision.php', array( $this, 'disable_revision_ui_for_published_posts' ) );
-
-		// Version check for bulk action.
-		if ( version_compare( get_bloginfo( 'version' ), '4.7', '>=' ) ) {
-			add_filter( 'bulk_actions-edit-' . self::SLUG, array( $this, 'add_snapshot_bulk_actions' ) );
-			add_filter( 'handle_bulk_actions-edit-' . self::SLUG, array( $this, 'handle_snapshot_bulk_actions' ), 10, 3 );
-		} else {
-			add_action( 'admin_footer-edit.php', array( $this, 'snapshot_merge_print_script' ) );
-			add_action( 'load-edit.php', array( $this, 'handle_snapshot_bulk_actions_workaround' ) );
-		}
 		add_action( 'admin_notices', array( $this, 'admin_show_merge_error' ) );
+	}
+
+	/**
+	 * Register post type.
+	 * Child class should override this to call it's own init.
+	 */
+	public function init() {
+		$this->extend_changeset_post_type_object();
+		$this->hooks();
+
+		add_filter( 'post_link', array( $this, 'filter_post_type_link' ), 10, 2 );
+		add_action( 'add_meta_boxes_' . static::SLUG, array( $this, 'setup_metaboxes' ), 10, 1 );
+		add_action( 'admin_menu',array( $this, 'add_admin_menu_item' ) );
+		add_filter( 'map_meta_cap', array( $this, 'remap_customize_meta_cap' ), 5, 4 );
+		add_filter( 'bulk_actions-edit-' . static::SLUG, array( $this, 'add_snapshot_bulk_actions' ) );
+		add_filter( 'handle_bulk_actions-edit-' . static::SLUG, array( $this, 'handle_snapshot_merge' ), 10, 3 );
+		add_action( 'admin_print_styles-edit.php', array( $this, 'hide_add_new_changeset_button' ) );
+	}
+
+	/**
+	 * Extend changeset post_type object.
+	 */
+	public function extend_changeset_post_type_object() {
+		$post_type_obj = get_post_type_object( static::SLUG );
+		add_post_type_support( static::SLUG, 'revisions' );
+		$post_type_obj->show_ui = true;
+		$post_type_obj->show_in_menu = true;
+		$post_type_obj->_edit_link = 'post.php?post=%d';
+		$arg = array(
+			'capability_type' => Post_Type::SLUG,
+			'map_meta_cap' => true,
+			'capabilities' => array(
+				'publish_posts' => 'customize_publish',
+			),
+		);
+		$arg = (object) $arg;
+		$post_type_obj->cap = get_post_type_capabilities( $arg );
+		$post_type_obj->show_in_customizer = false;
+		$post_type_obj->customize_snapshot_post_type_obj = $this;
+		$post_type_obj->show_in_rest = true;
+		$post_type_obj->rest_base = 'customize_changesets';
+		$post_type_obj->rest_controller_class = __NAMESPACE__ . '\\Snapshot_REST_API_Controller';
+	}
+
+	/**
+	 * Add admin menu item.
+	 */
+	public function add_admin_menu_item() {
+		$post_type_object = get_post_type_object( static::SLUG );
+		$capability = $post_type_object->cap->edit_posts;
+		$page_title = $post_type_object->labels->name;
+		$menu_title = $post_type_object->labels->name;
+		$menu_slug = 'edit.php?post_type=' . static::SLUG;
+		add_theme_page( $page_title, $menu_title, $capability, $menu_slug );
 	}
 
 	/**
@@ -136,9 +142,9 @@ class Post_Type {
 	 * @return string URL.
 	 */
 	public function filter_post_type_link( $url, $post ) {
-		if ( self::SLUG === $post->post_type ) {
+		if ( static::SLUG === $post->post_type ) {
 			$url = add_query_arg(
-				array( 'customize_snapshot_uuid' => $post->post_name ),
+				array( static::FRONT_UUID_PARAM_NAME => $post->post_name ),
 				home_url( '/' )
 			);
 		}
@@ -264,7 +270,7 @@ class Post_Type {
 		$post_type_obj = get_post_type_object( static::SLUG );
 		if ( 'publish' !== $post->post_status && current_user_can( $post_type_obj->cap->edit_post, $post->ID ) ) {
 			$args = array(
-				'customize_snapshot_uuid' => $post->post_name,
+				static::CUSTOMIZE_UUID_PARAM_NAME => $post->post_name,
 			);
 			$customize_url = add_query_arg( array_map( 'rawurlencode', $args ), wp_customize_url() );
 			$actions = array_merge(
@@ -279,7 +285,7 @@ class Post_Type {
 					'front-view' => sprintf(
 						'<a href="%s">%s</a>',
 						esc_url( get_permalink( $post->ID ) ),
-						esc_html__( 'Preview Snapshot', 'customize-snapshots' )
+						esc_html__( 'Preview', 'customize-snapshots' )
 					),
 				),
 				$actions
@@ -302,26 +308,6 @@ class Post_Type {
 	}
 
 	/**
-	 * Preserve the post_name when submitting a snapshot for review.
-	 *
-	 * @see wp_insert_post()
-	 * @link https://github.com/xwp/wordpress-develop/blob/831a186108983ade4d647124d4e56e09aa254704/src/wp-includes/post.php#L3134-L3137
-	 *
-	 * @param array $post_data          Post data.
-	 * @param array $original_post_data Original post data.
-	 * @return array Post data.
-	 */
-	public function preserve_post_name_in_insert_data( $post_data, $original_post_data ) {
-		if ( empty( $post_data['post_type'] ) || static::SLUG !== $post_data['post_type'] ) {
-			return $post_data;
-		}
-		if ( empty( $post_data['post_name'] ) && 'pending' === $post_data['post_status'] ) {
-			$post_data['post_name'] = $original_post_data['post_name'];
-		}
-		return $post_data;
-	}
-
-	/**
 	 * Render the metabox.
 	 *
 	 * @param \WP_Post $post Post object.
@@ -337,12 +323,13 @@ class Post_Type {
 		$snapshot_theme = get_post_meta( $post->ID, '_snapshot_theme', true );
 		if ( ! empty( $snapshot_theme ) && get_stylesheet() !== $snapshot_theme ) {
 			echo '<p>';
+			/* translators: 1 is the theme the snapshot was created for */
 			echo sprintf( esc_html__( 'This snapshot was made when a different theme was active (%1$s), so currently it cannot be edited.', 'customize-snapshots' ), esc_html( $snapshot_theme ) );
 			echo '</p>';
 		} elseif ( 'publish' !== $post->post_status ) {
 			echo '<p>';
 			$args = array(
-				'customize_snapshot_uuid' => $post->post_name,
+				static::CUSTOMIZE_UUID_PARAM_NAME => $post->post_name,
 			);
 			$customize_url = add_query_arg( array_map( 'rawurlencode', $args ), wp_customize_url() );
 			echo sprintf(
@@ -425,7 +412,7 @@ class Post_Type {
 			echo $preview; // WPCS: xss ok.
 			echo '</details>';
 			echo '</li>';
-		}
+		} // End foreach().
 		echo '</ul>';
 	}
 
@@ -436,25 +423,8 @@ class Post_Type {
 	 * @return int|null Post ID or null if not found.
 	 */
 	public function find_post( $uuid ) {
-		add_action( 'pre_get_posts', array( $this, '_override_wp_query_is_single' ) );
-		$query = new \WP_Query( array(
-			'name' => $uuid,
-			'posts_per_page' => 1,
-			'post_type' => static::SLUG,
-			'post_status' => get_post_stati(),
-			'no_found_rows' => true,
-			'ignore_sticky_posts' => true,
-			'cache_results' => false,
-		) );
-		$posts = $query->posts;
-		remove_action( 'pre_get_posts', array( $this, '_override_wp_query_is_single' ) );
-
-		$post = array_shift( $posts );
-		if ( $post ) {
-			return $post->ID;
-		} else {
-			return null;
-		}
+		$this->snapshot_manager->ensure_customize_manager();
+		return $this->snapshot_manager->customize_manager->find_changeset_post_id( $uuid );
 	}
 
 	/**
@@ -504,6 +474,9 @@ class Post_Type {
 	 * Persist the data in the snapshot post content.
 	 *
 	 * @param array $args Args.
+	 *
+	 * @internal For saving changesets use \WP_Customize_Manager::save_changeset_post().
+	 *
 	 * @return int|\WP_Error Post ID for snapshot or WP_Error instance.
 	 */
 	public function save( array $args ) {
@@ -522,11 +495,6 @@ class Post_Type {
 			),
 		);
 		if ( ! empty( $args['status'] ) ) {
-			if ( isset( $args['post_date'], $args['edit_date'], $args['post_date_gmt'] ) ) {
-				$post_arr['post_date'] = $args['post_date'];
-				$post_arr['edit_date'] = $args['edit_date'];
-				$post_arr['post_date_gmt'] = $args['post_date_gmt'];
-			}
 			if ( ! get_post_status_object( $args['status'] ) ) {
 				return new \WP_Error( 'bad_status' );
 			}
@@ -565,10 +533,12 @@ class Post_Type {
 		}
 		if ( ! empty( $args['date_gmt'] ) ) {
 			$post_arr['post_date_gmt'] = $args['date_gmt'];
+			$post_arr['post_date'] = get_date_from_gmt( $args['date_gmt'] );
 		}
 
 		$this->suspend_kses();
 		if ( $is_update ) {
+			$post_arr['edit_date'] = true;
 			$r = wp_update_post( wp_slash( $post_arr ), true );
 		} else {
 			$r = wp_insert_post( wp_slash( $post_arr ), true );
@@ -576,6 +546,26 @@ class Post_Type {
 		$this->restore_kses();
 
 		return $r;
+	}
+
+	/**
+	 * Re-map customize meta cap to edit_theme_options primitive cap.
+	 *
+	 * @param array  $caps All caps.
+	 * @param string $cap  Requested cap.
+	 *
+	 * @return array All caps.
+	 */
+	public function remap_customize_meta_cap( $caps, $cap ) {
+		$post_type_obj = get_post_type_object( static::SLUG );
+		if ( isset( $post_type_obj->cap->$cap ) && 'customize' === $post_type_obj->cap->$cap ) {
+			foreach ( $caps as &$required_cap ) {
+				if ( 'customize' === $required_cap ) {
+					$required_cap = 'edit_theme_options';
+				}
+			}
+		}
+		return $caps;
 	}
 
 	/**
@@ -614,50 +604,10 @@ class Post_Type {
 	}
 
 	/**
-	 * Display snapshot save error on post list table.
-	 *
-	 * @param array    $states Display states.
-	 * @param \WP_Post $post   Post object.
-	 *
-	 * @return mixed
-	 */
-	public function display_post_states( $states, $post ) {
-		if ( static::SLUG !== $post->post_type ) {
-			return $states;
-		}
-		$maybe_error = get_post_meta( $post->ID, 'snapshot_error_on_publish', true );
-		if ( $maybe_error ) {
-			$states['snapshot_error'] = __( 'Error on publish', 'customize-snapshots' );
-		}
-		return $states;
-	}
-
-	/**
-	 * Show an admin notice when publishing fails and the post gets kicked back to pending.
-	 */
-	public function show_publish_error_admin_notice() {
-		if ( ! function_exists( 'get_current_screen' ) ) {
-			return;
-		}
-		$current_screen = get_current_screen();
-		if ( ! $current_screen || 'customize_snapshot' !== $current_screen->id || 'post' !== $current_screen->base ) {
-			return;
-		}
-		if ( ! isset( $_REQUEST['snapshot_error_on_publish'] ) ) {
-			return;
-		}
-		?>
-		<div class="notice notice-error is-dismissible">
-			<p><?php esc_html_e( 'Failed to publish snapshot due to an error with saving one of its settings. This may be due to a theme or plugin having been changed since the snapshot was created. See below.', 'customize-snapshots' ) ?></p>
-		</div>
-		<?php
-	}
-
-	/**
 	 * Disable the revision revert UI for published posts.
 	 */
 	public function disable_revision_ui_for_published_posts() {
-		if ( 'publish' !== get_post_status() || self::SLUG !== get_post_type() ) {
+		if ( 'publish' !== get_post_status() || static::SLUG !== get_post_type() ) {
 			return;
 		}
 		?>
@@ -675,7 +625,7 @@ class Post_Type {
 	 * @param \WP_Post $post Current post.
 	 */
 	public function hide_disabled_publishing_actions( $post ) {
-		if ( 'publish' !== $post->post_status || self::SLUG !== $post->post_type ) {
+		if ( 'publish' !== $post->post_status || static::SLUG !== $post->post_type ) {
 			return;
 		}
 		?>
@@ -688,6 +638,22 @@ class Post_Type {
 			}
 		</style>
 		<?php
+	}
+
+	/**
+	 * Hide add new button for customize_changeset post_type.
+	 */
+	public function hide_add_new_changeset_button() {
+		global $typenow;
+		if ( static::SLUG === $typenow ) {
+			?>
+			<style>
+				a.page-title-action {
+					display: none;
+				}
+			</style>
+			<?php
+		}
 	}
 
 	/**
@@ -711,15 +677,33 @@ class Post_Type {
 	 *
 	 * @return string url.
 	 */
-	public function handle_snapshot_bulk_actions( $redirect_to, $do_action, $post_ids ) {
+	public function handle_snapshot_merge( $redirect_to, $do_action, $post_ids ) {
 		if ( 'merge_snapshot' !== $do_action ) {
 			return $redirect_to;
 		}
 		$posts = array_map( 'get_post', $post_ids );
+		$posts = array_filter( $posts );
 		if ( count( $posts ) <= 1 ) {
 			return empty( $redirect_to ) ? add_query_arg( array( 'merge-error' => 1 ) ) : add_query_arg( array( 'merge-error' => 1 ), $redirect_to );
 		}
+		$post_id = $this->merge_snapshots( $posts );
+		$redirect_to = get_edit_post_link( $post_id, 'raw' );
+		if ( $redirect_to ) {
+			wp_safe_redirect( $redirect_to );
+			exit;
+		}
+		return $post_id;
+	}
 
+	/**
+	 * Merge two or more snapshots
+	 *
+	 * @param array $post_ids post id array.
+	 *
+	 * @return int Changeset post id.
+	 */
+	public function merge_snapshots( $post_ids ) {
+		$posts = array_map( 'get_post', $post_ids );
 		usort( $posts, function( $a, $b ) {
 			$compare_a = $a->post_modified;
 			$compare_b = $b->post_modified;
@@ -740,10 +724,24 @@ class Post_Type {
 			);
 		}
 		$snapshots_data = wp_list_pluck( $snapshot_post_data, 'data' );
-		$conflict_keys = call_user_func_array( 'array_intersect_key', $snapshots_data );
+		$data_size = count( $snapshots_data );
+		$conflict_keys  = array();
+
+		/*
+		 * This iterates all $snapshots_data and extract conflict keys
+		 */
+		for ( $i = 0; $i < $data_size; $i ++ ) {
+			$copy_snapshots_data = $snapshots_data;
+			$current_keys = array_keys( $snapshots_data[ $i ] );
+			unset( $copy_snapshots_data[ $i ] );
+			$temp_other_keys = array_keys( call_user_func_array( 'array_merge', $copy_snapshots_data ) );
+			$common_keys = array_intersect( $temp_other_keys, $current_keys );
+			$conflict_keys = array_merge( $conflict_keys, $common_keys );
+		}
+		$conflict_keys = array_flip( $conflict_keys );
 		$merged_snapshot_data = call_user_func_array( 'array_merge', $snapshots_data );
 
-		foreach ( $conflict_keys as $key => $conflict_val ) {
+		foreach ( $conflict_keys as $key => $i ) {
 			$original_values = array();
 			foreach ( $snapshot_post_data as $post_data ) {
 				if ( isset( $post_data['data'][ $key ] ) ) {
@@ -759,55 +757,9 @@ class Post_Type {
 			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
 			'status' => 'draft',
 			'data' => $merged_snapshot_data,
-			'post_date' => current_time( 'mysql', false ),
-			'post_date_gmt' => current_time( 'mysql', true ),
+			'date_gmt' => gmdate( 'Y-m-d H:i:s' ),
 		) );
-		$redirect_to = get_edit_post_link( $post_id, 'raw' );
-		return $redirect_to;
-	}
-
-	/**
-	 * Insert script for adding merge snapshot bulk action polyfill.
-	 */
-	public function snapshot_merge_print_script() {
-		global $post_type;
-		if ( self::SLUG === $post_type ) {
-			?>
-			<script type="text/javascript">
-				jQuery( function( $ ) {
-					var optionText = <?php echo wp_json_encode( __( 'Merge Snapshot', 'customize-snapshots' ) ); ?>;
-					$( 'select[name="action"], select[name="action2"]' ).each( function() {
-						var option = $( '<option>', {
-							text: optionText,
-							value: 'merge_snapshot'
-						} );
-						$( this ).append( option );
-					} );
-				} );
-			</script>
-			<?php
-		}
-	}
-
-	/**
-	 * Handles bulk action for 4.6.x and older version.
-	 */
-	public function handle_snapshot_bulk_actions_workaround() {
-		$wp_list_table = _get_list_table( 'WP_Posts_List_Table' );
-		$action = $wp_list_table->current_action();
-		if ( 'merge_snapshot' !== $action || ( isset( $_REQUEST['post_type'] ) && self::SLUG !== wp_unslash( $_REQUEST['post_type'] ) ) ) {
-			return;
-		}
-		check_admin_referer( 'bulk-posts' );
-		$post_ids = array_map( 'intval', $_REQUEST['post'] );
-		if ( empty( $post_ids ) ) {
-			return;
-		}
-		$redirect_url = $this->handle_snapshot_bulk_actions( wp_get_referer(), 'merge_snapshot', $post_ids );
-		if ( ! empty( $redirect_url ) ) {
-			wp_safe_redirect( $redirect_url );
-			exit;
-		}
+		return $post_id;
 	}
 
 	/**
