@@ -17,6 +17,12 @@
 		<!-- See https://github.com/squizlabs/PHP_CodeSniffer/issues/1277 -->
 		<severity>0</severity>
 	</rule>
+	<rule ref="WordPress.Arrays.ArrayDeclarationSpacing.AssociativeKeyFound">
+		<severity>0</severity>
+	</rule>
+	<rule ref="WordPress.Files.FileName.InvalidClassFileName">
+		<exclude-pattern>*/tests/*</exclude-pattern>
+	</rule>
 
 	<exclude-pattern>*/node_modules/*</exclude-pattern>
 	<exclude-pattern>*/vendor/*</exclude-pattern>
