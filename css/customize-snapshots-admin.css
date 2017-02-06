@@ -1,0 +1,12 @@
+details.snapshot-setting-removed summary {
+	text-decoration: line-through;
+}
+details:not(.snapshot-setting-removed) .snapshot-toggle-setting-removal {
+	color: #a00
+}
+details:not(.snapshot-setting-removed) .snapshot-toggle-setting-removal:hover {
+	color: #f00
+}
+details .snapshot-toggle-setting-removal {
+	float: right;
+}

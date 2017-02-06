@@ -4,11 +4,11 @@
 ![Banner](wp-assets/banner-1544x500.png)
 Allow Customizer states to be drafted, and previewed with a private URL.
 
-**Contributors:** [westonruter](https://profiles.wordpress.org/westonruter), [valendesigns](https://profiles.wordpress.org/valendesigns), [xwp](https://profiles.wordpress.org/xwp), [newscorpau](https://profiles.wordpress.org/newscorpau)  
-**Tags:** [customizer](https://wordpress.org/plugins/tags/customizer), [customize](https://wordpress.org/plugins/tags/customize), [snapshots](https://wordpress.org/plugins/tags/snapshots)  
+**Contributors:** [xwp](https://profiles.wordpress.org/xwp), [westonruter](https://profiles.wordpress.org/westonruter), [valendesigns](https://profiles.wordpress.org/valendesigns), [utkarshpatel](https://profiles.wordpress.org/utkarshpatel), [sayedwp](https://profiles.wordpress.org/sayedwp), [newscorpau](https://profiles.wordpress.org/newscorpau)  
+**Tags:** [customizer](https://wordpress.org/plugins/tags/customizer), [customize](https://wordpress.org/plugins/tags/customize), [changesets](https://wordpress.org/plugins/tags/changesets)  
 **Requires at least:** 4.5.3  
-**Tested up to:** 4.6  
-**Stable tag:** 0.5.2  
+**Tested up to:** 4.7  
+**Stable tag:** 0.6.0-rc1  
 **License:** [GPLv2 or later](http://www.gnu.org/licenses/gpl-2.0.html)  
 
 [![Build Status](https://travis-ci.org/xwp/wp-customize-snapshots.svg?branch=master)](https://travis-ci.org/xwp/wp-customize-snapshots) [![Coverage Status](https://coveralls.io/repos/xwp/wp-customize-snapshots/badge.svg?branch=master)](https://coveralls.io/github/xwp/wp-customize-snapshots) [![Built with Grunt](https://cdn.gruntjs.com/builtwith.svg)](http://gruntjs.com) [![devDependency Status](https://david-dm.org/xwp/wp-customize-snapshots/dev-status.svg)](https://david-dm.org/xwp/wp-customize-snapshots#info=devDependencies) 
@@ -86,6 +86,13 @@ if ( ! $bypass_object_cache ) {
 ![Changes to snapshots are captured in revisions.](wp-assets/screenshot-7.png)
 
 ## Changelog ##
+
+### 0.6.0 RC1 - 2017-02-06 ###
+See [issues and PRs in milestone](https://github.com/xwp/wp-customize-snapshots/milestone/4?closed=1).
+
+See full commit log: [`0.5.2...0.6.0-rc1`](https://github.com/xwp/wp-customize-snapshots/compare/0.5.2...0.6.0-rc1)
+
+Props: Utkarsh Patel (<a href="https://github.com/PatelUtkarsh" class="user-mention">@PatelUtkarsh</a>), Sayed Taqui (<a href="https://github.com/sayedwp" class="user-mention">@sayedwp</a>), Weston Ruter (<a href="https://github.com/westonruter" class="user-mention">@westonruter</a>), Ryan Kienstra (<a href="https://github.com/kienstra" class="user-mention">@kienstra</a>), Luke Gedeon (<a href="https://github.com/lgedeon" class="user-mention">@lgedeon</a>).
 
 ### 0.5.2 - 2016-08-17 ###
 * Fixed: Prevent enqueueing frontend JS in the customizer preview. This was erroneously causing the customize_snapshot_uuid param to get injected into links in the preview. See [#80](https://github.com/xwp/wp-customize-snapshots/pull/80).

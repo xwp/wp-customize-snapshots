@@ -1,6 +1,6 @@
 <?php
 /**
- * Test Test_Ajax_Customize_Snapshot_Manager.
+ * Test Test_Ajax_Customize_Snapshot_Manager_Back_Compat.
  *
  * @package CustomizeSnapshots
  */
@@ -8,9 +8,9 @@
 namespace CustomizeSnapshots;
 
 /**
- * Class Test_Ajax_Customize_Snapshot_Manager
+ * Class Test_Ajax_Customize_Snapshot_Manager_Back_Compat
  */
-class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
+class Test_Ajax_Customize_Snapshot_Manager_Back_Compat extends \WP_Ajax_UnitTestCase {
 
 	/**
 	 * Plugin.
@@ -41,6 +41,34 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 	protected $manager;
 
 	/**
+	 * Test snapshot for test_handle_update_snapshot_request_actions_and_filters().
+	 *
+	 * @var Customize_Snapshot
+	 */
+	public $actioned_snapshot;
+
+	/**
+	 * Test snapshot manager for test_handle_update_snapshot_request_actions_and_filters().
+	 *
+	 * @var Customize_Snapshot_Manager
+	 */
+	public $actioned_snapshot_manager;
+
+	/**
+	 * Test customize manager for test_handle_update_snapshot_request_actions_and_filters().
+	 *
+	 * @var \WP_Customize_Manager
+	 */
+	public $filtered_customizer;
+
+	/**
+	 * Post type slug.
+	 *
+	 * @var string
+	 */
+	public $post_type_slug;
+
+	/**
 	 * Set up before class.
 	 */
 	public static function setUpBeforeClass() {
@@ -53,12 +81,21 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 	 */
 	public function setUp() {
 		parent::setUp();
+		$plugin = get_plugin_instance();
+		if ( ! $plugin->compat ) {
+			$this->markTestSkipped( 'WordPress Version 4.6.x or below is required for this test-case.' );
+		}
 
 		remove_all_actions( 'wp_ajax_customize_save' );
 		remove_all_actions( 'wp_ajax_customize_update_snapshot' );
 		$this->plugin = new Plugin();
 		$this->set_input_vars();
 		$this->plugin->init();
+		if ( $this->plugin->compat ) {
+			$this->post_type_slug = Post_Type_Back_Compat::SLUG;
+		} else {
+			$this->post_type_slug = Post_Type::SLUG;
+		}
 	}
 
 	/**
@@ -124,6 +161,9 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 	function tearDown() {
 		$this->plugin->customize_snapshot_manager->customize_manager = null;
 		$this->manager = null;
+		$this->actioned_snapshot = null;
+		$this->actioned_snapshot_manager = null;
+		$this->filtered_customizer = null;
 		unset( $GLOBALS['wp_customize'] );
 		unset( $GLOBALS['wp_scripts'] );
 		unset( $_SERVER['REQUEST_METHOD'] );
@@ -258,6 +298,8 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 	 *
 	 * @param string $role              The role we're checking caps against.
 	 * @param array  $expected_results  Expected results.
+	 *
+	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager_Back_Compat::check_customize_publish_authorization()
 	 */
 	function test_ajax_update_snapshot_cap_check( $role, $expected_results ) {
 		$this->set_current_user( $role );
@@ -277,8 +319,10 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 		if ( $response['success'] ) {
 			$this->assertNotEmpty( $response['data']['edit_link'] );
 			$this->assertNotEmpty( $response['data']['snapshot_publish_date'] );
+			$this->assertNotEmpty( $response['data']['title'] );
 			unset( $response['data']['edit_link'] );
 			unset( $response['data']['snapshot_publish_date'] );
+			unset( $response['data']['title'] );
 		}
 		$this->assertSame( $expected_results, $response );
 	}
@@ -427,18 +471,20 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 		unset( $GLOBALS['wp_customize'] );
 		remove_all_actions( 'wp_ajax_' . Customize_Snapshot_Manager::AJAX_ACTION );
 
-		$post_type_obj = get_post_type_object( Post_Type::SLUG );
+		$post_type_obj = get_post_type_object( $this->post_type_slug );
 		$setting_key = 'anyonecanedit';
 		$tomorrow = date( 'Y-m-d H:i:s', time() + 86400 );
 		$this->set_current_user( 'administrator' );
 		$this->assertTrue( current_user_can( $post_type_obj->cap->publish_posts ) );
+		$title = 'Hello World! \o/';
 		$this->set_input_vars( array(
 			'action' => Customize_Snapshot_Manager::AJAX_ACTION,
+			'title' => $title,
 			'nonce' => wp_create_nonce( Customize_Snapshot_Manager::AJAX_ACTION ),
 			'customize_snapshot_uuid' => self::UUID,
 			'customized' => wp_json_encode( array( $setting_key => 'Hello' ) ),
 			'status' => 'future',
-			'publish_date' => $tomorrow, // Tomorrow.
+			'date' => $tomorrow, // Tomorrow.
 		) );
 
 		$this->plugin = new Plugin();
@@ -454,6 +500,7 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 				'setting_validities' => array( $setting_key => true ),
 				'edit_link' => get_edit_post_link( $post_id, 'raw' ),
 				'snapshot_publish_date' => $tomorrow,
+				'title' => $title,
 			),
 		);
 		require_once ABSPATH . WPINC . '/class-wp-customize-manager.php';
@@ -464,6 +511,7 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 		$response = json_decode( $this->_last_response, true );
 		$this->assertSame( $expected_results, $response );
 		$this->assertEquals( 'future', get_post_status( $post_id ) );
+		$this->assertEquals( $title, get_the_title( $post_id ) );
 	}
 
 	/**
@@ -475,7 +523,7 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 		unset( $GLOBALS['wp_customize'] );
 		remove_all_actions( 'wp_ajax_' . Customize_Snapshot_Manager::AJAX_ACTION );
 
-		$post_type_obj = get_post_type_object( Post_Type::SLUG );
+		$post_type_obj = get_post_type_object( $this->post_type_slug );
 		$setting_key = 'anyonecanedit';
 		add_filter( 'user_has_cap', function( $allcaps, $caps, $args ) {
 			$allcaps['customize'] = true;
@@ -525,5 +573,54 @@ class Test_Ajax_Customize_Snapshot_Manager extends \WP_Ajax_UnitTestCase {
 			'data' => 'customize_not_allowed',
 		);
 		$this->assertSame( $expected_results, $response );
+	}
+
+	/**
+	 * Test actions and filters to make sure they are passing correct params.
+	 *
+	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::handle_update_snapshot_request()
+	 */
+	function test_handle_update_snapshot_request_actions_and_filters() {
+		unset( $GLOBALS['wp_customize'] );
+		remove_all_actions( 'wp_ajax_' . Customize_Snapshot_Manager::AJAX_ACTION );
+
+		add_filter( 'user_has_cap', function( $allcaps, $caps, $args ) {
+			$allcaps['customize'] = true;
+			if ( ! empty( $allcaps['edit_posts'] ) && ! empty( $args ) && 'customize' === $args[0] ) {
+				$allcaps = array_merge( $allcaps, array_fill_keys( $caps, true ) );
+			}
+			return $allcaps;
+		}, 10, 3 );
+		$this->set_current_user( 'contributor' );
+		$post_vars = array(
+			'action' => Customize_Snapshot_Manager::AJAX_ACTION,
+			'nonce' => wp_create_nonce( Customize_Snapshot_Manager::AJAX_ACTION ),
+			'customize_snapshot_uuid' => self::UUID,
+		);
+
+		$this->plugin = new Plugin();
+		$this->plugin->init();
+		$this->add_setting();
+
+		$that = $this; // For PHP 5.3.
+		add_action( 'customize_snapshot_save_before', function( $test_snapshot, $test_snapshot_manager ) use ( $that ) {
+			$that->actioned_snapshot = $test_snapshot;
+			$that->actioned_snapshot_manager = $test_snapshot_manager;
+		}, 10, 2 );
+		add_filter( 'customize_save_response', function( $data, $test_customizer ) use ( $that ) {
+			$that->filtered_customizer = $test_customizer;
+			return $data;
+		}, 10, 2 );
+
+		$this->set_input_vars( $post_vars );
+		$this->make_ajax_call( Customize_Snapshot_Manager_Back_Compat::AJAX_ACTION );
+
+		$manager = new Customize_Snapshot_Manager_Back_Compat( $this->plugin );
+		$manager->ensure_customize_manager();
+		$manager->init();
+
+		$this->assertEquals( $manager->snapshot(), $this->actioned_snapshot );
+		$this->assertEquals( $manager, $this->actioned_snapshot_manager );
+		$this->assertEquals( $manager->customize_manager, $this->filtered_customizer );
 	}
 }
