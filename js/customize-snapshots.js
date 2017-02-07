@@ -1083,7 +1083,7 @@
 		},
 
 		/**
-		 * Remove 'customize_changeset_status' if its already set.
+		 * Remove 'customize_changeset_status' if its already set; replace with customize_snapshots_create_revision param.
 		 *
 		 * @return {void}
 		 */
@@ -1113,6 +1113,7 @@
 				isSameStatus = api.state( 'changesetStatus' ).get() === originalOptions.data.customize_changeset_status;
 				if ( 'customize_save' === originalOptions.data.action && isSameStatus && options.data ) {
 					options.data = removeParam( options.data, 'customize_changeset_status' );
+					options.data += '&customize_snapshots_create_revision=1';
 				}
 			} );
 		}
