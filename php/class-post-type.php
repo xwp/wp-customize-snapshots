@@ -90,7 +90,7 @@ class Post_Type {
 
 		add_filter( 'post_link', array( $this, 'filter_post_type_link' ), 10, 2 );
 		add_action( 'add_meta_boxes_' . static::SLUG, array( $this, 'setup_metaboxes' ), 10, 1 );
-		add_action( 'admin_menu',array( $this, 'add_admin_menu_item' ) );
+		add_action( 'admin_menu',array( $this, 'add_admin_menu_item' ), 99 );
 		add_filter( 'map_meta_cap', array( $this, 'remap_customize_meta_cap' ), 5, 4 );
 		add_filter( 'bulk_actions-edit-' . static::SLUG, array( $this, 'add_snapshot_bulk_actions' ) );
 		add_filter( 'handle_bulk_actions-edit-' . static::SLUG, array( $this, 'handle_snapshot_merge' ), 10, 3 );
@@ -131,7 +131,19 @@ class Post_Type {
 		$page_title = $post_type_object->labels->name;
 		$menu_title = $post_type_object->labels->name;
 		$menu_slug = 'edit.php?post_type=' . static::SLUG;
-		add_theme_page( $page_title, $menu_title, $capability, $menu_slug );
+		if ( current_user_can( 'edit_theme_options' ) ) {
+			add_theme_page( $page_title, $menu_title, $capability, $menu_slug );
+		} elseif ( current_user_can( 'customize' ) ) {
+			$customize_url = add_query_arg( 'return', urlencode( wp_unslash( $_SERVER['REQUEST_URI'] ) ), 'customize.php' );
+
+			// Remove exiting menu from appearance as it will require 'edit_theme_options' cap.
+			remove_menu_page( esc_url( $customize_url ) );
+
+			// Add customize menu on top and add Changeset menu as submenu.
+			$customize_page_title = __( 'Customize', 'customize-snapshots' );
+			add_menu_page( $customize_page_title, $customize_page_title, 'customize', esc_url( $customize_url ), '', 'dashicons-admin-customizer', 65 );
+			add_submenu_page( $customize_url, $page_title, $menu_title, $capability, esc_url( $menu_slug ) );
+		}
 	}
 
 	/**
