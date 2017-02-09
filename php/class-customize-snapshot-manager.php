@@ -97,6 +97,7 @@ class Customize_Snapshot_Manager {
 		add_action( 'init', array( $this->post_type, 'init' ) );
 		add_action( 'customize_controls_enqueue_scripts', array( $this, 'enqueue_controls_scripts' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
+		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_frontend_scripts' ) );
 
 		add_action( 'customize_controls_init', array( $this, 'add_snapshot_uuid_to_return_url' ) );
 		add_action( 'customize_controls_print_footer_scripts', array( $this, 'render_templates' ) );
@@ -331,6 +332,28 @@ class Customize_Snapshot_Manager {
 				'after'
 			);
 		}
+	}
+
+	/**
+	 * Enqueue frontend scripts.
+	 *
+	 * These files control the behavior frontend.
+	 */
+	public function enqueue_frontend_scripts() {
+		if ( ! $this->snapshot ) {
+			return;
+		}
+		$handle = 'customize-snapshots-front';
+		wp_enqueue_script( $handle );
+        $exports = array(
+            'confirmationMsg' => __( 'Are you sure that you want to publish the Snapshot?', 'customize-snapshots' ),
+            'snapshotsFrontendPublishNonce' => wp_create_nonce( 'snapshots-frontend-publish' ),
+        );
+        wp_add_inline_script(
+            $handle,
+            sprintf( 'CustomizeSnapshotsFront.init( %s )', wp_json_encode( $exports ) ),
+            'after'
+        );
 	}
 
 	/**

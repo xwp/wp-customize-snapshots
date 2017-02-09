@@ -129,6 +129,11 @@ class Plugin extends Plugin_Base {
 		$src = $this->dir_url . 'js/customize-snapshots-admin' . $min . '.js';
 		$deps = array( 'jquery', 'underscore' );
 		$wp_scripts->add( $handle, $src, $deps );
+
+		$handle = 'customize-snapshots-front';
+		$src = $this->dir_url . 'js/customize-snapshots-front' . $min . '.js';
+		$deps = array( 'jquery', 'underscore' );
+		$wp_scripts->add( $handle, $src, $deps );
 	}
 
 	/**
