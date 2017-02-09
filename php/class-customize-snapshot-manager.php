@@ -98,6 +98,7 @@ class Customize_Snapshot_Manager {
 		add_action( 'customize_controls_enqueue_scripts', array( $this, 'enqueue_controls_scripts' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_frontend_scripts' ) );
+		add_action( 'wp_ajax_customize-snapshots-frontend-publish', array( $this, 'snapshot_frontend_publish' ) );
 
 		add_action( 'customize_controls_init', array( $this, 'add_snapshot_uuid_to_return_url' ) );
 		add_action( 'customize_controls_print_footer_scripts', array( $this, 'render_templates' ) );
@@ -347,7 +348,9 @@ class Customize_Snapshot_Manager {
 		wp_enqueue_script( $handle );
         $exports = array(
             'confirmationMsg' => __( 'Are you sure that you want to publish the Snapshot?', 'customize-snapshots' ),
-            'snapshotsFrontendPublishNonce' => wp_create_nonce( 'snapshots-frontend-publish' ),
+            'snapshotsFrontendPublishNonce' => wp_create_nonce( 'customize-snapshots-frontend-publish' ),
+            'action' => 'customize-snapshots-frontend-publish',
+	        'ajaxurl' => admin_url( 'admin-ajax.php' ),
         );
         wp_add_inline_script(
             $handle,
@@ -970,4 +973,11 @@ class Customize_Snapshot_Manager {
 	public function get_customize_uuid_param() {
 		return constant( get_class( $this->post_type ) . '::CUSTOMIZE_UUID_PARAM_NAME' );
 	}
+
+	public function snapshot_frontend_publish() {
+	    // if ( ! check_ajax_referer( ) )
+        // @todo create the publishing logic.
+
+        wp_send_json_success();
+    }
 }

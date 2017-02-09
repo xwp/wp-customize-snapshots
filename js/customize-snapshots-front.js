@@ -1,11 +1,13 @@
-/* global jQuery */
+/* global jQuery, ajaxurl */
 /* exported CustomizeSnapshotsFront */
 var CustomizeSnapshotsFront = (function( $ ) {
     'use strict';
 
     var component = {
         data: {
-            confirmationMsg: ''
+            confirmationMsg: '',
+            ajaxurl: '',
+            action: ''
         }
     };
     /**
@@ -35,6 +37,17 @@ var CustomizeSnapshotsFront = (function( $ ) {
             if ( ! confirm( component.data.confirmationMsg ) ) {
                 return false;
             }
+            $.ajax({
+                url: component.data.ajaxurl,
+                type: 'POST',
+                dataType: 'json',
+                data: {
+                    action: component.data.action,
+                    snapshotsFrontendPublishNonce: component.data.action
+                }
+            } ).done( function( resp ) {
+                window.location = e.target.href;
+            } );
 
             return true;
         } );
