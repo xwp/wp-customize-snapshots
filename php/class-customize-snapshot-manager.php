@@ -452,6 +452,7 @@ class Customize_Snapshot_Manager {
 		$this->replace_customize_link( $wp_admin_bar );
 		$this->add_resume_snapshot_link( $wp_admin_bar );
 		$this->add_post_edit_screen_link( $wp_admin_bar );
+		$this->add_publish_snapshot_link( $wp_admin_bar );
 		$this->add_snapshot_exit_link( $wp_admin_bar );
 	}
 
@@ -472,6 +473,10 @@ class Customize_Snapshot_Manager {
 				content: "\f179";
 				top: 2px;
 			}
+            #wpadminbar #wp-admin-bar-publish-customize-snapshot > .ab-item:before {
+                content: "\f147";
+                top: 2px;
+            }
 			#wpadminbar #wp-admin-bar-exit-customize-snapshot > .ab-item:before {
 				content: "\f158";
 				top: 2px;
@@ -558,6 +563,29 @@ class Customize_Snapshot_Manager {
 	}
 
 	/**
+	 * Adds a "Publish Snapshot" link to the Toolbar when in Snapshot mode.
+	 *
+	 * @param \WP_Admin_Bar $wp_admin_bar WP_Admin_Bar instance.
+	 */
+	public function add_publish_snapshot_link( $wp_admin_bar ) {
+		if ( ! $this->snapshot ) {
+			return;
+		}
+		$post = $this->snapshot->post();
+		if ( ! $post ) {
+			return;
+		}
+		$wp_admin_bar->add_menu( array(
+			'id' => 'publish-customize-snapshot',
+			'title' => __( 'Publish Snapshot', 'customize-snapshots' ),
+			'href' => remove_query_arg( $this->get_front_uuid_param() ),
+			'meta' => array(
+				'class' => 'ab-item ab-customize-snapshots-item',
+			),
+		) );
+	}
+
+	/**
 	 * Adds an "Exit Snapshot" link to the Toolbar when in Snapshot mode.
 	 *
 	 * @param \WP_Admin_Bar $wp_admin_bar WP_Admin_Bar instance.
@@ -585,7 +613,12 @@ class Customize_Snapshot_Manager {
 		if ( empty( $this->snapshot ) ) {
 			return;
 		}
-		$snapshot_admin_bar_node_ids = array( 'customize', 'exit-customize-snapshot', 'inspect-customize-snapshot' );
+		$snapshot_admin_bar_node_ids = array(
+            'customize',
+            'exit-customize-snapshot',
+            'inspect-customize-snapshot',
+            'publish-customize-snapshot',
+        );
 		foreach ( $wp_admin_bar->get_nodes() as $node ) {
 			if ( in_array( $node->id, $snapshot_admin_bar_node_ids, true ) || '#' === substr( $node->href, 0, 1 ) ) {
 				continue;
