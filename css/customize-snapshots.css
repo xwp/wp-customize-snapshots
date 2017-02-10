@@ -245,6 +245,14 @@
 	user-select: none;
 }
 
+.snapshot-status-button-wrapper .button:active{
+	-webkit-transform: none;
+	-moz-transform: none;
+	-ms-transform: none;
+	-o-transform: none;
+	transform: none; /* 4.7 added translateY(1px) */
+}
+
 .ui-selectmenu-menu {
 	padding: 0;
 	margin: 0;
@@ -339,3 +347,4 @@
 	outline-width: 2px;
 	outline-offset: -2px;
 }
+
