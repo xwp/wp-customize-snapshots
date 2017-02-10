@@ -147,8 +147,8 @@ class Test_Customize_Snapshot_Manager_Back_Compat extends \WP_UnitTestCase {
 	/**
 	 * Tests load_snapshot.
 	 *
-	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::init()
-	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::load_snapshot()
+	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::init()
+	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::load_snapshot()
 	 */
 	public function test_load_snapshot() {
 		global $wp_actions;
@@ -271,7 +271,7 @@ class Test_Customize_Snapshot_Manager_Back_Compat extends \WP_UnitTestCase {
 	/**
 	 * Test filter_customize_refresh_nonces.
 	 *
-	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager_Back_Compat::filter_customize_refresh_nonces()
+	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager_Back_Compat::filter_customize_refresh_nonces()
 	 */
 	function test_filter_customize_refresh_nonces() {
 		$manager = new Customize_Snapshot_Manager_Back_Compat( $this->plugin );
@@ -281,7 +281,7 @@ class Test_Customize_Snapshot_Manager_Back_Compat extends \WP_UnitTestCase {
 	/**
 	 * Tests show_theme_switch_error.
 	 *
-	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager_Back_Compat::show_theme_switch_error()
+	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager_Back_Compat::show_theme_switch_error()
 	 */
 	function test_show_theme_switch_error() {
 		$this->markTestIncomplete();
@@ -290,7 +290,7 @@ class Test_Customize_Snapshot_Manager_Back_Compat extends \WP_UnitTestCase {
 	/**
 	 * Test publish snapshot with customize_save_after.
 	 *
-	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager_Back_Compat::publish_snapshot_with_customize_save_after()
+	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager_Back_Compat::publish_snapshot_with_customize_save_after()
 	 */
 	function test_publish_snapshot_with_customize_save_after() {
 		wp_set_current_user( $this->user_id );
@@ -314,7 +314,7 @@ class Test_Customize_Snapshot_Manager_Back_Compat extends \WP_UnitTestCase {
 	/**
 	 * Test save_settings_with_publish_snapshot.
 	 *
-	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager_Back_Compat::save_settings_with_publish_snapshot()
+	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager_Back_Compat::save_settings_with_publish_snapshot()
 	 */
 	public function test_save_settings_with_publish_snapshot() {
 		$post_type = $this->manager->post_type;
@@ -378,7 +378,7 @@ class Test_Customize_Snapshot_Manager_Back_Compat extends \WP_UnitTestCase {
 	/**
 	 * Tests ensure_customize_manager.
 	 *
-	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::ensure_customize_manager()
+	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::ensure_customize_manager()
 	 */
 	public function test_ensure_customize_manager() {
 		global $wp_customize;
@@ -408,7 +408,7 @@ class Test_Customize_Snapshot_Manager_Back_Compat extends \WP_UnitTestCase {
 	/**
 	 * Tests import_snapshot_data.
 	 *
-	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::import_snapshot_data()
+	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::import_snapshot_data()
 	 */
 	public function test_import_snapshot_data() {
 		global $wp_actions;
@@ -444,7 +444,7 @@ class Test_Customize_Snapshot_Manager_Back_Compat extends \WP_UnitTestCase {
 	/**
 	 * Tests should_import_and_preview_snapshot.
 	 *
-	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::should_import_and_preview_snapshot()
+	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::should_import_and_preview_snapshot()
 	 */
 	public function test_should_import_and_preview_snapshot() {
 		global $pagenow, $wp_customize;
@@ -501,7 +501,7 @@ class Test_Customize_Snapshot_Manager_Back_Compat extends \WP_UnitTestCase {
 	/**
 	 * Tests get_theme_switch_error.
 	 *
-	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::get_theme_switch_error()
+	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::get_theme_switch_error()
 	 */
 	function test_get_theme_switch_error() {
 		$this->markTestIncomplete();
@@ -510,7 +510,7 @@ class Test_Customize_Snapshot_Manager_Back_Compat extends \WP_UnitTestCase {
 	/**
 	 * Tests is_previewing_settings.
 	 *
-	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::is_previewing_settings()
+	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::is_previewing_settings()
 	 */
 	public function test_is_previewing_settings() {
 		$_REQUEST['customize_snapshot_uuid'] = self::UUID;
@@ -527,7 +527,7 @@ class Test_Customize_Snapshot_Manager_Back_Compat extends \WP_UnitTestCase {
 	/**
 	 * Tests is_previewing_settings.
 	 *
-	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::is_previewing_settings()
+	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::is_previewing_settings()
 	 */
 	public function test_is_previewing_settings_via_preview_init() {
 		$manager = new Customize_Snapshot_Manager_Back_Compat( $this->plugin );
@@ -539,7 +539,7 @@ class Test_Customize_Snapshot_Manager_Back_Compat extends \WP_UnitTestCase {
 	/**
 	 * Tests preview_snapshot_settings.
 	 *
-	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::preview_snapshot_settings()
+	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::preview_snapshot_settings()
 	 */
 	public function test_preview_snapshot_settings() {
 		global $wp_actions;
@@ -570,7 +570,7 @@ class Test_Customize_Snapshot_Manager_Back_Compat extends \WP_UnitTestCase {
 	/**
 	 * Tests add_widget_setting_preview_filters.
 	 *
-	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::add_widget_setting_preview_filters()
+	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::add_widget_setting_preview_filters()
 	 */
 	public function test_add_widget_setting_preview_filters() {
 		$this->markTestIncomplete();
@@ -579,7 +579,7 @@ class Test_Customize_Snapshot_Manager_Back_Compat extends \WP_UnitTestCase {
 	/**
 	 * Tests add_nav_menu_setting_preview_filters.
 	 *
-	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::add_nav_menu_setting_preview_filters()
+	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::add_nav_menu_setting_preview_filters()
 	 */
 	public function test_add_nav_menu_setting_preview_filters() {
 		$this->markTestIncomplete();
@@ -588,7 +588,7 @@ class Test_Customize_Snapshot_Manager_Back_Compat extends \WP_UnitTestCase {
 	/**
 	 * Tests preview_early_nav_menus_in_customizer.
 	 *
-	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::preview_early_nav_menus_in_customizer()
+	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::preview_early_nav_menus_in_customizer()
 	 */
 	public function test_preview_early_nav_menus_in_customizer() {
 		global $pagenow;
@@ -626,8 +626,8 @@ class Test_Customize_Snapshot_Manager_Back_Compat extends \WP_UnitTestCase {
 	/**
 	 * Tests setup_preview_ajax_requests.
 	 *
-	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::init()
-	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::setup_preview_ajax_requests()
+	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::init()
+	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::setup_preview_ajax_requests()
 	 */
 	public function test_setup_preview_ajax_requests() {
 		wp_set_current_user( $this->user_id );
@@ -648,8 +648,8 @@ class Test_Customize_Snapshot_Manager_Back_Compat extends \WP_UnitTestCase {
 	/**
 	 * Tests setup_preview_ajax_requests for admin_ajax.
 	 *
-	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::init()
-	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::setup_preview_ajax_requests()
+	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::init()
+	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::setup_preview_ajax_requests()
 	 */
 	public function test_setup_preview_ajax_requests_for_admin_ajax() {
 		global $pagenow;
@@ -677,7 +677,7 @@ class Test_Customize_Snapshot_Manager_Back_Compat extends \WP_UnitTestCase {
 	/**
 	 * Tests override_request_method.
 	 *
-	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::override_request_method()
+	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::override_request_method()
 	 */
 	public function test_override_request_method() {
 		global $wp;

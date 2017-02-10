@@ -227,7 +227,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	/**
 	 * Test common hooks.
 	 *
-	 * @see Customize_Snapshot\Customize_Snapshot_Manager::hooks()
+	 * @see \CustomizeSnapshots\Customize_Snapshot_Manager::hooks()
 	 */
 	function test_hooks() {
 		$manager = $this->get_snapshot_manager_instance( $this->plugin );
@@ -247,7 +247,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	/**
 	 * Tests init hooks.
 	 *
-	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::init()
+	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::init()
 	 */
 	public function test_init_hooks() {
 		$this->mark_incompatible();
@@ -260,7 +260,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	/**
 	 * Tests load_snapshot.
 	 *
-	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::load_snapshot()
+	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::load_snapshot()
 	 */
 	public function test_load_snapshot() {
 		$this->mark_incompatible();
@@ -274,7 +274,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	/**
 	 * Tests add_snapshot_var_to_customize_save.
 	 *
-	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::add_snapshot_var_to_customize_save()
+	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::add_snapshot_var_to_customize_save()
 	 */
 	public function test_add_snapshot_var_to_customize_save() {
 		$this->mark_incompatible();
@@ -298,7 +298,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	/**
 	 * Tests enqueue_admin_scripts.
 	 *
-	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::enqueue_admin_scripts()
+	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::enqueue_admin_scripts()
 	 */
 	public function test_enqueue_admin_scripts() {
 		$this->markTestIncomplete();
@@ -307,8 +307,8 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	/**
 	 * Tests init hooks.
 	 *
-	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::init()
-	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::read_current_snapshot_uuid()
+	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::init()
+	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::read_current_snapshot_uuid()
 	 */
 	public function test_read_current_snapshot_uuid() {
 		$manager = $this->get_snapshot_manager_instance( $this->plugin );
@@ -334,7 +334,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	/**
 	 * Tests doing_customize_save_ajax.
 	 *
-	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::doing_customize_save_ajax()
+	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::doing_customize_save_ajax()
 	 */
 	public function test_doing_customize_save_ajax() {
 		$manager = $this->get_snapshot_manager_instance( $this->plugin );
@@ -350,7 +350,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	/**
 	 * Tests ensure_customize_manager.
 	 *
-	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::ensure_customize_manager()
+	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::ensure_customize_manager()
 	 */
 	public function test_ensure_customize_manager() {
 		global $wp_customize;
@@ -365,7 +365,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	/**
 	 * Tests is_theme_active.
 	 *
-	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::is_theme_active()
+	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::is_theme_active()
 	 */
 	public function test_is_theme_active() {
 		global $wp_customize;
@@ -438,7 +438,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	/**
 	 * Test prepare_snapshot_post_content_for_publish.
 	 *
-	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::prepare_snapshot_post_content_for_publish()
+	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::prepare_snapshot_post_content_for_publish()
 	 */
 	public function test_prepare_snapshot_post_content_for_publish() {
 		$data = array(
@@ -478,7 +478,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	/**
 	 * Test prepare_errors_for_response.
 	 *
-	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::prepare_errors_for_response()
+	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::prepare_errors_for_response()
 	 */
 	public function test_prepare_errors_for_response() {
 		$this->markTestIncomplete();
@@ -487,7 +487,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	/**
 	 * Tests generate_uuid.
 	 *
-	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::generate_uuid()
+	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::generate_uuid()
 	 */
 	public function test_generate_uuid() {
 		$this->markTestIncomplete();
@@ -496,7 +496,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	/**
 	 * Tests is_valid_uuid.
 	 *
-	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::is_valid_uuid()
+	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::is_valid_uuid()
 	 */
 	public function test_is_valid_uuid() {
 		$this->markTestIncomplete();
@@ -522,7 +522,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	/**
 	 * Tests print_admin_bar_styles.
 	 *
-	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::print_admin_bar_styles()
+	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::print_admin_bar_styles()
 	 */
 	public function test_print_admin_bar_styles() {
 		$manager = $this->get_snapshot_manager_instance( $this->plugin );
@@ -536,10 +536,10 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	/**
 	 * Test misc admin bar extensions.
 	 *
-	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::add_post_edit_screen_link()
-	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::add_snapshot_exit_link()
-	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::add_resume_snapshot_link()
-	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::remove_all_non_snapshot_admin_bar_links()
+	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::add_post_edit_screen_link()
+	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::add_snapshot_exit_link()
+	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::add_resume_snapshot_link()
+	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::remove_all_non_snapshot_admin_bar_links()
 	 */
 	public function test_add_post_edit_and_exit_links() {
 		global $wp_admin_bar;
@@ -590,7 +590,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	/**
 	 * Test render templates.
 	 *
-	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::render_templates()
+	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::render_templates()
 	 */
 	public function test_render_templates() {
 		ob_start();
@@ -608,7 +608,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	/**
 	 * Test format_gmt_offset
 	 *
-	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::format_gmt_offset()
+	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::format_gmt_offset()
 	 */
 	public function test_format_gmt_offset() {
 		$offset = $this->manager->format_gmt_offset( 7.0 );
@@ -618,7 +618,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	/**
 	 * Test month choices
 	 *
-	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::get_month_choices()
+	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::get_month_choices()
 	 */
 	public function test_get_month_choices() {
 		$data = $this->manager->get_month_choices();
@@ -629,7 +629,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	/**
 	 * Test override post date if empty.
 	 *
-	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::override_post_date_default_data()
+	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::override_post_date_default_data()
 	 */
 	public function test_override_post_date_default_data() {
 		$post_id = $this->factory()->post->create();
@@ -645,7 +645,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	/**
 	 * Tests get_post_type.
 	 *
-	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::get_post_type()
+	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::get_post_type()
 	 */
 	public function test_get_post_type() {
 		$plugin = get_plugin_instance();
@@ -659,7 +659,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	/**
 	 * Tests get_front_uuid_param.
 	 *
-	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::get_front_uuid_param()
+	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::get_front_uuid_param()
 	 */
 	public function test_get_front_uuid_param() {
 		$plugin = get_plugin_instance();
@@ -673,7 +673,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	/**
 	 * Tests get_customize_uuid_param.
 	 *
-	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::get_customize_uuid_param()
+	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::get_customize_uuid_param()
 	 */
 	public function test_get_customize_uuid_param() {
 		$plugin = get_plugin_instance();
@@ -687,7 +687,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	/**
 	 * Test replace_customize_link.
 	 *
-	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager::replace_customize_link()
+	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::replace_customize_link()
 	 */
 	public function test_replace_customize_link() {
 		global $wp_admin_bar;

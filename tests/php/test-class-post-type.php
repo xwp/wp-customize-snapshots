@@ -147,7 +147,7 @@ class Test_Post_type extends \WP_UnitTestCase {
 	/**
 	 * Test extend_changeset_post_type_object
 	 *
-	 * @covers CustomizeSnapshots\Post_Type::extend_changeset_post_type_object()
+	 * @covers \CustomizeSnapshots\Post_Type::extend_changeset_post_type_object()
 	 */
 	public function test_extend_changeset_post_type_object() {
 		global $_wp_post_type_features;
@@ -176,7 +176,7 @@ class Test_Post_type extends \WP_UnitTestCase {
 	/**
 	 * Test add_admin_menu_item.
 	 *
-	 * @covers CustomizeSnapshots\Post_Type::add_admin_menu_item()
+	 * @covers \CustomizeSnapshots\Post_Type::add_admin_menu_item()
 	 */
 	public function test_add_admin_menu_item() {
 		$this->mark_incompatible();
@@ -194,7 +194,7 @@ class Test_Post_type extends \WP_UnitTestCase {
 	/**
 	 * Test filter_post_type_link.
 	 *
-	 * @covers CustomizeSnapshots\Post_Type::filter_post_type_link()
+	 * @covers \CustomizeSnapshots\Post_Type::filter_post_type_link()
 	 */
 	function test_filter_post_type_link() {
 		$post_type = $this->get_new_post_type_instance( $this->plugin->customize_snapshot_manager );
@@ -528,7 +528,7 @@ class Test_Post_type extends \WP_UnitTestCase {
 	/**
 	 * Test getting the snapshot array out of the post_content.
 	 *
-	 * @covers CustomizeSnapshots\Post_Type::get_post_content()
+	 * @covers \CustomizeSnapshots\Post_Type::get_post_content()
 	 * @expectedException \PHPUnit_Framework_Error_Warning
 	 */
 	public function test_get_post_content() {
@@ -695,7 +695,7 @@ class Test_Post_type extends \WP_UnitTestCase {
 	/**
 	 * Tests disable_revision_ui_for_published_posts.
 	 *
-	 * @covers CustomizeSnapshots\Post_Type::disable_revision_ui_for_published_posts()
+	 * @covers \CustomizeSnapshots\Post_Type::disable_revision_ui_for_published_posts()
 	 */
 	public function test_disable_revision_ui_for_published_posts() {
 		$post_type = $this->get_new_post_type_instance( $this->plugin->customize_snapshot_manager );
@@ -724,7 +724,7 @@ class Test_Post_type extends \WP_UnitTestCase {
 	/**
 	 * Tests hide_disabled_publishing_actions.
 	 *
-	 * @covers CustomizeSnapshots\Post_Type::hide_disabled_publishing_actions()
+	 * @covers \CustomizeSnapshots\Post_Type::hide_disabled_publishing_actions()
 	 */
 	public function test_hide_disabled_publishing_actions() {
 		$post_type = $this->get_new_post_type_instance( $this->plugin->customize_snapshot_manager );
@@ -983,13 +983,14 @@ class Test_Post_type extends \WP_UnitTestCase {
 	/**
 	 * Test filter_out_settings_if_removed_in_metabox.
 	 *
-	 * @covers CustomizeSnapshots\Post_Type::filter_out_settings_if_removed_in_metabox()
+	 * @covers \CustomizeSnapshots\Post_Type::filter_out_settings_if_removed_in_metabox()
 	 */
 	public function test_filter_out_settings_if_removed_in_metabox() {
 		global $post;
 		$post_type_obj = $this->get_new_post_type_instance( $this->plugin->customize_snapshot_manager );
 		$post_type_obj->init();
-		wp_set_current_user( $admin_user_id = $this->factory()->user->create( array( 'role' => 'administrator' ) ) );
+		$admin_user_id = $this->factory()->user->create( array( 'role' => 'administrator' ) );
+		wp_set_current_user( $admin_user_id );
 		$post_id = $post_type_obj->save( array(
 			'uuid' => self::UUID,
 			'data' => array(
@@ -1084,7 +1085,7 @@ class Test_Post_type extends \WP_UnitTestCase {
 	/**
 	 * Test remap_customize_meta_cap
 	 *
-	 * @covers CustomizeSnapshots\Post_Type::remap_customize_meta_cap()
+	 * @covers \CustomizeSnapshots\Post_Type::remap_customize_meta_cap()
 	 */
 	public function test_remap_customize_meta_cap() {
 		$this->mark_incompatible();
@@ -1094,7 +1095,7 @@ class Test_Post_type extends \WP_UnitTestCase {
 	/**
 	 * Test hide_add_new_changeset_button
 	 *
-	 * @covers CustomizeSnapshots\Post_Type::hide_add_new_changeset_button()
+	 * @covers \CustomizeSnapshots\Post_Type::hide_add_new_changeset_button()
 	 */
 	public function test_hide_add_new_changeset_button() {
 		$this->mark_incompatible();

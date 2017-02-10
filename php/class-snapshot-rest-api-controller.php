@@ -180,6 +180,7 @@ class Snapshot_REST_API_Controller extends \WP_REST_Posts_Controller {
 	 */
 	public function update_item( $request ) {
 		unset( $request );
+		/* translators: %s is the method name */
 		return new \WP_Error( 'invalid-method', sprintf( __( "Method '%s' not yet implemented.", 'customize-snapshots' ), __METHOD__ ), array( 'status' => 405 ) );
 	}
 
@@ -191,6 +192,7 @@ class Snapshot_REST_API_Controller extends \WP_REST_Posts_Controller {
 	 */
 	public function delete_item( $request ) {
 		unset( $request );
+		/* translators: %s is the method name */
 		return new \WP_Error( 'invalid-method', sprintf( __( "Method '%s' not yet implemented.", 'customize-snapshots' ), __METHOD__ ), array( 'status' => 405 ) );
 	}
 }

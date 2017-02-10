@@ -224,6 +224,7 @@ class Customize_Snapshot_Back_Compat extends Customize_Snapshot {
 		if ( ! empty( $unauthorized_setting_ids ) ) {
 			$error->add(
 				'unauthorized_settings',
+				/* translators: %s is the list of unauthorized setting ids */
 				sprintf( __( 'Unauthorized settings: %s', 'customize-snapshots' ), join( ',', $unauthorized_setting_ids ) ),
 				array( 'setting_ids' => $unauthorized_setting_ids )
 			);
@@ -231,6 +232,7 @@ class Customize_Snapshot_Back_Compat extends Customize_Snapshot {
 		if ( ! empty( $unrecognized_setting_ids ) ) {
 			$error->add(
 				'unrecognized_settings',
+				/* translators: %s is the list of unrecognized setting ids */
 				sprintf( __( 'Unrecognized settings: %s', 'customize-snapshots' ), join( ',', $unrecognized_setting_ids ) ),
 				array( 'setting_ids' => $unrecognized_setting_ids )
 			);
