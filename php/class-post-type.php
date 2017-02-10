@@ -140,7 +140,7 @@ class Post_Type {
 			remove_menu_page( esc_url( $customize_url ) );
 
 			// Add customize menu on top and add Changeset menu as submenu.
-			$customize_page_title = __( 'Customize', 'customize-snapshots' );
+			$customize_page_title = __( 'Customize', 'default' );
 			add_menu_page( $customize_page_title, $customize_page_title, 'customize', esc_url( $customize_url ), '', 'dashicons-admin-customizer', 65 );
 			add_submenu_page( $customize_url, $page_title, $menu_title, $capability, esc_url( $menu_slug ) );
 		}
@@ -287,7 +287,7 @@ class Post_Type {
 			$customize_url = add_query_arg( array_map( 'rawurlencode', $args ), wp_customize_url() );
 			$actions = array_merge(
 				array(
-					'customize' => sprintf( '<a href="%s">%s</a>', esc_url( $customize_url ), esc_html__( 'Customize', 'customize-snapshots' ) ),
+					'customize' => sprintf( '<a href="%s">%s</a>', esc_url( $customize_url ), esc_html__( 'Customize', 'default' ) ),
 				),
 				$actions
 			);
