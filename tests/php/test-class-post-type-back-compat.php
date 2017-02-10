@@ -62,7 +62,7 @@ class Test_Post_Type_Back_Compat extends \WP_UnitTestCase {
 	/**
 	 * Tests show_publish_error_admin_notice.
 	 *
-	 * @covers CustomizeSnapshots\Post_Type_Back_Compat::show_publish_error_admin_notice()
+	 * @covers \CustomizeSnapshots\Post_Type_Back_Compat::show_publish_error_admin_notice()
 	 */
 	public function test_show_publish_error_admin_notice() {
 		global $current_screen, $post;
@@ -101,7 +101,7 @@ class Test_Post_Type_Back_Compat extends \WP_UnitTestCase {
 	/**
 	 * Tests display_post_states.
 	 *
-	 * @covers CustomizeSnapshots\Post_Type_Back_Compat::display_post_states()
+	 * @covers \CustomizeSnapshots\Post_Type_Back_Compat::display_post_states()
 	 */
 	public function test_display_post_states() {
 		$post_type_obj = new Post_Type_Back_Compat( $this->plugin->customize_snapshot_manager );

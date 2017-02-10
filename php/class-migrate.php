@@ -86,7 +86,7 @@ class Migrate {
 	public function show_migration_notice() {
 		?>
 		<div class="notice notice-error customize-snapshot-migration">
-			<p><?php esc_html_e( 'Existing snapshots need to be migrated in changesets in WordPress 4.7.', 'customize-snapshots' );
+			<p><?php esc_html_e( 'Existing Snapshots need to be migrated to Changesets, which was added to core in WordPress 4.7.', 'customize-snapshots' );
 				printf( ' %s <a id="customize-snapshot-migration" data-nonce="' . esc_attr( wp_create_nonce( 'customize-snapshot-migration' ) ) . '" href="javascript:void(0)" data-migration-success="%s">%s</a> %s <span class="spinner customize-snapshot-spinner"></span>', esc_html__( 'Click', 'customize-snapshots' ), esc_html__( 'Customize snapshot migration complete!', 'customize-snapshots' ), esc_html__( 'here', 'customize-snapshots' ), esc_html__( 'to start migration.', 'customize-snapshots' ) ); ?>
 			</p>
 		</div>
@@ -149,10 +149,12 @@ class Migrate {
 	 * Migrate a post.
 	 *
 	 * @param int $id Post ID.
-	 *
 	 * @return int|\WP_Error maybe updated.
+	 * @global \WP_Customize_Manager $wp_customize
 	 */
 	public function migrate_post( $id ) {
+		global $wp_customize;
+
 		$post = get_post( $id );
 
 		// Get data.
@@ -161,8 +163,12 @@ class Migrate {
 			$data = array();
 		}
 
-		// Validate data.
+		// Get manager instance.
 		$manager = new \WP_Customize_Manager();
+		$original_manager = $wp_customize;
+		$wp_customize = $manager; // Export to global since some filters (like widget_customizer_setting_args) lack as $wp_customize context and need global.
+
+		// Validate data.
 		foreach ( $data as $setting_id => $setting_params ) {
 			// Amend post values with any supplied data.
 			if ( array_key_exists( 'value', $setting_params ) ) {
@@ -202,6 +208,9 @@ class Migrate {
 			'post_type' => 'customize_changeset',
 			'post_content' => Customize_Snapshot_Manager::encode_json( $post_data ),
 		) ), true );
+
+		$wp_customize = $original_manager; // Restore previous manager.
+
 		return $maybe_updated;
 	}
 }

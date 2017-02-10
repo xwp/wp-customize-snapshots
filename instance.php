@@ -37,7 +37,7 @@ function is_previewing_settings() {
 	if ( get_plugin_instance()->compat ) {
 		return $manager->is_previewing_settings();
 	} else {
-		return isset( $manager->customize_manager ) && $manager->customize_manager->is_preview();
+		return ( isset( $manager->customize_manager ) && $manager->customize_manager->is_preview() ) || did_action( 'customize_preview_init' );
 	}
 }
 
@@ -66,7 +66,8 @@ function is_back_compat() {
 	$wp_version = get_bloginfo( 'version' );
 
 	// Fix in case version contains extra string for example 4.7-src in that case php version_compare fails.
-	if ( $pos = strpos( $wp_version, '-' ) ) {
+	$pos = strpos( $wp_version, '-' );
+	if ( false !== $pos ) {
 		$wp_version = substr( $wp_version, 0, $pos );
 	}
 	return version_compare( $wp_version, '4.7', '<' );

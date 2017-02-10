@@ -299,7 +299,7 @@ class Test_Ajax_Customize_Snapshot_Manager_Back_Compat extends \WP_Ajax_UnitTest
 	 * @param string $role              The role we're checking caps against.
 	 * @param array  $expected_results  Expected results.
 	 *
-	 * @covers CustomizeSnapshots\Customize_Snapshot_Manager_Back_Compat::check_customize_publish_authorization()
+	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager_Back_Compat::check_customize_publish_authorization()
 	 */
 	function test_ajax_update_snapshot_cap_check( $role, $expected_results ) {
 		$this->set_current_user( $role );

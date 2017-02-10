@@ -327,6 +327,7 @@ class Post_Type {
 		$snapshot_theme = get_post_meta( $post->ID, '_snapshot_theme', true );
 		if ( ! empty( $snapshot_theme ) && get_stylesheet() !== $snapshot_theme ) {
 			echo '<p>';
+			/* translators: 1 is the theme the snapshot was created for */
 			echo sprintf( esc_html__( 'This snapshot was made when a different theme was active (%1$s), so currently it cannot be edited.', 'customize-snapshots' ), esc_html( $snapshot_theme ) );
 			echo '</p>';
 		} elseif ( 'publish' !== $post->post_status ) {
