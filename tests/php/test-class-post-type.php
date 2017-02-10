@@ -84,7 +84,7 @@ class Test_Post_Type extends \WP_UnitTestCase {
 
 		$this->assertEquals( 10, has_filter( 'post_link', array( $post_type_obj, 'filter_post_type_link' ) ) );
 		$this->assertEquals( 10, has_action( 'add_meta_boxes_' . Post_Type::SLUG, array( $post_type_obj, 'setup_metaboxes' ) ) );
-		$this->assertEquals( 10, has_action( 'admin_menu', array( $post_type_obj, 'add_admin_menu_item' ) ) );
+		$this->assertEquals( 99, has_action( 'admin_menu', array( $post_type_obj, 'add_admin_menu_item' ) ) );
 		$this->assertEquals( 5, has_filter( 'map_meta_cap', array( $post_type_obj, 'remap_customize_meta_cap' ) ) );
 		$this->assertEquals( 10, has_filter( 'bulk_actions-edit-' . Post_Type::SLUG, array( $post_type_obj, 'add_snapshot_bulk_actions' ) ) );
 		$this->assertEquals( 10, has_filter( 'handle_bulk_actions-edit-' . Post_Type::SLUG, array( $post_type_obj, 'handle_snapshot_merge' ) ) );
@@ -156,6 +156,50 @@ class Test_Post_Type extends \WP_UnitTestCase {
 		$this->assertArrayHasKey( 'themes.php', $submenu );
 		$this->assertArrayHasKey( 0, $submenu['themes.php'] );
 		$this->assertTrue( in_array( $menu_slug, $submenu['themes.php'][0], true ) );
+	}
+
+	/**
+	 * Allow customize caps to all users for testing.
+	 *
+	 * @see test_menu_for_customize_cap.
+	 * @param array $allcaps all caps.
+	 * @param array $caps caps.
+	 * @param array $args arg for current_user_can.
+	 *
+	 * @return array
+	 */
+	public function hack_user_can( $allcaps, $caps, $args ) {
+		if ( 'customize' === $args[0] ) {
+			$allcaps = array_merge( $allcaps, array_fill_keys( $caps, true ) );
+		}
+
+		return $allcaps;
+	}
+
+	/**
+	 * Test add_admin_menu_item
+	 *
+	 * @covers \CustomizeSnapshots\Post_Type::add_admin_menu_item()
+	 */
+	public function test_menu_for_customize_cap() {
+		$this->mark_incompatible();
+		global $submenu, $menu;
+		if ( null === $submenu ) {
+			$submenu = array(); // WPCS: global override ok.
+		}
+		if ( null === $menu ) {
+			$menu = array(); // WPCS: global override ok.
+		}
+		add_filter( 'user_has_cap', array( $this, 'hack_user_can' ), 10, 3 );
+		$editor_user_id = $this->factory()->user->create( array( 'role' => 'editor' ) );
+		wp_set_current_user( $editor_user_id );
+		$post_type_obj = new Post_Type( $this->plugin->customize_snapshot_manager );
+		$post_type_obj->add_admin_menu_item();
+		$menu_slug = 'edit.php?post_type=' . Post_Type::SLUG;
+		$customize_url = add_query_arg( 'return', urlencode( wp_unslash( $_SERVER['REQUEST_URI'] ) ), 'customize.php' );
+		$this->assertArrayHasKey( $customize_url, $submenu );
+		$this->assertEquals( $menu_slug, $submenu[ $customize_url ][1][2] );
+		remove_filter( 'user_has_cap', array( $this, 'hack_user_can' ), 10 );
 	}
 
 	/**
