@@ -666,7 +666,7 @@ class Customize_Snapshot_Manager {
 				);
 			?>
 
-			<# _.defaults( data, <?php echo wp_json_encode( $data ) ?> ); #>
+			<# _.defaults( data, <?php echo wp_json_encode( (array) apply_filters( 'customize_snapshots_button_data', $data ) ); ?> ); #>
 
 			<div id="snapshot-status-button-wrapper">
 				<label class="screen-reader-text" for="snapshot-status-button"><?php esc_attr_e( 'Snapshot Status', 'customize-snapshots' ); ?></label>
