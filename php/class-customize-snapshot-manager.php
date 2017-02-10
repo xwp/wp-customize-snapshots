@@ -105,7 +105,7 @@ class Customize_Snapshot_Manager {
 		add_action( 'wp_before_admin_bar_render', array( $this, 'print_admin_bar_styles' ) );
 		add_filter( 'removable_query_args', array( $this, 'filter_removable_query_args' ) );
 		add_filter( 'wp_save_post_revision_post_has_changed', array( $this, '_filter_revision_post_has_changed' ), 20, 3 );
-		add_filter( 'save_post_customize_changeset', array( $this, 'create_initial_changeset_revision' ) );
+		add_action( 'save_post_customize_changeset', array( $this, 'create_initial_changeset_revision' ) );
 		add_filter( 'wp_insert_post_data', array( $this, 'prepare_snapshot_post_content_for_publish' ) );
 	}
 
