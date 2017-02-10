@@ -52,7 +52,7 @@ class Plugin extends Plugin_Base {
 		}
 		$this->compat = is_back_compat();
 		load_plugin_textdomain( 'customize-snapshots' );
-
+		$this->param_back_compat();
 		parent::__construct();
 	}
 
@@ -155,5 +155,16 @@ class Plugin extends Plugin_Base {
 		$handle = 'customize-snapshots-admin';
 		$src = $this->dir_url . 'css/customize-snapshots-admin' . $min . '.css';
 		$wp_styles->add( $handle, $src );
+	}
+
+	/**
+	 * Continue allowing support of param customize_snapshot_uuid in 4.7+.
+	 */
+	public function param_back_compat() {
+		if ( isset( $_REQUEST['customize_snapshot_uuid'] ) && ! $this->compat ) {
+			$_REQUEST['customize_changeset_uuid'] = $_REQUEST['customize_snapshot_uuid'];
+			$_GET['customize_changeset_uuid'] = $_REQUEST['customize_snapshot_uuid'];
+			$_POST['customize_changeset_uuid'] = $_REQUEST['customize_snapshot_uuid'];
+		}
 	}
 }

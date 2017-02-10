@@ -90,7 +90,7 @@ class Test_Customize_Snapshot extends \WP_UnitTestCase {
 	/**
 	 * Test UUID.
 	 *
-	 * @see CustomizeSnapshots\Customize_Snapshot::uuid()
+	 * @covers \CustomizeSnapshots\Customize_Snapshot::uuid()
 	 */
 	function test_uuid() {
 		$_REQUEST['customize_changeset_uuid'] = self::UUID;
@@ -102,7 +102,7 @@ class Test_Customize_Snapshot extends \WP_UnitTestCase {
 	/**
 	 * Test get_edit_link.
 	 *
-	 * @see CustomizeSnapshots\Customize_Snapshot::get_edit_link()
+	 * @covers \CustomizeSnapshots\Customize_Snapshot::get_edit_link()
 	 */
 	function test_get_edit_link() {
 		wp_set_current_user( $this->factory()->user->create( array( 'role' => 'administrator' ) ) );
@@ -123,7 +123,7 @@ class Test_Customize_Snapshot extends \WP_UnitTestCase {
 	/**
 	 * Test post
 	 *
-	 * @see CustomizeSnapshot\Customize_Snapshot::post()
+	 * @covers \CustomizeSnapshots\Customize_Snapshot::post()
 	 */
 	function test_post() {
 		$post_id = $this->snapshot_manager->post_type->save( array(

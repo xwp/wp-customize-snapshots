@@ -33,6 +33,10 @@
 				api.state( 'saved' ).set( false );
 			} );
 
+			api.bind( 'change', function() {
+				api.state( 'snapshot-saved' ).set( false );
+			} );
+
 			api.bind( 'saved', function( response ) {
 				var url = window.location.href,
 					updatedUrl,
@@ -268,6 +272,8 @@
 				var status;
 				event.preventDefault();
 				status = snapshot.isFutureDate() ? 'future' : 'draft';
+
+				snapshot.snapshotButton.prop( 'disabled', true );
 				snapshot.updateSnapshot( status ).done( function() {
 					snapshot.snapshotButton.prop( 'disabled', true );
 				} ).fail( function() {

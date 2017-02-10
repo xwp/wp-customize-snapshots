@@ -30,6 +30,7 @@ class Test_Customize_Snapshots extends \WP_UnitTestCase {
 			$this->front_param = 'changeset_uuid';
 		}
 	}
+
 	/**
 	 * Clean up global scope.
 	 */
