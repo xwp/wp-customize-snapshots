@@ -350,7 +350,7 @@ class Customize_Snapshot_Manager {
             'confirmationMsg' => __( 'Are you sure that you want to publish the Snapshot?', 'customize-snapshots' ),
             'snapshotsFrontendPublishNonce' => wp_create_nonce( 'customize-snapshots-frontend-publish' ),
             'action' => 'customize-snapshots-frontend-publish',
-	        'ajaxurl' => admin_url( 'admin-ajax.php' ),
+            'uuid' => $this->snapshot->uuid(),
         );
         wp_add_inline_script(
             $handle,
@@ -974,10 +974,31 @@ class Customize_Snapshot_Manager {
 		return constant( get_class( $this->post_type ) . '::CUSTOMIZE_UUID_PARAM_NAME' );
 	}
 
+	/**
+	 * Publishes changeset from frontend.
+	 */
 	public function snapshot_frontend_publish() {
-	    // if ( ! check_ajax_referer( ) )
-        // @todo create the publishing logic.
+	    if ( ! check_ajax_referer( 'customize-snapshots-frontend-publish', 'nonce' ) ) {
+		    status_header( 400 );
+		    wp_send_json_error( 'bad_nonce' );
+        }
 
-        wp_send_json_success();
+        if ( ! isset( $_POST['uuid'] ) ) {
+            return;
+        }
+		$this->current_snapshot_uuid = esc_attr( $_POST['uuid'] );
+		$this->ensure_customize_manager();
+		$r = $this->customize_manager->save_changeset_post( array(
+			'status' => 'publish',
+		) );
+		if ( is_wp_error( $r ) ) {
+		    $msg = __( 'Publishing failed: ', 'customize-snapshots' );
+		    foreach( $r->errors as $name => $value ){
+                $msg .= $name . '; ';
+            }
+            wp_send_json_error( array( 'errorMsg' => $msg ) );
+        } else {
+			wp_send_json_success( array( 'success' => true ) );
+        }
     }
 }

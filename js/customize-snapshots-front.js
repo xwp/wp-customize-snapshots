@@ -1,4 +1,4 @@
-/* global jQuery, ajaxurl */
+/* global jQuery, wp */
 /* exported CustomizeSnapshotsFront */
 var CustomizeSnapshotsFront = (function( $ ) {
     'use strict';
@@ -6,8 +6,8 @@ var CustomizeSnapshotsFront = (function( $ ) {
     var component = {
         data: {
             confirmationMsg: '',
-            ajaxurl: '',
-            action: ''
+            action: '',
+            snapshotsFrontendPublishNonce: ''
         }
     };
     /**
@@ -24,6 +24,11 @@ var CustomizeSnapshotsFront = (function( $ ) {
         } );
     };
 
+    /**
+     * Set up snapshot frontend publish button.
+     *
+     * @returns {void}
+     */
     component.setupPublishButton = function setupPublishButton() {
         var publishBtn = $( '#wp-admin-bar-publish-customize-snapshot a' );
 
@@ -32,21 +37,23 @@ var CustomizeSnapshotsFront = (function( $ ) {
         }
 
         publishBtn.click( function( e ) {
+            var request;
             e.preventDefault();
 
             if ( ! confirm( component.data.confirmationMsg ) ) {
                 return false;
             }
-            $.ajax({
-                url: component.data.ajaxurl,
-                type: 'POST',
-                dataType: 'json',
-                data: {
-                    action: component.data.action,
-                    snapshotsFrontendPublishNonce: component.data.action
+            request = wp.ajax.post( component.data.action, {
+                nonce: component.data.snapshotsFrontendPublishNonce,
+                uuid: component.data.uuid
+            } );
+            request.done( function( data ) {
+                if ( data && data.success ){
+                    window.location = e.target.href; // @todo Redirect to correct URL.
                 }
-            } ).done( function( resp ) {
-                window.location = e.target.href;
+            } );
+            request.fail( function( data ) {
+                alert( data.errorMsg ); // @todo Maybe tune the way of failure notice.
             } );
 
             return true;
