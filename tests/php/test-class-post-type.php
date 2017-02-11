@@ -147,15 +147,31 @@ class Test_Post_Type extends \WP_UnitTestCase {
 	 */
 	public function test_add_admin_menu_item() {
 		$this->mark_incompatible();
-		global $submenu;
-		$admin_user_id = $this->factory()->user->create( array( 'role' => 'administrator' ) );
+		global $submenu, $menu;
+		$menu = $submenu = array(); // WPCS: global override ok.
+		$admin_user_id = $this->factory()->user->create( array(
+			'role' => 'administrator',
+		) );
 		wp_set_current_user( $admin_user_id );
 		$post_type_obj = new Post_Type( $this->plugin->customize_snapshot_manager );
 		$post_type_obj->add_admin_menu_item();
 		$menu_slug = 'edit.php?post_type=' . Post_Type::SLUG;
-		$this->assertArrayHasKey( 'themes.php', $submenu );
-		$this->assertArrayHasKey( 0, $submenu['themes.php'] );
-		$this->assertTrue( in_array( $menu_slug, $submenu['themes.php'][0], true ) );
+
+		$customize_url = add_query_arg( 'return', urlencode( wp_unslash( $_SERVER['REQUEST_URI'] ) ), 'customize.php' );
+		$this->assertArrayHasKey( $customize_url, $submenu );
+		$this->assertEquals( $menu_slug, $submenu[ $customize_url ][1][2] );
+
+		// Check with user with customize access.
+		$submenu = $menu = array(); // WPCS: global override ok.
+		add_filter( 'user_has_cap', array( $this, 'hack_user_can' ), 10, 3 );
+		$editor_user_id = $this->factory()->user->create( array(
+			'role' => 'editor',
+		) );
+		wp_set_current_user( $editor_user_id );
+		$post_type_obj->add_admin_menu_item();
+		$this->assertArrayHasKey( $customize_url, $submenu );
+		$this->assertEquals( $menu_slug, $submenu[ $customize_url ][1][2] );
+		remove_filter( 'user_has_cap', array( $this, 'hack_user_can' ), 10 );
 	}
 
 	/**
@@ -174,32 +190,6 @@ class Test_Post_Type extends \WP_UnitTestCase {
 		}
 
 		return $allcaps;
-	}
-
-	/**
-	 * Test add_admin_menu_item
-	 *
-	 * @covers \CustomizeSnapshots\Post_Type::add_admin_menu_item()
-	 */
-	public function test_menu_for_customize_cap() {
-		$this->mark_incompatible();
-		global $submenu, $menu;
-		if ( null === $submenu ) {
-			$submenu = array(); // WPCS: global override ok.
-		}
-		if ( null === $menu ) {
-			$menu = array(); // WPCS: global override ok.
-		}
-		add_filter( 'user_has_cap', array( $this, 'hack_user_can' ), 10, 3 );
-		$editor_user_id = $this->factory()->user->create( array( 'role' => 'editor' ) );
-		wp_set_current_user( $editor_user_id );
-		$post_type_obj = new Post_Type( $this->plugin->customize_snapshot_manager );
-		$post_type_obj->add_admin_menu_item();
-		$menu_slug = 'edit.php?post_type=' . Post_Type::SLUG;
-		$customize_url = add_query_arg( 'return', urlencode( wp_unslash( $_SERVER['REQUEST_URI'] ) ), 'customize.php' );
-		$this->assertArrayHasKey( $customize_url, $submenu );
-		$this->assertEquals( $menu_slug, $submenu[ $customize_url ][1][2] );
-		remove_filter( 'user_has_cap', array( $this, 'hack_user_can' ), 10 );
 	}
 
 	/**
