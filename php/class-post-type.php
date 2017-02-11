@@ -140,7 +140,7 @@ class Post_Type {
 
 			// Add customize menu on top and add Changeset menu as submenu.
 			$customize_page_title = __( 'Customize', 'default' );
-			add_menu_page( $customize_page_title, $customize_page_title, 'customize', esc_url( $customize_url ), '', 'dashicons-admin-customizer', 65 );
+			add_menu_page( $customize_page_title, $customize_page_title, 'customize', esc_url( $customize_url ), '', 'dashicons-admin-customizer', 61 );
 			add_submenu_page( $customize_url, $page_title, $menu_title, $capability, esc_url( $menu_slug ) );
 		}
 	}
