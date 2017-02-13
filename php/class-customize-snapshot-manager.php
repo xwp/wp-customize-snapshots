@@ -741,15 +741,15 @@ class Customize_Snapshot_Manager {
 				</div>
 
 				<ul class="snapshot-controls">
-					<li class="snapshot-control">
-						<label for="snapshot-title" class="customize-control-title snapshot-control-title">
+					<li class="snapshot-control snapshot-control-title">
+						<label for="snapshot-title" class="customize-control-title">
 							<?php esc_html_e( 'Title', 'customize-snapshots' ); ?>
 						</label>
 						<input id="snapshot-title" type="text" value="{{data.title}}">
 					</li>
 					<# if ( data.currentUserCanPublish ) { #>
-						<li class="snapshot-control">
-							<label for="snapshot-date-month" class="customize-control-title snapshot-control-title">
+						<li class="snapshot-control snapshot-control-date">
+							<label for="snapshot-date-month" class="customize-control-title">
 								<?php esc_html_e( 'Scheduling', 'customize-snapshots' ); ?>
 								<span class="reset-time">(<a href="#" title="<?php esc_attr_e( 'Reset scheduled date to original or current date', 'customize-snapshots' ); ?>"><?php esc_html_e( 'Reset', 'customize-snapshots' ) ?></a>)</span>
 							</label>

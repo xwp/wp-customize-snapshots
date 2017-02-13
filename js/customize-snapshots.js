@@ -469,6 +469,7 @@
 				snapshot.editContainer.hide().appendTo( $( '#customize-header-actions' ) );
 				snapshot.dateNotification = snapshot.editContainer.find( '.snapshot-future-date-notification' );
 				snapshot.countdown = snapshot.editContainer.find( '.snapshot-scheduled-countdown' );
+				snapshot.dateControl = snapshot.editContainer.find( '.snapshot-control-date' );
 
 				if ( snapshot.data.currentUserCanPublish ) {
 
@@ -500,6 +501,9 @@
 
 			// Set up toggling of the schedule container.
 			snapshot.snapshotEditContainerDisplayed.bind( function( isDisplayed ) {
+
+				snapshot.dateControl.toggle( 'future' === snapshot.statusButton.value.get() );
+
 				if ( isDisplayed ) {
 					snapshot.editContainer.stop().slideDown( 'fast' ).attr( 'aria-expanded', 'true' );
 					snapshot.snapshotExpandButton.attr( 'aria-pressed', 'true' );
