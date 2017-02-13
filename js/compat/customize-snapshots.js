@@ -391,18 +391,6 @@
 		},
 
 		/**
-		 * Toggles date notification.
-		 *
-		 * @return {void}.
-		 */
-		toggleDateNotification: function showDateNotification() {
-			var snapshot = this;
-			if ( ! _.isEmpty( snapshot.dateNotification ) ) {
-				snapshot.dateNotification.toggle( ! snapshot.isFutureDate() );
-			}
-		},
-
-		/**
 		 * Overrides the autoSaveEditBox method used in api.Snapshots
 		 * because we do not auto save in < 4.7.
 		 *

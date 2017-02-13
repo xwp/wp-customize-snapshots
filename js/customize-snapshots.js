@@ -146,7 +146,7 @@
 		 */
 		sendUpdateSnapshotRequest: function sendUpdateSnapshotRequest( options ) {
 			var snapshot = this,
-				request, data, publishStatus;
+				request, data, isPublishStatus;
 
 			data = _.extend(
 				{
@@ -161,7 +161,7 @@
 
 			request = api.previewer.save( data );
 
-			publishStatus = 'publish' === data.status;
+			isPublishStatus = 'publish' === data.status;
 
 			request.always( function( response ) {
 				snapshot.spinner.removeClass( 'is-active' );
@@ -196,10 +196,10 @@
 
 				api.state( 'snapshot-exists' ).set( true );
 
-				snapshot.statusButton.disableSelect.set( publishStatus );
+				snapshot.statusButton.disableSelect.set( isPublishStatus );
 				snapshot.statusButton.disbleButton.set( true );
-				snapshot.snapshotExpandButton.toggle( ! publishStatus );
-				snapshot.previewLink.toggle( ! publishStatus );
+				snapshot.snapshotExpandButton.toggle( ! isPublishStatus );
+				snapshot.previewLink.toggle( ! isPublishStatus );
 
 				snapshot.statusButton.updateButtonText( 'alt-text' );
 
@@ -507,7 +507,9 @@
 					snapshot.editContainer.stop().slideDown( 'fast' ).attr( 'aria-expanded', 'true' );
 					snapshot.snapshotExpandButton.attr( 'aria-pressed', 'true' );
 					snapshot.snapshotExpandButton.prop( 'title', snapshot.data.i18n.collapseSnapshotScheduling );
-					snapshot.toggleDateNotification();
+					if ( ! _.isEmpty( snapshot.dateNotification ) ) {
+						snapshot.dateNotification.toggle( ! snapshot.isFutureDate() );
+					}
 				} else {
 					snapshot.editContainer.stop().slideUp( 'fast' ).attr( 'aria-expanded', 'false' );
 					snapshot.snapshotExpandButton.attr( 'aria-pressed', 'false' );
@@ -516,12 +518,17 @@
 			} );
 
 			snapshot.editControlSettings( 'date' ).bind( function() {
-				snapshot.toggleDateNotification();
+				if ( ! _.isEmpty( snapshot.dateNotification ) ) {
+					snapshot.dateNotification.toggle( ! snapshot.isFutureDate() );
+
+					if ( 'future' === snapshot.statusButton.value.get() ) {
+						snapshot.statusButton.disbleButton.set( ! snapshot.isFutureDate() );
+					}
+				}
 			} );
 
 			// Toggle schedule container when clicking the button.
-			snapshot.snapshotExpandButton.on( 'click', function( event ) {
-				event.preventDefault();
+			snapshot.snapshotExpandButton.on( 'click', function() {
 				snapshot.snapshotEditContainerDisplayed.set( ! snapshot.snapshotEditContainerDisplayed.get() );
 			} );
 
@@ -651,22 +658,6 @@
 					snapshot.updatePending = false;
 				}
 			});
-		},
-
-		/**
-		 * Toggles date notification.
-		 *
-		 * @return {void}.
-		 */
-		toggleDateNotification: function showDateNotification() {
-			var snapshot = this;
-			if ( ! _.isEmpty( snapshot.dateNotification ) ) {
-				snapshot.dateNotification.toggle( ! snapshot.isFutureDate() );
-
-				if ( 'future' === snapshot.statusButton.value.get() ) {
-					snapshot.statusButton.disbleButton.set( ! snapshot.isFutureDate() );
-				}
-			}
 		},
 
 		/**
