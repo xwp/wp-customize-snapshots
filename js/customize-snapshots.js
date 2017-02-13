@@ -443,7 +443,7 @@
 		 */
 		editSnapshotUI: function editSnapshotUI() {
 			var snapshot = this, sliceBegin = 0,
-				sliceEnd = -2, updateUI;
+				sliceEnd = -2, updateUI, toggleDateNotification;
 
 			snapshot.snapshotEditContainerDisplayed = new api.Value( false );
 
@@ -498,6 +498,12 @@
 				snapshot.snapshotTitle.on( 'input', updateUI );
 			}
 
+			toggleDateNotification = function() {
+				if ( ! _.isEmpty( snapshot.dateNotification ) ) {
+					snapshot.dateNotification.toggle( ! snapshot.isFutureDate() );
+				}
+			};
+
 			// Set up toggling of the schedule container.
 			snapshot.snapshotEditContainerDisplayed.bind( function( isDisplayed ) {
 
@@ -507,9 +513,7 @@
 					snapshot.editContainer.stop().slideDown( 'fast' ).attr( 'aria-expanded', 'true' );
 					snapshot.snapshotExpandButton.attr( 'aria-pressed', 'true' );
 					snapshot.snapshotExpandButton.prop( 'title', snapshot.data.i18n.collapseSnapshotScheduling );
-					if ( ! _.isEmpty( snapshot.dateNotification ) ) {
-						snapshot.dateNotification.toggle( ! snapshot.isFutureDate() );
-					}
+					toggleDateNotification();
 				} else {
 					snapshot.editContainer.stop().slideUp( 'fast' ).attr( 'aria-expanded', 'false' );
 					snapshot.snapshotExpandButton.attr( 'aria-pressed', 'false' );
@@ -518,13 +522,7 @@
 			} );
 
 			snapshot.editControlSettings( 'date' ).bind( function() {
-				if ( ! _.isEmpty( snapshot.dateNotification ) ) {
-					snapshot.dateNotification.toggle( ! snapshot.isFutureDate() );
-
-					if ( 'future' === snapshot.statusButton.value.get() ) {
-						snapshot.statusButton.disbleButton.set( ! snapshot.isFutureDate() );
-					}
-				}
+				toggleDateNotification();
 			} );
 
 			// Toggle schedule container when clicking the button.
@@ -597,14 +595,15 @@
 		 */
 		autoSaveEditBox: function() {
 			var snapshot = this, update,
-				delay = 2000, status, isValidChangesetStatus;
+				delay = 2000, status, isValidChangesetStatus, isFutureDateAndStatus;
 
 			snapshot.updatePending = false;
 			snapshot.dirtyEditControlValues = false;
 
 			update = _.debounce( function() {
 				status = snapshot.statusButton.value.get();
-				if ( 'publish' === status || ! snapshot.isFutureDate() ) {
+				isFutureDateAndStatus = 'future' === status && ! snapshot.isFutureDate();
+				if ( 'publish' === status || isFutureDateAndStatus ) {
 					snapshot.updatePending = false;
 					return;
 				}
@@ -622,7 +621,15 @@
 				} );
 			}, delay );
 
-			snapshot.editControlSettings.bind( 'change', function() {
+			snapshot.editControlSettings( 'title' ).bind( function() {
+				if ( ! snapshot.updatePending ) {
+					update();
+				} else {
+					snapshot.dirtyEditControlValues = true;
+				}
+			} );
+
+			snapshot.editControlSettings( 'date' ).bind( function() {
 				if ( snapshot.isFutureDate() ) {
 					if ( ! snapshot.updatePending ) {
 						update();
