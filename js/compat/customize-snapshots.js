@@ -348,7 +348,7 @@
 				}
 			} );
 
-			snapshot.editControlSettings.bind( function() {
+			snapshot.editControlSettings.bind( 'change', function() {
 				snapshot.snapshotButton.prop( 'disabled', false );
 				snapshot.updateButtonText();
 			} );
@@ -480,13 +480,11 @@
 		populateSetting: function populateSetting() {
 			var snapshot = this,
 				date = snapshot.getDateFromInputs(),
-				scheduled, isDirtyDate, editControlSettings;
+				scheduled, isDirtyDate;
 
-			editControlSettings = _.extend( {}, snapshot.editControlSettings.get() );
+			snapshot.editControlSettings( 'title' ).set( snapshot.snapshotTitle.val() );
 
 			if ( ! date || ! snapshot.data.currentUserCanPublish ) {
-				editControlSettings.title = snapshot.snapshotTitle.val();
-				snapshot.editControlSettings.set( editControlSettings );
 				return;
 			}
 
@@ -495,11 +493,7 @@
 
 			isDirtyDate = scheduled && snapshot.isFutureDate();
 			snapshot.dirtyScheduleDate.set( isDirtyDate );
-
-			editControlSettings.title = snapshot.snapshotTitle.val();
-			editControlSettings.date = snapshot.formatDate( date );
-
-			snapshot.editControlSettings.set( editControlSettings );
+			snapshot.editControlSettings( 'date' ).set( snapshot.formatDate( date ) );
 
 			snapshot.updateCountdown();
 			snapshot.editContainer.find( '.reset-time' ).toggle( scheduled );

@@ -49,10 +49,9 @@
 					api.state( 'snapshot-exists' ).set( true );
 				}
 
-				snapshot.editControlSettings = new api.Value( {
-					title: snapshot.data.title,
-					date: snapshot.data.publishDate
-				} );
+				snapshot.editControlSettings = new api.Values();
+				snapshot.editControlSettings.create( 'title', snapshot.data.title );
+				snapshot.editControlSettings.create( 'date', snapshot.data.publishDate );
 
 				api.bind( 'change', function() {
 					api.state( 'snapshot-submitted' ).set( false );
@@ -119,7 +118,7 @@
 			}
 
 			if ( snapshot.snapshotTitle && snapshot.snapshotTitle.val() && 'publish' !== status ) {
-				requestData.title = snapshot.editControlSettings.get().title;
+				requestData.title = snapshot.editControlSettings( 'title' ).get();
 			}
 
 			if ( ! _.isEmpty( snapshot.editContainer ) && snapshot.isFutureDate() && 'publish' !== status ) {
@@ -385,7 +384,7 @@
 				} );
 			} );
 
-			snapshot.editControlSettings.bind( function() {
+			snapshot.editControlSettings.bind( 'change', function() {
 				if ( api.state( 'snapshot-saved' ).get() ) {
 					snapshot.submitButton.prop( 'disabled', false );
 				}
@@ -430,7 +429,7 @@
 				} );
 			} );
 
-			snapshot.editControlSettings.bind( function() {
+			snapshot.editControlSettings.bind( 'change', function() {
 				if ( api.state( 'snapshot-saved' ).get() ) {
 					snapshot.saveButton.prop( 'disabled', false );
 				}
@@ -516,7 +515,7 @@
 				}
 			} );
 
-			snapshot.editControlSettings.bind( function() {
+			snapshot.editControlSettings( 'date' ).bind( function() {
 				snapshot.toggleDateNotification();
 			} );
 
@@ -616,7 +615,7 @@
 				} );
 			}, delay );
 
-			snapshot.editControlSettings.bind( function() {
+			snapshot.editControlSettings.bind( 'change', function() {
 				if ( snapshot.isFutureDate() ) {
 					if ( ! snapshot.updatePending ) {
 						update();
@@ -877,23 +876,17 @@
 		populateSetting: function populateSetting() {
 			var snapshot = this,
 				date = snapshot.getDateFromInputs(),
-				scheduled, editControlSettings;
+				scheduled;
 
-			editControlSettings = _.extend( {}, snapshot.editControlSettings.get() );
+			snapshot.editControlSettings( 'title' ).set( snapshot.snapshotTitle.val() );
 
 			if ( ! date || ! snapshot.data.currentUserCanPublish ) {
-				editControlSettings.title = snapshot.snapshotTitle.val();
-				snapshot.editControlSettings.set( editControlSettings );
 				return;
 			}
 
 			date.setSeconds( 0 );
 			scheduled = snapshot.formatDate( date ) !== snapshot.data.publishDate;
-
-			editControlSettings.title = snapshot.snapshotTitle.val();
-			editControlSettings.date = snapshot.formatDate( date );
-
-			snapshot.editControlSettings.set( editControlSettings );
+			snapshot.editControlSettings( 'date' ).set( snapshot.formatDate( date ) );
 
 			if ( 'future' === snapshot.statusButton.value.get() ) {
 				snapshot.updateCountdown();
@@ -973,11 +966,11 @@
 
 			api.previewer.query = function() {
 				var retval = originalQuery.apply( this, arguments );
-				if ( ! _.isEmpty( snapshot.editControlSettings.get() ) ) {
-					retval.customize_changeset_title = snapshot.editControlSettings.get().title;
-					if ( snapshot.isFutureDate() ) {
-						retval.customize_changeset_date = snapshot.editControlSettings.get().date;
-					}
+				if ( snapshot.editControlSettings( 'title' ).get() ) {
+					retval.customize_changeset_title = snapshot.editControlSettings( 'title' ).get();
+				}
+				if ( snapshot.editControlSettings( 'date' ).get() && snapshot.isFutureDate() ) {
+					retval.customize_changeset_date = snapshot.editControlSettings( 'date' ).get();
 				}
 				return retval;
 			};
