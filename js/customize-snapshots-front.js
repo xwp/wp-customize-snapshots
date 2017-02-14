@@ -41,7 +41,7 @@ var CustomizeSnapshotsFront = (function( $ ) {
             var request;
             e.preventDefault();
 
-            if ( ! confirm( component.data.confirmationMsg ) ) {
+            if ( ! window.confirm( component.data.confirmationMsg ) ) {
                 return false;
             }
             request = wp.ajax.post( component.data.action, {
@@ -49,12 +49,12 @@ var CustomizeSnapshotsFront = (function( $ ) {
                 uuid: component.data.uuid
             } );
             request.done( function( data ) {
-                if ( data && data.success ){
+                if ( data && data.success ) {
                     window.location = e.target.href;
                 }
             } );
             request.fail( function( data ) {
-                alert( data.errorMsg );
+                window.alert( data.errorMsg );
             } );
 
             return true;

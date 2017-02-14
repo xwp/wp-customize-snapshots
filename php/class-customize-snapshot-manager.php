@@ -98,7 +98,7 @@ class Customize_Snapshot_Manager {
 		add_action( 'customize_controls_enqueue_scripts', array( $this, 'enqueue_controls_scripts' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_frontend_scripts' ) );
-		add_action( 'wp_ajax_customize-snapshots-frontend-publish', array( $this, 'snapshot_frontend_publish' ) );
+		add_action( 'wp_ajax_customize-snapshots-frontend-publish', array( $this, 'ajax_snapshot_frontend_publish' ) );
 
 		add_action( 'customize_controls_init', array( $this, 'add_snapshot_uuid_to_return_url' ) );
 		add_action( 'customize_controls_print_footer_scripts', array( $this, 'render_templates' ) );
@@ -977,7 +977,7 @@ class Customize_Snapshot_Manager {
 	/**
 	 * Publishes changeset from frontend.
 	 */
-	public function snapshot_frontend_publish() {
+	public function ajax_snapshot_frontend_publish() {
 	    if ( ! check_ajax_referer( 'customize-snapshots-frontend-publish', 'nonce' ) ) {
 		    status_header( 400 );
 		    wp_send_json_error( 'bad_nonce' );
