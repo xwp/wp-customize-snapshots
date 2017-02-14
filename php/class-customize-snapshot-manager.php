@@ -986,11 +986,13 @@ class Customize_Snapshot_Manager {
         if ( ! isset( $_POST['uuid'] ) ) {
             return;
         }
+
 		$this->current_snapshot_uuid = esc_attr( $_POST['uuid'] );
 		$this->ensure_customize_manager();
 		$r = $this->customize_manager->save_changeset_post( array(
 			'status' => 'publish',
 		) );
+
 		if ( is_wp_error( $r ) ) {
 		    $msg = __( 'Publishing failed: ', 'customize-snapshots' );
 		    foreach( $r->errors as $name => $value ){

@@ -7,7 +7,8 @@ var CustomizeSnapshotsFront = (function( $ ) {
         data: {
             confirmationMsg: '',
             action: '',
-            snapshotsFrontendPublishNonce: ''
+            snapshotsFrontendPublishNonce: '',
+            errorMsg: ''
         }
     };
     /**
@@ -49,11 +50,11 @@ var CustomizeSnapshotsFront = (function( $ ) {
             } );
             request.done( function( data ) {
                 if ( data && data.success ){
-                    window.location = e.target.href; // @todo Redirect to correct URL.
+                    window.location = e.target.href;
                 }
             } );
             request.fail( function( data ) {
-                alert( data.errorMsg ); // @todo Maybe tune the way of failure notice.
+                alert( data.errorMsg );
             } );
 
             return true;
