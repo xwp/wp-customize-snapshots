@@ -346,17 +346,17 @@ class Customize_Snapshot_Manager {
 		}
 		$handle = 'customize-snapshots-front';
 		wp_enqueue_script( $handle );
-        $exports = array(
-            'confirmationMsg' => __( 'Are you sure that you want to publish the Snapshot?', 'customize-snapshots' ),
-            'snapshotsFrontendPublishNonce' => wp_create_nonce( 'customize-snapshots-frontend-publish' ),
-            'action' => 'customize-snapshots-frontend-publish',
-            'uuid' => $this->snapshot->uuid(),
-        );
-        wp_add_inline_script(
-            $handle,
-            sprintf( 'CustomizeSnapshotsFront.init( %s )', wp_json_encode( $exports ) ),
-            'after'
-        );
+		$exports = array(
+			'confirmationMsg' => __( 'Are you sure that you want to publish the Snapshot?', 'customize-snapshots' ),
+			'snapshotsFrontendPublishNonce' => wp_create_nonce( 'customize-snapshots-frontend-publish' ),
+			'action' => 'customize-snapshots-frontend-publish',
+			'uuid' => $this->snapshot->uuid(),
+		);
+		wp_add_inline_script(
+			$handle,
+			sprintf( 'CustomizeSnapshotsFront.init( %s )', wp_json_encode( $exports ) ),
+			'after'
+		);
 	}
 
 	/**
@@ -499,10 +499,10 @@ class Customize_Snapshot_Manager {
 				content: "\f179";
 				top: 2px;
 			}
-            #wpadminbar #wp-admin-bar-publish-customize-snapshot > .ab-item:before {
-                content: "\f147";
-                top: 2px;
-            }
+			#wpadminbar #wp-admin-bar-publish-customize-snapshot > .ab-item:before {
+				content: "\f147";
+				top: 2px;
+			}
 			#wpadminbar #wp-admin-bar-exit-customize-snapshot > .ab-item:before {
 				content: "\f158";
 				top: 2px;
@@ -640,11 +640,11 @@ class Customize_Snapshot_Manager {
 			return;
 		}
 		$snapshot_admin_bar_node_ids = array(
-            'customize',
-            'exit-customize-snapshot',
-            'inspect-customize-snapshot',
-            'publish-customize-snapshot',
-        );
+			'customize',
+			'exit-customize-snapshot',
+			'inspect-customize-snapshot',
+			'publish-customize-snapshot',
+		);
 		foreach ( $wp_admin_bar->get_nodes() as $node ) {
 			if ( in_array( $node->id, $snapshot_admin_bar_node_ids, true ) || '#' === substr( $node->href, 0, 1 ) ) {
 				continue;
@@ -978,14 +978,14 @@ class Customize_Snapshot_Manager {
 	 * Publishes changeset from frontend.
 	 */
 	public function ajax_snapshot_frontend_publish() {
-	    if ( ! check_ajax_referer( 'customize-snapshots-frontend-publish', 'nonce' ) ) {
-		    status_header( 400 );
-		    wp_send_json_error( 'bad_nonce' );
-        }
+		if ( ! check_ajax_referer( 'customize-snapshots-frontend-publish', 'nonce' ) ) {
+			status_header( 400 );
+			wp_send_json_error( 'bad_nonce' );
+		}
 
-        if ( ! isset( $_POST['uuid'] ) ) {
-            return;
-        }
+		if ( ! isset( $_POST['uuid'] ) ) {
+			return;
+		}
 
 		$this->current_snapshot_uuid = esc_attr( $_POST['uuid'] );
 		$this->ensure_customize_manager();
@@ -994,13 +994,13 @@ class Customize_Snapshot_Manager {
 		) );
 
 		if ( is_wp_error( $r ) ) {
-		    $msg = __( 'Publishing failed: ', 'customize-snapshots' );
-		    foreach( $r->errors as $name => $value ){
-                $msg .= $name . '; ';
-            }
-            wp_send_json_error( array( 'errorMsg' => $msg ) );
-        } else {
+			$msg = __( 'Publishing failed: ', 'customize-snapshots' );
+			foreach ( $r->errors as $name => $value ) {
+				$msg .= $name . '; ';
+			}
+			wp_send_json_error( array( 'errorMsg' => $msg ) );
+		} else {
 			wp_send_json_success( array( 'success' => true ) );
-        }
-    }
+		}
+	}
 }
