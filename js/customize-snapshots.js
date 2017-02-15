@@ -288,25 +288,7 @@
 				snapshot.statusButton.disable( true );
 			}
 
-			// Preview link.
-			snapshot.previewLink = $( $.trim( wp.template( 'snapshot-preview-link' )() ) );
-			snapshot.previewLink.toggle( api.state( 'snapshot-saved' ).get() );
-			snapshot.previewLink.attr( 'target', snapshot.data.uuid );
-			setPreviewLinkHref = _.debounce( function() {
-				if ( api.state( 'snapshot-exists' ).get() ) {
-					snapshot.previewLink.attr( 'href', snapshot.getSnapshotFrontendPreviewUrl() );
-				} else {
-					snapshot.previewLink.attr( 'href', snapshot.frontendPreviewUrl.get() );
-				}
-			} );
-			snapshot.frontendPreviewUrl.bind( setPreviewLinkHref );
-			setPreviewLinkHref();
-			api.state.bind( 'change', setPreviewLinkHref );
-			api.bind( 'saved', setPreviewLinkHref );
-			snapshot.statusButton.container.after( snapshot.previewLink );
-			api.state( 'snapshot-saved' ).bind( function( saved ) {
-				snapshot.previewLink.toggle( saved );
-			} );
+			snapshot.setUpPreviewLink();
 
 			// Edit button.
 			snapshot.snapshotExpandButton = $( $.trim( wp.template( 'snapshot-expand-button' )( {} ) ) );
@@ -314,7 +296,6 @@
 
 			if ( ! snapshot.data.editLink ) {
 				snapshot.snapshotExpandButton.hide();
-				snapshot.previewLink.hide();
 			}
 
 			api.state( 'change', function() {
@@ -672,13 +653,62 @@
 		 * @returns {string} URL.
 		 */
 		getSnapshotFrontendPreviewUrl: function getSnapshotFrontendPreviewUrl() {
-			var snapshot = this, a = document.createElement( 'a' );
+			var snapshot = this, a = document.createElement( 'a' ),
+				params = {
+					customize_changeset_uuid: snapshot.data.uuid
+				};
 			a.href = snapshot.frontendPreviewUrl.get();
-			if ( a.search ) {
-				a.search += '&';
+			if ( ! api.settings.theme.active ) {
+				params.theme = api.settings.theme.stylesheet;
 			}
-			a.search += snapshot.uuidParam + '=' + snapshot.data.uuid;
-			return a.href;
+			a.search = $.param( params );
+
+			return a.href + a.search;
+		},
+
+		/**
+		 * Frontend preview link setup.
+		 *
+		 * @returns {void}
+		 */
+		setUpPreviewLink: function setUpPreviewLink() {
+			var snapshot = this;
+
+			snapshot.previewLink = $( $.trim( wp.template( 'snapshot-preview-link' )() ) );
+			snapshot.previewLink.attr( 'target', snapshot.data.uuid );
+			snapshot.previewLink.href = snapshot.frontendPreviewUrl.get();
+
+			snapshot.previewLink.click( function( e ) {
+				var onceProcessingComplete;
+				e.preventDefault();
+
+				if ( api.state( 'snapshot-exists' ).get() ) {
+					snapshot.previewLink.attr( 'href', snapshot.getSnapshotFrontendPreviewUrl() );
+				} else {
+					snapshot.previewLink.attr( 'href', snapshot.frontendPreviewUrl.get() );
+				}
+
+				onceProcessingComplete = function() {
+					var request;
+					if ( api.state( 'processing' ).get() > 0 ) {
+						return;
+					}
+
+					api.state( 'processing' ).unbind( onceProcessingComplete );
+					request = api.requestChangesetUpdate();
+
+					request.done( function() {
+						window.open( snapshot.previewLink.href );
+					} );
+				};
+
+				if ( 0 === api.state( 'processing' ).get() ) {
+					onceProcessingComplete();
+				} else {
+					api.state( 'processing' ).bind( onceProcessingComplete );
+				}
+			} );
+			$( '#customize-footer-actions button' ).first().before( snapshot.previewLink );
 		},
 
 		/**
