@@ -663,7 +663,7 @@
 			}
 			a.search = $.param( params );
 
-			return a.search;
+			return a.href;
 		},
 
 		/**
@@ -683,7 +683,7 @@
 				e.preventDefault();
 
 				if ( api.state( 'snapshot-exists' ).get() ) {
-					snapshot.previewLink.search = snapshot.getSnapshotFrontendPreviewUrl();
+					snapshot.previewLink.href = snapshot.getSnapshotFrontendPreviewUrl();
 				} else {
 					snapshot.previewLink.attr( 'href', snapshot.frontendPreviewUrl.get() );
 				}
@@ -698,7 +698,7 @@
 					request = api.requestChangesetUpdate();
 
 					request.done( function() {
-						window.open( snapshot.previewLink.href + snapshot.previewLink.search ); // @todo get correct URL.
+						window.open( snapshot.previewLink.href );
 					} );
 				};
 
