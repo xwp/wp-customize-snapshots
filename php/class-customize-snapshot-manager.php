@@ -1001,7 +1001,7 @@ class Customize_Snapshot_Manager {
 
 		if ( is_wp_error( $r ) ) {
 			$msg = __( 'Publishing failed: ', 'customize-snapshots' );
-			$msg .= join( "; ", array_keys( $r->errors ) );
+			$msg .= join( '; ', array_keys( $r->errors ) );
 			wp_send_json_error( array( 'errorMsg' => $msg ) );
 		} else {
 			wp_send_json_success( array( 'success' => true ) );
