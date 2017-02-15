@@ -77,6 +77,14 @@ class Customize_Snapshot_Manager {
 	public $original_stylesheet;
 
 	/**
+	 * New active theme.
+	 *
+	 * @access public
+	 * @var string
+	 */
+	public $stylesheet;
+
+	/**
 	 * Constructor.
 	 *
 	 * @access public
@@ -183,14 +191,18 @@ class Customize_Snapshot_Manager {
 	 * Ensure Customizer manager is instantiated.
 	 *
 	 * @global \WP_Customize_Manager $wp_customize
-	 * @param array $args Array of params.
 	 */
-	public function ensure_customize_manager( $args = array() ) {
+	public function ensure_customize_manager() {
 		global $wp_customize;
+
+		$args = array();
 		if ( empty( $wp_customize ) || ! ( $wp_customize instanceof \WP_Customize_Manager ) ) {
 			require_once( ABSPATH . WPINC . '/class-wp-customize-manager.php' );
 			if ( null !== $this->current_snapshot_uuid ) {
 				$args['changeset_uuid'] = $this->current_snapshot_uuid;
+			}
+			if ( null !== $this->stylesheet ) {
+				$args['theme'] = $this->stylesheet;
 			}
 			$wp_customize = new \WP_Customize_Manager( $args ); // WPCS: override ok.
 		}
@@ -595,7 +607,7 @@ class Customize_Snapshot_Manager {
 	 * @param \WP_Admin_Bar $wp_admin_bar WP_Admin_Bar instance.
 	 */
 	public function add_publish_snapshot_link( $wp_admin_bar ) {
-		if ( ! $this->snapshot || ! current_user_can( get_post_type_object( 'customize_changeset' )->cap->publish_posts ) ) {
+		if ( ! $this->snapshot ) {
 			return;
 		}
 		$post = $this->snapshot->post();
@@ -998,12 +1010,10 @@ class Customize_Snapshot_Manager {
 		}
 
 		$this->current_snapshot_uuid = sanitize_key( wp_unslash( $_POST['uuid'] ) );
-		$args = array();
 		if ( isset( $_POST['stylesheet'] ) ) {
-			$stylesheet = sanitize_text_field( wp_unslash( $_POST['stylesheet'] ) );
-			$args['theme'] = $stylesheet;
+			$this->stylesheet = sanitize_text_field( wp_unslash( $_POST['stylesheet'] ) );
 		}
-		$this->ensure_customize_manager( $args );
+		$this->ensure_customize_manager();
 		$r = $this->customize_manager->save_changeset_post( array(
 			'status' => 'publish',
 		) );
