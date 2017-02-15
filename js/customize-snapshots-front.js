@@ -54,7 +54,9 @@ var CustomizeSnapshotsFront = (function( $ ) {
 				}
 			} );
 			request.fail( function( data ) {
-				window.alert( data.errorMsg ); // eslint-disable-line no-alert
+				if ( data && data.errorMsg ) {
+                    window.alert( data.errorMsg ); // eslint-disable-line no-alert
+				}
 			} );
 
 			return true;

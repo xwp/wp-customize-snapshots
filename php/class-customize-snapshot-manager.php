@@ -341,13 +341,14 @@ class Customize_Snapshot_Manager {
 	 * These files control the behavior frontend.
 	 */
 	public function enqueue_frontend_scripts() {
-		if ( ! $this->snapshot ) {
+		if ( ! $this->snapshot || ! current_user_can( get_post_type_object( 'customize_changeset' )->cap->publish_posts ) ) {
 			return;
 		}
+
 		$handle = 'customize-snapshots-front';
 		wp_enqueue_script( $handle );
 		$exports = array(
-			'confirmationMsg' => __( 'Are you sure that you want to publish the Snapshot?', 'customize-snapshots' ),
+			'confirmationMsg' => __( 'Are you sure that you want to publish the Changeset?', 'customize-snapshots' ),
 			'snapshotsFrontendPublishNonce' => wp_create_nonce( 'customize-snapshots-frontend-publish' ),
 			'action' => 'customize-snapshots-frontend-publish',
 			'uuid' => $this->snapshot->uuid(),
@@ -594,7 +595,7 @@ class Customize_Snapshot_Manager {
 	 * @param \WP_Admin_Bar $wp_admin_bar WP_Admin_Bar instance.
 	 */
 	public function add_publish_snapshot_link( $wp_admin_bar ) {
-		if ( ! $this->snapshot ) {
+		if ( ! $this->snapshot || ! current_user_can( get_post_type_object( 'customize_changeset' )->cap->publish_posts ) ) {
 			return;
 		}
 		$post = $this->snapshot->post();
@@ -603,7 +604,7 @@ class Customize_Snapshot_Manager {
 		}
 		$wp_admin_bar->add_menu( array(
 			'id' => 'publish-customize-snapshot',
-			'title' => __( 'Publish Snapshot', 'customize-snapshots' ),
+			'title' => __( 'Publish Changeset', 'customize-snapshots' ),
 			'href' => remove_query_arg( $this->get_front_uuid_param() ),
 			'meta' => array(
 				'class' => 'ab-item ab-customize-snapshots-item',
@@ -983,11 +984,16 @@ class Customize_Snapshot_Manager {
 			wp_send_json_error( 'bad_nonce' );
 		}
 
-		if ( ! isset( $_POST['uuid'] ) ) {
-			return;
+		if ( ! current_user_can( get_post_type_object( 'customize_changeset' )->cap->publish_posts ) ) {
+			status_header( 403 );
+			wp_send_json_error( 'insufficient_post_permissions' );
 		}
 
-		$this->current_snapshot_uuid = esc_attr( $_POST['uuid'] );
+		if ( ! isset( $_POST['uuid'] ) ) {
+            wp_send_json_error();
+		}
+
+		$this->current_snapshot_uuid = sanitize_key( wp_unslash( $_POST['uuid'] ) );
 		$this->ensure_customize_manager();
 		$r = $this->customize_manager->save_changeset_post( array(
 			'status' => 'publish',
@@ -995,9 +1001,7 @@ class Customize_Snapshot_Manager {
 
 		if ( is_wp_error( $r ) ) {
 			$msg = __( 'Publishing failed: ', 'customize-snapshots' );
-			foreach ( $r->errors as $name => $value ) {
-				$msg .= $name . '; ';
-			}
+			$msg .= join( "; ", array_keys( $r->errors ) );
 			wp_send_json_error( array( 'errorMsg' => $msg ) );
 		} else {
 			wp_send_json_success( array( 'success' => true ) );
