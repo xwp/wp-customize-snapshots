@@ -990,7 +990,7 @@ class Customize_Snapshot_Manager {
 		}
 
 		if ( ! isset( $_POST['uuid'] ) ) {
-            wp_send_json_error();
+			wp_send_json_error();
 		}
 
 		$this->current_snapshot_uuid = sanitize_key( wp_unslash( $_POST['uuid'] ) );
