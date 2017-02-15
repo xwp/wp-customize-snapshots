@@ -98,7 +98,7 @@ class Customize_Snapshot_Manager {
 		add_action( 'customize_controls_enqueue_scripts', array( $this, 'enqueue_controls_scripts' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_frontend_scripts' ) );
-		add_action( 'wp_ajax_customize-snapshots-frontend-publish', array( $this, 'ajax_snapshot_frontend_publish' ) );
+		add_action( 'wp_ajax_customize_snapshots_frontend_publish', array( $this, 'ajax_snapshot_frontend_publish' ) );
 
 		add_action( 'customize_controls_init', array( $this, 'add_snapshot_uuid_to_return_url' ) );
 		add_action( 'customize_controls_print_footer_scripts', array( $this, 'render_templates' ) );
@@ -183,16 +183,16 @@ class Customize_Snapshot_Manager {
 	 * Ensure Customizer manager is instantiated.
 	 *
 	 * @global \WP_Customize_Manager $wp_customize
+	 * @param array $args Array of params.
 	 */
-	public function ensure_customize_manager() {
+	public function ensure_customize_manager( $args = array() ) {
 		global $wp_customize;
 		if ( empty( $wp_customize ) || ! ( $wp_customize instanceof \WP_Customize_Manager ) ) {
 			require_once( ABSPATH . WPINC . '/class-wp-customize-manager.php' );
 			if ( null !== $this->current_snapshot_uuid ) {
-				$wp_customize = new \WP_Customize_Manager( array( 'changeset_uuid' => $this->current_snapshot_uuid ) ); // WPCS: override ok.
-			} else {
-				$wp_customize = new \WP_Customize_Manager(); // WPCS: override ok.
+				$args['changeset_uuid'] = $this->current_snapshot_uuid;
 			}
+			$wp_customize = new \WP_Customize_Manager( $args ); // WPCS: override ok.
 		}
 
 		$this->customize_manager = $wp_customize;
@@ -350,7 +350,7 @@ class Customize_Snapshot_Manager {
 		$exports = array(
 			'confirmationMsg' => __( 'Are you sure that you want to publish the Changeset?', 'customize-snapshots' ),
 			'snapshotsFrontendPublishNonce' => wp_create_nonce( 'customize-snapshots-frontend-publish' ),
-			'action' => 'customize-snapshots-frontend-publish',
+			'action' => 'customize_snapshots_frontend_publish',
 			'uuid' => $this->snapshot->uuid(),
 		);
 		wp_add_inline_script(
@@ -605,7 +605,11 @@ class Customize_Snapshot_Manager {
 		$wp_admin_bar->add_menu( array(
 			'id' => 'publish-customize-snapshot',
 			'title' => __( 'Publish Changeset', 'customize-snapshots' ),
-			'href' => remove_query_arg( $this->get_front_uuid_param() ),
+			'href' => remove_query_arg( array(
+				$this->get_front_uuid_param(),
+				'theme',
+				$this->get_customize_uuid_param(),
+			) ),
 			'meta' => array(
 				'class' => 'ab-item ab-customize-snapshots-item',
 			),
@@ -994,7 +998,12 @@ class Customize_Snapshot_Manager {
 		}
 
 		$this->current_snapshot_uuid = sanitize_key( wp_unslash( $_POST['uuid'] ) );
-		$this->ensure_customize_manager();
+		$args = array();
+		if ( isset( $_POST['stylesheet'] ) ) {
+			$stylesheet = sanitize_text_field( wp_unslash( $_POST['stylesheet'] ) );
+			$args['theme'] = $stylesheet;
+		}
+		$this->ensure_customize_manager( $args );
 		$r = $this->customize_manager->save_changeset_post( array(
 			'status' => 'publish',
 		) );

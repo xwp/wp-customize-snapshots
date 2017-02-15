@@ -38,24 +38,29 @@ var CustomizeSnapshotsFront = (function( $ ) {
 		}
 
 		publishBtn.click( function( e ) {
-			var request;
+			var request,
+				data = {
+					nonce: component.data.snapshotsFrontendPublishNonce,
+					uuid: component.data.uuid
+				};
 			e.preventDefault();
 
 			if ( ! window.confirm( component.data.confirmationMsg ) ) { // eslint-disable-line no-alert
 				return false;
 			}
-			request = wp.ajax.post( component.data.action, {
-				nonce: component.data.snapshotsFrontendPublishNonce,
-				uuid: component.data.uuid
-			} );
-			request.done( function( data ) {
-				if ( data && data.success ) {
+			if ( ! wp.customize.settings.theme.active ) {
+				data.stylesheet = wp.customize.settings.theme.stylesheet;
+			}
+			request = wp.ajax.post( component.data.action, data );
+
+			request.done( function( resp ) {
+				if ( resp && resp.success ) {
 					window.location = e.target.href;
 				}
 			} );
-			request.fail( function( data ) {
-				if ( data && data.errorMsg ) {
-					window.alert( data.errorMsg ); // eslint-disable-line no-alert
+			request.fail( function( resp ) {
+				if ( resp && resp.errorMsg ) {
+					window.alert( resp.errorMsg ); // eslint-disable-line no-alert
 				}
 			} );
 
