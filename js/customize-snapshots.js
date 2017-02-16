@@ -405,6 +405,7 @@
 					snapshot.saveButton.prop( 'disabled', true );
 					snapshot.submitButton.prop( 'disabled', false );
 					snapshot.saveButton.text( snapshot.data.i18n.updateButton );
+					snapshot.setUpPreviewLink();
 				} ).fail( function() {
 					snapshot.saveButton.prop( 'disabled', false );
 					snapshot.submitButton.prop( 'disabled', false );
@@ -654,9 +655,14 @@
 		 */
 		getSnapshotFrontendPreviewUrl: function getSnapshotFrontendPreviewUrl() {
 			var snapshot = this, a = document.createElement( 'a' ),
-				params = {
-					customize_changeset_uuid: snapshot.data.uuid
-				};
+				params = {};
+
+			if ( api.settings.changeset && api.settings.changeset.uuid ) {
+				params.customize_changeset_uuid = api.settings.changeset.uuid;
+			} else {
+				params.customize_changeset_uuid = snapshot.data.uuid;
+			}
+
 			a.href = snapshot.frontendPreviewUrl.get();
 			if ( ! api.settings.theme.active ) {
 				params.theme = api.settings.theme.stylesheet;
@@ -682,11 +688,7 @@
 				var onceProcessingComplete;
 				e.preventDefault();
 
-				if ( api.state( 'snapshot-exists' ).get() ) {
-					snapshot.previewLink.href = snapshot.getSnapshotFrontendPreviewUrl();
-				} else {
-					snapshot.previewLink.attr( 'href', snapshot.frontendPreviewUrl.get() );
-				}
+				snapshot.previewLink.href = snapshot.getSnapshotFrontendPreviewUrl();
 
 				onceProcessingComplete = function() {
 					var request;
@@ -1104,7 +1106,9 @@
 
 			statusButton.button.on( 'click', function( event ) {
 				event.preventDefault();
-				snapshot.updateSnapshot( statusButton.value.get() );
+				snapshot.updateSnapshot( statusButton.value.get() ).done( function() {
+					snapshot.setUpPreviewLink();
+				} );
 			} );
 
 			snapshot.publishButton.after( statusButton.container );
