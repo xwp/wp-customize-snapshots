@@ -105,6 +105,7 @@ class Customize_Snapshot_Manager {
 		add_action( 'wp_before_admin_bar_render', array( $this, 'print_admin_bar_styles' ) );
 		add_filter( 'removable_query_args', array( $this, 'filter_removable_query_args' ) );
 		add_filter( 'wp_insert_post_data', array( $this, 'prepare_snapshot_post_content_for_publish' ) );
+		add_filter( 'user_has_cap', array( $this, 'filter_user_has_cap' ), 10, 3 );
 	}
 
 	/**
@@ -913,5 +914,57 @@ class Customize_Snapshot_Manager {
 	 */
 	public function get_customize_uuid_param() {
 		return constant( get_class( $this->post_type ) . '::CUSTOMIZE_UUID_PARAM_NAME' );
+	}
+
+	/**
+	 * Let unauthenticated users see posts published in a changeset.
+	 *
+	 * @param array $allcaps All capabilities.
+	 * @param array $caps    Capabilities.
+	 * @param array $args    Args.
+	 * @return array All capabilities.
+	 */
+	public function filter_user_has_cap( $allcaps, $caps, $args ) {
+		global $current_user;
+
+		if (
+			! $this->current_snapshot_uuid
+			|| 0 !== $current_user->ID
+			|| ! isset( $args[2] )
+			|| 'read_post' !== $args['0']
+		) {
+			return $allcaps;
+		}
+
+		$post = get_post( absint( $args[2] ) );
+		if ( ! $post ) {
+			return $allcaps;
+		}
+		if ( 'customize-draft' !== $post->post_status && 'auto-draft' !== $post->post_status ) {
+			return $allcaps;
+		}
+
+		// Check if the status of the post is 'published' within the changeset.
+		$chageset_id = $this->post_type->find_post( $this->current_snapshot_uuid );
+		if ( ! $chageset_id ) {
+			return $allcaps;
+		}
+		$data = $this->post_type->get_post_content( get_post( absint( $chageset_id ) ) );
+
+		$is_published = false;
+		$key = 'post[' . $post->post_type . '][' . $post->ID . ']';
+
+		if ( isset( $data[ $key ] ) ) {
+			$changeset_post_values = $data[ $key ]['value'];
+			if ( isset( $changeset_post_values['post_status'] ) ) {
+				$is_published = 'publish' === $changeset_post_values['post_status'];
+			}
+		}
+
+		if ( true === $is_published ) {
+			$allcaps[ $caps[0] ] = true;
+		}
+
+		return $allcaps;
 	}
 }

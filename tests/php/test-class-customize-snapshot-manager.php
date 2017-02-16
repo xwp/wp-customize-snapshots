@@ -729,4 +729,44 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		$parsed_preview_url = wp_parse_url( $query_params['url'] );
 		$this->assertArrayNotHasKey( 'query', $parsed_preview_url );
 	}
+
+	/**
+	 * Test filter_user_has_cap.
+	 *
+	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::filter_user_has_cap()
+	 */
+	function test_filter_user_has_cap() {
+		$post_id = $this->factory()->post->create( array(
+			'post_type' => 'post',
+			'post_status' => 'auto-draft',
+		) );
+
+		$uuid = wp_generate_uuid4();
+		$this->manager->post_type->save( array(
+			'uuid' => $uuid,
+			'data' => array(
+				'post[post][' . $post_id . ']' => array(
+					'value' => array(
+						'post_status' => 'publish',
+					),
+				),
+			),
+			'status' => 'draft',
+		) );
+
+		$this->manager->current_snapshot_uuid = $uuid;
+		$caps = array(
+			'0' => 'read_others_posts',
+		);
+		$args = array(
+			'0' => 'read_post',
+			'2' => $post_id,
+		);
+		$allcaps = $this->manager->filter_user_has_cap( array(), $caps, $args );
+		$this->assertEquals( array( 'read_others_posts' => true ), $allcaps );
+
+		$args['0'] = 'edit_post';
+		$allcaps = $this->manager->filter_user_has_cap( array(), $caps, $args );
+		$this->assertFalse( array( 'read_others_posts' => true ) == $allcaps );
+	}
 }
