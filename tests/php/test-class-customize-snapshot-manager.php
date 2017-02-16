@@ -736,6 +736,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::filter_user_has_cap()
 	 */
 	function test_filter_user_has_cap() {
+		$this->mark_incompatible();
 		$post_id = $this->factory()->post->create( array(
 			'post_type' => 'post',
 			'post_status' => 'auto-draft',
