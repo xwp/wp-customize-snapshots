@@ -10,3 +10,6 @@ details:not(.snapshot-setting-removed) .snapshot-toggle-setting-removal:hover {
 details .snapshot-toggle-setting-removal {
 	float: right;
 }
+input[type="checkbox"].split-snapshot-hide{
+	display: none;
+}

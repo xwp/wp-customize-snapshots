@@ -53,6 +53,20 @@ class Post_Type {
 	protected $kses_suspended = false;
 
 	/**
+	 * Snapshot split id. Hold value for redirection until $split_processing_post_id post is saved.
+	 *
+	 * @var int
+	 */
+	public $split_snapshot_id;
+
+	/**
+	 * Snapshot post id to check valid post is saved before redirection.
+	 *
+	 * @var int
+	 */
+	public $split_processing_post_id;
+
+	/**
 	 * Constructor.
 	 *
 	 * @access public
@@ -76,6 +90,7 @@ class Post_Type {
 		add_filter( 'user_has_cap', array( $this, 'filter_user_has_cap' ), 10, 2 );
 		add_action( 'post_submitbox_minor_actions', array( $this, 'hide_disabled_publishing_actions' ) );
 		add_filter( 'content_save_pre', array( $this, 'filter_out_settings_if_removed_in_metabox' ), 10 );
+		add_filter( 'content_save_pre', array( $this, 'filter_snapshot_split_data' ), 100 );
 		add_action( 'admin_print_scripts-revision.php', array( $this, 'disable_revision_ui_for_published_posts' ) );
 		add_action( 'admin_notices', array( $this, 'admin_show_merge_error' ) );
 	}
@@ -332,6 +347,7 @@ class Post_Type {
 		echo '</p>';
 
 		$snapshot_theme = get_post_meta( $post->ID, '_snapshot_theme', true );
+		$should_allow_split = count( $snapshot_content ) > 1;
 		if ( ! empty( $snapshot_theme ) && get_stylesheet() !== $snapshot_theme ) {
 			echo '<p>';
 			/* translators: 1 is the theme the snapshot was created for */
@@ -351,10 +367,16 @@ class Post_Type {
 
 			$frontend_view_url = get_permalink( $post->ID );
 			echo sprintf(
-				'<a href="%s" class="button button-secondary">%s</a>',
+				'<a href="%s" class="button button-secondary">%s</a> ',
 				esc_url( $frontend_view_url ),
 				esc_html__( 'Preview Snapshot', 'customize-snapshots' )
 			);
+
+			if ( $should_allow_split ) {
+				echo sprintf( '<button id="split-activate" class="button button-secondary" data-toggle-text="%s">%s</button>',
+				esc_html__( 'Cancel Split', 'customize-snapshots' ), esc_html__( 'Split', 'customize-snapshots' ) );
+			}
+
 			echo '</p>';
 		}
 
@@ -370,7 +392,11 @@ class Post_Type {
 			$value = isset( $setting_params['value'] ) ? $setting_params['value'] : '';
 			echo '<li>';
 			echo '<details open>';
-			echo '<summary><code>' . esc_html( $setting_id ) . '</code> ';
+			echo '<summary>';
+			if ( $should_allow_split ) {
+				echo '<input type="checkbox" class="split-snapshot-hide" name="split-snapshot[]" value="' . esc_attr( $setting_id ) . '">';
+			}
+			echo '<code>' . esc_html( $setting_id ) . '</code> ';
 			echo '<a href="#" id="' . esc_attr( $setting_id ) . '" data-text-restore="' . esc_attr__( 'Restore setting', 'customize-snapshots' ) . '" class="snapshot-toggle-setting-removal remove">' . esc_html__( 'Remove setting', 'customize-snapshots' ) . '</a>';
 
 			// Show error message when there was a publishing error.
@@ -837,7 +863,93 @@ class Post_Type {
 			unset( $data[ $setting_id ] );
 		}
 		$content = Customize_Snapshot_Manager::encode_json( $data );
-
+		unset( $_REQUEST[ $key_for_settings ], $_POST[ $key_for_settings ] );
 		return $content;
 	}
+
+	/**
+	 * Filter snapshot split data and create another snapshot.
+	 *
+	 * @param string $content post_content of post.
+	 *
+	 * @return string return post_content.
+	 */
+	public function filter_snapshot_split_data( $content ) {
+		global $post;
+		$post_type_object = get_post_type_object( static::SLUG );
+		$split_key = 'split-snapshot';
+
+		$should_filter_content = (
+			isset( $post->post_status )
+			&&
+			( 'publish' !== $post->post_status )
+			&&
+			current_user_can( $post_type_object->cap->edit_post, $post->ID )
+			&&
+			( static::SLUG === $post->post_type )
+			&&
+			! empty( $_REQUEST[ $split_key ] )
+			&&
+			is_array( $_REQUEST[ $split_key ] )
+			&&
+			isset( $_REQUEST[ static::SLUG ] )
+			&&
+			wp_verify_nonce( $_REQUEST[ static::SLUG ], static::SLUG . '_settings' )
+			&&
+			! ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE )
+		);
+
+		if ( ! $should_filter_content ) {
+			return $content;
+		}
+		$setting_ids_to_split = $_REQUEST[ $split_key ];
+		$data = json_decode( wp_unslash( $content ), true );
+		$new_split_data = array();
+
+		foreach ( $setting_ids_to_split as $i => $key ) {
+			if ( isset( $data[ $key ] ) ) {
+				$new_split_data[ $key ] = $data[ $key ];
+				unset( $data[ $key ] );
+			}
+		}
+		if ( empty( $new_split_data ) ) {
+			return $content;
+		}
+
+		$uuid = Customize_Snapshot_Manager::generate_uuid();
+		$new_post_arr = array(
+			'post_type' => static::SLUG,
+			'post_content' => Customize_Snapshot_Manager::encode_json( $new_split_data ),
+			'post_status' => 'draft',
+			'post_author' => get_current_user_id(),
+			'post_name' => $uuid,
+			'post_title' => $uuid,
+		);
+		$theme = get_post_meta( $post->ID, '_snapshot_theme', true );
+		if ( ! empty( $theme ) ) {
+			$new_post_arr['meta_input']['_snapshot_theme'] = $theme;
+		}
+		$this->suspend_kses();
+		unset( $_REQUEST[ $split_key ], $_POST[ $split_key ] );
+		$this->split_snapshot_id = wp_insert_post( $new_post_arr );
+		$this->split_processing_post_id = $post->ID;
+		$this->restore_kses();
+		$content = Customize_Snapshot_Manager::encode_json( $data );
+		add_action( 'post_updated', array( $this, 'redirect_split_post' ), 100 );
+		return $content;
+	}
+
+	/**
+	 * Redirect split post to newly created post.
+	 *
+	 * @param int $post_id Post id.
+	 */
+	public function redirect_split_post( $post_id ) {
+		if ( $this->split_processing_post_id !== $post_id ) {
+			return;
+		}
+		wp_safe_redirect( get_edit_post_link( $this->split_snapshot_id, 'raw' ) );
+		exit;
+	}
+
 }

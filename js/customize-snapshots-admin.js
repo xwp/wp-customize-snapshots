@@ -18,6 +18,7 @@ var CustomizeSnapshotsAdmin = (function( $ ) {
 		component.data = _.extend( component.data, args );
 		$( function() {
 			component.deleteSetting();
+			component.splitSnapshot();
 		} );
 	};
 
@@ -107,6 +108,29 @@ var CustomizeSnapshotsAdmin = (function( $ ) {
 			} else if ( component.isLinkSetToRestoreSetting( $clickedLink ) ) {
 				component.showSettingAndChangeLinkText( $clickedLink );
 			}
+		} );
+	};
+
+	component.splitSnapshot = function() {
+		var $splitCheckbox = $( 'input[type="checkbox"].split-snapshot-hide' ),
+			$splitButton = $( '#split-activate' ),
+			splitClassName = 'split-snapshot-hide',
+			cancelText = $splitButton.data( 'toggle-text' ),
+			originalText = $splitButton.text();
+
+		if ( ! $splitButton.length ) {
+			return;
+		}
+		$splitButton.on( 'click', function( e ) {
+			if ( $splitCheckbox.hasClass( splitClassName ) ) {
+				$splitCheckbox.removeClass( splitClassName );
+				$splitButton.text( cancelText );
+			} else {
+				$splitCheckbox.removeAttr( 'checked' );
+				$splitCheckbox.addClass( splitClassName );
+				$splitButton.text( originalText );
+			}
+			e.preventDefault();
 		} );
 	};
 
