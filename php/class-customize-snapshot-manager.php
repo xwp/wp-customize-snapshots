@@ -936,7 +936,7 @@ class Customize_Snapshot_Manager {
 			return $allcaps;
 		}
 
-		$post = get_post( absint( $args[2] ) );
+		$post = get_post( $args[2] );
 		if ( ! $post ) {
 			return $allcaps;
 		}
@@ -945,11 +945,11 @@ class Customize_Snapshot_Manager {
 		}
 
 		// Check if the status of the post is 'published' within the changeset.
-		$chageset_id = $this->post_type->find_post( $this->current_snapshot_uuid );
-		if ( ! $chageset_id ) {
+		$changeset_id = $this->post_type->find_post( $this->current_snapshot_uuid );
+		if ( ! $changeset_id ) {
 			return $allcaps;
 		}
-		$data = $this->post_type->get_post_content( get_post( absint( $chageset_id ) ) );
+		$data = $this->post_type->get_post_content( get_post( absint( $changeset_id ) ) );
 
 		$is_published = false;
 		$key = 'post[' . $post->post_type . '][' . $post->ID . ']';

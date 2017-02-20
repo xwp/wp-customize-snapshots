@@ -763,11 +763,6 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 			'0' => 'read_post',
 			'2' => $post_id,
 		);
-		$allcaps = $this->manager->filter_user_has_cap( array(), $caps, $args );
-		$this->assertEquals( array( 'read_others_posts' => true ), $allcaps );
-
-		$args['0'] = 'edit_post';
-		$allcaps = $this->manager->filter_user_has_cap( array(), $caps, $args );
-		$this->assertFalse( array( 'read_others_posts' => true ) == $allcaps );
+		$this->assertTrue( current_user_can( 'read_post', $post_id ) );
 	}
 }
