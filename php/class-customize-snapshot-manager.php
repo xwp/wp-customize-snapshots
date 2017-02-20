@@ -602,7 +602,7 @@ class Customize_Snapshot_Manager {
 	}
 
 	/**
-	 * Adds a "Publish Snapshot" link to the Toolbar when in Snapshot mode.
+	 * Adds a "Publish Changeset" link to the Toolbar when in Snapshot mode.
 	 *
 	 * @param \WP_Admin_Bar $wp_admin_bar WP_Admin_Bar instance.
 	 */
