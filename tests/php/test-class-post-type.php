@@ -897,4 +897,59 @@ class Test_Post_Type extends \WP_UnitTestCase {
 		$this->assertContains( 'display: none;', $content );
 	}
 
+	/**
+	 * Test filter_snapshot_split_data.
+	 *
+	 * @covers \CustomizeSnapshots\Post_Type::filter_snapshot_split_data()
+	 */
+	public function test_filter_snapshot_split_data() {
+		global $post;
+		$split_key = 'split-snapshot';
+		$nonce_key = $this->post_type_slug;
+		$admin_user_id = $this->factory()->user->create( array(
+			'role' => 'administrator',
+		) );
+		wp_set_current_user( $admin_user_id );
+		$_REQUEST[ $split_key ] = $_POST[ $split_key ] = array(
+			'foo',
+		);
+		$_REQUEST[ $nonce_key ] = $_POST[ $nonce_key ] = wp_create_nonce( $this->post_type_slug . '_settings' );
+		remove_all_filters( 'content_save_pre' );
+		$post_type_obj = $this->get_new_post_type_instance( $this->plugin->customize_snapshot_manager );
+		$post_type_obj->hooks();
+		$this->assertEquals( 100, has_filter( 'content_save_pre', array(
+			$post_type_obj,
+			'filter_snapshot_split_data',
+		) ) );
+		$post_id = $post_type_obj->save( array(
+			'uuid' => self::UUID,
+			'data' => array(
+				'foo' => array(
+					'value' => 'foo_value',
+				),
+				'bar' => array(
+					'value' => 'bar_value',
+				),
+			),
+			'status' => 'draft',
+		) );
+		$post = get_post( $post_id ); // WPCS: override ok.
+		$content = $post_type_obj->filter_snapshot_split_data( $post->post_content );
+		$data = json_decode( $content, true );
+		$this->assertArrayNotHasKey( 'foo', $data );
+		$this->assertNotEmpty( $post_type_obj->split_snapshot_id );
+		$this->assertEquals( $post->ID, $post_type_obj->split_processing_post_id );
+		$split_post = get_post( $post_type_obj->split_snapshot_id );
+		$split_data = json_decode( $split_post->post_content, true );
+		$this->assertCount( 1, $split_data );
+		$this->assertArrayHasKey( 'foo', $split_data );
+		$this->assertEquals( 100, has_action( 'post_updated', array(
+			$post_type_obj,
+			'redirect_split_post',
+		) ) );
+		$this->assertArrayNotHasKey( $split_key, $_REQUEST );
+		$this->assertArrayNotHasKey( $split_key, $_POST );
+		$should_null = $post_type_obj->redirect_split_post( $split_post->ID + 1 );
+		$this->assertNull( $should_null );
+	}
 }
