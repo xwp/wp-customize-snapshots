@@ -863,6 +863,7 @@ class Post_Type {
 			unset( $data[ $setting_id ] );
 		}
 		$content = Customize_Snapshot_Manager::encode_json( $data );
+		// Remove key so it doesn't save recursively.
 		unset( $_REQUEST[ $key_for_settings ], $_POST[ $key_for_settings ] );
 		return $content;
 	}
@@ -930,6 +931,7 @@ class Post_Type {
 			$new_post_arr['meta_input']['_snapshot_theme'] = $theme;
 		}
 		$this->suspend_kses();
+		// Remove key so it doesn't save recursively.
 		unset( $_REQUEST[ $split_key ], $_POST[ $split_key ] );
 		$this->split_snapshot_id = wp_insert_post( $new_post_arr );
 		$this->split_processing_post_id = $post->ID;
