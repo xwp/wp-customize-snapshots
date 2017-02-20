@@ -664,6 +664,9 @@
 			}
 
 			a.href = snapshot.frontendPreviewUrl.get();
+			if ( snapshot.statusButton.disbleButton.get() ) {
+				return a.href;
+			}
 			if ( ! api.settings.theme.active ) {
 				params.theme = api.settings.theme.stylesheet;
 			}
