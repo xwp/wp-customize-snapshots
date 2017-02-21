@@ -925,13 +925,17 @@ class Customize_Snapshot_Manager {
 	 * @return array All capabilities.
 	 */
 	public function filter_user_has_cap( $allcaps, $caps, $args ) {
-		global $current_user;
-
 		if (
 			! $this->current_snapshot_uuid
-			|| 0 !== $current_user->ID
-			|| ! isset( $args[2] )
-			|| 'read_post' !== $args['0']
+			||
+			! isset( $args[2] )
+			||
+			'read_post' !== $args[0]
+			||
+			(
+				isset( $allcaps[ $caps[0] ] )
+				&& true === $allcaps[ $caps[0] ]
+			)
 		) {
 			return $allcaps;
 		}
@@ -951,19 +955,20 @@ class Customize_Snapshot_Manager {
 		}
 		$data = $this->post_type->get_post_content( get_post( absint( $changeset_id ) ) );
 
-		$is_published = false;
+		$allow_cap = false;
 		$key = 'post[' . $post->post_type . '][' . $post->ID . ']';
 
 		if ( isset( $data[ $key ] ) ) {
 			$changeset_post_values = $data[ $key ]['value'];
 			if ( isset( $changeset_post_values['post_status'] ) ) {
-				$is_published = 'publish' === $changeset_post_values['post_status'];
+				$allow_cap = 'publish' === $changeset_post_values['post_status'];
+				if ( ! $allow_cap && isset( $allcaps['read_private_posts'] ) && true === $allcaps['read_private_posts'] ) {
+					$allow_cap = 'private' === $changeset_post_values['post_status'];
+				}
 			}
 		}
 
-		if ( true === $is_published ) {
-			$allcaps[ $caps[0] ] = true;
-		}
+		$allcaps[ $caps[0] ] = $allow_cap;
 
 		return $allcaps;
 	}
