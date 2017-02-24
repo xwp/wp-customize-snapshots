@@ -45,6 +45,8 @@
 				snapshot.data.uuid = snapshot.data.uuid || api.settings.changeset.uuid;
 				snapshot.data.title = snapshot.data.title || snapshot.data.uuid;
 
+				snapshot.editBoxAutoSaveTriggered = false;
+
 				if ( api.state.has( 'changesetStatus' ) && api.state( 'changesetStatus' ).get() ) {
 					api.state( 'snapshot-exists' ).set( true );
 				}
@@ -608,6 +610,7 @@
 					return;
 				}
 				snapshot.updatePending = true;
+				snapshot.editBoxAutoSaveTriggered = true;
 				snapshot.updateSnapshot( status ).done( function() {
 					snapshot.updatePending = snapshot.dirtyEditControlValues;
 					if ( ! snapshot.updatePending ) {
@@ -1078,12 +1081,12 @@
 		},
 
 		/**
-		 * Remove 'customize_changeset_status' if its already set; replace with customize_snapshots_create_revision param.
+		 * Remove 'customize_changeset_status' if it is being auto saved for edit box to avoid revisions.
 		 *
 		 * @return {void}
 		 */
 		prefilterAjax: function prefilterAjax() {
-			var removeParam, isSameStatus;
+			var snapshot = this, removeParam;
 
 			if ( ! api.state.has( 'changesetStatus' ) ) {
 				return;
@@ -1102,13 +1105,13 @@
 			};
 
 			$.ajaxPrefilter( function( options, originalOptions ) {
-				if ( ! originalOptions.data ) {
+				if ( ! originalOptions.data || ! snapshot.editBoxAutoSaveTriggered ) {
 					return;
 				}
-				isSameStatus = api.state( 'changesetStatus' ).get() === originalOptions.data.customize_changeset_status;
-				if ( 'customize_save' === originalOptions.data.action && isSameStatus && options.data ) {
+
+				if ( 'customize_save' === originalOptions.data.action && options.data ) {
 					options.data = removeParam( options.data, 'customize_changeset_status' );
-					options.data += '&customize_snapshots_create_revision=1';
+					snapshot.editBoxAutoSaveTriggered = false;
 				}
 			} );
 		}

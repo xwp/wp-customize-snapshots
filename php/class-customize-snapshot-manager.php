@@ -104,7 +104,6 @@ class Customize_Snapshot_Manager {
 		add_action( 'admin_bar_menu', array( $this, 'remove_all_non_snapshot_admin_bar_links' ), 100000 );
 		add_action( 'wp_before_admin_bar_render', array( $this, 'print_admin_bar_styles' ) );
 		add_filter( 'removable_query_args', array( $this, 'filter_removable_query_args' ) );
-		add_filter( 'wp_save_post_revision_post_has_changed', array( $this, '_filter_revision_post_has_changed' ), 20, 3 );
 		add_action( 'save_post_customize_changeset', array( $this, 'create_initial_changeset_revision' ) );
 		add_filter( 'wp_insert_post_data', array( $this, 'prepare_snapshot_post_content_for_publish' ) );
 	}
@@ -355,24 +354,6 @@ class Customize_Snapshot_Manager {
 		if ( 0 === count( wp_get_post_revisions( $post_id ) ) ) {
 			wp_save_post_revision( $post_id );
 		}
-	}
-
-	/**
-	 * When a customize_save Ajax action is being made, ensure a revision is allowed if customize_snapshots_create_revision query param is present.
-	 *
-	 * @see \WP_Customize_Manager::_filter_revision_post_has_changed()
-	 *
-	 * @param bool     $post_has_changed Whether the post has changed.
-	 * @param \WP_Post $last_revision    The last revision post object.
-	 * @param \WP_Post $post             The post object.
-	 * @return bool Whether a revision should be made.
-	 */
-	public function _filter_revision_post_has_changed( $post_has_changed, $last_revision, $post ) {
-		unset( $last_revision );
-		if ( 'customize_changeset' === $post->post_type && ! empty( $_POST['customize_snapshots_create_revision'] ) ) {
-			$post_has_changed = true;
-		}
-		return $post_has_changed;
 	}
 
 	/**
