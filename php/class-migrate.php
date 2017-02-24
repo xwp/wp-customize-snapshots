@@ -124,7 +124,8 @@ class Migrate {
 		}
 
 		if ( $is_doing_cli ) {
-			\WP_CLI::log( __( 'Migrating', 'customize-snapshots' ) . ' ' . count( $query->posts ) . __( ' snapshots into changeset', 'customize-snapshots' ) );
+			/* translators: %s: post count.*/
+			\WP_CLI::log( sprintf( __( 'Migrating %s Snapshots into Changeset', 'customize-snapshots' ), count( $query->posts ) ) );
 		}
 
 		if ( ! empty( $query->posts ) ) {
@@ -139,9 +140,11 @@ class Migrate {
 				$success = $this->migrate_post( $id );
 				if ( $is_doing_cli ) {
 					if ( $success ) {
-						\WP_CLI::success( __( 'Migrated post', 'customize-snapshots' ) . ' ' . $id . '.' );
+						/* translators: %s: post id.*/
+						\WP_CLI::success( sprintf( __( 'Migrated post %s.', 'customize-snapshots' ), $id ) );
 					} else {
-						\WP_CLI::error( __( ' Failed to migrate', 'customize-snapshots' ) . ' ' . $id . '.' );
+						/* translators: %s: post id.*/
+						\WP_CLI::error( sprintf( __( 'Failed to migrate %s.', 'customize-snapshots' ), $id ) );
 					}
 				}
 			}
