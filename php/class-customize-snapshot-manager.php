@@ -930,11 +930,16 @@ class Customize_Snapshot_Manager {
 			||
 			! isset( $args[2] )
 			||
-			'read_post' !== $args[0]
+			(
+					'read_post' !== $args[0]
+					&&
+					'read_page' !== $args[0]
+			)
 			||
 			(
 				isset( $allcaps[ $caps[0] ] )
-				&& true === $allcaps[ $caps[0] ]
+				&&
+				true === $allcaps[ $caps[0] ]
 			)
 		) {
 			return $allcaps;
@@ -944,15 +949,13 @@ class Customize_Snapshot_Manager {
 		if ( ! $post ) {
 			return $allcaps;
 		}
-		if ( 'customize-draft' !== $post->post_status && 'auto-draft' !== $post->post_status ) {
-			return $allcaps;
-		}
 
 		// Check if the status of the post is 'published' within the changeset.
 		$changeset_id = $this->post_type->find_post( $this->current_snapshot_uuid );
 		if ( ! $changeset_id ) {
 			return $allcaps;
 		}
+
 		$data = $this->post_type->get_post_content( get_post( absint( $changeset_id ) ) );
 
 		$allow_cap = false;

@@ -742,6 +742,21 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 			'post_status' => 'auto-draft',
 		) );
 
+		$private_to_public_post_id = $this->factory()->post->create( array(
+			'post_type' => 'post',
+			'post_status' => 'private',
+		) );
+
+		$draft_to_public_post_id = $this->factory()->post->create( array(
+			'post_type' => 'post',
+			'post_status' => 'draft',
+		) );
+
+		$public_to_private_post_id = $this->factory()->post->create( array(
+			'post_type' => 'post',
+			'post_status' => 'public',
+		) );
+
 		$uuid = wp_generate_uuid4();
 		$this->manager->post_type->save( array(
 			'uuid' => $uuid,
@@ -751,18 +766,39 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 						'post_status' => 'publish',
 					),
 				),
+				'post[post][' . $private_to_public_post_id . ']' => array(
+					'value' => array(
+						'post_status' => 'publish',
+					),
+				),
+				'post[post][' . $draft_to_public_post_id . ']' => array(
+					'value' => array(
+						'post_status' => 'publish',
+					),
+				),
+				'post[post][' . $public_to_private_post_id . ']' => array(
+					'value' => array(
+						'post_status' => 'private',
+					),
+				),
 			),
 			'status' => 'draft',
 		) );
 
 		$this->manager->current_snapshot_uuid = $uuid;
-		$caps = array(
-			'0' => 'read_others_posts',
-		);
-		$args = array(
-			'0' => 'read_post',
-			'2' => $post_id,
-		);
+
+		// Tests for unauthenticated user.
+		wp_set_current_user( 0 );
+		//$this->assertTrue( current_user_can( 'read_post', $post_id ) );
+		//$this->assertTrue( current_user_can( 'read_post', $private_to_public_post_id ) );
+		//$this->assertTrue( current_user_can( 'read_post', $draft_to_public_post_id ) );
+		// $this->assertFalse( current_user_can( 'read_post', $public_to_private_post_id ) ); // @todo Causes errors.
+
+		// Tests for administrator.
+		wp_set_current_user( $this->user_id );
 		$this->assertTrue( current_user_can( 'read_post', $post_id ) );
+		$this->assertTrue( current_user_can( 'read_post', $private_to_public_post_id ) );
+		$this->assertTrue( current_user_can( 'read_post', $draft_to_public_post_id ) );
+		// $this->assertTrue( current_user_can( 'read_post', $public_to_private_post_id ) ); @todo Causes error.
 	}
 }
