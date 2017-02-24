@@ -102,6 +102,7 @@ class Migrate {
 	 * @return int|array migration status or posts.
 	 */
 	public function changeset_migrate( $limit = -1, $dry_run = false ) {
+		$is_doing_cli = defined( 'WP_CLI' ) && WP_CLI;
 		$query = new \WP_Query();
 		$arg = array(
 			'post_type' => 'customize_snapshot',
@@ -122,6 +123,10 @@ class Migrate {
 			return $query->posts;
 		}
 
+		if ( $is_doing_cli ) {
+			\WP_CLI::log( __( 'Migrating', 'customize-snapshots' ) . ' ' . count( $query->posts ) . __( ' snapshots into changeset', 'customize-snapshots' ) );
+		}
+
 		if ( ! empty( $query->posts ) ) {
 			$has_kses = ( false !== has_filter( 'content_save_pre', 'wp_filter_post_kses' ) );
 			if ( $has_kses ) {
@@ -131,7 +136,14 @@ class Migrate {
 				require_once( ABSPATH . WPINC . '/class-wp-customize-manager.php' );
 			}
 			foreach ( $query->posts as $id ) {
-				$this->migrate_post( $id );
+				$success = $this->migrate_post( $id );
+				if ( $is_doing_cli ) {
+					if ( $success ) {
+						\WP_CLI::success( __( 'Migrated post', 'customize-snapshots' ) . ' ' . $id . '.' );
+					} else {
+						\WP_CLI::error( __( ' Failed to migrate', 'customize-snapshots' ) . ' ' . $id . '.' );
+					}
+				}
 			}
 			if ( $has_kses ) {
 				kses_init_filters();
@@ -153,7 +165,7 @@ class Migrate {
 	 * @global \WP_Customize_Manager $wp_customize
 	 */
 	public function migrate_post( $id ) {
-		global $wp_customize;
+		global $wp_customize, $wpdb;
 
 		$post = get_post( $id );
 
@@ -166,7 +178,7 @@ class Migrate {
 		// Get manager instance.
 		$manager = new \WP_Customize_Manager();
 		$original_manager = $wp_customize;
-		$wp_customize = $manager; // Export to global since some filters (like widget_customizer_setting_args) lack as $wp_customize context and need global.
+		$wp_customize = $manager; // Export to global since some filters (like widget_customizer_setting_args) lack as $wp_customize context and need global. WPCS: override ok.
 
 		// Validate data.
 		foreach ( $data as $setting_id => $setting_params ) {
@@ -203,13 +215,17 @@ class Migrate {
 				$post_data[ $prefixed_setting_id ]['type'] = $setting->type;
 			}
 		}
-		$maybe_updated = wp_update_post( wp_slash( array(
-			'ID' => $post->ID,
-			'post_type' => 'customize_changeset',
-			'post_content' => Customize_Snapshot_Manager::encode_json( $post_data ),
-		) ), true );
+		$maybe_updated = $wpdb->update( $wpdb->posts, array(
+				'post_type'    => 'customize_changeset',
+				'post_content' => Customize_Snapshot_Manager::encode_json( $post_data ),
+			),
+			array(
+				'ID' => $post->ID,
+			)
+		);
+		clean_post_cache( $post );
 
-		$wp_customize = $original_manager; // Restore previous manager.
+		$wp_customize = $original_manager; // Restore previous manager. WPCS: override ok.
 
 		return $maybe_updated;
 	}
