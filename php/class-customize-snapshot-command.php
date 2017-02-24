@@ -46,12 +46,13 @@ class Customize_Snapshot_Command {
 		if ( ! $dry_mode ) {
 			wp_suspend_cache_addition( true );
 			$post_count = $migrate_obj->changeset_migrate();
-			\WP_CLI::success( $post_count . ' ' . __( 'posts migrated.', 'customize-snapshots' ) );
 		} else {
 			$ids = $migrate_obj->changeset_migrate( -1, true );
 			\WP_CLI::success( __( 'Posts migrated:', 'customize-snapshots' ) . ' ' . implode( ',', $ids ) );
-			\WP_CLI::success( 'Total ' . count( $ids ) . ' ' . __( 'posts migrated.', 'customize-snapshots' ) );
+			$post_count = count( $ids );
 		}
+		/* translators: %s: post count.*/
+		\WP_CLI::success( sprintf( __( 'Total posts migrated: %s', 'customize-snapshots' ), $post_count ) );
 	}
 }
 
