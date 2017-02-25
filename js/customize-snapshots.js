@@ -565,7 +565,7 @@
 			snapshot.snapshotEditContainerDisplayed.set( false );
 
 			api.state( 'snapshot-saved' ).bind( function( saved ) {
-				if ( saved ) {
+				if ( saved && ! snapshot.dirtyEditControlValues ) {
 					snapshot.updateSnapshotEditControls();
 				}
 			} );
@@ -611,6 +611,7 @@
 				}
 				snapshot.updatePending = true;
 				snapshot.editBoxAutoSaveTriggered = true;
+				snapshot.dirtyEditControlValues = false;
 				snapshot.updateSnapshot( status ).done( function() {
 					snapshot.updatePending = snapshot.dirtyEditControlValues;
 					if ( ! snapshot.updatePending ) {
@@ -621,23 +622,22 @@
 					snapshot.dirtyEditControlValues = false;
 				} ).fail( function() {
 					snapshot.updatePending = false;
+					snapshot.dirtyEditControlValues = true;
 				} );
 			}, delay );
 
 			snapshot.editControlSettings( 'title' ).bind( function() {
+				snapshot.dirtyEditControlValues = true;
 				if ( ! snapshot.updatePending ) {
 					update();
-				} else {
-					snapshot.dirtyEditControlValues = true;
 				}
 			} );
 
 			snapshot.editControlSettings( 'date' ).bind( function() {
 				if ( snapshot.isFutureDate() ) {
+					snapshot.dirtyEditControlValues = true;
 					if ( ! snapshot.updatePending ) {
 						update();
-					} else {
-						snapshot.dirtyEditControlValues = true;
 					}
 				}
 			} );
@@ -656,16 +656,13 @@
 			// @todo Show loader and disable button while auto saving.
 			api.bind( 'changeset-save', function() {
 				if ( isValidChangesetStatus() ) {
-					snapshot.updatePending = true;
 					snapshot.extendPreviewerQuery();
 				}
 			} );
 
 			api.bind( 'changeset-saved', function() {
-				api.state( 'saved' ).set( true ); // Suppress the AYS dialog.
-
-				if ( isValidChangesetStatus() ) {
-					snapshot.updatePending = false;
+				if ( 'auto-draft' === api.state( 'changesetStatus' ).get() ) {
+					api.state( 'saved' ).set( true ); // Suppress the AYS dialog.
 				}
 			});
 		},
