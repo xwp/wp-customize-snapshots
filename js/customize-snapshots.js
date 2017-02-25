@@ -661,7 +661,7 @@
 			} );
 
 			api.bind( 'changeset-saved', function() {
-				if ( 'auto-draft' === api.state( 'changesetStatus' ).get() ) {
+				if ( 'auto-draft' !== api.state( 'changesetStatus' ).get() ) {
 					api.state( 'saved' ).set( true ); // Suppress the AYS dialog.
 				}
 			});
