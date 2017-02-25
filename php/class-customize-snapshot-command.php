@@ -23,8 +23,8 @@ class Customize_Snapshot_Command {
 	 *
 	 * ## EXAMPLES
 	 *
-	 *      wp customize_snapshot migrate --dry-run
-	 *      wp customize_snapshot migrate
+	 *      wp snapshot migrate --dry-run
+	 *      wp snapshot migrate
 	 *
 	 * @when after_wp_load
 	 *
