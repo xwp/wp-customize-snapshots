@@ -1109,7 +1109,7 @@
 					return;
 				}
 
-				if ( 'customize_save' === originalOptions.data.action && options.data ) {
+				if ( 'customize_save' === originalOptions.data.action && options.data && originalOptions.data.customize_changeset_status ) {
 					options.data = removeParam( options.data, 'customize_changeset_status' );
 					snapshot.editBoxAutoSaveTriggered = false;
 				}
