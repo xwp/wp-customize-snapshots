@@ -50,6 +50,11 @@ class Migrate {
 	 */
 	public function maybe_migrate() {
 		if ( ! $this->is_migrated() ) {
+			$found_post = $this->changeset_migrate( 1, true );
+			if ( empty( $found_post ) ) {
+				update_option( self::KEY, 1 );
+				return;
+			}
 			add_action( 'admin_notices', array( $this, 'show_migration_notice' ) );
 			add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_script' ) );
 			add_action( 'wp_ajax_customize_snapshot_migration', array( $this, 'handle_migrate_changeset_request' ) );

@@ -108,11 +108,34 @@ class Test_Migrate extends \WP_UnitTestCase {
 	 * @see Migrate::maybe_migrate()
 	 */
 	function test_maybe_migrate() {
-		$migrate = new Migrate( $this->plugin );
+		delete_option( Migrate::KEY );
+		$migrate = $this->getMockBuilder( 'CustomizeSnapshots\Migrate' )
+		                    ->setMethods( array( 'changeset_migrate' ) )
+		                    ->setConstructorArgs( array( $this->plugin ) )
+		                    ->getMock();
+		$migrate->expects( $this->once() )
+		            ->method( 'changeset_migrate' )
+					->with( 1, true )
+		            ->will( $this->returnValue( 92 ) );
 		$migrate->maybe_migrate();
 		$this->assertEquals( 10, has_action( 'admin_notices', array( $migrate, 'show_migration_notice' ) ) );
 		$this->assertEquals( 10, has_action( 'admin_enqueue_scripts', array( $migrate, 'enqueue_script' ) ) );
 		$this->assertEquals( 10, has_action( 'wp_ajax_customize_snapshot_migration', array( $migrate, 'handle_migrate_changeset_request' ) ) );
+
+		// If no post to migrate fall back and add option value.
+		$migrate_obj = $this->getMockBuilder( 'CustomizeSnapshots\Migrate' )
+		                ->setMethods( array( 'changeset_migrate' ) )
+		                ->setConstructorArgs( array( $this->plugin ) )
+		                ->getMock();
+		$migrate_obj->expects( $this->once() )
+		        ->method( 'changeset_migrate' )
+		        ->with( 1, true )
+		        ->will( $this->returnValue( false ) );
+		$migrate_obj->maybe_migrate();
+		$this->assertNotEquals( 10, has_action( 'admin_notices', array( $migrate_obj, 'show_migration_notice' ) ) );
+		$this->assertNotEquals( 10, has_action( 'admin_enqueue_scripts', array( $migrate_obj, 'enqueue_script' ) ) );
+		$this->assertNotEquals( 10, has_action( 'wp_ajax_customize_snapshot_migration', array( $migrate_obj, 'handle_migrate_changeset_request' ) ) );
+		$this->assertEquals( 1, get_option( Migrate::KEY ) );
 	}
 
 	/**
