@@ -23,8 +23,8 @@ class Customize_Snapshot_Command {
 	 *
 	 * ## EXAMPLES
 	 *
-	 *      wp snapshot migrate --dry-run
-	 *      wp snapshot migrate
+	 *      wp customize-snapshots migrate --dry-run
+	 *      wp customize-snapshots migrate
 	 *
 	 * @when after_wp_load
 	 *
@@ -57,5 +57,5 @@ class Customize_Snapshot_Command {
 }
 
 if ( defined( 'WP_CLI' ) && WP_CLI ) {
-	\WP_CLI::add_command( 'snapshot', __NAMESPACE__ . '\\Customize_Snapshot_Command' );
+	\WP_CLI::add_command( 'customize-snapshots', __NAMESPACE__ . '\\Customize_Snapshot_Command' );
 }
