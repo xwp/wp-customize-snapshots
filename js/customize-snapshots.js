@@ -509,7 +509,9 @@
 			// Set up toggling of the schedule container.
 			snapshot.snapshotEditContainerDisplayed.bind( function( isDisplayed ) {
 
-				snapshot.dateControl.toggle( 'future' === snapshot.statusButton.value.get() );
+				if ( snapshot.statusButton ) {
+					snapshot.dateControl.toggle( 'future' === snapshot.statusButton.value.get() );
+				}
 
 				if ( isDisplayed ) {
 					snapshot.editContainer.stop().slideDown( 'fast' ).attr( 'aria-expanded', 'true' );
