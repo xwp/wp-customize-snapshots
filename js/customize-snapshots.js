@@ -201,8 +201,6 @@
 				snapshot.statusButton.disableSelect.set( isPublishStatus );
 				snapshot.statusButton.disbleButton.set( true );
 				snapshot.snapshotExpandButton.toggle( ! isPublishStatus );
-				snapshot.previewLink.toggle( ! isPublishStatus );
-
 				snapshot.statusButton.updateButtonText( 'alt-text' );
 
 				// Trigger an event for plugins to use.
@@ -406,7 +404,6 @@
 					snapshot.saveButton.prop( 'disabled', true );
 					snapshot.submitButton.prop( 'disabled', false );
 					snapshot.saveButton.text( snapshot.data.i18n.updateButton );
-					snapshot.setUpPreviewLink();
 				} ).fail( function() {
 					snapshot.saveButton.prop( 'disabled', false );
 					snapshot.submitButton.prop( 'disabled', false );
@@ -1106,9 +1103,7 @@
 
 			statusButton.button.on( 'click', function( event ) {
 				event.preventDefault();
-				snapshot.updateSnapshot( statusButton.value.get() ).done( function() {
-					snapshot.setUpPreviewLink();
-				} );
+				snapshot.updateSnapshot( statusButton.value.get() );
 			} );
 
 			snapshot.publishButton.after( statusButton.container );
