@@ -789,16 +789,17 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 
 		// Tests for unauthenticated user.
 		wp_set_current_user( 0 );
-		//$this->assertTrue( current_user_can( 'read_post', $post_id ) );
-		//$this->assertTrue( current_user_can( 'read_post', $private_to_public_post_id ) );
-		//$this->assertTrue( current_user_can( 'read_post', $draft_to_public_post_id ) );
-		// $this->assertFalse( current_user_can( 'read_post', $public_to_private_post_id ) ); // @todo Causes errors.
+		$this->assertTrue( current_user_can( 'read_post', $post_id ) );
+		$this->assertTrue( current_user_can( 'read_post', $private_to_public_post_id ) );
+		$this->assertTrue( current_user_can( 'read_post', $draft_to_public_post_id ) );
 
+		// $this->assertFalse( current_user_can( 'read_post', $public_to_private_post_id ) ); -- Checking caps for read_post causes failure. @todo Causes errors.
 		// Tests for administrator.
 		wp_set_current_user( $this->user_id );
 		$this->assertTrue( current_user_can( 'read_post', $post_id ) );
 		$this->assertTrue( current_user_can( 'read_post', $private_to_public_post_id ) );
 		$this->assertTrue( current_user_can( 'read_post', $draft_to_public_post_id ) );
-		// $this->assertTrue( current_user_can( 'read_post', $public_to_private_post_id ) ); @todo Causes error.
+
+		// $this->assertTrue( current_user_can( 'read_post', $public_to_private_post_id ) ); -- Checking caps for read_post causes failure. @todo Causes error.
 	}
 }
