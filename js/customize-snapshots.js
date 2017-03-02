@@ -1085,7 +1085,7 @@
 		 * @return {void}
 		 */
 		prefilterAjax: function prefilterAjax() {
-			var snapshot = this, removeParam;
+			var snapshot = this, removeParam, isSameStatus;
 
 			if ( ! api.state.has( 'changesetStatus' ) ) {
 				return;
@@ -1108,7 +1108,8 @@
 					return;
 				}
 
-				if ( 'customize_save' === originalOptions.data.action && options.data && originalOptions.data.customize_changeset_status ) {
+				isSameStatus = api.state( 'changesetStatus' ).get() === originalOptions.data.customize_changeset_status;
+				if ( 'customize_save' === originalOptions.data.action && options.data && originalOptions.data.customize_changeset_status && isSameStatus ) {
 					options.data = removeParam( options.data, 'customize_changeset_status' );
 					snapshot.editBoxAutoSaveTriggered = false;
 				}
