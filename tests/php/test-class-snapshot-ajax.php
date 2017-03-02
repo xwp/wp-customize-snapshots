@@ -41,9 +41,8 @@ class Test_Snapshot_Ajax extends \WP_Ajax_UnitTestCase {
 		                    ->setMethods( array( 'changeset_migrate' ) )
 							->setConstructorArgs( array( $this->plugin ) )
 		                    ->getMock();
-		$migrate_obj->expects( $this->once() )
+		$migrate_obj->expects( $this->any() )
 		            ->method( 'changeset_migrate' )
-					->with( 1, false )
 		            ->will( $this->returnValue( 92 ) );
 		$migrate_obj->maybe_migrate();
 		$this->set_input_vars(array(
