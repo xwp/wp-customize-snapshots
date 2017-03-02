@@ -104,6 +104,7 @@ class Customize_Snapshot_Manager {
 		add_action( 'admin_bar_menu', array( $this, 'remove_all_non_snapshot_admin_bar_links' ), 100000 );
 		add_action( 'wp_before_admin_bar_render', array( $this, 'print_admin_bar_styles' ) );
 		add_filter( 'removable_query_args', array( $this, 'filter_removable_query_args' ) );
+		add_action( 'save_post_customize_changeset', array( $this, 'create_initial_changeset_revision' ) );
 		add_filter( 'wp_insert_post_data', array( $this, 'prepare_snapshot_post_content_for_publish' ) );
 	}
 
@@ -340,6 +341,19 @@ class Customize_Snapshot_Manager {
 	 */
 	public function snapshot() {
 		return $this->snapshot;
+	}
+
+	/**
+	 * Create initial changeset revision.
+	 *
+	 * This should be removed once #30854 is resolved.
+	 *
+	 * @link https://core.trac.wordpress.org/ticket/30854
+	 */
+	public function create_initial_changeset_revision( $post_id ) {
+		if ( 0 === count( wp_get_post_revisions( $post_id ) ) ) {
+			wp_save_post_revision( $post_id );
+		}
 	}
 
 	/**
@@ -708,15 +722,15 @@ class Customize_Snapshot_Manager {
 				</div>
 
 				<ul class="snapshot-controls">
-					<li class="snapshot-control">
-						<label for="snapshot-title" class="customize-control-title snapshot-control-title">
+					<li class="snapshot-control snapshot-control-title">
+						<label for="snapshot-title" class="customize-control-title">
 							<?php esc_html_e( 'Title', 'customize-snapshots' ); ?>
 						</label>
 						<input id="snapshot-title" type="text" value="{{data.title}}">
 					</li>
 					<# if ( data.currentUserCanPublish ) { #>
-						<li class="snapshot-control">
-							<label for="snapshot-date-month" class="customize-control-title snapshot-control-title">
+						<li class="snapshot-control snapshot-control-date">
+							<label for="snapshot-date-month" class="customize-control-title">
 								<?php esc_html_e( 'Scheduling', 'customize-snapshots' ); ?>
 								<span class="reset-time">(<a href="#" title="<?php esc_attr_e( 'Reset scheduled date to original or current date', 'customize-snapshots' ); ?>"><?php esc_html_e( 'Reset', 'customize-snapshots' ) ?></a>)</span>
 							</label>
