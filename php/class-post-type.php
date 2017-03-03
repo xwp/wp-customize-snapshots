@@ -155,7 +155,9 @@ class Post_Type {
 	public function filter_post_type_link( $url, $post ) {
 		if ( static::SLUG === $post->post_type ) {
 			$url = add_query_arg(
-				array( static::FRONT_UUID_PARAM_NAME => $post->post_name ),
+				array(
+					static::FRONT_UUID_PARAM_NAME => $post->post_name,
+				),
 				home_url( '/' )
 			);
 		}
@@ -695,7 +697,11 @@ class Post_Type {
 		$posts = array_map( 'get_post', $post_ids );
 		$posts = array_filter( $posts );
 		if ( count( $posts ) <= 1 ) {
-			return empty( $redirect_to ) ? add_query_arg( array( 'merge-error' => 1 ) ) : add_query_arg( array( 'merge-error' => 1 ), $redirect_to );
+			return empty( $redirect_to ) ? add_query_arg( array(
+				'merge-error' => 1,
+			) ) : add_query_arg( array(
+				'merge-error' => 1,
+			), $redirect_to );
 		}
 		$post_id = $this->merge_snapshots( $posts );
 		$redirect_to = get_edit_post_link( $post_id, 'raw' );

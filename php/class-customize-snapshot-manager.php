@@ -188,7 +188,9 @@ class Customize_Snapshot_Manager {
 		if ( empty( $wp_customize ) || ! ( $wp_customize instanceof \WP_Customize_Manager ) ) {
 			require_once( ABSPATH . WPINC . '/class-wp-customize-manager.php' );
 			if ( null !== $this->current_snapshot_uuid ) {
-				$wp_customize = new \WP_Customize_Manager( array( 'changeset_uuid' => $this->current_snapshot_uuid ) ); // WPCS: override ok.
+				$wp_customize = new \WP_Customize_Manager( array(
+					'changeset_uuid' => $this->current_snapshot_uuid,
+				) ); // WPCS: override ok.
 			} else {
 				$wp_customize = new \WP_Customize_Manager(); // WPCS: override ok.
 			}
@@ -524,7 +526,9 @@ class Customize_Snapshot_Manager {
 
 		// Add customize_snapshot_uuid param as param to customize.php itself.
 		$customize_node->href = add_query_arg(
-			array( $this->get_customize_uuid_param() => $this->current_snapshot_uuid ),
+			array(
+				$this->get_customize_uuid_param() => $this->current_snapshot_uuid,
+			),
 			$customize_node->href
 		);
 
@@ -873,7 +877,9 @@ class Customize_Snapshot_Manager {
 			$months[ $i ]['text'] = sprintf( __( '%1$s-%2$s', 'customize-snapshots' ), $month_number, $month_text );
 			$months[ $i ]['value'] = $month_number;
 		}
-		return array( 'month_choices' => $months );
+		return array(
+			'month_choices' => $months,
+		);
 	}
 
 	/**

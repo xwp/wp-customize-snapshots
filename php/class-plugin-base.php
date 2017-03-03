@@ -214,7 +214,10 @@ abstract class Plugin_Base {
 	 *
 	 * @return mixed
 	 */
-	public function add_filter( $name, $callback, $args = array( 'priority' => 10, 'arg_count' => PHP_INT_MAX ) ) {
+	public function add_filter( $name, $callback, $args = array(
+		'priority' => 10,
+		'arg_count' => PHP_INT_MAX,
+	) ) {
 		return $this->_add_hook( 'filter', $name, $callback, $args );
 	}
 
@@ -227,7 +230,10 @@ abstract class Plugin_Base {
 	 *
 	 * @return mixed
 	 */
-	public function add_action( $name, $callback, $args = array( 'priority' => 10, 'arg_count' => PHP_INT_MAX ) ) {
+	public function add_action( $name, $callback, $args = array(
+		'priority' => 10,
+		'arg_count' => PHP_INT_MAX,
+	) ) {
 		return $this->_add_hook( 'action', $name, $callback, $args );
 	}
 
