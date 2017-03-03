@@ -201,7 +201,7 @@ abstract class Plugin_Base {
 	 */
 	public function trigger_warning( $message, $code = \E_USER_WARNING ) {
 		if ( ! $this->is_wpcom_vip_prod() ) {
-			trigger_error( esc_html( get_class( $this ) . ': ' . $message ), $code );
+			trigger_error( esc_html( get_class( $this ) . ': ' . $message ), $code ); // @codingStandardsIgnoreLine because this line will not get run on WordPress.com per the condition.
 		}
 	}
 
@@ -268,7 +268,7 @@ abstract class Plugin_Base {
 		if ( isset( $this->_called_doc_hooks[ $class_name ] ) ) {
 			$notice = sprintf( 'The add_doc_hooks method was already called on %s. Note that the Plugin_Base constructor automatically calls this method.', $class_name );
 			if ( ! $this->is_wpcom_vip_prod() ) {
-				trigger_error( esc_html( $notice ), \E_USER_NOTICE );
+				trigger_error( esc_html( $notice ), \E_USER_NOTICE ); // @codingStandardsIgnoreLine because this line will not get run on WordPress.com per the condition.
 			}
 			return;
 		}
