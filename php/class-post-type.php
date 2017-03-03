@@ -283,6 +283,13 @@ class Post_Type {
 			$args = array(
 				static::CUSTOMIZE_UUID_PARAM_NAME => $post->post_name,
 			);
+
+			$preview_url_query_vars = $this->get_preview_url_query_vars( $post->ID );
+
+			if ( ! empty( $preview_url_query_vars ) ) {
+				$args = array_merge( $args , $preview_url_query_vars );
+			}
+
 			$customize_url = add_query_arg( array_map( 'rawurlencode', $args ), wp_customize_url() );
 			$actions = array_merge(
 				array(
@@ -339,9 +346,15 @@ class Post_Type {
 			echo '</p>';
 		} elseif ( 'publish' !== $post->post_status ) {
 			echo '<p>';
+			$preview_url_query_vars = $this->get_preview_url_query_vars( $post->ID );
 			$args = array(
 				static::CUSTOMIZE_UUID_PARAM_NAME => $post->post_name,
 			);
+
+			if ( ! empty( $preview_url_query_vars ) ) {
+				$args = array_merge( $args, $preview_url_query_vars );
+			}
+
 			$customize_url = add_query_arg( array_map( 'rawurlencode', $args ), wp_customize_url() );
 			echo sprintf(
 				'<a href="%s" class="button button-secondary">%s</a> ',
@@ -839,5 +852,22 @@ class Post_Type {
 		$content = Customize_Snapshot_Manager::encode_json( $data );
 
 		return $content;
+	}
+
+	/**
+	 * Get preview url query vars.
+	 *
+	 * @param int $post_id Post id.
+	 * @return array $preview_url_query_vars Preview url query vars.
+	 */
+	public function get_preview_url_query_vars( $post_id ) {
+		$preview_url_query_vars = array();
+		$wp_customize_browser_history = 'wp-customizer-browser-history/customizer-browser-history.php';
+
+		if ( is_plugin_active( $wp_customize_browser_history ) ) {
+			$preview_url_query_vars = (array) get_post_meta( $post_id, '_preview_url_query_vars', true );
+		}
+
+		return $preview_url_query_vars;
 	}
 }

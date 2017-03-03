@@ -968,7 +968,7 @@
 				var retval = originalQuery.apply( this, arguments );
 
 				if ( ! _.isUndefined( CustomizerBrowserHistory ) ) {
-					retval.customize_preview_history_url_params = JSON.stringify( CustomizerBrowserHistory.getQueryParams( location.href ) );
+					retval.customize_preview_url_query_vars = JSON.stringify( CustomizerBrowserHistory.getQueryParams( location.href ) );
 				}
 
 				if ( snapshot.editControlSettings( 'title' ).get() ) {

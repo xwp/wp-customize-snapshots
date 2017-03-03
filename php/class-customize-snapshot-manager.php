@@ -105,7 +105,7 @@ class Customize_Snapshot_Manager {
 		add_action( 'wp_before_admin_bar_render', array( $this, 'print_admin_bar_styles' ) );
 		add_filter( 'removable_query_args', array( $this, 'filter_removable_query_args' ) );
 		add_action( 'save_post_customize_changeset', array( $this, 'create_initial_changeset_revision' ) );
-		add_action( 'save_post_customize_changeset', array( $this, 'save_customize_preview_history_url_params' ) );
+		add_action( 'save_post_customize_changeset', array( $this, 'save_customize_preview_url_query_vars' ) );
 		add_filter( 'wp_insert_post_data', array( $this, 'prepare_snapshot_post_content_for_publish' ) );
 	}
 
@@ -523,11 +523,21 @@ class Customize_Snapshot_Manager {
 			);
 		}
 
-		// Add customize_snapshot_uuid param as param to customize.php itself.
-		$customize_node->href = add_query_arg(
-			array( $this->get_customize_uuid_param() => $this->current_snapshot_uuid ),
-			$customize_node->href
+		$post_id = $this->customize_manager->changeset_post_id();
+
+		include_once( ABSPATH . 'wp-admin/includes/plugin.php' );
+		$preview_url_query_vars = $this->post_type->get_preview_url_query_vars( $post_id );
+
+		$args = array(
+			$this->get_customize_uuid_param() => $this->current_snapshot_uuid,
 		);
+
+		if ( ! empty( $preview_url_query_vars ) ) {
+			$args = array_merge( $args, $preview_url_query_vars );
+		}
+
+		// Add customize_snapshot_uuid and preview url params to customize.php itself.
+		$customize_node->href = add_query_arg( $args, $customize_node->href );
 
 		$customize_node->meta['class'] .= ' ab-customize-snapshots-item';
 		$wp_admin_bar->add_menu( (array) $customize_node );
@@ -931,66 +941,70 @@ class Customize_Snapshot_Manager {
 	}
 
 	/**
-	 * Save the preview history url params in changeset meta.
+	 * Save the preview url query vars in changeset meta.
 	 *
 	 * @param int $post_id Post id.
 	 */
-	public function save_customize_preview_history_url_params( $post_id ) {
-		if ( ! isset( $_POST['customize_preview_history_url_params'] ) ) {
+	public function save_customize_preview_url_query_vars( $post_id ) {
+		if ( ! isset( $_POST['customize_preview_url_query_vars'] ) ) {
 			return;
 		}
 
-		$original_params = (array) json_decode( wp_unslash( $_POST['customize_preview_history_url_params'] ) );
+		$original_query_vars = (array) json_decode( wp_unslash( $_POST['customize_preview_url_query_vars'] ) );
 
-		if ( empty( $original_params ) ) {
+		if ( empty( $original_query_vars ) ) {
 			return;
 		}
 
-		$allowed_panel_section_control_keys = array(
+		$allowed_panel_section_control_params = array(
 			'autofocus[panel]',
 			'autofocus[section]',
 			'autofocus[control]',
 		);
 
-		$allowed_devices = array(
-				'mobile',
-				'desktop',
-				'tablet',
-		);
-
-		$allowed_keys = array_merge( $allowed_panel_section_control_keys, array(
+		$allowed_query_params = array_merge( $allowed_panel_section_control_params, array(
 			'device',
 			'scroll',
 		) );
 
-		$history_params = array();
-		$params = wp_array_slice_assoc( $original_params, $allowed_keys );
+		$allowed_devices = array(
+			'mobile',
+			'desktop',
+			'tablet',
+		);
+
+		$preview_url_query_vars = array();
+		$params = wp_array_slice_assoc( $original_query_vars, $allowed_query_params );
 
 		if ( ! empty( $params ) ) {
-			foreach ( $params as $key => $value ) {
-
-				if ( in_array( $key, $allowed_panel_section_control_keys ) ) {
-					$is_valid_id = (
-						preg_match( '/[a-z|\[|\]|_|0-9]+/', $value )
+			foreach ( $params as $param => $value ) {
+				$is_valid_var = (
+					(
+						in_array( $param, $allowed_panel_section_control_params )
 						&&
-						count( $value ) < 100
-					);
-					if ( $is_valid_id ) {
-						$history_params[ $key ] = $value;
-					}
-				}
+						preg_match( '/[a-z|\[|\]|_|-|0-9]+/', $value )
+					)
+					||
+					(
+						'device' === $param
+						&&
+						in_array( $value, $allowed_devices )
+					)
+					||
+					(
+						'scroll' === $param
+						&&
+						is_int( $value )
+					)
+				);
 
-				if ( 'device' === $key && in_array( $value, $allowed_devices ) ) {
-					$history_params[ $key ] = $value;
-				}
-
-				if ( 'scroll' === $key && is_int( $value ) && $value < 100000 ) {
-					$history_params[ $key ] = $value;
+				if ( $is_valid_var ) {
+					$preview_url_query_vars[ $param ] = $value;
 				}
 			}
 
-			if ( ! empty( $history_params ) ) {
-				update_post_meta( $post_id, 'customize_preview_history_url_params', $history_params );
+			if ( ! empty( $preview_url_query_vars ) ) {
+				update_post_meta( $post_id, '_preview_url_query_vars', $preview_url_query_vars );
 			}
 		}
 	}
