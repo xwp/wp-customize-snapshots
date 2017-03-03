@@ -152,18 +152,16 @@ class Customize_Snapshot_Manager {
 	public function read_current_snapshot_uuid() {
 		$customize_arg = $this->get_customize_uuid_param();
 		$frontend_arg = $this->get_front_uuid_param();
-		if ( isset( $_REQUEST[ $customize_arg ] ) ) {
-			$uuid = $_REQUEST[ $customize_arg ]; // WPCS: input var ok.
-		} elseif ( isset( $_REQUEST[ $frontend_arg ] ) ) {
-			$uuid = $_REQUEST[ $frontend_arg ]; // WPCS: input var ok.
+		$uuid = null;
+		if ( isset( $_REQUEST[ $customize_arg ] ) ) { // WPCS: input var ok. CSRF ok.
+			$uuid = sanitize_key( wp_unslash( $_REQUEST[ $customize_arg ] ) ); // WPCS: input var ok. CSRF ok.
+		} elseif ( isset( $_REQUEST[ $frontend_arg ] ) ) { // WPCS: input var ok. CSRF ok.
+			$uuid = sanitize_key( wp_unslash( $_REQUEST[ $frontend_arg ] ) ); // WPCS: input var ok. CSRF ok.
 		}
 
-		if ( isset( $uuid ) ) {
-			$uuid = sanitize_key( wp_unslash( $uuid ) );
-			if ( static::is_valid_uuid( $uuid ) ) {
-				$this->current_snapshot_uuid = $uuid;
-				return true;
-			}
+		if ( $uuid && static::is_valid_uuid( $uuid ) ) {
+			$this->current_snapshot_uuid = $uuid;
+			return true;
 		}
 		$this->current_snapshot_uuid = null;
 		return false;
@@ -175,7 +173,7 @@ class Customize_Snapshot_Manager {
 	 * @return bool True if it's an Ajax request, false otherwise.
 	 */
 	public function doing_customize_save_ajax() {
-		return isset( $_REQUEST['action'] ) && wp_unslash( $_REQUEST['action'] ) === 'customize_save';
+		return isset( $_REQUEST['action'] ) && sanitize_key( wp_unslash( $_REQUEST['action'] ) ) === 'customize_save'; // WPCS: input var ok. CSRF ok.
 	}
 
 	/**
@@ -475,6 +473,7 @@ class Customize_Snapshot_Manager {
 	 * Print admin bar styles.
 	 */
 	public function print_admin_bar_styles() {
+		// @codingStandardsIgnoreStart A WordPress-VIP sniff has false positive on admin bar being hidden.
 		?>
 		<style type="text/css">
 			#wpadminbar #wp-admin-bar-resume-customize-snapshot {
@@ -494,6 +493,7 @@ class Customize_Snapshot_Manager {
 			}
 		</style>
 		<?php
+		// @codingStandardsIgnoreEnd
 	}
 
 	/**
