@@ -1,4 +1,4 @@
-/* global jQuery, wp, _customizeSnapshotsSettings */
+/* global jQuery, wp, JSON, _customizeSnapshotsSettings, CustomizerBrowserHistory */
 /* eslint no-magic-numbers: [ "error", { "ignore": [0,1,-1] } ], consistent-this: [ "error", "snapshot" ] */
 
 (function( api, $ ) {
@@ -966,6 +966,11 @@
 
 			api.previewer.query = function() {
 				var retval = originalQuery.apply( this, arguments );
+
+				if ( ! _.isUndefined( CustomizerBrowserHistory ) ) {
+					retval.customize_preview_history_url_params = JSON.stringify( CustomizerBrowserHistory.getQueryParams( location.href ) );
+				}
+
 				if ( snapshot.editControlSettings( 'title' ).get() ) {
 					retval.customize_changeset_title = snapshot.editControlSettings( 'title' ).get();
 				}

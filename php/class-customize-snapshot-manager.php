@@ -105,6 +105,7 @@ class Customize_Snapshot_Manager {
 		add_action( 'wp_before_admin_bar_render', array( $this, 'print_admin_bar_styles' ) );
 		add_filter( 'removable_query_args', array( $this, 'filter_removable_query_args' ) );
 		add_action( 'save_post_customize_changeset', array( $this, 'create_initial_changeset_revision' ) );
+		add_action( 'save_post_customize_changeset', array( $this, 'save_customize_preview_history_url_params' ) );
 		add_filter( 'wp_insert_post_data', array( $this, 'prepare_snapshot_post_content_for_publish' ) );
 	}
 
@@ -927,5 +928,70 @@ class Customize_Snapshot_Manager {
 	 */
 	public function get_customize_uuid_param() {
 		return constant( get_class( $this->post_type ) . '::CUSTOMIZE_UUID_PARAM_NAME' );
+	}
+
+	/**
+	 * Save the preview history url params in changeset meta.
+	 *
+	 * @param int $post_id Post id.
+	 */
+	public function save_customize_preview_history_url_params( $post_id ) {
+		if ( ! isset( $_POST['customize_preview_history_url_params'] ) ) {
+			return;
+		}
+
+		$original_params = (array) json_decode( wp_unslash( $_POST['customize_preview_history_url_params'] ) );
+
+		if ( empty( $original_params ) ) {
+			return;
+		}
+
+		$allowed_panel_section_control_keys = array(
+			'autofocus[panel]',
+			'autofocus[section]',
+			'autofocus[control]',
+		);
+
+		$allowed_devices = array(
+				'mobile',
+				'desktop',
+				'tablet',
+		);
+
+		$allowed_keys = array_merge( $allowed_panel_section_control_keys, array(
+			'device',
+			'scroll',
+		) );
+
+		$history_params = array();
+		$params = wp_array_slice_assoc( $original_params, $allowed_keys );
+
+		if ( ! empty( $params ) ) {
+			foreach ( $params as $key => $value ) {
+
+				if ( in_array( $key, $allowed_panel_section_control_keys ) ) {
+					$is_valid_id = (
+						preg_match( '/[a-z|\[|\]|_|0-9]+/', $value )
+						&&
+						count( $value ) < 100
+					);
+					if ( $is_valid_id ) {
+						$history_params[ $key ] = $value;
+					}
+				}
+
+				if ( 'device' === $key && in_array( $value, $allowed_devices ) ) {
+					$history_params[ $key ] = $value;
+				}
+
+				if ( 'scroll' === $key && is_int( $value ) && $value < 100000 ) {
+					$history_params[ $key ] = $value;
+				}
+			}
+
+			if ( ! empty( $history_params ) ) {
+				update_post_meta( $post_id, 'customize_preview_history_url_params', $history_params );
+			}
+		}
 	}
 }
