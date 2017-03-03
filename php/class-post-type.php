@@ -131,8 +131,12 @@ class Post_Type {
 		$page_title = $post_type_object->labels->name;
 		$menu_title = $post_type_object->labels->name;
 		$menu_slug = 'edit.php?post_type=' . static::SLUG;
-		if ( current_user_can( 'customize' ) ) {
-			$customize_url = add_query_arg( 'return', urlencode( wp_unslash( $_SERVER['REQUEST_URI'] ) ), 'customize.php' );
+		if ( current_user_can( 'customize' ) && isset( $_SERVER['REQUEST_URI'] ) ) { // WPCS: input var ok.
+			$customize_url = add_query_arg(
+				'return',
+				rawurlencode( wp_validate_redirect( esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ) ) ), // WPCS: input var ok.
+				'customize.php'
+			);
 
 			// Remove exiting menu from appearance as it will require 'edit_theme_options' cap.
 			remove_submenu_page( 'themes.php', esc_url( $customize_url ) );
@@ -155,7 +159,9 @@ class Post_Type {
 	public function filter_post_type_link( $url, $post ) {
 		if ( static::SLUG === $post->post_type ) {
 			$url = add_query_arg(
-				array( static::FRONT_UUID_PARAM_NAME => $post->post_name ),
+				array(
+					static::FRONT_UUID_PARAM_NAME => $post->post_name,
+				),
 				home_url( '/' )
 			);
 		}
@@ -219,10 +225,10 @@ class Post_Type {
 	 * @codeCoverageIgnore
 	 */
 	function suspend_kses_for_snapshot_revision_restore() {
-		if ( ! isset( $_GET['revision'] ) ) { // WPCS: input var ok.
+		if ( ! isset( $_GET['revision'] ) ) { // WPCS: input var ok. CSRF ok.
 			return;
 		}
-		if ( ! isset( $_GET['action'] ) || 'restore' !== $_GET['action'] ) { // WPCS: input var ok, sanitization ok.
+		if ( ! isset( $_GET['action'] ) || 'restore' !== $_GET['action'] ) { // WPCS: input var ok, sanitization ok. CSRF ok.
 			return;
 		}
 		$revision_post_id = intval( $_GET['revision'] ); // WPCS: input var ok.
@@ -695,7 +701,11 @@ class Post_Type {
 		$posts = array_map( 'get_post', $post_ids );
 		$posts = array_filter( $posts );
 		if ( count( $posts ) <= 1 ) {
-			return empty( $redirect_to ) ? add_query_arg( array( 'merge-error' => 1 ) ) : add_query_arg( array( 'merge-error' => 1 ), $redirect_to );
+			return empty( $redirect_to ) ? add_query_arg( array(
+				'merge-error' => 1,
+			) ) : add_query_arg( array(
+				'merge-error' => 1,
+			), $redirect_to );
 		}
 		$post_id = $this->merge_snapshots( $posts );
 		$redirect_to = get_edit_post_link( $post_id, 'raw' );
@@ -777,13 +787,13 @@ class Post_Type {
 	 * Show admin notice in case of merge error
 	 */
 	public function admin_show_merge_error() {
-		if ( ! isset( $_REQUEST['merge-error'] ) ) {
+		if ( ! isset( $_REQUEST['merge-error'] ) ) { // WPCS: input var ok. CSRF ok.
 			return;
 		}
 		$error = array(
 			1 => __( 'At-least two snapshot required for merge.', 'customize-snapshots' ),
 		);
-		$error_code = intval( $_REQUEST['merge-error'] );
+		$error_code = intval( $_REQUEST['merge-error'] ); // WPCS: input var ok.
 		if ( ! isset( $error[ $error_code ] ) ) {
 			return;
 		}
@@ -795,7 +805,7 @@ class Post_Type {
 	 *
 	 * In each snapshot's edit page, there are JavaScript-controlled links to remove each setting.
 	 * On clicking a setting, the JS sets a hidden input field with that setting's ID.
-	 * And these settings appear in $_REQUEST as the array 'customize_snapshot_remove_settings.'
+	 * And these settings appear in $_POST as the array 'customize_snapshot_remove_settings.'
 	 * So look for these removed settings in that array, on saving.
 	 * And possibly filter out those settings from the post content.
 	 *
@@ -816,13 +826,13 @@ class Post_Type {
 			&&
 			( static::SLUG === $post->post_type )
 			&&
-			! empty( $_REQUEST[ $key_for_settings ] )
+			! empty( $_POST[ $key_for_settings ] ) // WPCS: input var ok.
 			&&
-			is_array( $_REQUEST[ $key_for_settings ] )
+			is_array( $_POST[ $key_for_settings ] ) // WPCS: input var ok. CSRF ok.
 			&&
-			isset( $_REQUEST[ static::SLUG ] )
+			isset( $_POST[ static::SLUG ] ) // WPCS: input var ok.
 			&&
-			wp_verify_nonce( $_REQUEST[ static::SLUG ], static::SLUG . '_settings' )
+			wp_verify_nonce( sanitize_key( wp_unslash( $_POST[ static::SLUG ] ) ), static::SLUG . '_settings' ) // WPCS: input var ok.
 			&&
 			! ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE )
 		);
@@ -831,10 +841,9 @@ class Post_Type {
 			return $content;
 		}
 
-		$setting_ids_to_unset = $_REQUEST[ $key_for_settings ];
 		$data = json_decode( wp_unslash( $content ), true );
-		foreach ( $setting_ids_to_unset as $setting_id ) {
-			unset( $data[ $setting_id ] );
+		foreach ( $_POST[ $key_for_settings ] as $setting_id_to_unset ) { // WPCS: input var ok. Sanitization ok, since array items only to be used to unset array keys.
+			unset( $data[ $setting_id_to_unset ] );
 		}
 		$content = Customize_Snapshot_Manager::encode_json( $data );
 

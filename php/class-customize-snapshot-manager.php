@@ -152,18 +152,16 @@ class Customize_Snapshot_Manager {
 	public function read_current_snapshot_uuid() {
 		$customize_arg = $this->get_customize_uuid_param();
 		$frontend_arg = $this->get_front_uuid_param();
-		if ( isset( $_REQUEST[ $customize_arg ] ) ) {
-			$uuid = $_REQUEST[ $customize_arg ]; // WPCS: input var ok.
-		} elseif ( isset( $_REQUEST[ $frontend_arg ] ) ) {
-			$uuid = $_REQUEST[ $frontend_arg ]; // WPCS: input var ok.
+		$uuid = null;
+		if ( isset( $_REQUEST[ $customize_arg ] ) ) { // WPCS: input var ok. CSRF ok.
+			$uuid = sanitize_key( wp_unslash( $_REQUEST[ $customize_arg ] ) ); // WPCS: input var ok. CSRF ok.
+		} elseif ( isset( $_REQUEST[ $frontend_arg ] ) ) { // WPCS: input var ok. CSRF ok.
+			$uuid = sanitize_key( wp_unslash( $_REQUEST[ $frontend_arg ] ) ); // WPCS: input var ok. CSRF ok.
 		}
 
-		if ( isset( $uuid ) ) {
-			$uuid = sanitize_key( wp_unslash( $uuid ) );
-			if ( static::is_valid_uuid( $uuid ) ) {
-				$this->current_snapshot_uuid = $uuid;
-				return true;
-			}
+		if ( $uuid && static::is_valid_uuid( $uuid ) ) {
+			$this->current_snapshot_uuid = $uuid;
+			return true;
 		}
 		$this->current_snapshot_uuid = null;
 		return false;
@@ -175,7 +173,7 @@ class Customize_Snapshot_Manager {
 	 * @return bool True if it's an Ajax request, false otherwise.
 	 */
 	public function doing_customize_save_ajax() {
-		return isset( $_REQUEST['action'] ) && wp_unslash( $_REQUEST['action'] ) === 'customize_save';
+		return isset( $_REQUEST['action'] ) && sanitize_key( wp_unslash( $_REQUEST['action'] ) ) === 'customize_save'; // WPCS: input var ok. CSRF ok.
 	}
 
 	/**
@@ -188,7 +186,9 @@ class Customize_Snapshot_Manager {
 		if ( empty( $wp_customize ) || ! ( $wp_customize instanceof \WP_Customize_Manager ) ) {
 			require_once( ABSPATH . WPINC . '/class-wp-customize-manager.php' );
 			if ( null !== $this->current_snapshot_uuid ) {
-				$wp_customize = new \WP_Customize_Manager( array( 'changeset_uuid' => $this->current_snapshot_uuid ) ); // WPCS: override ok.
+				$wp_customize = new \WP_Customize_Manager( array(
+					'changeset_uuid' => $this->current_snapshot_uuid,
+				) ); // WPCS: override ok.
 			} else {
 				$wp_customize = new \WP_Customize_Manager(); // WPCS: override ok.
 			}
@@ -473,6 +473,7 @@ class Customize_Snapshot_Manager {
 	 * Print admin bar styles.
 	 */
 	public function print_admin_bar_styles() {
+		// @codingStandardsIgnoreStart A WordPress-VIP sniff has false positive on admin bar being hidden.
 		?>
 		<style type="text/css">
 			#wpadminbar #wp-admin-bar-resume-customize-snapshot {
@@ -492,6 +493,7 @@ class Customize_Snapshot_Manager {
 			}
 		</style>
 		<?php
+		// @codingStandardsIgnoreEnd
 	}
 
 	/**
@@ -524,7 +526,9 @@ class Customize_Snapshot_Manager {
 
 		// Add customize_snapshot_uuid param as param to customize.php itself.
 		$customize_node->href = add_query_arg(
-			array( $this->get_customize_uuid_param() => $this->current_snapshot_uuid ),
+			array(
+				$this->get_customize_uuid_param() => $this->current_snapshot_uuid,
+			),
 			$customize_node->href
 		);
 
@@ -873,7 +877,9 @@ class Customize_Snapshot_Manager {
 			$months[ $i ]['text'] = sprintf( __( '%1$s-%2$s', 'customize-snapshots' ), $month_number, $month_text );
 			$months[ $i ]['value'] = $month_number;
 		}
-		return array( 'month_choices' => $months );
+		return array(
+			'month_choices' => $months,
+		);
 	}
 
 	/**
