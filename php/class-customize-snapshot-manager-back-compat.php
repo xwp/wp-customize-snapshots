@@ -645,6 +645,14 @@ class Customize_Snapshot_Manager_Back_Compat extends Customize_Snapshot_Manager 
 			return false;
 		}
 
+		// Populate customized state with values from snapshot.
+		$snapshot_content = $this->post_type->get_post_content( $post );
+		foreach ( $snapshot_content as $setting_id => $setting_params ) {
+			if ( array_key_exists( 'value', $setting_params ) ) {
+				$this->customize_manager->set_post_value( $setting_id, $setting_params['value'] );
+			}
+		}
+
 		if ( ! did_action( 'customize_register' ) ) {
 			/*
 			 * When running from CLI or Cron, we have to remove the action because
@@ -676,7 +684,6 @@ class Customize_Snapshot_Manager_Back_Compat extends Customize_Snapshot_Manager 
 			// undefine( 'DOING_AJAX' )... just kidding. This is the end of the unfortunate hack and it should be fixed in Core.
 			unset( $_REQUEST['action'] );
 		}
-		$snapshot_content = $this->post_type->get_post_content( $post );
 
 		if ( method_exists( $this->customize_manager, 'validate_setting_values' ) ) {
 			/** This action is documented in wp-includes/class-wp-customize-manager.php */
@@ -703,7 +710,9 @@ class Customize_Snapshot_Manager_Back_Compat extends Customize_Snapshot_Manager 
 			if ( ! isset( $setting_params['value'] ) || is_null( $setting_params['value'] ) ) {
 				if ( ! is_array( $setting_params ) ) {
 					if ( ! empty( $setting_params ) ) {
-						$setting_params = array( 'value' => $setting_params );
+						$setting_params = array(
+							'value' => $setting_params,
+						);
 					} else {
 						$setting_params = array();
 					}
@@ -714,7 +723,6 @@ class Customize_Snapshot_Manager_Back_Compat extends Customize_Snapshot_Manager 
 			}
 
 			// Unrecognized setting error.
-			$this->customize_manager->set_post_value( $setting_id, $setting_params['value'] );
 			$setting = $this->customize_manager->get_setting( $setting_id );
 			if ( ! ( $setting instanceof \WP_Customize_Setting ) ) {
 				$setting_params['publish_error'] = 'unrecognized_setting';
