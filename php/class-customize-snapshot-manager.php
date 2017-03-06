@@ -104,8 +104,8 @@ class Customize_Snapshot_Manager {
 		add_action( 'admin_bar_menu', array( $this, 'remove_all_non_snapshot_admin_bar_links' ), 100000 );
 		add_action( 'wp_before_admin_bar_render', array( $this, 'print_admin_bar_styles' ) );
 		add_filter( 'removable_query_args', array( $this, 'filter_removable_query_args' ) );
-		add_action( 'save_post_customize_changeset', array( $this, 'create_initial_changeset_revision' ) );
-		add_action( 'save_post_customize_changeset', array( $this, 'save_customize_preview_url_query_vars' ) );
+		add_action( 'save_post_' . $this->get_post_type(), array( $this, 'create_initial_changeset_revision' ) );
+		add_action( 'save_post_' . $this->get_post_type() , array( $this, 'save_customize_preview_url_query_vars' ) );
 		add_filter( 'wp_insert_post_data', array( $this, 'prepare_snapshot_post_content_for_publish' ) );
 	}
 
