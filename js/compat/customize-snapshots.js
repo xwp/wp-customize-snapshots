@@ -227,7 +227,7 @@
 			api.previewer.query = function() {
 				var retval = originalQuery.apply( this, arguments );
 
-				if ( ! _.isUndefined( CustomizerBrowserHistory ) ) {
+				if ( 'undefined' !== typeof CustomizerBrowserHistory ) {
 					retval.customize_preview_url_query_vars = JSON.stringify( CustomizerBrowserHistory.getQueryParams( location.href ) );
 				}
 

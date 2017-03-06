@@ -525,15 +525,17 @@ class Customize_Snapshot_Manager {
 			);
 		}
 
-		$post_id = $this->post_type->find_post( $this->current_snapshot_uuid );
-		$preview_url_query_vars = $this->post_type->get_preview_url_query_vars( $post_id );
-
 		$args = array(
 			$this->get_customize_uuid_param() => $this->current_snapshot_uuid,
 		);
 
-		if ( ! empty( $preview_url_query_vars ) ) {
-			$args = array_merge( $args, $preview_url_query_vars );
+		$post = $this->snapshot->post();
+
+		if ( $post ) {
+			$preview_url_query_vars = $this->post_type->get_preview_url_query_vars( $post->ID );
+			if ( ! empty( $preview_url_query_vars ) ) {
+				$args = array_merge( $args, $preview_url_query_vars );
+			}
 		}
 
 		// Add customize_snapshot_uuid and preview url params to customize.php itself.
