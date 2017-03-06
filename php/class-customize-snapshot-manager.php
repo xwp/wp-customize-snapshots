@@ -523,9 +523,7 @@ class Customize_Snapshot_Manager {
 			);
 		}
 
-		$post_id = $this->customize_manager->changeset_post_id();
-
-		include_once( ABSPATH . 'wp-admin/includes/plugin.php' );
+		$post_id = $this->post_type->find_post( $this->current_snapshot_uuid );
 		$preview_url_query_vars = $this->post_type->get_preview_url_query_vars( $post_id );
 
 		$args = array(

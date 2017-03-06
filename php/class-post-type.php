@@ -862,9 +862,9 @@ class Post_Type {
 	 */
 	public function get_preview_url_query_vars( $post_id ) {
 		$preview_url_query_vars = array();
-		$wp_customize_browser_history = 'wp-customizer-browser-history/customizer-browser-history.php';
 
-		if ( is_plugin_active( $wp_customize_browser_history ) ) {
+		// If customizer browser history plugin is active.
+		if ( function_exists( 'customizer_browser_history_enqueue_scripts' ) && $post_id ) {
 			$preview_url_query_vars = (array) get_post_meta( $post_id, '_preview_url_query_vars', true );
 		}
 

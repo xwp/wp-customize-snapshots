@@ -30,6 +30,7 @@ class Customize_Snapshot_Manager_Back_Compat extends Customize_Snapshot_Manager 
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_frontend_scripts' ) );
 		add_action( 'customize_preview_init', array( $this, 'customize_preview_init' ) );
 		add_action( 'customize_save', array( $this, 'check_customize_publish_authorization' ), 10, 0 );
+		add_action( 'save_post_customize_snapshot', array( $this, 'save_customize_preview_url_query_vars' ) );
 		$this->hooks();
 		if ( $this->read_current_snapshot_uuid() ) {
 			$this->load_snapshot();
