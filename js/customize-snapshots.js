@@ -962,13 +962,14 @@
 		 * @return {void}
 		 */
 		extendPreviewerQuery: function extendPreviewerQuery() {
-			var snapshot = this, originalQuery = api.previewer.query;
+			var snapshot = this, originalQuery = api.previewer.query, previewURLQueryParams;
 
 			api.previewer.query = function() {
 				var retval = originalQuery.apply( this, arguments );
 
-				if ( 'undefined' !== typeof CustomizerBrowserHistory ) {
-					retval.customize_preview_url_query_vars = JSON.stringify( CustomizerBrowserHistory.getQueryParams( location.href ) );
+				previewURLQueryParams = location.search.substr( 1 );
+				if ( previewURLQueryParams ) {
+					retval.customize_preview_url_query_vars = JSON.stringify( api.utils.parseQueryString( previewURLQueryParams ) );
 				}
 
 				if ( snapshot.editControlSettings( 'title' ).get() ) {

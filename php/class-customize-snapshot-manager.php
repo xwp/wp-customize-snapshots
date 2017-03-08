@@ -105,7 +105,7 @@ class Customize_Snapshot_Manager {
 		add_action( 'wp_before_admin_bar_render', array( $this, 'print_admin_bar_styles' ) );
 		add_filter( 'removable_query_args', array( $this, 'filter_removable_query_args' ) );
 		add_action( 'save_post_' . $this->get_post_type(), array( $this, 'create_initial_changeset_revision' ) );
-		add_action( 'save_post_' . $this->get_post_type() , array( $this, 'save_customize_preview_url_query_vars' ) );
+		add_action( 'save_post_' . $this->get_post_type(), array( $this, 'save_customize_preview_url_query_vars' ) );
 		add_filter( 'wp_insert_post_data', array( $this, 'prepare_snapshot_post_content_for_publish' ) );
 	}
 
@@ -971,11 +971,7 @@ class Customize_Snapshot_Manager {
 			'scroll',
 		) );
 
-		$allowed_devices = array(
-			'mobile',
-			'desktop',
-			'tablet',
-		);
+		$allowed_devices = array_keys( $this->customize_manager->get_previewable_devices() );
 
 		$preview_url_query_vars = array();
 		$params = wp_array_slice_assoc( $original_query_vars, $allowed_query_params );

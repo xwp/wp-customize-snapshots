@@ -872,8 +872,7 @@ class Post_Type {
 	public function get_preview_url_query_vars( $post_id ) {
 		$preview_url_query_vars = array();
 
-		// If customizer browser history plugin is active.
-		if ( function_exists( 'customizer_browser_history_enqueue_scripts' ) && $post_id ) {
+		if ( $post_id ) {
 			$preview_url_query_vars = (array) get_post_meta( $post_id, '_preview_url_query_vars', true );
 		}
 
