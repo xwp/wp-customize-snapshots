@@ -1,4 +1,4 @@
-/* global jQuery, wp, JSON, _customizeSnapshotsSettings, CustomizerBrowserHistory */
+/* global jQuery, wp, JSON, _customizeSnapshotsSettings */
 /* eslint no-magic-numbers: [ "error", { "ignore": [0,1,-1] } ], consistent-this: [ "error", "snapshot" ] */
 
 (function( api, $ ) {
