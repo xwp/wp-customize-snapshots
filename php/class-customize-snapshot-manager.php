@@ -982,7 +982,7 @@ class Customize_Snapshot_Manager {
 					(
 						in_array( $param, $allowed_panel_section_control_params )
 						&&
-						preg_match( '/[a-z|\[|\]|_|-|0-9]+/', $value )
+						preg_match( '/^[a-z|\[|\]|_|\-|0-9]+$/', $value )
 					)
 					||
 					(

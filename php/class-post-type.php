@@ -870,10 +870,10 @@ class Post_Type {
 	 * @return array $preview_url_query_vars Preview url query vars.
 	 */
 	public function get_preview_url_query_vars( $post_id ) {
-		$preview_url_query_vars = array();
+		$preview_url_query_vars = get_post_meta( $post_id, '_preview_url_query_vars', true );
 
-		if ( $post_id ) {
-			$preview_url_query_vars = (array) get_post_meta( $post_id, '_preview_url_query_vars', true );
+		if ( ! is_array( $preview_url_query_vars ) ) {
+			$preview_url_query_vars = array();
 		}
 
 		return $preview_url_query_vars;
