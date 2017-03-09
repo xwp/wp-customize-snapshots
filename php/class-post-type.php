@@ -371,7 +371,7 @@ class Post_Type {
 			echo sprintf(
 				'<a href="%s" class="button button-secondary">%s</a>',
 				esc_url( $this->get_frontend_view_link( $post ) ),
-				esc_html__( 'Preview Snapshot', 'customize-snapshots' )
+				esc_html__( 'Preview Changeset', 'customize-snapshots' )
 			);
 			echo '</p>';
 		}
