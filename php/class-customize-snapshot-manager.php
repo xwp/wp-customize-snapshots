@@ -960,52 +960,25 @@ class Customize_Snapshot_Manager {
 			return;
 		}
 
-		$allowed_panel_section_control_params = array(
-			'autofocus[panel]',
-			'autofocus[section]',
-			'autofocus[control]',
-		);
+		$stored_query_vars = array();
 
-		$allowed_query_params = array_merge( $allowed_panel_section_control_params, array(
-			'device',
-			'scroll',
-		) );
-
-		$allowed_devices = array_keys( $this->customize_manager->get_previewable_devices() );
-
-		$preview_url_query_vars = array();
-		$params = wp_array_slice_assoc( $original_query_vars, $allowed_query_params );
-
-		if ( ! empty( $params ) ) {
-			foreach ( $params as $param => $value ) {
-				$is_valid_var = (
-					(
-						in_array( $param, $allowed_panel_section_control_params )
-						&&
-						preg_match( '/^[a-z|\[|\]|_|\-|0-9]+$/', $value )
-					)
-					||
-					(
-						'device' === $param
-						&&
-						in_array( $value, $allowed_devices )
-					)
-					||
-					(
-						'scroll' === $param
-						&&
-						is_int( $value )
-					)
-				);
-
-				if ( $is_valid_var ) {
-					$preview_url_query_vars[ $param ] = $value;
-				}
-			}
-
-			if ( ! empty( $preview_url_query_vars ) ) {
-				update_post_meta( $post_id, '_preview_url_query_vars', $preview_url_query_vars );
+		$autofocus_query_vars = array( 'autofocus[panel]', 'autofocus[section]', 'autofocus[control]' );
+		foreach ( wp_array_slice_assoc( $original_query_vars, $autofocus_query_vars ) as $key => $value ) {
+			if ( preg_match( '/^[a-z|\[|\]|_|\-|0-9]+$/', $value ) ) {
+				$stored_query_vars[ $key ] = $value;
 			}
 		}
+
+		if ( ! empty( $original_query_vars['url'] ) && wp_validate_redirect( $original_query_vars['url'] ) ) {
+			$stored_query_vars['url'] = esc_url_raw( $original_query_vars['url'] );
+		}
+
+		if ( isset( $original_query_vars['device'] ) && in_array( $original_query_vars['device'], array_keys( $this->customize_manager->get_previewable_devices() ), true ) ) {
+			$stored_query_vars['device'] = $original_query_vars['device'];
+		}
+		if ( isset( $original_query_vars['scroll'] ) && is_int( $original_query_vars['scroll'] ) ) {
+			$stored_query_vars['scroll'] = $original_query_vars['scroll'];
+		}
+		update_post_meta( $post_id, '_preview_url_query_vars', $stored_query_vars );
 	}
 }
