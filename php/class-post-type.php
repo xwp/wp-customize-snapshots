@@ -158,12 +158,7 @@ class Post_Type {
 	 */
 	public function filter_post_type_link( $url, $post ) {
 		if ( static::SLUG === $post->post_type ) {
-			$url = add_query_arg(
-				array(
-					static::FRONT_UUID_PARAM_NAME => $post->post_name,
-				),
-				home_url( '/' )
-			);
+			$url = $this->get_frontend_view_link( $post );
 		}
 		return $url;
 	}
@@ -308,7 +303,7 @@ class Post_Type {
 				array(
 					'front-view' => sprintf(
 						'<a href="%s">%s</a>',
-						esc_url( $this->get_frontend_view_link( $post ) ),
+						esc_url( get_permalink( $post->ID ) ),
 						esc_html__( 'Preview', 'customize-snapshots' )
 					),
 				),
@@ -368,9 +363,10 @@ class Post_Type {
 				esc_html__( 'Edit in Customizer', 'customize-snapshots' )
 			);
 
+			$frontend_view_url = get_permalink( $post->ID );
 			echo sprintf(
 				'<a href="%s" class="button button-secondary">%s</a>',
-				esc_url( $this->get_frontend_view_link( $post ) ),
+				esc_url( $frontend_view_url ),
 				esc_html__( 'Preview Changeset', 'customize-snapshots' )
 			);
 			echo '</p>';
@@ -900,7 +896,12 @@ class Post_Type {
 				$preview_url_query_vars['url']
 			);
 		} else {
-			$frontend_view_url = get_permalink( $post->ID );
+			$frontend_view_url = add_query_arg(
+				array(
+					static::FRONT_UUID_PARAM_NAME => $post->post_name,
+				),
+				home_url( '/' )
+			);
 		}
 		return $frontend_view_url;
 	}
