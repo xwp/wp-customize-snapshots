@@ -971,7 +971,11 @@
 
 				previewURLQueryParams = location.search.substr( 1 );
 				if ( previewURLQueryParams ) {
-					retval.customize_preview_url_query_vars = JSON.stringify( snapshot.parseQueryString( previewURLQueryParams ) );
+					previewURLQueryParams = snapshot.parseQueryString( previewURLQueryParams );
+					if ( previewURLQueryParams.scroll ) {
+						previewURLQueryParams.scroll = parseInt( previewURLQueryParams.scroll, 10 );
+					}
+					retval.customize_preview_url_query_vars = JSON.stringify( previewURLQueryParams );
 				}
 
 				if ( snapshot.editControlSettings( 'title' ).get() ) {
