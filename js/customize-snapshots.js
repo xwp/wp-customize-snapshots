@@ -98,7 +98,34 @@
 			} );
 		},
 
-		parseQueryString: api.utils.parseQueryString,
+		/**
+		 * Get state query vars.
+		 *
+		 * @return {{}} Query vars for scroll, device, url, and autofocus.
+		 */
+		getStateQueryVars: function() {
+			var queryVars = {
+				'autofocus[control]': null,
+				'autofocus[section]': null,
+				'autofocus[panel]': null
+			};
+			queryVars.scroll = parseInt( api.previewer.scroll, 10 ) || 0;
+			queryVars.device = api.previewedDevice.get();
+			queryVars.url = api.previewer.previewUrl.get();
+
+			_.find( [ 'control', 'section', 'panel' ], function( constructType ) {
+				var found = false;
+				api[ constructType ].each( function( construct ) { // @todo Core needs to support more Backbone methods on wp.customize.Values().
+					if ( ! found && construct.expanded && construct.expanded.get() ) {
+						queryVars[ 'autofocus[' + constructType + ']' ] = construct.id;
+						found = true;
+					}
+				} );
+				return found;
+			} );
+
+			return queryVars;
+		},
 
 		/**
 		 * Update snapshot.
@@ -964,19 +991,12 @@
 		 * @return {void}
 		 */
 		extendPreviewerQuery: function extendPreviewerQuery() {
-			var snapshot = this, originalQuery = api.previewer.query, previewURLQueryParams;
+			var snapshot = this, originalQuery = api.previewer.query;
 
 			api.previewer.query = function() {
 				var retval = originalQuery.apply( this, arguments );
 
-				previewURLQueryParams = location.search.substr( 1 );
-				if ( previewURLQueryParams ) {
-					previewURLQueryParams = snapshot.parseQueryString( previewURLQueryParams );
-					if ( previewURLQueryParams.scroll ) {
-						previewURLQueryParams.scroll = parseInt( previewURLQueryParams.scroll, 10 );
-					}
-					retval.customize_preview_url_query_vars = JSON.stringify( previewURLQueryParams );
-				}
+				retval.customize_preview_url_query_vars = JSON.stringify( snapshot.getStateQueryVars() );
 
 				if ( snapshot.editControlSettings( 'title' ).get() ) {
 					retval.customize_changeset_title = snapshot.editControlSettings( 'title' ).get();

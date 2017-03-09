@@ -222,15 +222,11 @@
 		 * @return {void}
 		 */
 		extendPreviewerQuery: function extendPreviewerQuery() {
-			var snapshot = this, originalQuery = api.previewer.query, previewURLQueryParams;
+			var snapshot = this, originalQuery = api.previewer.query;
 
 			api.previewer.query = function() {
 				var retval = originalQuery.apply( this, arguments );
-
-				previewURLQueryParams = location.search.substr( 1 );
-				if ( previewURLQueryParams ) {
-					retval.customize_preview_url_query_vars = JSON.stringify( snapshot.parseQueryString( previewURLQueryParams ) );
-				}
+				retval.customize_preview_url_query_vars = JSON.stringify( snapshot.getStateQueryVars() );
 
 				if ( api.state( 'snapshot-exists' ).get() ) {
 					retval.customize_snapshot_uuid = snapshot.data.uuid;
@@ -491,33 +487,6 @@
 
 			snapshot.updateCountdown();
 			snapshot.editContainer.find( '.reset-time' ).toggle( scheduled );
-		},
-
-		/**
-		 * Parse query string.
-		 * Taken from WP 4.7.0
-		 *
-		 * @param {string} queryString Query string.
-		 * @returns {object} Parsed query string.
-		 */
-		parseQueryString: function parseQueryString( queryString ) {
-			var queryParams = {};
-			_.each( queryString.split( '&' ), function( pair ) {
-				var parts, key, value;
-				parts = pair.split( '=', 2 );
-				if ( ! parts[0] ) {
-					return;
-				}
-				key = decodeURIComponent( parts[0].replace( /\+/g, ' ' ) );
-				key = key.replace( / /g, '_' ); // What PHP does.
-				if ( _.isUndefined( parts[1] ) ) {
-					value = null;
-				} else {
-					value = decodeURIComponent( parts[1].replace( /\+/g, ' ' ) );
-				}
-				queryParams[ key ] = value;
-			} );
-			return queryParams;
 		}
 	} );
 
