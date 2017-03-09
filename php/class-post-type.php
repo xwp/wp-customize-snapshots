@@ -308,7 +308,7 @@ class Post_Type {
 				array(
 					'front-view' => sprintf(
 						'<a href="%s">%s</a>',
-						esc_url( get_permalink( $post->ID ) ),
+						esc_url( $this->get_frontend_view_link( $post ) ),
 						esc_html__( 'Preview', 'customize-snapshots' )
 					),
 				),
@@ -368,10 +368,9 @@ class Post_Type {
 				esc_html__( 'Edit in Customizer', 'customize-snapshots' )
 			);
 
-			$frontend_view_url = get_permalink( $post->ID );
 			echo sprintf(
 				'<a href="%s" class="button button-secondary">%s</a>',
-				esc_url( $frontend_view_url ),
+				esc_url( $this->get_frontend_view_link( $post ) ),
 				esc_html__( 'Preview Snapshot', 'customize-snapshots' )
 			);
 			echo '</p>';
@@ -877,5 +876,32 @@ class Post_Type {
 		}
 
 		return $preview_url_query_vars;
+	}
+
+	/**
+	 * Get frontend view link.
+	 *
+	 * Returns URL to frontend with customize_changeset_uuid param supplied.
+	 * If the changeset was saved in the customizer then the URL being previewed
+	 * will serve as the base URL as opposed to the home URL as normally.
+	 *
+	 * @see Post_Type::filter_post_type_link()
+	 * @param int|\WP_Post $post Changeset post.
+	 * @return string URL.
+	 */
+	public function get_frontend_view_link( $post ) {
+		$post = get_post( $post );
+		$preview_url_query_vars = $this->get_preview_url_query_vars( $post->ID );
+		if ( isset( $preview_url_query_vars['url'] ) ) {
+			$frontend_view_url = add_query_arg(
+				array(
+					static::FRONT_UUID_PARAM_NAME => $post->post_name,
+				),
+				$preview_url_query_vars['url']
+			);
+		} else {
+			$frontend_view_url = get_permalink( $post->ID );
+		}
+		return $frontend_view_url;
 	}
 }

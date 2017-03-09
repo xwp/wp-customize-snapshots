@@ -954,9 +954,9 @@ class Customize_Snapshot_Manager {
 			return;
 		}
 
-		$original_query_vars = (array) json_decode( wp_unslash( $_POST['customize_preview_url_query_vars'] ) );
+		$original_query_vars = json_decode( wp_unslash( $_POST['customize_preview_url_query_vars'] ), true );
 
-		if ( empty( $original_query_vars ) ) {
+		if ( empty( $original_query_vars ) || ! is_array( $original_query_vars ) ) {
 			return;
 		}
 

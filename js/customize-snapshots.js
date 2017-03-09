@@ -98,6 +98,8 @@
 			} );
 		},
 
+		parseQueryString: api.utils.parseQueryString,
+
 		/**
 		 * Update snapshot.
 		 *
@@ -969,7 +971,7 @@
 
 				previewURLQueryParams = location.search.substr( 1 );
 				if ( previewURLQueryParams ) {
-					retval.customize_preview_url_query_vars = JSON.stringify( api.utils.parseQueryString( previewURLQueryParams ) );
+					retval.customize_preview_url_query_vars = JSON.stringify( snapshot.parseQueryString( previewURLQueryParams ) );
 				}
 
 				if ( snapshot.editControlSettings( 'title' ).get() ) {
