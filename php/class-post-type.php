@@ -881,6 +881,9 @@ class Post_Type {
 	public function set_customizer_state_query_vars( $post_id, $query_vars ) {
 		$stored_query_vars = array();
 		$autofocus_query_vars = array( 'autofocus[panel]', 'autofocus[section]', 'autofocus[control]' );
+
+		$this->snapshot_manager->ensure_customize_manager();
+
 		foreach ( wp_array_slice_assoc( $query_vars, $autofocus_query_vars ) as $key => $value ) {
 			if ( preg_match( '/^[a-z|\[|\]|_|\-|0-9]+$/', $value ) ) {
 				$stored_query_vars[ $key ] = $value;
