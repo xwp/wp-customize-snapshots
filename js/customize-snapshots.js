@@ -203,6 +203,10 @@
 				snapshot.snapshotExpandButton.toggle( ! isPublishStatus );
 				snapshot.previewLink.toggle( ! isPublishStatus );
 
+				if ( isPublishStatus ) {
+					snapshot.removeParamFromClose( 'customize_changeset_uuid' );
+				}
+
 				snapshot.statusButton.updateButtonText( 'alt-text' );
 
 				// Trigger an event for plugins to use.
@@ -1113,6 +1117,45 @@
 					snapshot.editBoxAutoSaveTriggered = false;
 				}
 			} );
+		},
+
+		/**
+		 * Remove a param from close button link.
+		 *
+		 * @param {string} targetParam param.
+         * @return {void}.
+		 */
+		removeParamFromClose: function removeParamFromClose( targetParam ) {
+			var closeButton, queryString, params,
+				newQueryString = '', newParams = [];
+
+			closeButton = document.querySelector( '.customize-controls-close' );
+			queryString = closeButton.search;
+
+			if ( ! queryString.length ) {
+				return;
+			}
+
+			queryString = queryString.replace( '?', '' );
+			params = queryString.split( '&' );
+
+			_.each( params, function( param ) {
+				if ( -1 === param.search( targetParam + '=' ) ) {
+					newParams.push( param );
+				}
+			} );
+
+			if ( newParams.length > 1 ) {
+				newQueryString = newParams.join( '&' );
+			} else {
+				newQueryString = newParams.join( '' );
+			}
+
+			if ( newParams.length ) {
+				newQueryString = '?' + newParams;
+			}
+
+			closeButton.search = newQueryString;
 		}
 	} );
 
