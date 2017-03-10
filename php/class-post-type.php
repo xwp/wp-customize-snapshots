@@ -880,18 +880,15 @@ class Post_Type {
 	 */
 	public function set_customizer_state_query_vars( $post_id, $query_vars ) {
 		$stored_query_vars = array();
-
 		$autofocus_query_vars = array( 'autofocus[panel]', 'autofocus[section]', 'autofocus[control]' );
 		foreach ( wp_array_slice_assoc( $query_vars, $autofocus_query_vars ) as $key => $value ) {
 			if ( preg_match( '/^[a-z|\[|\]|_|\-|0-9]+$/', $value ) ) {
 				$stored_query_vars[ $key ] = $value;
 			}
 		}
-
 		if ( ! empty( $query_vars['url'] ) && wp_validate_redirect( $query_vars['url'] ) ) {
 			$stored_query_vars['url'] = esc_url_raw( $query_vars['url'] );
 		}
-
 		if ( isset( $query_vars['device'] ) && in_array( $query_vars['device'], array_keys( $this->snapshot_manager->customize_manager->get_previewable_devices() ), true ) ) {
 			$stored_query_vars['device'] = $query_vars['device'];
 		}

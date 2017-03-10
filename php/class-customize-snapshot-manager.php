@@ -517,7 +517,7 @@ class Customize_Snapshot_Manager {
 		$preview_url_parsed = wp_parse_url( $customize_node->href );
 		parse_str( $preview_url_parsed['query'], $preview_url_query_params );
 		if ( ! empty( $preview_url_query_params['url'] ) ) {
-			$preview_url_query_params['url'] = remove_query_arg( array( $this->get_front_uuid_param() ), $preview_url_query_params['url'] );
+			$preview_url_query_params['url'] = rawurlencode( remove_query_arg( array( $this->get_front_uuid_param() ), $preview_url_query_params['url'] ) );
 			$customize_node->href = preg_replace(
 				'/(?<=\?).*?(?=#|$)/',
 				build_query( $preview_url_query_params ),
@@ -532,10 +532,9 @@ class Customize_Snapshot_Manager {
 		$post = $this->snapshot->post();
 
 		if ( $post ) {
-			$args = array_merge(
-				$args,
-				$this->post_type->get_customizer_state_query_vars( $post->ID )
-			);
+			$customizer_state_query_vars = $this->post_type->get_customizer_state_query_vars( $post->ID );
+			unset( $customizer_state_query_vars['url'] );
+			$args = array_merge( $args, $customizer_state_query_vars );
 		}
 
 		// Add customize_snapshot_uuid and preview url params to customize.php itself.
