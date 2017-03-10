@@ -232,6 +232,10 @@
 				snapshot.snapshotExpandButton.toggle( ! isPublishStatus );
 				snapshot.previewLink.toggle( ! isPublishStatus );
 
+				if ( isPublishStatus ) {
+					snapshot.removeParamFromClose( 'customize_changeset_uuid' );
+				}
+
 				snapshot.statusButton.updateButtonText( 'alt-text' );
 
 				// Trigger an event for plugins to use.
@@ -1146,6 +1150,31 @@
 					snapshot.editBoxAutoSaveTriggered = false;
 				}
 			} );
+		},
+
+		/**
+		 * Remove a param from close button link.
+		 *
+		 * @param {string} targetParam param.
+		 * @return {void}.
+		 */
+		removeParamFromClose: function removeParamFromClose( targetParam ) {
+			var closeButton, queryString, updatedParams;
+			closeButton = $( '.customize-controls-close' );
+			queryString = closeButton.prop( 'search' ).substr( 1 );
+
+			if ( ! queryString.length ) {
+				return;
+			}
+
+			updatedParams = _.filter(
+				queryString.split( '&' ),
+				function( paramPair ) {
+					return 0 !== paramPair.indexOf( targetParam + '=' );
+				}
+			);
+
+			closeButton.prop( 'search', updatedParams.join( '&' ) );
 		}
 	} );
 

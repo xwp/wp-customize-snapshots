@@ -48,6 +48,8 @@
 					snapshot.previewLink.attr( 'target', snapshot.data.uuid );
 				}
 
+				snapshot.removeParamFromClose( 'customize_snapshot_uuid' );
+
 				api.state( 'snapshot-exists' ).set( false );
 
 				// Replace the history state with an updated Customizer URL that does not include the Snapshot UUID.

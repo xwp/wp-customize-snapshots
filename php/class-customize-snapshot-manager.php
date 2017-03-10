@@ -221,6 +221,8 @@ class Customize_Snapshot_Manager {
 	 */
 	public function add_snapshot_uuid_to_return_url() {
 		$should_add_snapshot_uuid = (
+			isset( $_GET[ $this->get_front_uuid_param() ] )
+			&&
 			$this->current_snapshot_uuid
 			&&
 			$this->is_theme_active()

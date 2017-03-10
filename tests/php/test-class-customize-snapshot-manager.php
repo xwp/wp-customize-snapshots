@@ -387,7 +387,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	public function test_add_snapshot_uuid_to_return_url() {
 		global $wp_version;
 		if ( version_compare( $wp_version, '4.4-beta', '>=' ) ) {
-			$_REQUEST[ $this->front_param ] = self::UUID;
+			$_GET[ $this->front_param ] = $_REQUEST[ $this->front_param ] = self::UUID;
 			$manager = $this->get_snapshot_manager_instance( $this->plugin );
 			$manager->init();
 			$manager->ensure_customize_manager();
