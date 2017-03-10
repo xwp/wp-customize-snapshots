@@ -1123,7 +1123,7 @@
 		 * Remove a param from close button link.
 		 *
 		 * @param {string} targetParam param.
-         * @return {void}.
+		 * @return {void}.
 		 */
 		removeParamFromClose: function removeParamFromClose( targetParam ) {
 			var closeButton, queryString, params,
