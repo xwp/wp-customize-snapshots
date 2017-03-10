@@ -105,7 +105,7 @@ class Customize_Snapshot_Manager {
 		add_action( 'wp_before_admin_bar_render', array( $this, 'print_admin_bar_styles' ) );
 		add_filter( 'removable_query_args', array( $this, 'filter_removable_query_args' ) );
 		add_action( 'save_post_' . $this->get_post_type(), array( $this, 'create_initial_changeset_revision' ) );
-		add_action( 'save_post_' . $this->get_post_type(), array( $this, 'save_customize_preview_url_query_vars' ) );
+		add_action( 'save_post_' . $this->get_post_type(), array( $this, 'save_customizer_state_query_vars' ) );
 		add_filter( 'wp_insert_post_data', array( $this, 'prepare_snapshot_post_content_for_publish' ) );
 	}
 
@@ -532,10 +532,10 @@ class Customize_Snapshot_Manager {
 		$post = $this->snapshot->post();
 
 		if ( $post ) {
-			$preview_url_query_vars = $this->post_type->get_preview_url_query_vars( $post->ID );
-			if ( ! empty( $preview_url_query_vars ) ) {
-				$args = array_merge( $args, $preview_url_query_vars );
-			}
+			$args = array_merge(
+				$args,
+				$this->post_type->get_customizer_state_query_vars( $post->ID )
+			);
 		}
 
 		// Add customize_snapshot_uuid and preview url params to customize.php itself.
@@ -949,36 +949,17 @@ class Customize_Snapshot_Manager {
 	 *
 	 * @param int $post_id Post id.
 	 */
-	public function save_customize_preview_url_query_vars( $post_id ) {
-		if ( ! isset( $_POST['customize_preview_url_query_vars'] ) ) {
+	public function save_customizer_state_query_vars( $post_id ) {
+		if ( ! isset( $_POST['customizer_state_query_vars'] ) ) {
 			return;
 		}
 
-		$original_query_vars = json_decode( wp_unslash( $_POST['customize_preview_url_query_vars'] ), true );
+		$original_query_vars = json_decode( wp_unslash( $_POST['customizer_state_query_vars'] ), true );
 
 		if ( empty( $original_query_vars ) || ! is_array( $original_query_vars ) ) {
 			return;
 		}
 
-		$stored_query_vars = array();
-
-		$autofocus_query_vars = array( 'autofocus[panel]', 'autofocus[section]', 'autofocus[control]' );
-		foreach ( wp_array_slice_assoc( $original_query_vars, $autofocus_query_vars ) as $key => $value ) {
-			if ( preg_match( '/^[a-z|\[|\]|_|\-|0-9]+$/', $value ) ) {
-				$stored_query_vars[ $key ] = $value;
-			}
-		}
-
-		if ( ! empty( $original_query_vars['url'] ) && wp_validate_redirect( $original_query_vars['url'] ) ) {
-			$stored_query_vars['url'] = esc_url_raw( $original_query_vars['url'] );
-		}
-
-		if ( isset( $original_query_vars['device'] ) && in_array( $original_query_vars['device'], array_keys( $this->customize_manager->get_previewable_devices() ), true ) ) {
-			$stored_query_vars['device'] = $original_query_vars['device'];
-		}
-		if ( isset( $original_query_vars['scroll'] ) && is_int( $original_query_vars['scroll'] ) ) {
-			$stored_query_vars['scroll'] = $original_query_vars['scroll'];
-		}
-		update_post_meta( $post_id, '_preview_url_query_vars', $stored_query_vars );
+		$this->post_type->set_customizer_state_query_vars( $post_id, $original_query_vars );
 	}
 }

@@ -281,15 +281,12 @@ class Post_Type {
 
 		$post_type_obj = get_post_type_object( static::SLUG );
 		if ( 'publish' !== $post->post_status && current_user_can( $post_type_obj->cap->edit_post, $post->ID ) ) {
-			$args = array(
-				static::CUSTOMIZE_UUID_PARAM_NAME => $post->post_name,
+			$args = array_merge(
+				$this->get_customizer_state_query_vars( $post->ID ),
+				array(
+					static::CUSTOMIZE_UUID_PARAM_NAME => $post->post_name,
+				)
 			);
-
-			$preview_url_query_vars = $this->get_preview_url_query_vars( $post->ID );
-
-			if ( ! empty( $preview_url_query_vars ) ) {
-				$args = array_merge( $args , $preview_url_query_vars );
-			}
 
 			$customize_url = add_query_arg( array_map( 'rawurlencode', $args ), wp_customize_url() );
 			$actions = array_merge(
@@ -342,19 +339,17 @@ class Post_Type {
 		$snapshot_theme = get_post_meta( $post->ID, '_snapshot_theme', true );
 		if ( ! empty( $snapshot_theme ) && get_stylesheet() !== $snapshot_theme ) {
 			echo '<p>';
-			/* translators: 1 is the theme the snapshot was created for */
-			echo sprintf( esc_html__( 'This snapshot was made when a different theme was active (%1$s), so currently it cannot be edited.', 'customize-snapshots' ), esc_html( $snapshot_theme ) );
+			/* translators: 1 is the theme the changeset was created for */
+			echo sprintf( esc_html__( 'This changeset was made when a different theme was active (%1$s), so currently it cannot be edited.', 'customize-snapshots' ), esc_html( $snapshot_theme ) );
 			echo '</p>';
 		} elseif ( 'publish' !== $post->post_status ) {
 			echo '<p>';
-			$preview_url_query_vars = $this->get_preview_url_query_vars( $post->ID );
-			$args = array(
-				static::CUSTOMIZE_UUID_PARAM_NAME => $post->post_name,
+			$args = array_merge(
+				$this->get_customizer_state_query_vars( $post->ID ),
+				array(
+					static::CUSTOMIZE_UUID_PARAM_NAME => $post->post_name,
+				)
 			);
-
-			if ( ! empty( $preview_url_query_vars ) ) {
-				$args = array_merge( $args, $preview_url_query_vars );
-			}
 
 			$customize_url = add_query_arg( array_map( 'rawurlencode', $args ), wp_customize_url() );
 			echo sprintf(
@@ -689,7 +684,7 @@ class Post_Type {
 	 * @return mixed
 	 */
 	public function add_snapshot_bulk_actions( $bulk_actions ) {
-		$bulk_actions['merge_snapshot'] = __( 'Merge Snapshot', 'customize-snapshots' );
+		$bulk_actions['merge_snapshot'] = __( 'Merge Changeset', 'customize-snapshots' );
 		return $bulk_actions;
 	}
 
@@ -799,7 +794,7 @@ class Post_Type {
 			return;
 		}
 		$error = array(
-			1 => __( 'At-least two snapshot required for merge.', 'customize-snapshots' ),
+			1 => __( 'At-least two changesets required for merge.', 'customize-snapshots' ),
 		);
 		$error_code = intval( $_REQUEST['merge-error'] ); // WPCS: input var ok.
 		if ( ! isset( $error[ $error_code ] ) ) {
@@ -859,12 +854,12 @@ class Post_Type {
 	}
 
 	/**
-	 * Get preview url query vars.
+	 * Get customizer session state query vars.
 	 *
 	 * @param int $post_id Post id.
 	 * @return array $preview_url_query_vars Preview url query vars.
 	 */
-	public function get_preview_url_query_vars( $post_id ) {
+	public function get_customizer_state_query_vars( $post_id ) {
 		$preview_url_query_vars = get_post_meta( $post_id, '_preview_url_query_vars', true );
 
 		if ( ! is_array( $preview_url_query_vars ) ) {
@@ -872,6 +867,39 @@ class Post_Type {
 		}
 
 		return $preview_url_query_vars;
+	}
+
+	/**
+	 * Set customizer session state query vars.
+	 *
+	 * Supplied query vars are validated and sanitized.
+	 *
+	 * @param int   $post_id    Post id.
+	 * @param array $query_vars Post id.
+	 * @return array Sanitized query vars.
+	 */
+	public function set_customizer_state_query_vars( $post_id, $query_vars ) {
+		$stored_query_vars = array();
+
+		$autofocus_query_vars = array( 'autofocus[panel]', 'autofocus[section]', 'autofocus[control]' );
+		foreach ( wp_array_slice_assoc( $query_vars, $autofocus_query_vars ) as $key => $value ) {
+			if ( preg_match( '/^[a-z|\[|\]|_|\-|0-9]+$/', $value ) ) {
+				$stored_query_vars[ $key ] = $value;
+			}
+		}
+
+		if ( ! empty( $query_vars['url'] ) && wp_validate_redirect( $query_vars['url'] ) ) {
+			$stored_query_vars['url'] = esc_url_raw( $query_vars['url'] );
+		}
+
+		if ( isset( $query_vars['device'] ) && in_array( $query_vars['device'], array_keys( $this->snapshot_manager->customize_manager->get_previewable_devices() ), true ) ) {
+			$stored_query_vars['device'] = $query_vars['device'];
+		}
+		if ( isset( $query_vars['scroll'] ) && is_int( $query_vars['scroll'] ) ) {
+			$stored_query_vars['scroll'] = $query_vars['scroll'];
+		}
+		update_post_meta( $post_id, '_preview_url_query_vars', $stored_query_vars );
+		return $stored_query_vars;
 	}
 
 	/**
@@ -887,22 +915,13 @@ class Post_Type {
 	 */
 	public function get_frontend_view_link( $post ) {
 		$post = get_post( $post );
-		$preview_url_query_vars = $this->get_preview_url_query_vars( $post->ID );
-		if ( isset( $preview_url_query_vars['url'] ) ) {
-			$frontend_view_url = add_query_arg(
-				array(
-					static::FRONT_UUID_PARAM_NAME => $post->post_name,
-				),
-				$preview_url_query_vars['url']
-			);
-		} else {
-			$frontend_view_url = add_query_arg(
-				array(
-					static::FRONT_UUID_PARAM_NAME => $post->post_name,
-				),
-				home_url( '/' )
-			);
-		}
-		return $frontend_view_url;
+		$preview_url_query_vars = $this->get_customizer_state_query_vars( $post->ID );
+		$base_url = isset( $preview_url_query_vars['url'] ) ? $preview_url_query_vars['url'] : home_url( '/' );
+		return add_query_arg(
+			array(
+				static::FRONT_UUID_PARAM_NAME => $post->post_name,
+			),
+			$base_url
+		);
 	}
 }

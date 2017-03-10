@@ -313,6 +313,9 @@ class Test_Post_Type extends \WP_UnitTestCase {
 			'data' => $data,
 			'status' => 'draft',
 		) );
+		$post_type->set_customizer_state_query_vars( $post_id, array(
+			'url' => home_url( 'hello-beautiful-world/' ),
+		) );
 		$original_actions = array(
 			'inline hide-if-no-js' => '...',
 			'edit' => '<a></a>',
@@ -322,7 +325,9 @@ class Test_Post_Type extends \WP_UnitTestCase {
 		$filtered_actions = apply_filters( 'post_row_actions', $original_actions, get_post( $post_id ) );
 		$this->assertArrayNotHasKey( 'inline hide-if-no-js', $filtered_actions );
 		$this->assertArrayHasKey( 'customize', $filtered_actions );
+		$this->assertContains( 'hello-beautiful-world', $filtered_actions['customize'] );
 		$this->assertArrayHasKey( 'front-view', $filtered_actions );
+		$this->assertContains( 'hello-beautiful-world', $filtered_actions['front-view'] );
 
 		wp_set_current_user( $subscriber_user_id );
 		$filtered_actions = apply_filters( 'post_row_actions', $original_actions, get_post( $post_id ) );
@@ -423,7 +428,7 @@ class Test_Post_Type extends \WP_UnitTestCase {
 		ob_start();
 		$post_type->render_data_metabox( get_post( $post_id ) );
 		$metabox_content = ob_get_clean();
-		$this->assertContains( 'snapshot was made when a different theme was active', $metabox_content );
+		$this->assertContains( 'changeset was made when a different theme was active', $metabox_content );
 	}
 
 	/**

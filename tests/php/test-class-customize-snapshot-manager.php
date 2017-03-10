@@ -241,6 +241,8 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		$this->assertEquals( 100000, has_action( 'admin_bar_menu', array( $manager, 'remove_all_non_snapshot_admin_bar_links' ) ) );
 		$this->assertEquals( 10, has_action( 'wp_before_admin_bar_render', array( $manager, 'print_admin_bar_styles' ) ) );
 		$this->assertEquals( 10, has_filter( 'removable_query_args', array( $manager, 'filter_removable_query_args' ) ) );
+		$this->assertEquals( 10, has_action( 'save_post_' . $manager->get_post_type(), array( $manager, 'create_initial_changeset_revision' ) ) );
+		$this->assertEquals( 10, has_action( 'save_post_' . $manager->get_post_type(), array( $manager, 'save_customizer_state_query_vars' ) ) );
 		$this->assertEquals( 10, has_filter( 'wp_insert_post_data', array( $manager, 'prepare_snapshot_post_content_for_publish' ) ) );
 	}
 
@@ -728,5 +730,56 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		$this->assertArrayHasKey( 'url', $query_params );
 		$parsed_preview_url = wp_parse_url( $query_params['url'] );
 		$this->assertArrayNotHasKey( 'query', $parsed_preview_url );
+	}
+
+	/**
+	 * Test save_customizer_state_query_vars.
+	 *
+	 * @convers \CustomizeSnapshots\Customize_Snapshot_Manager::save_customizer_state_query_vars()
+	 * @convers \CustomizeSnapshots\Post_Type::get_frontend_view_link()
+	 * @convers \CustomizeSnapshots\Post_Type::get_customizer_state_query_vars()
+	 * @convers \CustomizeSnapshots\Post_Type::set_customizer_state_query_vars()
+	 */
+	public function test_save_customizer_state_query_vars() {
+		$post_id = $this->manager->post_type->save( array(
+			'uuid' => self::UUID,
+			'data' => array(
+				'blogname' => array(
+					'value' => 'Hello',
+				),
+			),
+			'status' => 'draft',
+		) );
+
+		$original_query_vars = array(
+			'scroll' => 123,
+			'device' => 'mobile',
+			'url' => home_url( 'about/' ),
+			'autofocus[panel]' => 'widgets',
+			'autofocus[section]' => 'sidebar-widgets-sidebar-1',
+			'autofocus[control]' => 'widget_test[123]',
+		);
+
+		$this->assertContains( '?customize_changeset_uuid=' . self::UUID, get_permalink( $post_id ) );
+		$this->assertEmpty( $this->manager->post_type->get_customizer_state_query_vars( $post_id ) );
+		$this->manager->save_customizer_state_query_vars( $post_id );
+		$this->assertEmpty( $this->manager->post_type->get_customizer_state_query_vars( $post_id ) );
+
+		$_POST['customizer_state_query_vars'] = wp_slash( wp_json_encode( $original_query_vars ) );
+		$this->manager->save_customizer_state_query_vars( $post_id );
+		$this->assertContains( 'about/?customize_changeset_uuid=' . self::UUID, get_permalink( $post_id ) );
+		$this->assertEquals( $this->manager->post_type->get_customizer_state_query_vars( $post_id ), $original_query_vars );
+		$this->assertEquals( $this->manager->post_type->get_frontend_view_link( $post_id ), get_permalink( $post_id ) );
+
+		$this->manager->post_type->set_customizer_state_query_vars( $post_id, array(
+			'scroll' => 'bad',
+			'device' => 'bad',
+			'url' => 'http://bogus.example.com/',
+			'autofocus[panel]' => 'badid!',
+			'autofocus[section]' => '#sobad',
+			'autofocus[control]' => '*horrible',
+			'unrecognized' => 'yes',
+		) );
+		$this->assertEmpty( $this->manager->post_type->get_customizer_state_query_vars( $post_id ) );
 	}
 }

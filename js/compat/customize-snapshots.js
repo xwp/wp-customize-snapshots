@@ -226,7 +226,7 @@
 
 			api.previewer.query = function() {
 				var retval = originalQuery.apply( this, arguments );
-				retval.customize_preview_url_query_vars = JSON.stringify( snapshot.getStateQueryVars() );
+				retval.customizer_state_query_vars = JSON.stringify( snapshot.getStateQueryVars() );
 
 				if ( api.state( 'snapshot-exists' ).get() ) {
 					retval.customize_snapshot_uuid = snapshot.data.uuid;
