@@ -760,14 +760,14 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 			'autofocus[control]' => 'widget_test[123]',
 		);
 
-		$this->assertContains( '?customize_changeset_uuid=' . self::UUID, get_permalink( $post_id ) );
+		$this->assertContains( sprintf( '?%s=%s', $this->front_param, self::UUID ), get_permalink( $post_id ) );
 		$this->assertEmpty( $this->manager->post_type->get_customizer_state_query_vars( $post_id ) );
 		$this->manager->save_customizer_state_query_vars( $post_id );
 		$this->assertEmpty( $this->manager->post_type->get_customizer_state_query_vars( $post_id ) );
 
 		$_POST['customizer_state_query_vars'] = wp_slash( wp_json_encode( $original_query_vars ) );
 		$this->manager->save_customizer_state_query_vars( $post_id );
-		$this->assertContains( 'about/?customize_changeset_uuid=' . self::UUID, get_permalink( $post_id ) );
+		$this->assertContains( sprintf( 'about/?%s=%s', $this->front_param, self::UUID ), get_permalink( $post_id ) );
 		$this->assertEquals( $this->manager->post_type->get_customizer_state_query_vars( $post_id ), $original_query_vars );
 		$this->assertEquals( $this->manager->post_type->get_frontend_view_link( $post_id ), get_permalink( $post_id ) );
 
