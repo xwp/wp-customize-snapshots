@@ -1159,36 +1159,22 @@
 		 * @return {void}.
 		 */
 		removeParamFromClose: function removeParamFromClose( targetParam ) {
-			var closeButton, queryString, params,
-				newQueryString = '', newParams = [];
-
-			closeButton = document.querySelector( '.customize-controls-close' );
-			queryString = closeButton.search;
+			var closeButton, queryString, updatedParams;
+			closeButton = $( '.customize-controls-close' );
+			queryString = closeButton.prop( 'search' ).substr( 1 );
 
 			if ( ! queryString.length ) {
 				return;
 			}
 
-			queryString = queryString.replace( '?', '' );
-			params = queryString.split( '&' );
-
-			_.each( params, function( param ) {
-				if ( -1 === param.search( targetParam + '=' ) ) {
-					newParams.push( param );
+			updatedParams = _.filter(
+				queryString.split( '&' ),
+				function( paramPair ) {
+					return 0 !== paramPair.indexOf( targetParam + '=' );
 				}
-			} );
+			);
 
-			if ( newParams.length > 1 ) {
-				newQueryString = newParams.join( '&' );
-			} else {
-				newQueryString = newParams.join( '' );
-			}
-
-			if ( newParams.length ) {
-				newQueryString = '?' + newParams;
-			}
-
-			closeButton.search = newQueryString;
+			closeButton.prop( 'search', updatedParams.join( '&' ) );
 		}
 	} );
 
