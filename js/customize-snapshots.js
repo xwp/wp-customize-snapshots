@@ -1,4 +1,4 @@
-/* global jQuery, wp, _customizeSnapshotsSettings */
+/* global jQuery, wp, JSON, _customizeSnapshotsSettings */
 /* eslint no-magic-numbers: [ "error", { "ignore": [0,1,-1] } ], consistent-this: [ "error", "snapshot" ] */
 
 (function( api, $ ) {
@@ -96,6 +96,35 @@
 
 				return request;
 			} );
+		},
+
+		/**
+		 * Get state query vars.
+		 *
+		 * @return {{}} Query vars for scroll, device, url, and autofocus.
+		 */
+		getStateQueryVars: function() {
+			var queryVars = {
+				'autofocus[control]': null,
+				'autofocus[section]': null,
+				'autofocus[panel]': null
+			};
+			queryVars.scroll = parseInt( api.previewer.scroll, 10 ) || 0;
+			queryVars.device = api.previewedDevice.get();
+			queryVars.url = api.previewer.previewUrl.get();
+
+			_.find( [ 'control', 'section', 'panel' ], function( constructType ) {
+				var found = false;
+				api[ constructType ].each( function( construct ) { // @todo Core needs to support more Backbone methods on wp.customize.Values().
+					if ( ! found && construct.expanded && construct.expanded.get() ) {
+						queryVars[ 'autofocus[' + constructType + ']' ] = construct.id;
+						found = true;
+					}
+				} );
+				return found;
+			} );
+
+			return queryVars;
 		},
 
 		/**
@@ -970,6 +999,9 @@
 
 			api.previewer.query = function() {
 				var retval = originalQuery.apply( this, arguments );
+
+				retval.customizer_state_query_vars = JSON.stringify( snapshot.getStateQueryVars() );
+
 				if ( snapshot.editControlSettings( 'title' ).get() ) {
 					retval.customize_changeset_title = snapshot.editControlSettings( 'title' ).get();
 				}
@@ -1089,7 +1121,7 @@
 		 * @return {void}
 		 */
 		prefilterAjax: function prefilterAjax() {
-			var snapshot = this, removeParam;
+			var snapshot = this, removeParam, isSameStatus;
 
 			if ( ! api.state.has( 'changesetStatus' ) ) {
 				return;
@@ -1112,7 +1144,8 @@
 					return;
 				}
 
-				if ( 'customize_save' === originalOptions.data.action && options.data && originalOptions.data.customize_changeset_status ) {
+				isSameStatus = api.state( 'changesetStatus' ).get() === originalOptions.data.customize_changeset_status;
+				if ( 'customize_save' === originalOptions.data.action && options.data && originalOptions.data.customize_changeset_status && isSameStatus ) {
 					options.data = removeParam( options.data, 'customize_changeset_status' );
 					snapshot.editBoxAutoSaveTriggered = false;
 				}

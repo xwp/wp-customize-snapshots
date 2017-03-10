@@ -1,5 +1,5 @@
-/* global jQuery, wp, _customizeSnapshotsCompatSettings */
-/* eslint consistent-this: ["error", "snapshot"] */
+/* global jQuery, wp, _customizeSnapshotsCompatSettings, JSON */
+/* eslint consistent-this: ["error", "snapshot"], no-magic-numbers: [ "error", { "ignore": [0,1,2] } ] */
 
 ( function( api, $ ) {
 	'use strict';
@@ -228,6 +228,8 @@
 
 			api.previewer.query = function() {
 				var retval = originalQuery.apply( this, arguments );
+				retval.customizer_state_query_vars = JSON.stringify( snapshot.getStateQueryVars() );
+
 				if ( api.state( 'snapshot-exists' ).get() ) {
 					retval.customize_snapshot_uuid = snapshot.data.uuid;
 					if ( snapshot.snapshotTitle && snapshot.snapshotTitle.val() ) {
