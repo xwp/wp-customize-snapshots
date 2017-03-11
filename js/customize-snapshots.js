@@ -303,24 +303,27 @@
 		 * @return {void}
 		 */
 		addButtons: function addButtons() {
-			var snapshot = this, setPreviewLinkHref;
+			var snapshot = this, setPreviewLinkHref, disableButton = true;
 
 			snapshot.spinner = $( '#customize-header-actions' ).find( '.spinner' );
 			snapshot.publishButton = $( '#save' );
 
 			snapshot.publishButton.addClass( 'hidden' );
 			snapshot.statusButton = snapshot.addStatusButton();
-			snapshot.statusButton.disbleButton.set( true );
 
 			if ( api.state( 'changesetStatus' ).get() ) {
 				if ( 'auto-draft' === api.state( 'changesetStatus' ).get() ) {
-					snapshot.statusButton.disable( false );
+					disableButton = false;
 				} else {
 					snapshot.statusButton.updateButtonText( 'alt-text' );
 				}
-			} else {
-				snapshot.statusButton.disable( true );
 			}
+
+			if ( ! api.state( 'activated' ).get() ) {
+				disableButton = false;
+			}
+
+			snapshot.statusButton.disable( disableButton );
 
 			// Preview link.
 			snapshot.previewLink = $( $.trim( wp.template( 'snapshot-preview-link' )() ) );
