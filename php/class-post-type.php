@@ -898,6 +898,9 @@ class Post_Type {
 		if ( isset( $query_vars['scroll'] ) && is_int( $query_vars['scroll'] ) ) {
 			$stored_query_vars['scroll'] = $query_vars['scroll'];
 		}
+		if ( isset( $query_vars['previewingTheme'] ) ) {
+			$stored_query_vars['theme'] = $this->snapshot_manager->customize_manager->get_stylesheet();
+		}
 		update_post_meta( $post_id, '_preview_url_query_vars', $stored_query_vars );
 		return $stored_query_vars;
 	}

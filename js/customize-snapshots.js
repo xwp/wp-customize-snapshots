@@ -115,6 +115,10 @@
 			queryVars.device = api.previewedDevice.get();
 			queryVars.url = api.previewer.previewUrl.get();
 
+			if ( ! api.state( 'activated' ).get() ) {
+				queryVars.previewingTheme = true;
+			}
+
 			_.find( [ 'control', 'section', 'panel' ], function( constructType ) {
 				var found = false;
 				api[ constructType ].each( function( construct ) { // @todo Core needs to support more Backbone methods on wp.customize.Values().
