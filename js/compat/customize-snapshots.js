@@ -269,7 +269,10 @@
 			if ( ! snapshot.data.currentUserCanPublish ) {
 				snapshot.snapshotButton.attr( 'title', api.state( 'snapshot-exists' ).get() ? snapshot.data.i18n.permsMsg.update : snapshot.data.i18n.permsMsg.save );
 			}
-			snapshot.snapshotButton.prop( 'disabled', true );
+
+			if ( api.state( 'activated' ).get() ) {
+				snapshot.snapshotButton.prop( 'disabled', true );
+			}
 
 			snapshot.snapshotButton.on( 'click', function( event ) {
 				var status;
