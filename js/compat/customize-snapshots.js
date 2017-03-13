@@ -20,7 +20,6 @@
 
 			api.bind( 'ready', function() {
 				api.state.create( 'snapshot-exists', snapshot.data.snapshotExists );
-				snapshot.extendPreviewerQuery();
 
 				if ( api.state( 'snapshot-exists' ).get() ) {
 					api.state( 'saved' ).set( false );

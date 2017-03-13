@@ -51,6 +51,8 @@
 					api.state( 'snapshot-exists' ).set( true );
 				}
 
+				snapshot.extendPreviewerQuery();
+
 				snapshot.editControlSettings = new api.Values();
 				snapshot.editControlSettings.create( 'title', snapshot.data.title );
 				snapshot.editControlSettings.create( 'date', snapshot.data.publishDate );
@@ -635,7 +637,7 @@
 		 */
 		autoSaveEditBox: function() {
 			var snapshot = this, update,
-				delay = 2000, status, isValidChangesetStatus, isFutureDateAndStatus;
+				delay = 2000, status, isFutureDateAndStatus;
 
 			snapshot.updatePending = false;
 			snapshot.dirtyEditControlValues = false;
@@ -687,16 +689,7 @@
 				return undefined;
 			} );
 
-			isValidChangesetStatus = function() {
-				return _.contains( [ 'future', 'pending', 'draft' ], api.state( 'changesetStatus' ).get() );
-			};
-
 			// @todo Show loader and disable button while auto saving.
-			api.bind( 'changeset-save', function() {
-				if ( isValidChangesetStatus() ) {
-					snapshot.extendPreviewerQuery();
-				}
-			} );
 
 			api.bind( 'changeset-saved', function() {
 				if ( 'auto-draft' !== api.state( 'changesetStatus' ).get() ) {
@@ -1002,6 +995,10 @@
 
 			api.previewer.query = function() {
 				var retval = originalQuery.apply( this, arguments );
+
+				if ( ! _.contains( [ 'future', 'pending', 'draft' ], snapshot.statusButton.value.get() ) ) {
+					return retval;
+				}
 
 				retval.customizer_state_query_vars = JSON.stringify( snapshot.getStateQueryVars() );
 
