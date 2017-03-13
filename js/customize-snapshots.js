@@ -19,6 +19,7 @@
 			initialServerDate: '',
 			initialServerTimestamp: 0,
 			initialClientTimestamp: 0,
+			theme: '',
 			i18n: {},
 			dirty: false
 		},
@@ -106,16 +107,19 @@
 		 * @return {{}} Query vars for scroll, device, url, and autofocus.
 		 */
 		getStateQueryVars: function() {
-			var queryVars = {
+			var snapshot = this, currentTheme, queryVars;
+
+			queryVars = {
 				'autofocus[control]': null,
 				'autofocus[section]': null,
 				'autofocus[panel]': null
 			};
+			currentTheme = api.settings.theme.stylesheet;
 			queryVars.scroll = parseInt( api.previewer.scroll, 10 ) || 0;
 			queryVars.device = api.previewedDevice.get();
 			queryVars.url = api.previewer.previewUrl.get();
 
-			if ( ! api.state( 'activated' ).get() ) {
+			if ( ! api.state( 'activated' ).get() || snapshot.data.theme !== currentTheme ) {
 				queryVars.previewingTheme = true;
 			}
 
@@ -309,8 +313,10 @@
 		 * @return {void}
 		 */
 		addButtons: function addButtons() {
-			var snapshot = this, setPreviewLinkHref, disableButton = true;
+			var snapshot = this, disableButton = true,
+				setPreviewLinkHref, currentTheme;
 
+			currentTheme = api.settings.theme.stylesheet;
 			snapshot.spinner = $( '#customize-header-actions' ).find( '.spinner' );
 			snapshot.publishButton = $( '#save' );
 
@@ -325,7 +331,7 @@
 				}
 			}
 
-			if ( ! api.state( 'activated' ).get() ) {
+			if ( ! api.state( 'activated' ).get() || snapshot.data.theme !== currentTheme ) {
 				disableButton = false;
 			}
 

@@ -272,6 +272,8 @@
 
 			if ( api.state( 'activated' ).get() ) {
 				snapshot.snapshotButton.prop( 'disabled', true );
+			} else if ( ! api.state( 'activated' ).get() && snapshot.data.themeSaved ) {
+				snapshot.snapshotButton.prop( 'disabled', true );
 			}
 
 			snapshot.snapshotButton.on( 'click', function( event ) {

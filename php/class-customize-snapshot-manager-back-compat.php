@@ -91,6 +91,7 @@ class Customize_Snapshot_Manager_Back_Compat extends Customize_Snapshot_Manager 
 		if ( $this->snapshot ) {
 			$post = $this->snapshot->post();
 			$this->override_post_date_default_data( $post );
+			$preview_url_query_vars = $this->post_type->get_customizer_state_query_vars( $post->ID );
 		}
 
 		// Script data array.
@@ -104,6 +105,8 @@ class Customize_Snapshot_Manager_Back_Compat extends Customize_Snapshot_Manager 
 			'currentUserCanPublish' => current_user_can( 'customize_publish' ),
 			'initialServerDate' => current_time( 'mysql', false ),
 			'initialServerTimestamp' => floor( microtime( true ) * 1000 ),
+			'theme' => $this->original_stylesheet,
+			'themeSaved' => isset( $preview_url_query_vars['theme'] ),
 			'i18n' => array(
 				'saveButton' => __( 'Save', 'customize-snapshots' ),
 				'updateButton' => __( 'Update', 'customize-snapshots' ),

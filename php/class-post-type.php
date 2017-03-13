@@ -920,11 +920,17 @@ class Post_Type {
 		$post = get_post( $post );
 		$preview_url_query_vars = $this->get_customizer_state_query_vars( $post->ID );
 		$base_url = isset( $preview_url_query_vars['url'] ) ? $preview_url_query_vars['url'] : home_url( '/' );
-		return add_query_arg(
-			array(
-				static::FRONT_UUID_PARAM_NAME => $post->post_name,
-			),
-			$base_url
+		$current_theme = get_stylesheet();
+		$args = array(
+			static::FRONT_UUID_PARAM_NAME => $post->post_name,
 		);
+
+		if ( isset( $preview_url_query_vars['theme'] ) && $current_theme !== $preview_url_query_vars['theme'] ) {
+			$args = array_merge( $args, array(
+					'theme' => $preview_url_query_vars['theme'],
+			) );
+		}
+
+		return add_query_arg( $args, $base_url );
 	}
 }
