@@ -265,6 +265,7 @@
 					dialogElement;
 
 				snapshot.statusButton.disableSelect.set( false );
+				snapshot.statusButton.disbleButton.set( false );
 
 				if ( response.setting_validities ) {
 					invalidityCount = _.size( response.setting_validities, function( validity ) {
