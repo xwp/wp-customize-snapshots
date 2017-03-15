@@ -120,7 +120,7 @@
 			queryVars.url = api.previewer.previewUrl.get();
 
 			if ( ! api.state( 'activated' ).get() || snapshot.data.theme !== currentTheme ) {
-				queryVars.previewingTheme = true;
+				queryVars.previewing_theme = true;
 			}
 
 			_.find( [ 'control', 'section', 'panel' ], function( constructType ) {
@@ -314,7 +314,7 @@
 		 * @return {void}
 		 */
 		addButtons: function addButtons() {
-			var snapshot = this, disableButton = true,
+			var snapshot = this, disableButton = true, disableSelectButton = true,
 				setPreviewLinkHref, currentTheme;
 
 			currentTheme = api.settings.theme.stylesheet;
@@ -325,6 +325,7 @@
 			snapshot.statusButton = snapshot.addStatusButton();
 
 			if ( api.state( 'changesetStatus' ).get() ) {
+				disableSelectButton = false;
 				if ( 'auto-draft' === api.state( 'changesetStatus' ).get() ) {
 					disableButton = false;
 				} else {
@@ -334,9 +335,11 @@
 
 			if ( ! api.state( 'activated' ).get() || snapshot.data.theme !== currentTheme ) {
 				disableButton = false;
+				disableSelectButton = false;
 			}
 
-			snapshot.statusButton.disable( disableButton );
+			snapshot.statusButton.disbleButton.set( disableButton );
+			snapshot.statusButton.disableSelect.set( disableSelectButton );
 
 			// Preview link.
 			snapshot.previewLink = $( $.trim( wp.template( 'snapshot-preview-link' )() ) );
