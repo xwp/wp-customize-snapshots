@@ -898,8 +898,9 @@ class Post_Type {
 		if ( isset( $query_vars['scroll'] ) && is_int( $query_vars['scroll'] ) ) {
 			$stored_query_vars['scroll'] = $query_vars['scroll'];
 		}
-		if ( isset( $query_vars['previewing_theme'] ) && $query_vars['previewing_theme'] ) {
-			$stored_query_vars['theme'] = $this->snapshot_manager->customize_manager->get_stylesheet();
+		if ( isset( $query_vars['previewing_theme'] ) ) {
+			$theme = $this->snapshot_manager->customize_manager->get_stylesheet();
+			$stored_query_vars['theme'] = $query_vars['previewing_theme'] ? $theme: '';
 		}
 		update_post_meta( $post_id, '_preview_url_query_vars', $stored_query_vars );
 		return $stored_query_vars;
@@ -927,7 +928,7 @@ class Post_Type {
 
 		if ( isset( $preview_url_query_vars['theme'] ) && $current_theme !== $preview_url_query_vars['theme'] ) {
 			$args = array_merge( $args, array(
-                'theme' => $preview_url_query_vars['theme'],
+				'theme' => $preview_url_query_vars['theme'],
 			) );
 		}
 

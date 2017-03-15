@@ -293,7 +293,7 @@ class Customize_Snapshot_Manager {
 			'currentUserCanPublish' => current_user_can( 'customize_publish' ),
 			'initialServerDate' => current_time( 'mysql', false ),
 			'initialServerTimestamp' => floor( microtime( true ) * 1000 ),
-			'theme' => isset( $preview_url_query_vars['theme'] ) ? $preview_url_query_vars['theme'] : $this->original_stylesheet,
+			'previewingTheme' => isset( $preview_url_query_vars['theme'] ) ? $preview_url_query_vars['theme']: '',
 			'i18n' => array(
 				'saveButton' => __( 'Save', 'customize-snapshots' ),
 				'updateButton' => __( 'Update', 'customize-snapshots' ),

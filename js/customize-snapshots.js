@@ -19,7 +19,7 @@
 			initialServerDate: '',
 			initialServerTimestamp: 0,
 			initialClientTimestamp: 0,
-			theme: '',
+			previewingTheme: '',
 			i18n: {},
 			dirty: false
 		},
@@ -64,6 +64,7 @@
 
 				snapshot.frontendPreviewUrl = new api.Value( api.previewer.previewUrl.get() );
 				snapshot.frontendPreviewUrl.link( api.previewer.previewUrl );
+				snapshot.isNotSavedPreviewingTheme = false;
 
 				snapshot.addButtons();
 				snapshot.editSnapshotUI();
@@ -107,19 +108,19 @@
 		 * @return {{}} Query vars for scroll, device, url, and autofocus.
 		 */
 		getStateQueryVars: function() {
-			var snapshot = this, currentTheme, queryVars;
+			var snapshot = this, queryVars;
 
 			queryVars = {
 				'autofocus[control]': null,
 				'autofocus[section]': null,
 				'autofocus[panel]': null
 			};
-			currentTheme = api.settings.theme.stylesheet;
+
 			queryVars.scroll = parseInt( api.previewer.scroll, 10 ) || 0;
 			queryVars.device = api.previewedDevice.get();
 			queryVars.url = api.previewer.previewUrl.get();
 
-			if ( ! api.state( 'activated' ).get() || snapshot.data.theme !== currentTheme ) {
+			if ( ! api.state( 'activated' ).get() || snapshot.isNotSavedPreviewingTheme ) {
 				queryVars.previewing_theme = true;
 			}
 
@@ -315,9 +316,8 @@
 		 */
 		addButtons: function addButtons() {
 			var snapshot = this, disableButton = true, disableSelectButton = true,
-				setPreviewLinkHref, currentTheme;
+				setPreviewLinkHref, currentTheme, savedPreviewingTheme, themeNotActiveOrSaved;
 
-			currentTheme = api.settings.theme.stylesheet;
 			snapshot.spinner = $( '#customize-header-actions' ).find( '.spinner' );
 			snapshot.publishButton = $( '#save' );
 
@@ -333,7 +333,12 @@
 				}
 			}
 
-			if ( ! api.state( 'activated' ).get() || snapshot.data.theme !== currentTheme ) {
+			currentTheme = api.settings.theme.stylesheet; // Or previewing theme.
+			savedPreviewingTheme = snapshot.data.previewingTheme;
+			themeNotActiveOrSaved = ! api.state( 'activated' ).get() && ! savedPreviewingTheme;
+			snapshot.isNotSavedPreviewingTheme = savedPreviewingTheme && savedPreviewingTheme !== currentTheme;
+
+			if ( themeNotActiveOrSaved || snapshot.isNotSavedPreviewingTheme ) {
 				disableButton = false;
 				disableSelectButton = false;
 			}

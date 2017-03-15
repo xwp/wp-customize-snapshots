@@ -272,7 +272,7 @@
 
 			if ( api.state( 'activated' ).get() ) {
 				snapshot.snapshotButton.prop( 'disabled', true );
-			} else if ( ! api.state( 'activated' ).get() && snapshot.data.themeSaved ) {
+			} else if ( ! api.state( 'activated' ).get() && snapshot.data.previewingTheme ) {
 				snapshot.snapshotButton.prop( 'disabled', true );
 			}
 

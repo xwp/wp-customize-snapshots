@@ -106,7 +106,7 @@ class Customize_Snapshot_Manager_Back_Compat extends Customize_Snapshot_Manager 
 			'initialServerDate' => current_time( 'mysql', false ),
 			'initialServerTimestamp' => floor( microtime( true ) * 1000 ),
 			'theme' => $this->original_stylesheet,
-			'themeSaved' => isset( $preview_url_query_vars['theme'] ),
+			'previewingTheme' => isset( $preview_url_query_vars['theme'] ) ? $preview_url_query_vars['theme']: '',
 			'i18n' => array(
 				'saveButton' => __( 'Save', 'customize-snapshots' ),
 				'updateButton' => __( 'Update', 'customize-snapshots' ),
