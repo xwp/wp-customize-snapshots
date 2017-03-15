@@ -247,7 +247,9 @@
 		addButtons: function addButtons() {
 			var snapshot = this,
 				header = $( '#customize-header-actions' ),
-				templateData = {}, setPreviewLinkHref;
+				disableButton = true,
+				templateData = {}, setPreviewLinkHref, currentTheme,
+				savedPreviewingTheme, themeNotActiveOrSaved;
 
 			snapshot.publishButton = header.find( '#save' );
 			snapshot.spinner = header.find( '.spinner' );
@@ -270,11 +272,16 @@
 				snapshot.snapshotButton.attr( 'title', api.state( 'snapshot-exists' ).get() ? snapshot.data.i18n.permsMsg.update : snapshot.data.i18n.permsMsg.save );
 			}
 
-			if ( api.state( 'activated' ).get() ) {
-				snapshot.snapshotButton.prop( 'disabled', true );
-			} else if ( ! api.state( 'activated' ).get() && snapshot.data.previewingTheme ) {
-				snapshot.snapshotButton.prop( 'disabled', true );
+			currentTheme = api.settings.theme.stylesheet; // Or previewing theme.
+			savedPreviewingTheme = snapshot.data.previewingTheme;
+			themeNotActiveOrSaved = ! api.state( 'activated' ).get() && ! savedPreviewingTheme;
+			snapshot.isNotSavedPreviewingTheme = savedPreviewingTheme && savedPreviewingTheme !== currentTheme;
+
+			if ( themeNotActiveOrSaved || snapshot.isNotSavedPreviewingTheme ) {
+				disableButton = false;
 			}
+
+			snapshot.snapshotButton.prop( 'disabled', disableButton );
 
 			snapshot.snapshotButton.on( 'click', function( event ) {
 				var status;
