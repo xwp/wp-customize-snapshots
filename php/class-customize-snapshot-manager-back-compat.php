@@ -79,11 +79,7 @@ class Customize_Snapshot_Manager_Back_Compat extends Customize_Snapshot_Manager 
 	 * @global \WP_Customize_Manager $wp_customize
 	 */
 	public function enqueue_controls_scripts() {
-
-		// Prevent loading the Snapshot interface if the theme is not active.
-		if ( ! $this->is_theme_active() ) {
-			return;
-		}
+		$this->ensure_customize_manager();
 
 		wp_enqueue_style( 'customize-snapshots' );
 		wp_enqueue_script( 'customize-snapshots-compat' );
@@ -91,7 +87,6 @@ class Customize_Snapshot_Manager_Back_Compat extends Customize_Snapshot_Manager 
 		if ( $this->snapshot ) {
 			$post = $this->snapshot->post();
 			$this->override_post_date_default_data( $post );
-			$preview_url_query_vars = $this->post_type->get_customizer_state_query_vars( $post->ID );
 		}
 
 		// Script data array.
@@ -106,7 +101,7 @@ class Customize_Snapshot_Manager_Back_Compat extends Customize_Snapshot_Manager 
 			'initialServerDate' => current_time( 'mysql', false ),
 			'initialServerTimestamp' => floor( microtime( true ) * 1000 ),
 			'theme' => $this->original_stylesheet,
-			'previewingTheme' => isset( $preview_url_query_vars['theme'] ) ? $preview_url_query_vars['theme']: '',
+			'previewingTheme' => ! $this->customize_manager->is_theme_active(),
 			'i18n' => array(
 				'saveButton' => __( 'Save', 'customize-snapshots' ),
 				'updateButton' => __( 'Update', 'customize-snapshots' ),
