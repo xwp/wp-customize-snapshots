@@ -104,7 +104,8 @@ class Customize_Snapshot_Manager {
 		add_action( 'admin_bar_menu', array( $this, 'remove_all_non_snapshot_admin_bar_links' ), 100000 );
 		add_action( 'wp_before_admin_bar_render', array( $this, 'print_admin_bar_styles' ) );
 		add_filter( 'removable_query_args', array( $this, 'filter_removable_query_args' ) );
-		add_action( 'save_post_customize_changeset', array( $this, 'create_initial_changeset_revision' ) );
+		add_action( 'save_post_' . $this->get_post_type(), array( $this, 'create_initial_changeset_revision' ) );
+		add_action( 'save_post_' . $this->get_post_type(), array( $this, 'save_customizer_state_query_vars' ) );
 		add_filter( 'wp_insert_post_data', array( $this, 'prepare_snapshot_post_content_for_publish' ) );
 		add_filter( 'user_has_cap', array( $this, 'filter_user_has_cap' ), 10, 3 );
 	}
@@ -153,18 +154,16 @@ class Customize_Snapshot_Manager {
 	public function read_current_snapshot_uuid() {
 		$customize_arg = $this->get_customize_uuid_param();
 		$frontend_arg = $this->get_front_uuid_param();
-		if ( isset( $_REQUEST[ $customize_arg ] ) ) {
-			$uuid = $_REQUEST[ $customize_arg ]; // WPCS: input var ok.
-		} elseif ( isset( $_REQUEST[ $frontend_arg ] ) ) {
-			$uuid = $_REQUEST[ $frontend_arg ]; // WPCS: input var ok.
+		$uuid = null;
+		if ( isset( $_REQUEST[ $customize_arg ] ) ) { // WPCS: input var ok. CSRF ok.
+			$uuid = sanitize_key( wp_unslash( $_REQUEST[ $customize_arg ] ) ); // WPCS: input var ok. CSRF ok.
+		} elseif ( isset( $_REQUEST[ $frontend_arg ] ) ) { // WPCS: input var ok. CSRF ok.
+			$uuid = sanitize_key( wp_unslash( $_REQUEST[ $frontend_arg ] ) ); // WPCS: input var ok. CSRF ok.
 		}
 
-		if ( isset( $uuid ) ) {
-			$uuid = sanitize_key( wp_unslash( $uuid ) );
-			if ( static::is_valid_uuid( $uuid ) ) {
-				$this->current_snapshot_uuid = $uuid;
-				return true;
-			}
+		if ( $uuid && static::is_valid_uuid( $uuid ) ) {
+			$this->current_snapshot_uuid = $uuid;
+			return true;
 		}
 		$this->current_snapshot_uuid = null;
 		return false;
@@ -176,7 +175,7 @@ class Customize_Snapshot_Manager {
 	 * @return bool True if it's an Ajax request, false otherwise.
 	 */
 	public function doing_customize_save_ajax() {
-		return isset( $_REQUEST['action'] ) && wp_unslash( $_REQUEST['action'] ) === 'customize_save';
+		return isset( $_REQUEST['action'] ) && sanitize_key( wp_unslash( $_REQUEST['action'] ) ) === 'customize_save'; // WPCS: input var ok. CSRF ok.
 	}
 
 	/**
@@ -189,7 +188,9 @@ class Customize_Snapshot_Manager {
 		if ( empty( $wp_customize ) || ! ( $wp_customize instanceof \WP_Customize_Manager ) ) {
 			require_once( ABSPATH . WPINC . '/class-wp-customize-manager.php' );
 			if ( null !== $this->current_snapshot_uuid ) {
-				$wp_customize = new \WP_Customize_Manager( array( 'changeset_uuid' => $this->current_snapshot_uuid ) ); // WPCS: override ok.
+				$wp_customize = new \WP_Customize_Manager( array(
+					'changeset_uuid' => $this->current_snapshot_uuid,
+				) ); // WPCS: override ok.
 			} else {
 				$wp_customize = new \WP_Customize_Manager(); // WPCS: override ok.
 			}
@@ -221,6 +222,8 @@ class Customize_Snapshot_Manager {
 	 */
 	public function add_snapshot_uuid_to_return_url() {
 		$should_add_snapshot_uuid = (
+			isset( $_GET[ $this->get_front_uuid_param() ] )
+			&&
 			$this->current_snapshot_uuid
 			&&
 			$this->is_theme_active()
@@ -474,6 +477,7 @@ class Customize_Snapshot_Manager {
 	 * Print admin bar styles.
 	 */
 	public function print_admin_bar_styles() {
+		// @codingStandardsIgnoreStart A WordPress-VIP sniff has false positive on admin bar being hidden.
 		?>
 		<style type="text/css">
 			#wpadminbar #wp-admin-bar-resume-customize-snapshot {
@@ -493,6 +497,7 @@ class Customize_Snapshot_Manager {
 			}
 		</style>
 		<?php
+		// @codingStandardsIgnoreEnd
 	}
 
 	/**
@@ -515,7 +520,7 @@ class Customize_Snapshot_Manager {
 		$preview_url_parsed = wp_parse_url( $customize_node->href );
 		parse_str( $preview_url_parsed['query'], $preview_url_query_params );
 		if ( ! empty( $preview_url_query_params['url'] ) ) {
-			$preview_url_query_params['url'] = remove_query_arg( array( $this->get_front_uuid_param() ), $preview_url_query_params['url'] );
+			$preview_url_query_params['url'] = rawurlencode( remove_query_arg( array( $this->get_front_uuid_param() ), $preview_url_query_params['url'] ) );
 			$customize_node->href = preg_replace(
 				'/(?<=\?).*?(?=#|$)/',
 				build_query( $preview_url_query_params ),
@@ -523,11 +528,20 @@ class Customize_Snapshot_Manager {
 			);
 		}
 
-		// Add customize_snapshot_uuid param as param to customize.php itself.
-		$customize_node->href = add_query_arg(
-			array( $this->get_customize_uuid_param() => $this->current_snapshot_uuid ),
-			$customize_node->href
+		$args = array(
+			$this->get_customize_uuid_param() => $this->current_snapshot_uuid,
 		);
+
+		$post = $this->snapshot->post();
+
+		if ( $post ) {
+			$customizer_state_query_vars = $this->post_type->get_customizer_state_query_vars( $post->ID );
+			unset( $customizer_state_query_vars['url'] );
+			$args = array_merge( $args, $customizer_state_query_vars );
+		}
+
+		// Add customize_snapshot_uuid and preview url params to customize.php itself.
+		$customize_node->href = add_query_arg( $args, $customize_node->href );
 
 		$customize_node->meta['class'] .= ' ab-customize-snapshots-item';
 		$wp_admin_bar->add_menu( (array) $customize_node );
@@ -874,7 +888,9 @@ class Customize_Snapshot_Manager {
 			$months[ $i ]['text'] = sprintf( __( '%1$s-%2$s', 'customize-snapshots' ), $month_number, $month_text );
 			$months[ $i ]['value'] = $month_number;
 		}
-		return array( 'month_choices' => $months );
+		return array(
+			'month_choices' => $months,
+		);
 	}
 
 	/**
@@ -988,5 +1004,25 @@ class Customize_Snapshot_Manager {
 		$allcaps[ $caps[0] ] = $allow_cap;
 
 		return $allcaps;
+
+	}
+
+	/**
+	* Save the preview url query vars in changeset meta.
+	*
+	* @param int $post_id Post id.
+	*/
+	public function save_customizer_state_query_vars( $post_id ) {
+		if ( ! isset( $_POST['customizer_state_query_vars'] ) ) {
+			return;
+		}
+
+		$original_query_vars = json_decode( wp_unslash( $_POST['customizer_state_query_vars'] ), true );
+
+		if ( empty( $original_query_vars ) || ! is_array( $original_query_vars ) ) {
+			return;
+		}
+
+		$this->post_type->set_customizer_state_query_vars( $post_id, $original_query_vars );
 	}
 }

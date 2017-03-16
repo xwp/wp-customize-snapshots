@@ -241,6 +241,8 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		$this->assertEquals( 100000, has_action( 'admin_bar_menu', array( $manager, 'remove_all_non_snapshot_admin_bar_links' ) ) );
 		$this->assertEquals( 10, has_action( 'wp_before_admin_bar_render', array( $manager, 'print_admin_bar_styles' ) ) );
 		$this->assertEquals( 10, has_filter( 'removable_query_args', array( $manager, 'filter_removable_query_args' ) ) );
+		$this->assertEquals( 10, has_action( 'save_post_' . $manager->get_post_type(), array( $manager, 'create_initial_changeset_revision' ) ) );
+		$this->assertEquals( 10, has_action( 'save_post_' . $manager->get_post_type(), array( $manager, 'save_customizer_state_query_vars' ) ) );
 		$this->assertEquals( 10, has_filter( 'wp_insert_post_data', array( $manager, 'prepare_snapshot_post_content_for_publish' ) ) );
 	}
 
@@ -385,7 +387,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	public function test_add_snapshot_uuid_to_return_url() {
 		global $wp_version;
 		if ( version_compare( $wp_version, '4.4-beta', '>=' ) ) {
-			$_REQUEST[ $this->front_param ] = self::UUID;
+			$_GET[ $this->front_param ] = $_REQUEST[ $this->front_param ] = self::UUID;
 			$manager = $this->get_snapshot_manager_instance( $this->plugin );
 			$manager->init();
 			$manager->ensure_customize_manager();
@@ -801,5 +803,56 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		$this->assertTrue( current_user_can( 'read_post', $draft_to_public_post_id ) );
 
 		// $this->assertTrue( current_user_can( 'read_post', $public_to_private_post_id ) ); -- Checking caps for read_post causes failure. @todo Causes error.
+	}
+
+	/**
+	 * Test save_customizer_state_query_vars.
+	 *
+	 * @convers \CustomizeSnapshots\Customize_Snapshot_Manager::save_customizer_state_query_vars()
+	 * @convers \CustomizeSnapshots\Post_Type::get_frontend_view_link()
+	 * @convers \CustomizeSnapshots\Post_Type::get_customizer_state_query_vars()
+	 * @convers \CustomizeSnapshots\Post_Type::set_customizer_state_query_vars()
+	 */
+	public function test_save_customizer_state_query_vars() {
+		$post_id = $this->manager->post_type->save( array(
+			'uuid' => self::UUID,
+			'data' => array(
+				'blogname' => array(
+					'value' => 'Hello',
+				),
+			),
+			'status' => 'draft',
+		) );
+
+		$original_query_vars = array(
+			'scroll' => 123,
+			'device' => 'mobile',
+			'url' => home_url( 'about/' ),
+			'autofocus[panel]' => 'widgets',
+			'autofocus[section]' => 'sidebar-widgets-sidebar-1',
+			'autofocus[control]' => 'widget_test[123]',
+		);
+
+		$this->assertContains( sprintf( '?%s=%s', $this->front_param, self::UUID ), get_permalink( $post_id ) );
+		$this->assertEmpty( $this->manager->post_type->get_customizer_state_query_vars( $post_id ) );
+		$this->manager->save_customizer_state_query_vars( $post_id );
+		$this->assertEmpty( $this->manager->post_type->get_customizer_state_query_vars( $post_id ) );
+
+		$_POST['customizer_state_query_vars'] = wp_slash( wp_json_encode( $original_query_vars ) );
+		$this->manager->save_customizer_state_query_vars( $post_id );
+		$this->assertContains( sprintf( 'about/?%s=%s', $this->front_param, self::UUID ), get_permalink( $post_id ) );
+		$this->assertEquals( $this->manager->post_type->get_customizer_state_query_vars( $post_id ), $original_query_vars );
+		$this->assertEquals( $this->manager->post_type->get_frontend_view_link( $post_id ), get_permalink( $post_id ) );
+
+		$this->manager->post_type->set_customizer_state_query_vars( $post_id, array(
+			'scroll' => 'bad',
+			'device' => 'bad',
+			'url' => 'http://bogus.example.com/',
+			'autofocus[panel]' => 'badid!',
+			'autofocus[section]' => '#sobad',
+			'autofocus[control]' => '*horrible',
+			'unrecognized' => 'yes',
+		) );
+		$this->assertEmpty( $this->manager->post_type->get_customizer_state_query_vars( $post_id ) );
 	}
 }

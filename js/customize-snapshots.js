@@ -1,4 +1,4 @@
-/* global jQuery, wp, _customizeSnapshotsSettings */
+/* global jQuery, wp, JSON, _customizeSnapshotsSettings */
 /* eslint no-magic-numbers: [ "error", { "ignore": [0,1,-1] } ], consistent-this: [ "error", "snapshot" ] */
 
 (function( api, $ ) {
@@ -96,6 +96,35 @@
 
 				return request;
 			} );
+		},
+
+		/**
+		 * Get state query vars.
+		 *
+		 * @return {{}} Query vars for scroll, device, url, and autofocus.
+		 */
+		getStateQueryVars: function() {
+			var queryVars = {
+				'autofocus[control]': null,
+				'autofocus[section]': null,
+				'autofocus[panel]': null
+			};
+			queryVars.scroll = parseInt( api.previewer.scroll, 10 ) || 0;
+			queryVars.device = api.previewedDevice.get();
+			queryVars.url = api.previewer.previewUrl.get();
+
+			_.find( [ 'control', 'section', 'panel' ], function( constructType ) {
+				var found = false;
+				api[ constructType ].each( function( construct ) { // @todo Core needs to support more Backbone methods on wp.customize.Values().
+					if ( ! found && construct.expanded && construct.expanded.get() ) {
+						queryVars[ 'autofocus[' + constructType + ']' ] = construct.id;
+						found = true;
+					}
+				} );
+				return found;
+			} );
+
+			return queryVars;
 		},
 
 		/**
@@ -202,6 +231,10 @@
 				snapshot.statusButton.disbleButton.set( true );
 				snapshot.snapshotExpandButton.toggle( ! isPublishStatus );
 				snapshot.previewLink.toggle( ! isPublishStatus );
+
+				if ( isPublishStatus ) {
+					snapshot.removeParamFromClose( 'customize_changeset_uuid' );
+				}
 
 				snapshot.statusButton.updateButtonText( 'alt-text' );
 
@@ -966,6 +999,9 @@
 
 			api.previewer.query = function() {
 				var retval = originalQuery.apply( this, arguments );
+
+				retval.customizer_state_query_vars = JSON.stringify( snapshot.getStateQueryVars() );
+
 				if ( snapshot.editControlSettings( 'title' ).get() ) {
 					retval.customize_changeset_title = snapshot.editControlSettings( 'title' ).get();
 				}
@@ -1114,6 +1150,31 @@
 					snapshot.editBoxAutoSaveTriggered = false;
 				}
 			} );
+		},
+
+		/**
+		 * Remove a param from close button link.
+		 *
+		 * @param {string} targetParam param.
+		 * @return {void}.
+		 */
+		removeParamFromClose: function removeParamFromClose( targetParam ) {
+			var closeButton, queryString, updatedParams;
+			closeButton = $( '.customize-controls-close' );
+			queryString = closeButton.prop( 'search' ).substr( 1 );
+
+			if ( ! queryString.length ) {
+				return;
+			}
+
+			updatedParams = _.filter(
+				queryString.split( '&' ),
+				function( paramPair ) {
+					return 0 !== paramPair.indexOf( targetParam + '=' );
+				}
+			);
+
+			closeButton.prop( 'search', updatedParams.join( '&' ) );
 		}
 	} );
 
