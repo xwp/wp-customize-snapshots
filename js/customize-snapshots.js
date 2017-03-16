@@ -351,10 +351,18 @@
 			snapshot.previewLink.toggle( api.state( 'snapshot-saved' ).get() );
 			snapshot.previewLink.attr( 'target', snapshot.data.uuid );
 			setPreviewLinkHref = _.debounce( function() {
+				var queryVars;
 				if ( api.state( 'snapshot-exists' ).get() ) {
 					snapshot.previewLink.attr( 'href', snapshot.getSnapshotFrontendPreviewUrl() );
 				} else {
 					snapshot.previewLink.attr( 'href', snapshot.frontendPreviewUrl.get() );
+				}
+
+				// Add the customize_theme param to the frontend URL if the theme is not active.
+				if ( ! api.state( 'activated' ).get() ) {
+					queryVars = snapshot.parseQueryString( snapshot.previewLink.prop( 'search' ).substr( 1 ) );
+					queryVars.customize_theme = api.settings.theme.stylesheet;
+					snapshot.previewLink.prop( 'search', $.param( queryVars ) );
 				}
 			} );
 			snapshot.frontendPreviewUrl.bind( setPreviewLinkHref );
@@ -1178,7 +1186,7 @@
 		 * @return {void}.
 		 */
 		removeParamFromClose: function removeParamFromClose( targetParam ) {
-			var closeButton, queryString, updatedParams;
+			var snapshot = this, closeButton, queryString, updatedParams;
 			closeButton = $( '.customize-controls-close' );
 			queryString = closeButton.prop( 'search' ).substr( 1 );
 
@@ -1186,15 +1194,21 @@
 				return;
 			}
 
-			updatedParams = _.filter(
-				queryString.split( '&' ),
-				function( paramPair ) {
-					return 0 !== paramPair.indexOf( targetParam + '=' );
-				}
-			);
+			updatedParams = snapshot.parseQueryString( queryString );
+			delete updatedParams[ targetParam ];
+			closeButton.prop( 'search', $.param( updatedParams ) );
+		},
 
-			closeButton.prop( 'search', updatedParams.join( '&' ) );
-		}
+		/**
+		 * Parse query string.
+		 *
+		 * @since 4.7.0
+		 * @access public
+		 *
+		 * @param {string} queryString Query string.
+		 * @returns {object} Parsed query string.
+		 */
+		parseQueryString: api.utils.parseQueryString
 	} );
 
 	if ( 'undefined' !== typeof _customizeSnapshotsSettings ) {

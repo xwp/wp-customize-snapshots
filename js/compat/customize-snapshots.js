@@ -500,6 +500,34 @@
 
 			snapshot.updateCountdown();
 			snapshot.editContainer.find( '.reset-time' ).toggle( scheduled );
+		},
+
+		/**
+		 * Parse query string.
+		 *
+		 * Polyfill for function was introduced into core in 4.7 as wp.customize.utils.parseQueryString.
+		 *
+		 * @param {string} queryString Query string.
+		 * @returns {object} Parsed query string.
+		 */
+		parseQueryString: function parseQueryString( queryString ) {
+			var queryParams = {};
+			_.each( queryString.split( '&' ), function( pair ) {
+				var parts, key, value;
+				parts = pair.split( '=', 2 );
+				if ( ! parts[0] ) {
+					return;
+				}
+				key = decodeURIComponent( parts[0].replace( /\+/g, ' ' ) );
+				key = key.replace( / /g, '_' ); // What PHP does.
+				if ( _.isUndefined( parts[1] ) ) {
+					value = null;
+				} else {
+					value = decodeURIComponent( parts[1].replace( /\+/g, ' ' ) );
+				}
+				queryParams[ key ] = value;
+			} );
+			return queryParams;
 		}
 	} );
 
