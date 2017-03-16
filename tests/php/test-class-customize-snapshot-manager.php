@@ -756,7 +756,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 
 		$public_to_private_post_id = $this->factory()->post->create( array(
 			'post_type' => 'post',
-			'post_status' => 'public',
+			'post_status' => 'publish',
 		) );
 
 		$uuid = wp_generate_uuid4();
@@ -794,15 +794,23 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		$this->assertTrue( current_user_can( 'read_post', $post_id ) );
 		$this->assertTrue( current_user_can( 'read_post', $private_to_public_post_id ) );
 		$this->assertTrue( current_user_can( 'read_post', $draft_to_public_post_id ) );
+		$this->assertFalse( current_user_can( 'read_post', $public_to_private_post_id ) );
 
-		// $this->assertFalse( current_user_can( 'read_post', $public_to_private_post_id ) ); -- Checking caps for read_post causes failure. @todo Causes errors.
 		// Tests for administrator.
 		wp_set_current_user( $this->user_id );
 		$this->assertTrue( current_user_can( 'read_post', $post_id ) );
 		$this->assertTrue( current_user_can( 'read_post', $private_to_public_post_id ) );
 		$this->assertTrue( current_user_can( 'read_post', $draft_to_public_post_id ) );
+		$this->assertTrue( current_user_can( 'read_post', $public_to_private_post_id ) );
 
-		// $this->assertTrue( current_user_can( 'read_post', $public_to_private_post_id ) ); -- Checking caps for read_post causes failure. @todo Causes error.
+		// Tests for author.
+		$author_id = $this->factory()->user->create( array( 'role' => 'author' ) );
+		wp_set_current_user( $author_id );
+		$this->assertTrue( current_user_can( 'read_post', $post_id ) );
+		$this->assertTrue( current_user_can( 'read_post', $private_to_public_post_id ) );
+		$this->assertTrue( current_user_can( 'read_post', $draft_to_public_post_id ) );
+		$this->assertFalse( current_user_can( 'read_post', $public_to_private_post_id ) );
+
 	}
 
 	/**

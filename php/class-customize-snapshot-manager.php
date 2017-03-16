@@ -965,12 +965,6 @@ class Customize_Snapshot_Manager {
 					&&
 					'read_page' !== $args[0]
 			)
-			||
-			(
-				isset( $allcaps[ $caps[0] ] )
-				&&
-				true === $allcaps[ $caps[0] ]
-			)
 		) {
 			return $allcaps;
 		}
