@@ -1008,10 +1008,10 @@ class Customize_Snapshot_Manager {
 	}
 
 	/**
-	* Save the preview url query vars in changeset meta.
-	*
-	* @param int $post_id Post id.
-	*/
+	 * Save the preview url query vars in changeset meta.
+	 *
+	 * @param int $post_id Post id.
+	 */
 	public function save_customizer_state_query_vars( $post_id ) {
 		if ( ! isset( $_POST['customizer_state_query_vars'] ) ) {
 			return;
