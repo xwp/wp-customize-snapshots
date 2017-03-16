@@ -307,7 +307,11 @@ class Customize_Snapshot_Manager {
 			),
 		) );
 
-		wp_localize_script( 'customize-snapshots', '_customizeSnapshotsSettings', $exports );
+		wp_scripts()->add_inline_script(
+			'customize-snapshots',
+			sprintf( 'var _customizeSnapshotsSettings = %s;', wp_json_encode( $exports ) ),
+			'before'
+		);
 	}
 
 	/**
