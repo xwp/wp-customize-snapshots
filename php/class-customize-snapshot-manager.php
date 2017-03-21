@@ -274,6 +274,7 @@ class Customize_Snapshot_Manager {
 		if ( $this->snapshot ) {
 			$post_id = $this->customize_manager->changeset_post_id();
 			$post = get_post( $post_id );
+			$preview_url_query_vars = $this->post_type->get_customizer_state_query_vars( $post->ID );
 			if ( $post instanceof \WP_Post ) {
 				$this->override_post_date_default_data( $post );
 				$edit_link = $this->snapshot->get_edit_link( $post );
@@ -289,7 +290,7 @@ class Customize_Snapshot_Manager {
 			'currentUserCanPublish' => current_user_can( 'customize_publish' ),
 			'initialServerDate' => current_time( 'mysql', false ),
 			'initialServerTimestamp' => floor( microtime( true ) * 1000 ),
-			'previewingTheme' => ! $this->customize_manager->is_theme_active(),
+			'previewingTheme' => isset( $preview_url_query_vars['theme'] ) ? $preview_url_query_vars['theme'] : '',
 			'i18n' => array(
 				'saveButton' => __( 'Save', 'customize-snapshots' ),
 				'updateButton' => __( 'Update', 'customize-snapshots' ),
