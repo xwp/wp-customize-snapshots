@@ -236,7 +236,7 @@
 					}
 				}, savedDelay );
 
-				api.state( 'snapshot-exists' ).set( true );
+				api.state( 'snapshot-exists' ).set( ! isPublishStatus );
 
 				snapshot.statusButton.disableSelect.set( isPublishStatus );
 				snapshot.statusButton.disbleButton.set( true );
