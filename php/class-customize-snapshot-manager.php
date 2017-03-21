@@ -203,6 +203,7 @@ class Customize_Snapshot_Manager {
 	 *
 	 * @return bool Whether theme is active.
 	 *
+	 * @deprecated in favor of WP_Customize_Manager::is_theme_active()
 	 * @todo move to back compat?
 	 */
 	public function is_theme_active() {
@@ -225,7 +226,7 @@ class Customize_Snapshot_Manager {
 			&&
 			$this->current_snapshot_uuid
 			&&
-			$this->is_theme_active()
+			$this->customize_manager->is_theme_active()
 			&&
 			false === strpos( $this->customize_manager->get_return_url(), '/wp-admin/' )
 		);
@@ -263,11 +264,7 @@ class Customize_Snapshot_Manager {
 	 * @global \WP_Customize_Manager $wp_customize
 	 */
 	public function enqueue_controls_scripts() {
-
-		// Prevent loading the Snapshot interface if the theme is not active.
-		if ( ! $this->is_theme_active() ) {
-			return;
-		}
+		$this->ensure_customize_manager();
 
 		wp_enqueue_style( 'customize-snapshots' );
 		wp_enqueue_script( 'customize-snapshots' );
@@ -277,6 +274,7 @@ class Customize_Snapshot_Manager {
 		if ( $this->snapshot ) {
 			$post_id = $this->customize_manager->changeset_post_id();
 			$post = get_post( $post_id );
+			$preview_url_query_vars = $this->post_type->get_customizer_state_query_vars( $post->ID );
 			if ( $post instanceof \WP_Post ) {
 				$this->override_post_date_default_data( $post );
 				$edit_link = $this->snapshot->get_edit_link( $post );
@@ -292,6 +290,7 @@ class Customize_Snapshot_Manager {
 			'currentUserCanPublish' => current_user_can( 'customize_publish' ),
 			'initialServerDate' => current_time( 'mysql', false ),
 			'initialServerTimestamp' => floor( microtime( true ) * 1000 ),
+			'previewingTheme' => isset( $preview_url_query_vars['theme'] ) ? $preview_url_query_vars['theme'] : '',
 			'i18n' => array(
 				'saveButton' => __( 'Save', 'customize-snapshots' ),
 				'updateButton' => __( 'Update', 'customize-snapshots' ),
@@ -309,7 +308,11 @@ class Customize_Snapshot_Manager {
 			),
 		) );
 
-		wp_localize_script( 'customize-snapshots', '_customizeSnapshotsSettings', $exports );
+		wp_scripts()->add_inline_script(
+			'customize-snapshots',
+			sprintf( 'var _customizeSnapshotsSettings = %s;', wp_json_encode( $exports ) ),
+			'before'
+		);
 	}
 
 	/**

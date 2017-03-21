@@ -19,6 +19,7 @@
 			initialServerDate: '',
 			initialServerTimestamp: 0,
 			initialClientTimestamp: 0,
+			previewingTheme: '',
 			i18n: {},
 			dirty: false
 		},
@@ -51,6 +52,8 @@
 					api.state( 'snapshot-exists' ).set( true );
 				}
 
+				snapshot.extendPreviewerQuery();
+
 				snapshot.editControlSettings = new api.Values();
 				snapshot.editControlSettings.create( 'title', snapshot.data.title );
 				snapshot.editControlSettings.create( 'date', snapshot.data.publishDate );
@@ -61,6 +64,7 @@
 
 				snapshot.frontendPreviewUrl = new api.Value( api.previewer.previewUrl.get() );
 				snapshot.frontendPreviewUrl.link( api.previewer.previewUrl );
+				snapshot.isNotSavedPreviewingTheme = false;
 
 				snapshot.addButtons();
 				snapshot.editSnapshotUI();
@@ -104,14 +108,21 @@
 		 * @return {{}} Query vars for scroll, device, url, and autofocus.
 		 */
 		getStateQueryVars: function() {
-			var queryVars = {
+			var snapshot = this, queryVars;
+
+			queryVars = {
 				'autofocus[control]': null,
 				'autofocus[section]': null,
 				'autofocus[panel]': null
 			};
+
 			queryVars.scroll = parseInt( api.previewer.scroll, 10 ) || 0;
 			queryVars.device = api.previewedDevice.get();
 			queryVars.url = api.previewer.previewUrl.get();
+
+			if ( ! api.state( 'activated' ).get() || snapshot.isNotSavedPreviewingTheme ) {
+				queryVars.previewing_theme = true;
+			}
 
 			_.find( [ 'control', 'section', 'panel' ], function( constructType ) {
 				var found = false;
@@ -225,7 +236,7 @@
 					}
 				}, savedDelay );
 
-				api.state( 'snapshot-exists' ).set( true );
+				api.state( 'snapshot-exists' ).set( ! isPublishStatus );
 
 				snapshot.statusButton.disableSelect.set( isPublishStatus );
 				snapshot.statusButton.disbleButton.set( true );
@@ -255,6 +266,7 @@
 					dialogElement;
 
 				snapshot.statusButton.disableSelect.set( false );
+				snapshot.statusButton.disbleButton.set( false );
 
 				if ( response.setting_validities ) {
 					invalidityCount = _.size( response.setting_validities, function( validity ) {
@@ -303,34 +315,54 @@
 		 * @return {void}
 		 */
 		addButtons: function addButtons() {
-			var snapshot = this, setPreviewLinkHref;
+			var snapshot = this, disableButton = true, disableSelectButton = true,
+				setPreviewLinkHref, currentTheme, savedPreviewingTheme, themeNotActiveOrSaved;
 
 			snapshot.spinner = $( '#customize-header-actions' ).find( '.spinner' );
 			snapshot.publishButton = $( '#save' );
 
 			snapshot.publishButton.addClass( 'hidden' );
 			snapshot.statusButton = snapshot.addStatusButton();
-			snapshot.statusButton.disbleButton.set( true );
 
 			if ( api.state( 'changesetStatus' ).get() ) {
+				disableSelectButton = false;
 				if ( 'auto-draft' === api.state( 'changesetStatus' ).get() ) {
-					snapshot.statusButton.disable( false );
+					disableButton = false;
 				} else {
 					snapshot.statusButton.updateButtonText( 'alt-text' );
 				}
-			} else {
-				snapshot.statusButton.disable( true );
 			}
+
+			currentTheme = api.settings.theme.stylesheet; // Or previewing theme.
+			savedPreviewingTheme = snapshot.data.previewingTheme;
+			themeNotActiveOrSaved = ! api.state( 'activated' ).get() && ! savedPreviewingTheme;
+			snapshot.isNotSavedPreviewingTheme = savedPreviewingTheme && savedPreviewingTheme !== currentTheme;
+
+			if ( themeNotActiveOrSaved || snapshot.isNotSavedPreviewingTheme ) {
+				disableButton = false;
+				disableSelectButton = false;
+			}
+
+			snapshot.statusButton.disbleButton.set( disableButton );
+			snapshot.statusButton.disableSelect.set( disableSelectButton );
 
 			// Preview link.
 			snapshot.previewLink = $( $.trim( wp.template( 'snapshot-preview-link' )() ) );
 			snapshot.previewLink.toggle( api.state( 'snapshot-saved' ).get() );
 			snapshot.previewLink.attr( 'target', snapshot.data.uuid );
 			setPreviewLinkHref = _.debounce( function() {
+				var queryVars;
 				if ( api.state( 'snapshot-exists' ).get() ) {
 					snapshot.previewLink.attr( 'href', snapshot.getSnapshotFrontendPreviewUrl() );
 				} else {
 					snapshot.previewLink.attr( 'href', snapshot.frontendPreviewUrl.get() );
+				}
+
+				// Add the customize_theme param to the frontend URL if the theme is not active.
+				if ( ! api.state( 'activated' ).get() ) {
+					queryVars = snapshot.parseQueryString( snapshot.previewLink.prop( 'search' ).substr( 1 ) );
+					queryVars.customize_theme = api.settings.theme.stylesheet;
+					snapshot.previewLink.prop( 'search', $.param( queryVars ) );
 				}
 			} );
 			snapshot.frontendPreviewUrl.bind( setPreviewLinkHref );
@@ -632,7 +664,7 @@
 		 */
 		autoSaveEditBox: function() {
 			var snapshot = this, update,
-				delay = 2000, status, isValidChangesetStatus, isFutureDateAndStatus;
+				delay = 2000, status, isFutureDateAndStatus;
 
 			snapshot.updatePending = false;
 			snapshot.dirtyEditControlValues = false;
@@ -684,16 +716,7 @@
 				return undefined;
 			} );
 
-			isValidChangesetStatus = function() {
-				return _.contains( [ 'future', 'pending', 'draft' ], api.state( 'changesetStatus' ).get() );
-			};
-
 			// @todo Show loader and disable button while auto saving.
-			api.bind( 'changeset-save', function() {
-				if ( isValidChangesetStatus() ) {
-					snapshot.extendPreviewerQuery();
-				}
-			} );
 
 			api.bind( 'changeset-saved', function() {
 				if ( 'auto-draft' !== api.state( 'changesetStatus' ).get() ) {
@@ -1000,6 +1023,10 @@
 			api.previewer.query = function() {
 				var retval = originalQuery.apply( this, arguments );
 
+				if ( ! _.contains( [ 'future', 'pending', 'draft' ], snapshot.statusButton.value.get() ) ) {
+					return retval;
+				}
+
 				retval.customizer_state_query_vars = JSON.stringify( snapshot.getStateQueryVars() );
 
 				if ( snapshot.editControlSettings( 'title' ).get() ) {
@@ -1159,7 +1186,7 @@
 		 * @return {void}.
 		 */
 		removeParamFromClose: function removeParamFromClose( targetParam ) {
-			var closeButton, queryString, updatedParams;
+			var snapshot = this, closeButton, queryString, updatedParams;
 			closeButton = $( '.customize-controls-close' );
 			queryString = closeButton.prop( 'search' ).substr( 1 );
 
@@ -1167,15 +1194,21 @@
 				return;
 			}
 
-			updatedParams = _.filter(
-				queryString.split( '&' ),
-				function( paramPair ) {
-					return 0 !== paramPair.indexOf( targetParam + '=' );
-				}
-			);
+			updatedParams = snapshot.parseQueryString( queryString );
+			delete updatedParams[ targetParam ];
+			closeButton.prop( 'search', $.param( updatedParams ) );
+		},
 
-			closeButton.prop( 'search', updatedParams.join( '&' ) );
-		}
+		/**
+		 * Parse query string.
+		 *
+		 * @since 4.7.0
+		 * @access public
+		 *
+		 * @param {string} queryString Query string.
+		 * @returns {object} Parsed query string.
+		 */
+		parseQueryString: api.utils.parseQueryString
 	} );
 
 	if ( 'undefined' !== typeof _customizeSnapshotsSettings ) {

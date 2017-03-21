@@ -20,7 +20,6 @@
 
 			api.bind( 'ready', function() {
 				api.state.create( 'snapshot-exists', snapshot.data.snapshotExists );
-				snapshot.extendPreviewerQuery();
 
 				if ( api.state( 'snapshot-exists' ).get() ) {
 					api.state( 'saved' ).set( false );
@@ -248,7 +247,9 @@
 		addButtons: function addButtons() {
 			var snapshot = this,
 				header = $( '#customize-header-actions' ),
-				templateData = {}, setPreviewLinkHref;
+				disableButton = true,
+				templateData = {}, setPreviewLinkHref, currentTheme,
+				savedPreviewingTheme, themeNotActiveOrSaved;
 
 			snapshot.publishButton = header.find( '#save' );
 			snapshot.spinner = header.find( '.spinner' );
@@ -270,7 +271,17 @@
 			if ( ! snapshot.data.currentUserCanPublish ) {
 				snapshot.snapshotButton.attr( 'title', api.state( 'snapshot-exists' ).get() ? snapshot.data.i18n.permsMsg.update : snapshot.data.i18n.permsMsg.save );
 			}
-			snapshot.snapshotButton.prop( 'disabled', true );
+
+			currentTheme = api.settings.theme.stylesheet; // Or previewing theme.
+			savedPreviewingTheme = snapshot.data.previewingTheme;
+			themeNotActiveOrSaved = ! api.state( 'activated' ).get() && ! savedPreviewingTheme;
+			snapshot.isNotSavedPreviewingTheme = savedPreviewingTheme && savedPreviewingTheme !== currentTheme;
+
+			if ( themeNotActiveOrSaved || snapshot.isNotSavedPreviewingTheme ) {
+				disableButton = false;
+			}
+
+			snapshot.snapshotButton.prop( 'disabled', disableButton );
 
 			snapshot.snapshotButton.on( 'click', function( event ) {
 				var status;
@@ -489,6 +500,34 @@
 
 			snapshot.updateCountdown();
 			snapshot.editContainer.find( '.reset-time' ).toggle( scheduled );
+		},
+
+		/**
+		 * Parse query string.
+		 *
+		 * Polyfill for function was introduced into core in 4.7 as wp.customize.utils.parseQueryString.
+		 *
+		 * @param {string} queryString Query string.
+		 * @returns {object} Parsed query string.
+		 */
+		parseQueryString: function parseQueryString( queryString ) {
+			var queryParams = {};
+			_.each( queryString.split( '&' ), function( pair ) {
+				var parts, key, value;
+				parts = pair.split( '=', 2 );
+				if ( ! parts[0] ) {
+					return;
+				}
+				key = decodeURIComponent( parts[0].replace( /\+/g, ' ' ) );
+				key = key.replace( / /g, '_' ); // What PHP does.
+				if ( _.isUndefined( parts[1] ) ) {
+					value = null;
+				} else {
+					value = decodeURIComponent( parts[1].replace( /\+/g, ' ' ) );
+				}
+				queryParams[ key ] = value;
+			} );
+			return queryParams;
 		}
 	} );
 
