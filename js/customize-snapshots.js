@@ -771,7 +771,7 @@
 				snapshot.schedule.inputs.each( function() {
 					var input = $( this ),
 						fieldName = input.data( 'date-input' );
-					$( this ).val( parsed[fieldName] );
+					$( this ).val( parsed[ fieldName ] );
 				} );
 			}
 
@@ -886,12 +886,12 @@
 				nonYearLength = 2,
 				monthOffset = 1;
 
-			formattedDate = ( '0000' + date.getFullYear() ).substr( -yearLength, yearLength );
-			formattedDate += '-' + ( '00' + ( date.getMonth() + monthOffset ) ).substr( -nonYearLength, nonYearLength );
-			formattedDate += '-' + ( '00' + date.getDate() ).substr( -nonYearLength, nonYearLength );
-			formattedDate += ' ' + ( '00' + date.getHours() ).substr( -nonYearLength, nonYearLength );
-			formattedDate += ':' + ( '00' + date.getMinutes() ).substr( -nonYearLength, nonYearLength );
-			formattedDate += ':' + ( '00' + date.getSeconds() ).substr( -nonYearLength, nonYearLength );
+			formattedDate = ( '0000' + String( date.getFullYear() ) ).substr( -yearLength, yearLength );
+			formattedDate += '-' + ( '00' + String( date.getMonth() + monthOffset ) ).substr( -nonYearLength, nonYearLength );
+			formattedDate += '-' + ( '00' + String( date.getDate() ) ).substr( -nonYearLength, nonYearLength );
+			formattedDate += ' ' + ( '00' + String( date.getHours() ) ).substr( -nonYearLength, nonYearLength );
+			formattedDate += ':' + ( '00' + String( date.getMinutes() ) ).substr( -nonYearLength, nonYearLength );
+			formattedDate += ':' + ( '00' + String( date.getSeconds() ) ).substr( -nonYearLength, nonYearLength );
 
 			return formattedDate;
 		},
@@ -980,22 +980,32 @@
 		 * @returns {string} Current datetime string.
 		 */
 		getCurrentTime: function getCurrentTime() {
-			var snapshot = this,
-				currentDate = new Date( snapshot.data.initialServerDate ),
-				currentTimestamp = snapshot.dateValueOf(),
-				timestampDifferential;
-
+			var snapshot = this, currentDate, currentTimestamp, timestampDifferential;
+			currentTimestamp = ( new Date() ).valueOf();
+			currentDate = snapshot.parsePostDate( snapshot.data.initialServerDate );
 			timestampDifferential = currentTimestamp - snapshot.data.initialClientTimestamp;
 			timestampDifferential += snapshot.data.initialClientTimestamp - snapshot.data.initialServerTimestamp;
 			currentDate.setTime( currentDate.getTime() + timestampDifferential );
-
 			return snapshot.formatDate( currentDate );
+		},
+
+		/**
+		 * Parse post date string in YYYY-MM-DD HH:MM:SS format (local timezone).
+		 *
+		 * @param {string} postDate Post date string.
+		 * @returns {Date} Parsed date.
+		 */
+		parsePostDate: function parsePostDate( postDate ) {
+			var dateParts = _.map( postDate.split( /\D/ ), function( datePart ) {
+				return parseInt( datePart, 10 );
+			} );
+			return new Date( dateParts[0], dateParts[1] - 1, dateParts[2], dateParts[3], dateParts[4], dateParts[5] ); // eslint-disable-line no-magic-numbers
 		},
 
 		/**
 		 * Get the primitive value of a Date object.
 		 *
-		 * @param {string|Date} dateString The post status for the snapshot.
+		 * @param {string|Date} [dateString] The post status for the snapshot.
 		 * @returns {object|string} The primitive value or date object.
 		 */
 		dateValueOf: function dateValueOf( dateString ) {
