@@ -107,6 +107,8 @@ class Customize_Snapshot_Manager {
 		add_action( 'save_post_' . $this->get_post_type(), array( $this, 'create_initial_changeset_revision' ) );
 		add_action( 'save_post_' . $this->get_post_type(), array( $this, 'save_customizer_state_query_vars' ) );
 		add_filter( 'wp_insert_post_data', array( $this, 'prepare_snapshot_post_content_for_publish' ) );
+		remove_action( 'delete_post', '_wp_delete_customize_changeset_dependent_auto_drafts' );
+		add_action( 'delete_post', array( $this, 'clean_up_nav_menus_created_auto_drafts' ) );
 	}
 
 	/**
@@ -965,5 +967,65 @@ class Customize_Snapshot_Manager {
 		}
 
 		$this->post_type->set_customizer_state_query_vars( $post_id, $original_query_vars );
+	}
+
+	/**
+	 * Clean up auto-draft post created by Nav menus on changeset delete.
+	 *
+	 * @param int $changeset_post_id Deleting changeset post id.
+	 */
+	public function clean_up_nav_menus_created_auto_drafts( $changeset_post_id ) {
+		global $wpdb;
+		$changeset_post = get_post( $changeset_post_id );
+
+		if ( ! ( $changeset_post instanceof \WP_Post ) || $changeset_post->post_type !== $this->get_post_type() ) {
+			return;
+		}
+
+		$data = json_decode( $changeset_post->post_content, true );
+		if ( empty( $data['nav_menus_created_posts']['value'] ) ) {
+			return;
+		}
+		remove_action( 'delete_post', array( $this, 'clean_up_nav_menus_created_auto_drafts' ) );
+		foreach ( $data['nav_menus_created_posts']['value'] as $nav_menu_created_post_id ) {
+			if ( 'auto-draft' !== get_post_status( $nav_menu_created_post_id ) ) {
+				continue;
+			}
+
+			/**
+			 * If we have Customize post plugin then it will take care of post delete see: https://github.com/xwp/wp-customize-posts/pull/348
+			 * because it overrides nav_menus_created_posts data.
+			 *
+			 * @See WP_Customize_Posts:filter_out_nav_menus_created_posts_for_customized_posts()
+			 */
+			if ( ! class_exists( 'Customize_Posts_Plugin' ) ) {
+				// If customize post plugin is not installed we search for nav_menus_created_posts and lookup for reference via php code.
+				// Todo: Improve logic to find reference below.
+				$query = $wpdb->prepare( "SELECT ID FROM {$wpdb->posts} WHERE post_type = %s AND ID != %d ", $this->get_post_type(), $changeset_post_id );
+				$query .= $wpdb->prepare( ' AND post_content LIKE %s AND post_content LIKE %s LIMIT 50', '%' . $wpdb->esc_like( '"nav_menus_created_posts":' ) . '%', '%' . $nav_menu_created_post_id . '%' );
+				$post_ids = $wpdb->get_col( $query ); // WPCS: unprepared SQL ok.
+				$should_delete = true;
+				if ( ! empty( $post_ids ) && is_array( $post_ids ) ) {
+					foreach ( $post_ids as $p_id ) {
+						$p = get_post( $p_id );
+						if ( ! ( $p instanceof \WP_Post ) ) {
+							continue;
+						}
+						$content = json_decode( $p->post_content, true );
+						if ( empty( $content['nav_menus_created_posts']['value'] ) ) {
+							continue;
+						}
+						if ( false !== array_search( $nav_menu_created_post_id, $content['nav_menus_created_posts']['value'] ) ) {
+							$should_delete = false;
+							break;
+						}
+					}
+				}
+				if ( $should_delete ) {
+					wp_delete_post( $nav_menu_created_post_id, true );
+				}
+			}
+		} // End foreach().
+		add_action( 'delete_post', array( $this, 'clean_up_nav_menus_created_auto_drafts' ) );
 	}
 }
