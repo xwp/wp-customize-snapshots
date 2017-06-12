@@ -244,6 +244,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		$this->assertEquals( 10, has_action( 'save_post_' . $manager->get_post_type(), array( $manager, 'create_initial_changeset_revision' ) ) );
 		$this->assertEquals( 10, has_action( 'save_post_' . $manager->get_post_type(), array( $manager, 'save_customizer_state_query_vars' ) ) );
 		$this->assertEquals( 10, has_filter( 'wp_insert_post_data', array( $manager, 'prepare_snapshot_post_content_for_publish' ) ) );
+		$this->assertEquals( 10, has_action( 'delete_post', array( $manager, 'clean_up_nav_menus_created_auto_drafts' ) ) );
 	}
 
 	/**
@@ -784,5 +785,42 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 			'unrecognized' => 'yes',
 		) );
 		$this->assertEmpty( $this->manager->post_type->get_customizer_state_query_vars( $post_id ) );
+	}
+
+	/**
+	 * Test clean_up_nav_menus_created_auto_drafts
+	 *
+	 * @convers \CustomizeSnapshots\Customize_Snapshot_Manager::clean_up_nav_menus_created_auto_drafts()
+	 */
+	public function test_clean_up_nav_menus_created_auto_drafts() {
+		$nav_created_post_ids = $this->factory()->post->create_many( 2, array(
+			'post_status' => 'auto-draft',
+		) );
+		$data = array(
+			'nav_menus_created_posts' => array(
+				'value' => $nav_created_post_ids,
+			),
+		);
+		wp_set_current_user( self::factory()->user->create( array(
+			'role' => 'administrator',
+		) ) );
+		$post_id = $this->manager->post_type->save( array(
+			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
+			'data' => $data,
+			'status' => 'draft',
+		) );
+		$copy_post_id = $this->manager->post_type->save( array(
+			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
+			'data' => $data,
+			'status' => 'draft',
+		) );
+		$this->assertInstanceOf( 'WP_Post', get_post( $nav_created_post_ids[0] ) );
+		$this->assertInstanceOf( 'WP_Post', get_post( $nav_created_post_ids[1] ) );
+		wp_delete_post( $post_id, true );
+		$this->assertInstanceOf( 'WP_Post', get_post( $nav_created_post_ids[0] ) );
+		$this->assertInstanceOf( 'WP_Post', get_post( $nav_created_post_ids[1] ) );
+		wp_delete_post( $copy_post_id, true );
+		$this->assertNotInstanceOf( 'WP_Post', get_post( $nav_created_post_ids[0] ) );
+		$this->assertNotInstanceOf( 'WP_Post', get_post( $nav_created_post_ids[1] ) );
 	}
 }
