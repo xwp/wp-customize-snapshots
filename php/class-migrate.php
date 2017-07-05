@@ -91,8 +91,11 @@ class Migrate {
 	public function show_migration_notice() {
 		?>
 		<div class="notice notice-error customize-snapshot-migration">
-			<p><?php esc_html_e( 'Existing Snapshots need to be migrated to Changesets, which was added to core in WordPress 4.7.', 'customize-snapshots' );
-				printf( ' %s <a id="customize-snapshot-migration" data-nonce="' . esc_attr( wp_create_nonce( 'customize-snapshot-migration' ) ) . '" href="javascript:void(0)" data-migration-success="%s">%s</a> %s <span class="spinner customize-snapshot-spinner"></span>', esc_html__( 'Click', 'customize-snapshots' ), esc_html__( 'Customize snapshot migration complete!', 'customize-snapshots' ), esc_html__( 'here', 'customize-snapshots' ), esc_html__( 'to start migration.', 'customize-snapshots' ) ); ?>
+			<p>
+			<?php
+			esc_html_e( 'Existing Snapshots need to be migrated to Changesets, which was added to core in WordPress 4.7.', 'customize-snapshots' );
+			printf( ' %s <a id="customize-snapshot-migration" data-nonce="' . esc_attr( wp_create_nonce( 'customize-snapshot-migration' ) ) . '" href="javascript:void(0)" data-migration-success="%s">%s</a> %s <span class="spinner customize-snapshot-spinner"></span>', esc_html__( 'Click', 'customize-snapshots' ), esc_html__( 'Customize snapshot migration complete!', 'customize-snapshots' ), esc_html__( 'here', 'customize-snapshots' ), esc_html__( 'to start migration.', 'customize-snapshots' ) );
+			?>
 			</p>
 		</div>
 		<?php

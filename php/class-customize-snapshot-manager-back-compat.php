@@ -1005,8 +1005,8 @@ class Customize_Snapshot_Manager_Back_Compat extends Customize_Snapshot_Manager 
 		</script>
 
 		<script type="text/html" id="tmpl-snapshot-preview-link">
-			<a href="#" target="frontend-preview" id="snapshot-preview-link" class="dashicons dashicons-welcome-view-site" title="<?php esc_attr_e( 'View on frontend', 'customize-snapshots' ) ?>">
-				<span class="screen-reader-text"><?php esc_html_e( 'View on frontend', 'customize-snapshots' ) ?></span>
+			<a href="#" target="frontend-preview" id="snapshot-preview-link" class="dashicons dashicons-welcome-view-site" title="<?php esc_attr_e( 'View on frontend', 'customize-snapshots' ); ?>">
+				<span class="screen-reader-text"><?php esc_html_e( 'View on frontend', 'customize-snapshots' ); ?></span>
 			</a>
 		</script>
 

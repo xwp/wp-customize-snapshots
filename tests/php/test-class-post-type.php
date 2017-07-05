@@ -732,11 +732,11 @@ class Test_Post_Type extends \WP_UnitTestCase {
 		$ids = $this->factory()->post->create_many( 2 );
 		$posts = array_map( 'get_post', $ids );
 		$post_type_obj = $this->getMockBuilder( 'CustomizeSnapshots\Post_Type' )
-		                      ->setConstructorArgs( array( $this->plugin->customize_snapshot_manager ) )
-		                      ->setMethods( array( 'merge_snapshots' ) )
-		                      ->getMock();
+							  ->setConstructorArgs( array( $this->plugin->customize_snapshot_manager ) )
+							  ->setMethods( array( 'merge_snapshots' ) )
+							  ->getMock();
 		$post_type_obj->expects( $this->once() )
-		              ->method( 'merge_snapshots' )
+					  ->method( 'merge_snapshots' )
 			->with( $posts )
 			->will( $this->returnValue( null ) );
 		$post_type_obj->handle_snapshot_merge( '', 'merge_snapshot', $ids );
@@ -798,10 +798,10 @@ class Test_Post_Type extends \WP_UnitTestCase {
 			),
 		);
 		$post_3 = $post_type->save( array(
-				'uuid' => Customize_Snapshot_Manager::generate_uuid(),
-				'status' => 'draft',
-				'data' => $value_3,
-				'date_gmt' => $date3,
+			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
+			'status' => 'draft',
+			'data' => $value_3,
+			'date_gmt' => $date3,
 		) );
 		$post_3 = get_post( $post_3 );
 		$merge_result_post = get_post( $post_type->merge_snapshots( array( $post_1, $post_2, $post_3 ) ) );

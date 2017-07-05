@@ -357,6 +357,8 @@ class Customize_Snapshot_Manager {
 	 * This should be removed once #30854 is resolved.
 	 *
 	 * @link https://core.trac.wordpress.org/ticket/30854
+	 *
+	 * @param int $post_id Post ID.
 	 */
 	public function create_initial_changeset_revision( $post_id ) {
 		if ( 0 === count( wp_get_post_revisions( $post_id ) ) ) {
@@ -646,8 +648,8 @@ class Customize_Snapshot_Manager {
 		$this->add_edit_box_template();
 		?>
 		<script type="text/html" id="tmpl-snapshot-preview-link">
-			<a href="#" target="frontend-preview" id="snapshot-preview-link" class="dashicons dashicons-welcome-view-site" title="<?php esc_attr_e( 'View on frontend', 'customize-snapshots' ) ?>">
-				<span class="screen-reader-text"><?php esc_html_e( 'View on frontend', 'customize-snapshots' ) ?></span>
+			<a href="#" target="frontend-preview" id="snapshot-preview-link" class="dashicons dashicons-welcome-view-site" title="<?php esc_attr_e( 'View on frontend', 'customize-snapshots' ); ?>">
+				<span class="screen-reader-text"><?php esc_html_e( 'View on frontend', 'customize-snapshots' ); ?></span>
 			</a>
 		</script>
 
@@ -699,7 +701,7 @@ class Customize_Snapshot_Manager {
 				);
 			?>
 
-			<# _.defaults( data, <?php echo wp_json_encode( $data ) ?> ); #>
+			<# _.defaults( data, <?php echo wp_json_encode( $data ); ?> ); #>
 
 			<div id="snapshot-status-button-wrapper">
 				<label class="screen-reader-text" for="snapshot-status-button"><?php esc_attr_e( 'Snapshot Status', 'customize-snapshots' ); ?></label>
@@ -751,7 +753,7 @@ class Customize_Snapshot_Manager {
 						<li class="snapshot-control snapshot-control-date">
 							<label for="snapshot-date-month" class="customize-control-title">
 								<?php esc_html_e( 'Scheduling', 'customize-snapshots' ); ?>
-								<span class="reset-time">(<a href="#" title="<?php esc_attr_e( 'Reset scheduled date to original or current date', 'customize-snapshots' ); ?>"><?php esc_html_e( 'Reset', 'customize-snapshots' ) ?></a>)</span>
+								<span class="reset-time">(<a href="#" title="<?php esc_attr_e( 'Reset scheduled date to original or current date', 'customize-snapshots' ); ?>"><?php esc_html_e( 'Reset', 'customize-snapshots' ); ?></a>)</span>
 							</label>
 							<p class="snapshot-schedule-description">
 								<?php esc_html_e( 'Schedule changes to publish (go live) at a future date.', 'customize-snapshots' ); ?>
@@ -762,7 +764,7 @@ class Customize_Snapshot_Manager {
 							<div class="snapshot-schedule-control date-inputs clear">
 								<label>
 									<span class="screen-reader-text"><?php esc_html_e( 'Month', 'customize-snapshots' ); ?></span>
-									<# _.defaults( data, <?php echo wp_json_encode( $data ) ?> ); #>
+									<# _.defaults( data, <?php echo wp_json_encode( $data ); ?> ); #>
 										<select id="snapshot-date-month" class="date-input month" data-date-input="month">
 											<# _.each( data.month_choices, function( choice ) { #>
 												<# if ( _.isObject( choice ) && ! _.isUndefined( choice.text ) && ! _.isUndefined( choice.value ) ) {

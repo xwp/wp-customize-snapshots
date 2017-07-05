@@ -72,16 +72,18 @@ class Test_Migrate extends \WP_UnitTestCase {
 	function test_construct() {
 		$class_name = 'CustomizeSnapshots\Migrate';
 		$mock = $this->getMockBuilder( $class_name )
-		             ->disableOriginalConstructor()
-		             ->getMock();
+					 ->disableOriginalConstructor()
+					 ->getMock();
 		$mock->expects( $this->once() )
-		     ->method( 'maybe_migrate' );
+			 ->method( 'maybe_migrate' );
 		$reflected_class = new \ReflectionClass( $class_name );
 		$constructor = $reflected_class->getConstructor();
 		$constructor->invoke( $mock, $this->plugin );
 		set_current_screen( 'index' );
 		$constructor->invoke( $mock, $this->plugin );
-		$user_id = $this->factory()->user->create( array( 'role' => 'administrator' ) );
+		$user_id = $this->factory()->user->create( array(
+			'role' => 'administrator',
+		) );
 		if ( is_multisite() ) {
 			grant_super_admin( $user_id );
 		}
@@ -110,13 +112,13 @@ class Test_Migrate extends \WP_UnitTestCase {
 	function test_maybe_migrate() {
 		delete_option( Migrate::KEY );
 		$migrate = $this->getMockBuilder( 'CustomizeSnapshots\Migrate' )
-		                    ->setMethods( array( 'changeset_migrate' ) )
-		                    ->setConstructorArgs( array( $this->plugin ) )
-		                    ->getMock();
+			->setMethods( array( 'changeset_migrate' ) )
+			->setConstructorArgs( array( $this->plugin ) )
+			->getMock();
 		$migrate->expects( $this->once() )
-		            ->method( 'changeset_migrate' )
-					->with( 1, true )
-		            ->will( $this->returnValue( 92 ) );
+			->method( 'changeset_migrate' )
+			->with( 1, true )
+			->will( $this->returnValue( 92 ) );
 		$migrate->maybe_migrate();
 		$this->assertEquals( 10, has_action( 'admin_notices', array( $migrate, 'show_migration_notice' ) ) );
 		$this->assertEquals( 10, has_action( 'admin_enqueue_scripts', array( $migrate, 'enqueue_script' ) ) );
@@ -124,13 +126,13 @@ class Test_Migrate extends \WP_UnitTestCase {
 
 		// If no post to migrate fall back and add option value.
 		$migrate_obj = $this->getMockBuilder( 'CustomizeSnapshots\Migrate' )
-		                ->setMethods( array( 'changeset_migrate' ) )
-		                ->setConstructorArgs( array( $this->plugin ) )
-		                ->getMock();
+			->setMethods( array( 'changeset_migrate' ) )
+			->setConstructorArgs( array( $this->plugin ) )
+			->getMock();
 		$migrate_obj->expects( $this->once() )
-		        ->method( 'changeset_migrate' )
-		        ->with( 1, true )
-		        ->will( $this->returnValue( false ) );
+			->method( 'changeset_migrate' )
+			->with( 1, true )
+			->will( $this->returnValue( false ) );
 		$migrate_obj->maybe_migrate();
 		$this->assertNotEquals( 10, has_action( 'admin_notices', array( $migrate_obj, 'show_migration_notice' ) ) );
 		$this->assertNotEquals( 10, has_action( 'admin_enqueue_scripts', array( $migrate_obj, 'enqueue_script' ) ) );
@@ -172,12 +174,12 @@ class Test_Migrate extends \WP_UnitTestCase {
 		$this->assertEquals( $post_id, array_shift( $posts_count ) );
 
 		$migrate_obj = $this->getMockBuilder( 'CustomizeSnapshots\Migrate' )
-		                    ->setMethods( array( 'migrate_post' ) )
-							->setConstructorArgs( array( $this->plugin ) )
-							->getMock();
+			->setMethods( array( 'migrate_post' ) )
+			->setConstructorArgs( array( $this->plugin ) )
+			->getMock();
 		$migrate_obj->expects( $this->once() )
-		            ->method( 'migrate_post' )
-		            ->will( $this->returnValue( null ) );
+			->method( 'migrate_post' )
+			->will( $this->returnValue( null ) );
 		$migrate_obj->changeset_migrate( -1 );
 	}
 
@@ -187,7 +189,9 @@ class Test_Migrate extends \WP_UnitTestCase {
 	 * @see Migrate::migrate_post()
 	 */
 	function test_migrate_post() {
-		$admin_user_id = $this->factory()->user->create( array( 'role' => 'administrator' ) );
+		$admin_user_id = $this->factory()->user->create( array(
+			'role' => 'administrator',
+		) );
 		wp_set_current_user( $admin_user_id );
 		$old_post_type_obj = new Post_Type_Back_Compat( $this->snapshot_manager );
 		$snapshot_post_id = $old_post_type_obj->save( array(
@@ -201,9 +205,13 @@ class Test_Migrate extends \WP_UnitTestCase {
 		) );
 		add_post_meta( $snapshot_post_id, '_snapshot_theme', 'foo_theme' );
 		require_once( ABSPATH . WPINC . '/class-wp-customize-manager.php' );
-		$wp_customize = new \WP_Customize_Manager( array( 'changeset_uuid' => self::UUID ) );
+		$wp_customize = new \WP_Customize_Manager( array(
+			'changeset_uuid' => self::UUID,
+		) );
 
-		$wp_customize->add_setting( 'foo', array( 'default' => 'foo_default' ) );
+		$wp_customize->add_setting( 'foo', array(
+			'default' => 'foo_default',
+		) );
 		$this->action_customize_register_for_dynamic_settings();
 
 		$migrate = new Migrate( $this->plugin );
@@ -246,7 +254,9 @@ class Test_Migrate extends \WP_UnitTestCase {
 	 */
 	function filter_customize_dynamic_setting_args_for_test_dynamic_settings( $setting_args, $setting_id ) {
 		if ( in_array( $setting_id, array( 'foo' ), true ) ) {
-			$setting_args = array( 'default' => "dynamic_{$setting_id}_default" );
+			$setting_args = array(
+				'default' => "dynamic_{$setting_id}_default",
+			);
 		}
 		return $setting_args;
 	}
