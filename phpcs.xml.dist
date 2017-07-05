@@ -3,7 +3,6 @@
 
 	<rule ref="WordPress-Core" />
 	<rule ref="WordPress.WP.I18n">
-		<exclude-pattern>*/php/theme-support/*</exclude-pattern>
 		<properties>
 			<property name="text_domain" value="customize-snapshots,default" />
 		</properties>
@@ -24,6 +23,10 @@
 		<exclude-pattern>*/tests/*</exclude-pattern>
 	</rule>
 
+	<arg name="extensions" value="php"/>
+	<arg value="s"/>
+
+	<file>.</file>
 	<exclude-pattern>*/node_modules/*</exclude-pattern>
 	<exclude-pattern>*/vendor/*</exclude-pattern>
 	<exclude-pattern>*/dev-lib/*</exclude-pattern>
