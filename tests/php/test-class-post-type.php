@@ -100,6 +100,7 @@ class Test_Post_Type extends \WP_UnitTestCase {
 		$post_type_obj = $this->get_new_post_type_instance( $this->plugin->customize_snapshot_manager );
 		$post_type_obj->hooks();
 
+		$this->assertEquals( 10, has_filter( 'wp_revisions_to_keep', array( $post_type_obj, 'force_at_least_one_revision' ) ) );
 		$this->assertEquals( 100, has_action( 'add_meta_boxes_' . $this->post_type_slug, array( $post_type_obj, 'remove_slug_metabox' ) ) );
 		$this->assertEquals( 10, has_action( 'load-revision.php', array( $post_type_obj, 'suspend_kses_for_snapshot_revision_restore' ) ) );
 		$this->assertEquals( 10, has_filter( 'get_the_excerpt', array( $post_type_obj, 'filter_snapshot_excerpt' ) ) );
@@ -138,6 +139,35 @@ class Test_Post_Type extends \WP_UnitTestCase {
 		$this->assertTrue( $post_type_obj->show_in_rest );
 		$this->assertEquals( 'customize_changesets', $post_type_obj->rest_base );
 		$this->assertEquals( __NAMESPACE__ . '\\Snapshot_REST_API_Controller', $post_type_obj->rest_controller_class );
+	}
+
+	/**
+	 * Test forcing at least one revision.
+	 *
+	 * @covers Post_Type::force_at_least_one_revision
+	 */
+	function test_force_at_least_one_revision() {
+		add_filter( 'wp_revisions_to_keep', '__return_zero', 1 );
+		$post_type = get_plugin_instance()->customize_snapshot_manager->post_type;
+		$post_type->init();
+
+		$title = 'Revisions Disabled';
+		$data = array(
+			'blogname' => array(
+				'value' => $title,
+			),
+		);
+		$post_id = $post_type->save( array(
+			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
+			'data' => $data,
+			'status' => 'draft',
+		) );
+		wp_publish_post( $post_id );
+		$snapshot_post = get_post( $post_id );
+		$content = $post_type->get_post_content( $snapshot_post );
+		$this->assertEquals( 'publish', $snapshot_post->post_status );
+		$this->assertEquals( $data, $content );
+		$this->assertEquals( $title, get_bloginfo( 'name' ) );
 	}
 
 	/**

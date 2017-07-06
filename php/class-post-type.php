@@ -70,6 +70,7 @@ class Post_Type {
 	 */
 	public function hooks() {
 		add_action( 'add_meta_boxes_' . static::SLUG, array( $this, 'remove_slug_metabox' ), 100 );
+		add_filter( 'wp_revisions_to_keep', array( $this, 'force_at_least_one_revision' ), 10, 2 );
 		add_action( 'load-revision.php', array( $this, 'suspend_kses_for_snapshot_revision_restore' ) );
 		add_filter( 'get_the_excerpt', array( $this, 'filter_snapshot_excerpt' ), 10, 2 );
 		add_filter( 'post_row_actions', array( $this, 'filter_post_row_actions' ), 10, 2 );
@@ -120,6 +121,25 @@ class Post_Type {
 		$post_type_obj->show_in_rest = true;
 		$post_type_obj->rest_base = 'customize_changesets';
 		$post_type_obj->rest_controller_class = __NAMESPACE__ . '\\Snapshot_REST_API_Controller';
+	}
+
+	/**
+	 * Force at least one revision to be stored for changeset posts.
+	 *
+	 * This is useful on installs where revisions are disabled via setting WP_POST_REVISIONS to 0.
+	 * This ensures that the changeset post will not be automatically trashed.
+	 *
+	 * @see _wp_customize_publish_changeset()
+	 *
+	 * @param int      $num  Number of revisions to store.
+	 * @param \WP_Post $post Post object.
+	 * @return int Revisions to store.
+	 */
+	public function force_at_least_one_revision( $num, $post ) {
+		if ( empty( $num ) && static::SLUG === $post->post_type ) {
+			$num = 1;
+		}
+		return $num;
 	}
 
 	/**
