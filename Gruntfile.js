@@ -30,8 +30,8 @@ module.exports = function( grunt ) {
 					expand: true,
 					cwd: 'js/',
 					src: [
-						'*.js',
-						'!*.min.js'
+						'**.js',
+						'!**.min.js'
 					],
 					dest: 'js/',
 					ext: '.min.js'
@@ -61,7 +61,7 @@ module.exports = function( grunt ) {
 				src: [
 					'*.php',
 					'css/*',
-					'js/*',
+					'js/**',
 					'php/*',
 					'readme.txt'
 				],
