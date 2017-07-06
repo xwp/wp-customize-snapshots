@@ -8,7 +8,7 @@ Allow Customizer states to be drafted, and previewed with a private URL.
 **Tags:** [customizer](https://wordpress.org/plugins/tags/customizer), [customize](https://wordpress.org/plugins/tags/customize), [changesets](https://wordpress.org/plugins/tags/changesets)  
 **Requires at least:** 4.5.3  
 **Tested up to:** 4.7  
-**Stable tag:** 0.6.0-rc1  
+**Stable tag:** 0.6.0  
 **License:** [GPLv2 or later](http://www.gnu.org/licenses/gpl-2.0.html)  
 
 [![Build Status](https://travis-ci.org/xwp/wp-customize-snapshots.svg?branch=master)](https://travis-ci.org/xwp/wp-customize-snapshots) [![Coverage Status](https://coveralls.io/repos/xwp/wp-customize-snapshots/badge.svg?branch=master)](https://coveralls.io/github/xwp/wp-customize-snapshots) [![Built with Grunt](https://cdn.gruntjs.com/builtwith.svg)](http://gruntjs.com) [![devDependency Status](https://david-dm.org/xwp/wp-customize-snapshots/dev-status.svg)](https://david-dm.org/xwp/wp-customize-snapshots#info=devDependencies) 
@@ -59,27 +59,27 @@ if ( ! $bypass_object_cache ) {
 
 ### The “Save & Publish” button is broken up into separate “Save” and “Publish” buttons. The “Save” button creates a snapshot and turns into “Update” to save a new snapshot.
 
-![The “Save & Publish” button is broken up into separate “Save” and “Publish” buttons. The “Save” button creates a snapshot and turns into “Update” to save a new snapshot.](wp-assets/screenshot-1.png)
+![The “Save & Publish” button is broken up into separate “Save” and “Publish” buttons. The “Save” button creates a snapshot and turns into “Update” to save a new snapshot.](wp-assets/screenshot-1.png)
 
 ### For non-administrator users (who lack the new `customize_publish` capability) the “Publish” button is replaced with a “Submit” button. This takes the snapshot and puts it into a pending status.
 
-![For non-administrator users (who lack the new `customize_publish` capability) the “Publish” button is replaced with a “Submit” button. This takes the snapshot and puts it into a pending status.](wp-assets/screenshot-2.png)
+![For non-administrator users (who lack the new `customize_publish` capability) the “Publish” button is replaced with a “Submit” button. This takes the snapshot and puts it into a pending status.](wp-assets/screenshot-2.png)
 
 ### Saving snapshot causes the snapshot UUID to appear in the URL, allowing it to be bookmarked to easily come back to later. Upon publishing, the UUID will be removed from the URL so a new snapshot can be started made.
 
-![Saving snapshot causes the snapshot UUID to appear in the URL, allowing it to be bookmarked to easily come back to later. Upon publishing, the UUID will be removed from the URL so a new snapshot can be started made.](wp-assets/screenshot-3.png)
+![Saving snapshot causes the snapshot UUID to appear in the URL, allowing it to be bookmarked to easily come back to later. Upon publishing, the UUID will be removed from the URL so a new snapshot can be started made.](wp-assets/screenshot-3.png)
 
 ### The Snapshots admin page lists out all of the snapshots in the system. When the excerpt view is turned on, a list of the settings modified in the snapshot can be seen.
 
-![The Snapshots admin page lists out all of the snapshots in the system. When the excerpt view is turned on, a list of the settings modified in the snapshot can be seen.](wp-assets/screenshot-4.png)
+![The Snapshots admin page lists out all of the snapshots in the system. When the excerpt view is turned on, a list of the settings modified in the snapshot can be seen.](wp-assets/screenshot-4.png)
 
 ### Viewing a snapshot post in the admin shows all of the modified settings contained within it. A link is provided to open the snapshot in the Customizer to continue making changes.
 
-![Viewing a snapshot post in the admin shows all of the modified settings contained within it. A link is provided to open the snapshot in the Customizer to continue making changes.](wp-assets/screenshot-5.png)
+![Viewing a snapshot post in the admin shows all of the modified settings contained within it. A link is provided to open the snapshot in the Customizer to continue making changes.](wp-assets/screenshot-5.png)
 
 ### Published snapshots are shown in the admin screen but lack the ability to open in the Customizer, as they are intended to be frozen revisions for when the Customizer was saved.
 
-![Published snapshots are shown in the admin screen but lack the ability to open in the Customizer, as they are intended to be frozen revisions for when the Customizer was saved.](wp-assets/screenshot-6.png)
+![Published snapshots are shown in the admin screen but lack the ability to open in the Customizer, as they are intended to be frozen revisions for when the Customizer was saved.](wp-assets/screenshot-6.png)
 
 ### Changes to snapshots are captured in revisions.
 
@@ -87,12 +87,28 @@ if ( ! $bypass_object_cache ) {
 
 ## Changelog ##
 
-### 0.6.0 RC1 - 2017-02-06 ###
+### 0.6.0 - 2017-07-06 ###
+* Added: Extend, integrate with and defer to changesets in WP 4.7. See <a href="https://github.com/xwp/wp-customize-snapshots/issues/99" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/99" data-id="185500483">#99</a>, <a href="https://github.com/xwp/wp-customize-snapshots/pull/102" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/102" data-id="189592835">#102</a>, <a href="https://github.com/xwp/wp-customize-snapshots/pull/119" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/119" data-id="209975568">#119</a>, <a href="https://github.com/xwp/wp-customize-snapshots/pull/120" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/120" data-id="209979861">#120</a>, <a href="https://github.com/xwp/wp-customize-snapshots/pull/122" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/122" data-id="210213434">#122</a>, <a href="https://github.com/xwp/wp-customize-snapshots/pull/124" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/124" data-id="210397414">#124</a>, <a href="https://github.com/xwp/wp-customize-snapshots/issues/123" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/123" data-id="210248331">#123</a>, <a href="https://github.com/xwp/wp-customize-snapshots/pull/111" class="issue-link js-issue-link" data-id="206025988" title="Ensure that revisions get created when changesets are updated via explicit saves">#111</a>, <a href="https://github.com/xwp/wp-customize-snapshots/issues/108" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/108" data-id="200508804">#108</a>, <a href="https://github.com/xwp/wp-customize-snapshots/issues/112" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/112" data-id="206862695">#112</a>, <a href="https://github.com/xwp/wp-customize-snapshots/pull/127" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/127" data-id="211495205">#127</a>, <a href="https://github.com/xwp/wp-customize-snapshots/issues/131" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/131" data-id="213506857">#131</a>, <a href="https://github.com/xwp/wp-customize-snapshots/pull/132" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/132" data-id="213512349">#132</a>.
+* Added: Allow snapshots to be named. See <a href="https://github.com/xwp/wp-customize-snapshots/issues/19" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/19" data-id="151239526">#19</a>, <a href="https://github.com/xwp/wp-customize-snapshots/pull/76" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/76" data-id="171678109">#76</a>.
+* Added: Allow multiple snapshots to be merged into a single snapshot. See <a href="https://github.com/xwp/wp-customize-snapshots/issues/67" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/67" data-id="167957640">#67</a>, <a href="https://github.com/xwp/wp-customize-snapshots/pull/92" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/92" data-id="181423950">#92</a>.
+* Added: Add hooks to support customize-concurrency plugin. See <a href="https://github.com/xwp/wp-customize-snapshots/pull/87" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/87" data-id="173627962">#87</a>.
+* Added: Enable deleting settings in snapshot wp-admin/post page. See <a href="https://github.com/xwp/wp-customize-snapshots/issues/17" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/17" data-id="151236868">#17</a>, <a href="https://github.com/xwp/wp-customize-snapshots/pull/84" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/84" data-id="172899204">#84</a>.
+* Added: Remember the preview URL and expanded panel/section when saving a changeset; remember preview url query params. See <a href="https://github.com/xwp/wp-customize-snapshots/issues/107" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/107" data-id="195327448">#107</a>, <a href="https://github.com/xwp/wp-customize-snapshots/pull/129" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/129" data-id="211891590">#129</a>.
+* Fixed: Cleanup nav menu created posts if its reference doesn't exists. See <a href="https://github.com/xwp/wp-customize-snapshots/pull/135" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/135" data-id="229881526">#135</a>, <a href="https://github.com/xwp/wp-customize-snapshots/issues/133" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/133" data-id="222183825">#133</a>.
+* Fixed: Ensure that revisions get created when changesets are updated via explicit saves.
+* Fixed: Add customize as top menu for all user. See <a href="https://github.com/xwp/wp-customize-snapshots/pull/110" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/110" data-id="205838319">#110</a>, <a href="https://github.com/xwp/wp-customize-snapshots/pull/114" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/114" data-id="206963835">#114</a>.
+* Fixed: Disable quick edit. See <a href="https://github.com/xwp/wp-customize-snapshots/pull/89" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/89" data-id="174203591">#89</a>, <a href="https://github.com/xwp/wp-customize-snapshots/pull/100" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/100" data-id="185860749">#100</a>.
+* Fixed: Timezone issue on compare date. See <a href="https://github.com/xwp/wp-customize-snapshots/pull/97" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/97" data-id="185077507">#97</a>.
+* Fixed: Admin footer script hook to support WP 4.5. See <a href="https://github.com/xwp/wp-customize-snapshots/pull/94" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/94" data-id="183030691">#94</a>.
+* Fixed: Snapshot publish issue after settings save. See <a href="https://github.com/xwp/wp-customize-snapshots/pull/89" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/89" data-id="174203591">#89</a>.
+* Fided: Use non-minified scripts and styles if plugin installed via git (submodule). See <a href="https://github.com/xwp/wp-customize-snapshots/pull/91" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/91" data-id="175166327">#91</a>.
+* Fixed: Date handling compatibility with Safari. See <a href="https://github.com/xwp/wp-customize-snapshots/pull/134" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/134" data-id="222253592">#134</a>.
+
+See full commit log: [`0.5.2...0.6.0`](https://github.com/xwp/wp-customize-snapshots/compare/0.5.2...0.6.0)
+
 See [issues and PRs in milestone](https://github.com/xwp/wp-customize-snapshots/milestone/4?closed=1).
 
-See full commit log: [`0.5.2...0.6.0-rc1`](https://github.com/xwp/wp-customize-snapshots/compare/0.5.2...0.6.0-rc1)
-
-Props: Utkarsh Patel (<a href="https://github.com/PatelUtkarsh" class="user-mention">@PatelUtkarsh</a>), Sayed Taqui (<a href="https://github.com/sayedwp" class="user-mention">@sayedwp</a>), Weston Ruter (<a href="https://github.com/westonruter" class="user-mention">@westonruter</a>), Ryan Kienstra (<a href="https://github.com/kienstra" class="user-mention">@kienstra</a>), Luke Gedeon (<a href="https://github.com/lgedeon" class="user-mention">@lgedeon</a>).
+Props: Sayed Taqui (<a href="https://github.com/sayedwp" class="user-mention">@sayedwp</a>), Utkarsh Patel (<a href="https://github.com/PatelUtkarsh" class="user-mention">@PatelUtkarsh</a>), Weston Ruter (<a href="https://github.com/westonruter" class="user-mention">@westonruter</a>), Ryan Kienstra (<a href="https://github.com/kienstra" class="user-mention">@kienstra</a>), Luke Gedeon (<a href="https://github.com/lgedeon" class="user-mention">@lgedeon</a>), Derek Herman (<a href="https://github.com/valendesigns" class="user-mention">@valendesigns</a>).
 
 ### 0.5.2 - 2016-08-17 ###
 * Fixed: Prevent enqueueing frontend JS in the customizer preview. This was erroneously causing the customize_snapshot_uuid param to get injected into links in the preview. See [#80](https://github.com/xwp/wp-customize-snapshots/pull/80).
