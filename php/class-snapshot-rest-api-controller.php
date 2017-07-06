@@ -101,7 +101,9 @@ class Snapshot_REST_API_Controller extends \WP_REST_Posts_Controller {
 	 */
 	protected function check_initial_access_permission() {
 		if ( ! current_user_can( 'customize' ) ) {
-			return new \WP_Error( 'rest_customize_unauthorized', __( 'Sorry, Customizer snapshots require proper authentication (the customize capability).', 'customize-snapshots' ), array( 'status' => rest_authorization_required_code() ) );
+			return new \WP_Error( 'rest_customize_unauthorized', __( 'Sorry, Customizer snapshots require proper authentication (the customize capability).', 'customize-snapshots' ), array(
+				'status' => rest_authorization_required_code(),
+			) );
 		}
 		return true;
 	}
@@ -169,7 +171,9 @@ class Snapshot_REST_API_Controller extends \WP_REST_Posts_Controller {
 	 */
 	public function create_item( $request ) {
 		unset( $request );
-		return new \WP_Error( 'rest_cannot_create', __( 'Now allowed to create post', 'customize-snapshots' ), array( 'status' => rest_authorization_required_code() ) );
+		return new \WP_Error( 'rest_cannot_create', __( 'Now allowed to create post', 'customize-snapshots' ), array(
+			'status' => rest_authorization_required_code(),
+		) );
 	}
 
 	/**
@@ -181,7 +185,9 @@ class Snapshot_REST_API_Controller extends \WP_REST_Posts_Controller {
 	public function update_item( $request ) {
 		unset( $request );
 		/* translators: %s is the method name */
-		return new \WP_Error( 'invalid-method', sprintf( __( "Method '%s' not yet implemented.", 'customize-snapshots' ), __METHOD__ ), array( 'status' => 405 ) );
+		return new \WP_Error( 'invalid-method', sprintf( __( "Method '%s' not yet implemented.", 'customize-snapshots' ), __METHOD__ ), array(
+			'status' => 405,
+		) );
 	}
 
 	/**
@@ -193,6 +199,8 @@ class Snapshot_REST_API_Controller extends \WP_REST_Posts_Controller {
 	public function delete_item( $request ) {
 		unset( $request );
 		/* translators: %s is the method name */
-		return new \WP_Error( 'invalid-method', sprintf( __( "Method '%s' not yet implemented.", 'customize-snapshots' ), __METHOD__ ), array( 'status' => 405 ) );
+		return new \WP_Error( 'invalid-method', sprintf( __( "Method '%s' not yet implemented.", 'customize-snapshots' ), __METHOD__ ), array(
+			'status' => 405,
+		) );
 	}
 }
