@@ -7,7 +7,7 @@ Allow Customizer states to be drafted, and previewed with a private URL.
 **Contributors:** [xwp](https://profiles.wordpress.org/xwp), [westonruter](https://profiles.wordpress.org/westonruter), [valendesigns](https://profiles.wordpress.org/valendesigns), [utkarshpatel](https://profiles.wordpress.org/utkarshpatel), [sayedwp](https://profiles.wordpress.org/sayedwp), [newscorpau](https://profiles.wordpress.org/newscorpau)  
 **Tags:** [customizer](https://wordpress.org/plugins/tags/customizer), [customize](https://wordpress.org/plugins/tags/customize), [changesets](https://wordpress.org/plugins/tags/changesets)  
 **Requires at least:** 4.5.3  
-**Tested up to:** 4.7  
+**Tested up to:** 4.8  
 **Stable tag:** 0.6.0  
 **License:** [GPLv2 or later](http://www.gnu.org/licenses/gpl-2.0.html)  
 
