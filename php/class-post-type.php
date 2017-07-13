@@ -79,6 +79,13 @@ class Post_Type {
 		add_filter( 'content_save_pre', array( $this, 'filter_out_settings_if_removed_in_metabox' ), 10 );
 		add_action( 'admin_print_scripts-revision.php', array( $this, 'disable_revision_ui_for_published_posts' ) );
 		add_action( 'admin_notices', array( $this, 'admin_show_merge_error' ) );
+
+		// Add workaround for failure to save changes to option settings when publishing changeset outside of customizer. See https://core.trac.wordpress.org/ticket/39221#comment:14
+		if ( function_exists( '_wp_customize_publish_changeset' ) && function_exists( 'wp_doing_ajax' ) ) { // Workaround only works in WP 4.7.
+			$priority = has_action( 'transition_post_status', '_wp_customize_publish_changeset' );
+			add_action( 'transition_post_status', array( $this, 'start_pretending_customize_save_ajax_action' ), $priority - 1, 3 );
+			add_action( 'transition_post_status', array( $this, 'finish_pretending_customize_save_ajax_action' ), $priority + 1, 3 );
+		}
 	}
 
 	/**
@@ -586,6 +593,59 @@ class Post_Type {
 		$this->restore_kses();
 
 		return $r;
+	}
+
+	/**
+	 * Remember whether customize_save is being pretended.
+	 *
+	 * @link https://core.trac.wordpress.org/ticket/39221#comment:14
+	 *
+	 * @var bool
+	 */
+	protected $is_pretending_customize_save_ajax_action = false;
+
+	/**
+	 * Start pretending customize_save Ajax action.
+	 *
+	 * Add workaround for failure to save changes to option settings when publishing changeset outside of customizer.
+	 *
+	 * @link https://core.trac.wordpress.org/ticket/39221#comment:14
+	 * @see \WP_Customize_Manager::doing_ajax()
+	 *
+	 * @param string   $new_status     New post status.
+	 * @param string   $old_status     Old post status.
+	 * @param \WP_Post $changeset_post Changeset post object.
+	 */
+	function start_pretending_customize_save_ajax_action( $new_status, $old_status, $changeset_post ) {
+		$is_publishing_changeset = ( 'customize_changeset' === $changeset_post->post_type && 'publish' === $new_status && 'publish' !== $old_status );
+		if ( ! $is_publishing_changeset || isset( $_REQUEST['action'] ) ) {
+			return;
+		}
+		$this->is_pretending_customize_save_ajax_action = true;
+		add_filter( 'wp_doing_ajax', '__return_true' );
+		$_REQUEST['action'] = 'customize_save';
+	}
+
+	/**
+	 * Finish pretending customize_save Ajax action.
+	 *
+	 * Clean up workaround for failure to save changes to option settings when publishing changeset outside of customizer.
+	 *
+	 * @link https://core.trac.wordpress.org/ticket/39221#comment:14
+	 * @see \WP_Customize_Manager::doing_ajax()
+	 *
+	 * @param string   $new_status     New post status.
+	 * @param string   $old_status     Old post status.
+	 * @param \WP_Post $changeset_post Changeset post object.
+	 */
+	function finish_pretending_customize_save_ajax_action( $new_status, $old_status, $changeset_post ) {
+		$is_publishing_changeset = ( 'customize_changeset' === $changeset_post->post_type && 'publish' === $new_status && 'publish' !== $old_status );
+		if ( ! $is_publishing_changeset || ! $this->is_pretending_customize_save_ajax_action ) {
+			return;
+		}
+		remove_filter( 'wp_doing_ajax', '__return_true' );
+		unset( $_REQUEST['action'] );
+		$this->is_pretending_customize_save_ajax_action = false;
 	}
 
 	/**
