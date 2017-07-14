@@ -674,6 +674,7 @@ class Test_Post_Type extends \WP_UnitTestCase {
 			$this->markTestSkipped( 'Only relevant to WordPress 4.7 and greater.' );
 		}
 
+		$_REQUEST['action'] = 'editpost';
 		set_current_screen( 'edit' );
 		$this->assertTrue( is_admin() );
 		$post_type = $this->get_new_post_type_instance( $this->plugin->customize_snapshot_manager );
