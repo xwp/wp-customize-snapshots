@@ -605,6 +605,15 @@ class Post_Type {
 	protected $is_pretending_customize_save_ajax_action = false;
 
 	/**
+	 * Previous value for $_REQUEST['action'].
+	 *
+	 * @link https://core.trac.wordpress.org/ticket/39221#comment:14
+	 *
+	 * @var string
+	 */
+	protected $previous_request_action_param;
+
+	/**
 	 * Start pretending customize_save Ajax action.
 	 *
 	 * Add workaround for failure to save changes to option settings when publishing changeset outside of customizer.
@@ -618,10 +627,12 @@ class Post_Type {
 	 */
 	function start_pretending_customize_save_ajax_action( $new_status, $old_status, $changeset_post ) {
 		$is_publishing_changeset = ( 'customize_changeset' === $changeset_post->post_type && 'publish' === $new_status && 'publish' !== $old_status );
-		if ( ! $is_publishing_changeset || isset( $_REQUEST['action'] ) ) {
+		$is_customize_save_action = ( isset( $_REQUEST['action'] ) && 'customize_save' === $_REQUEST['action'] );
+		if ( ! $is_publishing_changeset || $is_customize_save_action ) {
 			return;
 		}
 		$this->is_pretending_customize_save_ajax_action = true;
+		$this->previous_request_action_param = isset( $_REQUEST['action'] ) ? $_REQUEST['action'] : null;
 		add_filter( 'wp_doing_ajax', '__return_true' );
 		$_REQUEST['action'] = 'customize_save';
 	}
@@ -644,7 +655,7 @@ class Post_Type {
 			return;
 		}
 		remove_filter( 'wp_doing_ajax', '__return_true' );
-		unset( $_REQUEST['action'] );
+		$_REQUEST['action'] = $this->previous_request_action_param;
 		$this->is_pretending_customize_save_ajax_action = false;
 	}
 
