@@ -2,7 +2,7 @@
 Contributors: xwp, westonruter, valendesigns, utkarshpatel, sayedwp, newscorpau
 Requires at least: 4.5.3
 Tested up to: 4.8
-Stable tag: 0.6.0
+Stable tag: 0.6.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 Tags: customizer, customize, changesets
@@ -63,6 +63,15 @@ if ( ! $bypass_object_cache ) {
 7. Changes to snapshots are captured in revisions.
 
 == Changelog ==
+
+= 0.6.1 - 2017-07-17 =
+
+* Fix exception thrown when attempting to activate plugin on Windows environment, or when plugin is in non-standard location. See <a href="https://github.com/xwp/wp-customize-snapshots/issues/105" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/105" data-id="194091302"0.6.1>#105</a>, <a href="https://github.com/xwp/wp-customize-snapshots/pull/139" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/139" data-id="243221610"0.6.1>#139</a>.
+* Fix issue with saving <code>option</code> settings when publishing a changeset outside of the Customizer, such as from the edit post admin screen. See <a href="https://github.com/xwp/wp-customize-snapshots/pull/137" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/137" data-id="242616576"0.6.1>#137</a>, <a href="https://github.com/xwp/wp-customize-snapshots/pull/138" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/138" data-id="243123192"0.6.1>#138</a>.
+
+See full commit log: [`0.6.0...0.6.1`](https://github.com/xwp/wp-customize-snapshots/compare/0.6.0...0.6.1)
+
+See [issues and PRs in milestone](https://github.com/xwp/wp-customize-snapshots/milestone/8?closed=1).
 
 = 0.6.0 - 2017-07-06 =
 
