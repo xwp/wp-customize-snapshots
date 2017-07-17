@@ -664,6 +664,50 @@ class Test_Post_Type extends \WP_UnitTestCase {
 	}
 
 	/**
+	 * Test that changes to options can be saved by publishing the changeset.
+	 *
+	 * @covers \CustomizeSnapshots\Post_Type::start_pretending_customize_save_ajax_action()
+	 * @covers \CustomizeSnapshots\Post_Type::finish_pretending_customize_save_ajax_action()
+	 */
+	function test_pretending_customize_save_ajax_action() {
+		if ( ! function_exists( 'wp_generate_uuid4' ) ) {
+			$this->markTestSkipped( 'Only relevant to WordPress 4.7 and greater.' );
+		}
+
+		$_REQUEST['action'] = 'editpost';
+		set_current_screen( 'edit' );
+		$this->assertTrue( is_admin() );
+		$post_type = $this->get_new_post_type_instance( $this->plugin->customize_snapshot_manager );
+		$post_type->init();
+
+		$old_sidebars_widgets = get_option( 'sidebars_widgets' );
+		$new_sidebars_widgets = $old_sidebars_widgets;
+		$new_sidebar_1 = array_reverse( $new_sidebars_widgets['sidebar-1'] );
+
+		$post_id = $this->factory()->post->create( array(
+			'post_type' => 'customize_changeset',
+			'post_status' => 'draft',
+			'post_name' => wp_generate_uuid4(),
+			'post_content' => wp_json_encode( array(
+				'sidebars_widgets[sidebar-1]' => array(
+					'value' => $new_sidebar_1,
+				),
+			) ),
+		) );
+
+		// Save the updated sidebar widgets into the options table.
+		wp_publish_post( $post_id );
+
+		// Make sure previewing filters are removed.
+		remove_all_filters( 'option_sidebars_widgets' );
+		remove_all_filters( 'default_option_sidebars_widgets' );
+
+		// Ensure that the value has actually been written to the DB.
+		$updated_sidebars_widgets = get_option( 'sidebars_widgets' );
+		$this->assertEquals( $new_sidebar_1, $updated_sidebars_widgets['sidebar-1'] );
+	}
+
+	/**
 	 * Test granting customize capability.
 	 *
 	 * @see Post_Type::filter_user_has_cap()
