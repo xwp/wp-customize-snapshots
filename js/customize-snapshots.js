@@ -315,7 +315,7 @@
 		 */
 		addButtons: function addButtons() {
 			var snapshot = this, disableButton = true, disableSelectButton = true,
-				setPreviewLinkHref, currentTheme, savedPreviewingTheme, themeNotActiveOrSaved;
+				currentTheme, savedPreviewingTheme, themeNotActiveOrSaved;
 
 			snapshot.spinner = $( '#customize-header-actions' ).find( '.spinner' );
 			snapshot.publishButton = $( '#save' );
