@@ -226,7 +226,9 @@ class Customize_Snapshot_Back_Compat extends Customize_Snapshot {
 				'unauthorized_settings',
 				/* translators: %s is the list of unauthorized setting ids */
 				sprintf( __( 'Unauthorized settings: %s', 'customize-snapshots' ), join( ',', $unauthorized_setting_ids ) ),
-				array( 'setting_ids' => $unauthorized_setting_ids )
+				array(
+					'setting_ids' => $unauthorized_setting_ids,
+				)
 			);
 		}
 		if ( ! empty( $unrecognized_setting_ids ) ) {
@@ -234,7 +236,9 @@ class Customize_Snapshot_Back_Compat extends Customize_Snapshot {
 				'unrecognized_settings',
 				/* translators: %s is the list of unrecognized setting ids */
 				sprintf( __( 'Unrecognized settings: %s', 'customize-snapshots' ), join( ',', $unrecognized_setting_ids ) ),
-				array( 'setting_ids' => $unrecognized_setting_ids )
+				array(
+					'setting_ids' => $unrecognized_setting_ids,
+				)
 			);
 		}
 		if ( 0 !== count( $invalid_setting_ids ) ) {

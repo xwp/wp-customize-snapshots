@@ -66,7 +66,7 @@ class Migrate {
 	 */
 	public function handle_migrate_changeset_request() {
 		check_ajax_referer( 'customize-snapshot-migration', 'nonce' );
-		$limit = isset( $_REQUEST['limit'] ) ? absint( $_REQUEST['limit'] ) : 20;
+		$limit = isset( $_REQUEST['limit'] ) ? absint( $_REQUEST['limit'] ) : 20; // WPCS: input var ok.
 		$found_posts = $this->changeset_migrate( $limit );
 		$remaining_post = ( $found_posts < $limit ) ? 0 : $found_posts - $limit;
 		$data = array(
@@ -91,8 +91,11 @@ class Migrate {
 	public function show_migration_notice() {
 		?>
 		<div class="notice notice-error customize-snapshot-migration">
-			<p><?php esc_html_e( 'Existing Snapshots need to be migrated to Changesets, which was added to core in WordPress 4.7.', 'customize-snapshots' );
-				printf( ' %s <a id="customize-snapshot-migration" data-nonce="' . esc_attr( wp_create_nonce( 'customize-snapshot-migration' ) ) . '" href="javascript:void(0)" data-migration-success="%s">%s</a> %s <span class="spinner customize-snapshot-spinner"></span>', esc_html__( 'Click', 'customize-snapshots' ), esc_html__( 'Customize snapshot migration complete!', 'customize-snapshots' ), esc_html__( 'here', 'customize-snapshots' ), esc_html__( 'to start migration.', 'customize-snapshots' ) ); ?>
+			<p>
+			<?php
+			esc_html_e( 'Existing Snapshots need to be migrated to Changesets, which was added to core in WordPress 4.7.', 'customize-snapshots' );
+			printf( ' %s <a id="customize-snapshot-migration" data-nonce="' . esc_attr( wp_create_nonce( 'customize-snapshot-migration' ) ) . '" href="javascript:void(0)" data-migration-success="%s">%s</a> %s <span class="spinner customize-snapshot-spinner"></span>', esc_html__( 'Click', 'customize-snapshots' ), esc_html__( 'Customize snapshot migration complete!', 'customize-snapshots' ), esc_html__( 'here', 'customize-snapshots' ), esc_html__( 'to start migration.', 'customize-snapshots' ) );
+			?>
 			</p>
 		</div>
 		<?php
@@ -223,14 +226,15 @@ class Migrate {
 				$post_data[ $prefixed_setting_id ]['type'] = $setting->type;
 			}
 		}
-		$maybe_updated = $wpdb->update( $wpdb->posts, array(
+		$maybe_updated = $wpdb->update( $wpdb->posts,
+			array(
 				'post_type'    => 'customize_changeset',
 				'post_content' => Customize_Snapshot_Manager::encode_json( $post_data ),
 			),
 			array(
 				'ID' => $post->ID,
 			)
-		);
+		); // WPCS: DB call ok and cache ok, because doing update query, and using direct DB call to bypass weight of triggered hooks.
 		clean_post_cache( $post );
 
 		$wp_customize = $original_manager; // Restore previous manager. WPCS: override ok.

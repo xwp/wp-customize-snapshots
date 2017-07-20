@@ -1,4 +1,4 @@
-/* global jQuery, wp, _customizeSnapshotsSettings */
+/* global jQuery, wp, JSON, _customizeSnapshotsSettings */
 /* eslint no-magic-numbers: [ "error", { "ignore": [0,1,-1] } ], consistent-this: [ "error", "snapshot" ] */
 
 (function( api, $ ) {
@@ -19,6 +19,7 @@
 			initialServerDate: '',
 			initialServerTimestamp: 0,
 			initialClientTimestamp: 0,
+			previewingTheme: '',
 			i18n: {},
 			dirty: false
 		},
@@ -51,6 +52,8 @@
 					api.state( 'snapshot-exists' ).set( true );
 				}
 
+				snapshot.extendPreviewerQuery();
+
 				snapshot.editControlSettings = new api.Values();
 				snapshot.editControlSettings.create( 'title', snapshot.data.title );
 				snapshot.editControlSettings.create( 'date', snapshot.data.publishDate );
@@ -61,6 +64,7 @@
 
 				snapshot.frontendPreviewUrl = new api.Value( api.previewer.previewUrl.get() );
 				snapshot.frontendPreviewUrl.link( api.previewer.previewUrl );
+				snapshot.isNotSavedPreviewingTheme = false;
 
 				snapshot.addButtons();
 				snapshot.editSnapshotUI();
@@ -96,6 +100,42 @@
 
 				return request;
 			} );
+		},
+
+		/**
+		 * Get state query vars.
+		 *
+		 * @return {{}} Query vars for scroll, device, url, and autofocus.
+		 */
+		getStateQueryVars: function() {
+			var snapshot = this, queryVars;
+
+			queryVars = {
+				'autofocus[control]': null,
+				'autofocus[section]': null,
+				'autofocus[panel]': null
+			};
+
+			queryVars.scroll = parseInt( api.previewer.scroll, 10 ) || 0;
+			queryVars.device = api.previewedDevice.get();
+			queryVars.url = api.previewer.previewUrl.get();
+
+			if ( ! api.state( 'activated' ).get() || snapshot.isNotSavedPreviewingTheme ) {
+				queryVars.previewing_theme = true;
+			}
+
+			_.find( [ 'control', 'section', 'panel' ], function( constructType ) {
+				var found = false;
+				api[ constructType ].each( function( construct ) { // @todo Core needs to support more Backbone methods on wp.customize.Values().
+					if ( ! found && construct.expanded && construct.expanded.get() ) {
+						queryVars[ 'autofocus[' + constructType + ']' ] = construct.id;
+						found = true;
+					}
+				} );
+				return found;
+			} );
+
+			return queryVars;
 		},
 
 		/**
@@ -196,11 +236,16 @@
 					}
 				}, savedDelay );
 
-				api.state( 'snapshot-exists' ).set( true );
+				api.state( 'snapshot-exists' ).set( ! isPublishStatus );
 
 				snapshot.statusButton.disableSelect.set( isPublishStatus );
 				snapshot.statusButton.disbleButton.set( true );
 				snapshot.snapshotExpandButton.toggle( ! isPublishStatus );
+
+				if ( isPublishStatus ) {
+					snapshot.removeParamFromClose( 'customize_changeset_uuid' );
+				}
+
 				snapshot.statusButton.updateButtonText( 'alt-text' );
 
 				// Trigger an event for plugins to use.
@@ -220,6 +265,7 @@
 					dialogElement;
 
 				snapshot.statusButton.disableSelect.set( false );
+				snapshot.statusButton.disbleButton.set( false );
 
 				if ( response.setting_validities ) {
 					invalidityCount = _.size( response.setting_validities, function( validity ) {
@@ -268,26 +314,37 @@
 		 * @return {void}
 		 */
 		addButtons: function addButtons() {
-			var snapshot = this, setPreviewLinkHref;
+			var snapshot = this, disableButton = true, disableSelectButton = true,
+				setPreviewLinkHref, currentTheme, savedPreviewingTheme, themeNotActiveOrSaved;
 
 			snapshot.spinner = $( '#customize-header-actions' ).find( '.spinner' );
 			snapshot.publishButton = $( '#save' );
 
 			snapshot.publishButton.addClass( 'hidden' );
 			snapshot.statusButton = snapshot.addStatusButton();
-			snapshot.statusButton.disbleButton.set( true );
 
 			if ( api.state( 'changesetStatus' ).get() ) {
+				disableSelectButton = false;
 				if ( 'auto-draft' === api.state( 'changesetStatus' ).get() ) {
-					snapshot.statusButton.disable( false );
+					disableButton = false;
 				} else {
 					snapshot.statusButton.updateButtonText( 'alt-text' );
 				}
-			} else {
-				snapshot.statusButton.disable( true );
 			}
 
 			snapshot.setUpPreviewLink();
+			currentTheme = api.settings.theme.stylesheet; // Or previewing theme.
+			savedPreviewingTheme = snapshot.data.previewingTheme;
+			themeNotActiveOrSaved = ! api.state( 'activated' ).get() && ! savedPreviewingTheme;
+			snapshot.isNotSavedPreviewingTheme = savedPreviewingTheme && savedPreviewingTheme !== currentTheme;
+
+			if ( themeNotActiveOrSaved || snapshot.isNotSavedPreviewingTheme ) {
+				disableButton = false;
+				disableSelectButton = false;
+			}
+
+			snapshot.statusButton.disbleButton.set( disableButton );
+			snapshot.statusButton.disableSelect.set( disableSelectButton );
 
 			// Edit button.
 			snapshot.snapshotExpandButton = $( $.trim( wp.template( 'snapshot-expand-button' )( {} ) ) );
@@ -303,7 +360,6 @@
 
 			api.state( 'snapshot-exists' ).bind( function( exist ) {
 				snapshot.snapshotExpandButton.toggle( exist );
-				snapshot.previewLink.toggle( exist );
 			} );
 
 			api.bind( 'change', function() {
@@ -578,7 +634,7 @@
 		 */
 		autoSaveEditBox: function() {
 			var snapshot = this, update,
-				delay = 2000, status, isValidChangesetStatus, isFutureDateAndStatus;
+				delay = 2000, status, isFutureDateAndStatus;
 
 			snapshot.updatePending = false;
 			snapshot.dirtyEditControlValues = false;
@@ -630,16 +686,7 @@
 				return undefined;
 			} );
 
-			isValidChangesetStatus = function() {
-				return _.contains( [ 'future', 'pending', 'draft' ], api.state( 'changesetStatus' ).get() );
-			};
-
 			// @todo Show loader and disable button while auto saving.
-			api.bind( 'changeset-save', function() {
-				if ( isValidChangesetStatus() ) {
-					snapshot.extendPreviewerQuery();
-				}
-			} );
 
 			api.bind( 'changeset-saved', function() {
 				if ( 'auto-draft' !== api.state( 'changesetStatus' ).get() ) {
@@ -713,7 +760,7 @@
 					api.state( 'processing' ).bind( onceProcessingComplete );
 				}
 			} );
-			$( '#customize-footer-actions button' ).first().before( snapshot.previewLink );
+			$( '#customize-footer-actions .devices button' ).first().before( snapshot.previewLink );
 		},
 
 		/**
@@ -747,7 +794,7 @@
 				snapshot.schedule.inputs.each( function() {
 					var input = $( this ),
 						fieldName = input.data( 'date-input' );
-					$( this ).val( parsed[fieldName] );
+					$( this ).val( parsed[ fieldName ] );
 				} );
 			}
 
@@ -862,12 +909,12 @@
 				nonYearLength = 2,
 				monthOffset = 1;
 
-			formattedDate = ( '0000' + date.getFullYear() ).substr( -yearLength, yearLength );
-			formattedDate += '-' + ( '00' + ( date.getMonth() + monthOffset ) ).substr( -nonYearLength, nonYearLength );
-			formattedDate += '-' + ( '00' + date.getDate() ).substr( -nonYearLength, nonYearLength );
-			formattedDate += ' ' + ( '00' + date.getHours() ).substr( -nonYearLength, nonYearLength );
-			formattedDate += ':' + ( '00' + date.getMinutes() ).substr( -nonYearLength, nonYearLength );
-			formattedDate += ':' + ( '00' + date.getSeconds() ).substr( -nonYearLength, nonYearLength );
+			formattedDate = ( '0000' + String( date.getFullYear() ) ).substr( -yearLength, yearLength );
+			formattedDate += '-' + ( '00' + String( date.getMonth() + monthOffset ) ).substr( -nonYearLength, nonYearLength );
+			formattedDate += '-' + ( '00' + String( date.getDate() ) ).substr( -nonYearLength, nonYearLength );
+			formattedDate += ' ' + ( '00' + String( date.getHours() ) ).substr( -nonYearLength, nonYearLength );
+			formattedDate += ':' + ( '00' + String( date.getMinutes() ) ).substr( -nonYearLength, nonYearLength );
+			formattedDate += ':' + ( '00' + String( date.getSeconds() ) ).substr( -nonYearLength, nonYearLength );
 
 			return formattedDate;
 		},
@@ -956,22 +1003,32 @@
 		 * @returns {string} Current datetime string.
 		 */
 		getCurrentTime: function getCurrentTime() {
-			var snapshot = this,
-				currentDate = new Date( snapshot.data.initialServerDate ),
-				currentTimestamp = snapshot.dateValueOf(),
-				timestampDifferential;
-
+			var snapshot = this, currentDate, currentTimestamp, timestampDifferential;
+			currentTimestamp = ( new Date() ).valueOf();
+			currentDate = snapshot.parsePostDate( snapshot.data.initialServerDate );
 			timestampDifferential = currentTimestamp - snapshot.data.initialClientTimestamp;
 			timestampDifferential += snapshot.data.initialClientTimestamp - snapshot.data.initialServerTimestamp;
 			currentDate.setTime( currentDate.getTime() + timestampDifferential );
-
 			return snapshot.formatDate( currentDate );
+		},
+
+		/**
+		 * Parse post date string in YYYY-MM-DD HH:MM:SS format (local timezone).
+		 *
+		 * @param {string} postDate Post date string.
+		 * @returns {Date} Parsed date.
+		 */
+		parsePostDate: function parsePostDate( postDate ) {
+			var dateParts = _.map( postDate.split( /\D/ ), function( datePart ) {
+				return parseInt( datePart, 10 );
+			} );
+			return new Date( dateParts[0], dateParts[1] - 1, dateParts[2], dateParts[3], dateParts[4], dateParts[5] ); // eslint-disable-line no-magic-numbers
 		},
 
 		/**
 		 * Get the primitive value of a Date object.
 		 *
-		 * @param {string|Date} dateString The post status for the snapshot.
+		 * @param {string|Date} [dateString] The post status for the snapshot.
 		 * @returns {object|string} The primitive value or date object.
 		 */
 		dateValueOf: function dateValueOf( dateString ) {
@@ -998,6 +1055,13 @@
 
 			api.previewer.query = function() {
 				var retval = originalQuery.apply( this, arguments );
+
+				if ( ! _.contains( [ 'future', 'pending', 'draft' ], snapshot.statusButton.value.get() ) ) {
+					return retval;
+				}
+
+				retval.customizer_state_query_vars = JSON.stringify( snapshot.getStateQueryVars() );
+
 				if ( snapshot.editControlSettings( 'title' ).get() ) {
 					retval.customize_changeset_title = snapshot.editControlSettings( 'title' ).get();
 				}
@@ -1146,7 +1210,38 @@
 					snapshot.editBoxAutoSaveTriggered = false;
 				}
 			} );
-		}
+		},
+
+		/**
+		 * Remove a param from close button link.
+		 *
+		 * @param {string} targetParam param.
+		 * @return {void}.
+		 */
+		removeParamFromClose: function removeParamFromClose( targetParam ) {
+			var snapshot = this, closeButton, queryString, updatedParams;
+			closeButton = $( '.customize-controls-close' );
+			queryString = closeButton.prop( 'search' ).substr( 1 );
+
+			if ( ! queryString.length ) {
+				return;
+			}
+
+			updatedParams = snapshot.parseQueryString( queryString );
+			delete updatedParams[ targetParam ];
+			closeButton.prop( 'search', $.param( updatedParams ) );
+		},
+
+		/**
+		 * Parse query string.
+		 *
+		 * @since 4.7.0
+		 * @access public
+		 *
+		 * @param {string} queryString Query string.
+		 * @returns {object} Parsed query string.
+		 */
+		parseQueryString: api.utils.parseQueryString
 	} );
 
 	if ( 'undefined' !== typeof _customizeSnapshotsSettings ) {
