@@ -23,8 +23,8 @@ class Customize_Snapshot_Command {
 	 *
 	 * ## EXAMPLES
 	 *
-	 *      wp customize_snapshot migrate --dry-run
-	 *      wp customize_snapshot migrate
+	 *      wp customize-snapshots migrate --dry-run
+	 *      wp customize-snapshots migrate
 	 *
 	 * @when after_wp_load
 	 *
@@ -44,15 +44,18 @@ class Customize_Snapshot_Command {
 		}
 		$dry_mode = isset( $assoc_args['dry-run'] );
 		if ( ! $dry_mode ) {
+			wp_suspend_cache_addition( true );
 			$post_count = $migrate_obj->changeset_migrate();
-			\WP_CLI::success( $post_count . ' ' . __( 'posts migrated.', 'customize-snapshots' ) );
 		} else {
-			$ids = $migrate_obj->changeset_migrate( - 1, true );
-			\WP_CLI::success( count( $ids ) . ' ' . __( 'posts migrated:', 'customize-snapshots' ) . ' ' . implode( ',', $ids ) );
+			$ids = $migrate_obj->changeset_migrate( -1, true );
+			\WP_CLI::success( __( 'Posts migrated:', 'customize-snapshots' ) . ' ' . implode( ',', $ids ) );
+			$post_count = count( $ids );
 		}
+		/* translators: %s: post count.*/
+		\WP_CLI::success( sprintf( __( 'Total posts migrated: %s', 'customize-snapshots' ), $post_count ) );
 	}
 }
 
 if ( defined( 'WP_CLI' ) && WP_CLI ) {
-	\WP_CLI::add_command( 'snapshot', __NAMESPACE__ . '\\Customize_Snapshot_Command' );
+	\WP_CLI::add_command( 'customize-snapshots', __NAMESPACE__ . '\\Customize_Snapshot_Command' );
 }

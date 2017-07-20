@@ -3,7 +3,7 @@
 	'use strict';
 	var component = {
 		doingAjax: false,
-		postMigrationCount: 20
+		postMigrationCount: 5
 	};
 
 	/**
