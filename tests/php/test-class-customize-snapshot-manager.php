@@ -241,7 +241,10 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		$this->assertEquals( 100000, has_action( 'admin_bar_menu', array( $manager, 'remove_all_non_snapshot_admin_bar_links' ) ) );
 		$this->assertEquals( 10, has_action( 'wp_before_admin_bar_render', array( $manager, 'print_admin_bar_styles' ) ) );
 		$this->assertEquals( 10, has_filter( 'removable_query_args', array( $manager, 'filter_removable_query_args' ) ) );
+		$this->assertEquals( 10, has_action( 'save_post_' . $manager->get_post_type(), array( $manager, 'create_initial_changeset_revision' ) ) );
+		$this->assertEquals( 10, has_action( 'save_post_' . $manager->get_post_type(), array( $manager, 'save_customizer_state_query_vars' ) ) );
 		$this->assertEquals( 10, has_filter( 'wp_insert_post_data', array( $manager, 'prepare_snapshot_post_content_for_publish' ) ) );
+		$this->assertEquals( 10, has_action( 'delete_post', array( $manager, 'clean_up_nav_menus_created_auto_drafts' ) ) );
 		$this->assertEquals( 10, has_action( 'wp_ajax_customize_snapshot_conflict_check', array( $manager, 'handle_conflicts_snapshot_request' ) ) );
 	}
 
@@ -386,10 +389,13 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	public function test_add_snapshot_uuid_to_return_url() {
 		global $wp_version;
 		if ( version_compare( $wp_version, '4.4-beta', '>=' ) ) {
+			wp_set_current_user( $this->factory()->user->create( array( 'role' => 'administrator' ) ) );
+			$_GET[ $this->front_param ] = self::UUID;
 			$_REQUEST[ $this->front_param ] = self::UUID;
 			$manager = $this->get_snapshot_manager_instance( $this->plugin );
 			$manager->init();
 			$manager->ensure_customize_manager();
+			do_action( 'setup_theme' );
 			$this->assertNotContains( $this->front_param, $manager->customize_manager->get_return_url() );
 			$manager->add_snapshot_uuid_to_return_url();
 			$this->assertContains( $this->front_param, $manager->customize_manager->get_return_url() );
@@ -749,5 +755,93 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		$this->assertArrayHasKey( 'url', $query_params );
 		$parsed_preview_url = wp_parse_url( $query_params['url'] );
 		$this->assertArrayNotHasKey( 'query', $parsed_preview_url );
+	}
+
+	/**
+	 * Test save_customizer_state_query_vars.
+	 *
+	 * @convers \CustomizeSnapshots\Customize_Snapshot_Manager::save_customizer_state_query_vars()
+	 * @convers \CustomizeSnapshots\Post_Type::get_frontend_view_link()
+	 * @convers \CustomizeSnapshots\Post_Type::get_customizer_state_query_vars()
+	 * @convers \CustomizeSnapshots\Post_Type::set_customizer_state_query_vars()
+	 */
+	public function test_save_customizer_state_query_vars() {
+		$post_id = $this->manager->post_type->save( array(
+			'uuid' => self::UUID,
+			'data' => array(
+				'blogname' => array(
+					'value' => 'Hello',
+				),
+			),
+			'status' => 'draft',
+		) );
+
+		$original_query_vars = array(
+			'scroll' => 123,
+			'device' => 'mobile',
+			'url' => home_url( 'about/' ),
+			'autofocus[panel]' => 'widgets',
+			'autofocus[section]' => 'sidebar-widgets-sidebar-1',
+			'autofocus[control]' => 'widget_test[123]',
+		);
+
+		$this->assertContains( sprintf( '?%s=%s', $this->front_param, self::UUID ), get_permalink( $post_id ) );
+		$this->assertEmpty( $this->manager->post_type->get_customizer_state_query_vars( $post_id ) );
+		$this->manager->save_customizer_state_query_vars( $post_id );
+		$this->assertEmpty( $this->manager->post_type->get_customizer_state_query_vars( $post_id ) );
+
+		$_POST['customizer_state_query_vars'] = wp_slash( wp_json_encode( $original_query_vars ) );
+		$this->manager->save_customizer_state_query_vars( $post_id );
+		$this->assertContains( sprintf( 'about/?%s=%s', $this->front_param, self::UUID ), get_permalink( $post_id ) );
+		$this->assertEquals( $this->manager->post_type->get_customizer_state_query_vars( $post_id ), $original_query_vars );
+		$this->assertEquals( $this->manager->post_type->get_frontend_view_link( $post_id ), get_permalink( $post_id ) );
+
+		$this->manager->post_type->set_customizer_state_query_vars( $post_id, array(
+			'scroll' => 'bad',
+			'device' => 'bad',
+			'url' => 'http://bogus.example.com/',
+			'autofocus[panel]' => 'badid!',
+			'autofocus[section]' => '#sobad',
+			'autofocus[control]' => '*horrible',
+			'unrecognized' => 'yes',
+		) );
+		$this->assertEmpty( $this->manager->post_type->get_customizer_state_query_vars( $post_id ) );
+	}
+
+	/**
+	 * Test clean_up_nav_menus_created_auto_drafts
+	 *
+	 * @convers \CustomizeSnapshots\Customize_Snapshot_Manager::clean_up_nav_menus_created_auto_drafts()
+	 */
+	public function test_clean_up_nav_menus_created_auto_drafts() {
+		$nav_created_post_ids = $this->factory()->post->create_many( 2, array(
+			'post_status' => 'auto-draft',
+		) );
+		$data = array(
+			'nav_menus_created_posts' => array(
+				'value' => $nav_created_post_ids,
+			),
+		);
+		wp_set_current_user( self::factory()->user->create( array(
+			'role' => 'administrator',
+		) ) );
+		$post_id = $this->manager->post_type->save( array(
+			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
+			'data' => $data,
+			'status' => 'draft',
+		) );
+		$copy_post_id = $this->manager->post_type->save( array(
+			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
+			'data' => $data,
+			'status' => 'draft',
+		) );
+		$this->assertInstanceOf( 'WP_Post', get_post( $nav_created_post_ids[0] ) );
+		$this->assertInstanceOf( 'WP_Post', get_post( $nav_created_post_ids[1] ) );
+		wp_delete_post( $post_id, true );
+		$this->assertInstanceOf( 'WP_Post', get_post( $nav_created_post_ids[0] ) );
+		$this->assertInstanceOf( 'WP_Post', get_post( $nav_created_post_ids[1] ) );
+		wp_delete_post( $copy_post_id, true );
+		$this->assertNotInstanceOf( 'WP_Post', get_post( $nav_created_post_ids[0] ) );
+		$this->assertNotInstanceOf( 'WP_Post', get_post( $nav_created_post_ids[1] ) );
 	}
 }

@@ -1,5 +1,5 @@
-/* global jQuery, wp, _customizeSnapshotsCompatSettings */
-/* eslint consistent-this: ["error", "snapshot"] */
+/* global jQuery, wp, _customizeSnapshotsCompatSettings, JSON */
+/* eslint consistent-this: ["error", "snapshot"], no-magic-numbers: [ "error", { "ignore": [0,1,2] } ] */
 
 ( function( api, $ ) {
 	'use strict';
@@ -20,7 +20,6 @@
 
 			api.bind( 'ready', function() {
 				api.state.create( 'snapshot-exists', snapshot.data.snapshotExists );
-				snapshot.extendPreviewerQuery();
 
 				if ( api.state( 'snapshot-exists' ).get() ) {
 					api.state( 'saved' ).set( false );
@@ -47,6 +46,8 @@
 					snapshot.data.uuid = response.new_customize_snapshot_uuid;
 					snapshot.previewLink.attr( 'target', snapshot.data.uuid );
 				}
+
+				snapshot.removeParamFromClose( 'customize_snapshot_uuid' );
 
 				api.state( 'snapshot-exists' ).set( false );
 
@@ -226,6 +227,8 @@
 
 			api.previewer.query = function() {
 				var retval = originalQuery.apply( this, arguments );
+				retval.customizer_state_query_vars = JSON.stringify( snapshot.getStateQueryVars() );
+
 				if ( api.state( 'snapshot-exists' ).get() ) {
 					retval.customize_snapshot_uuid = snapshot.data.uuid;
 					if ( snapshot.snapshotTitle && snapshot.snapshotTitle.val() ) {
@@ -244,7 +247,9 @@
 		addButtons: function addButtons() {
 			var snapshot = this,
 				header = $( '#customize-header-actions' ),
-				templateData = {}, setPreviewLinkHref;
+				disableButton = true,
+				templateData = {}, setPreviewLinkHref, currentTheme,
+				savedPreviewingTheme, themeNotActiveOrSaved;
 
 			snapshot.publishButton = header.find( '#save' );
 			snapshot.spinner = header.find( '.spinner' );
@@ -266,7 +271,17 @@
 			if ( ! snapshot.data.currentUserCanPublish ) {
 				snapshot.snapshotButton.attr( 'title', api.state( 'snapshot-exists' ).get() ? snapshot.data.i18n.permsMsg.update : snapshot.data.i18n.permsMsg.save );
 			}
-			snapshot.snapshotButton.prop( 'disabled', true );
+
+			currentTheme = api.settings.theme.stylesheet; // Or previewing theme.
+			savedPreviewingTheme = snapshot.data.previewingTheme;
+			themeNotActiveOrSaved = ! api.state( 'activated' ).get() && ! savedPreviewingTheme;
+			snapshot.isNotSavedPreviewingTheme = savedPreviewingTheme && savedPreviewingTheme !== currentTheme;
+
+			if ( themeNotActiveOrSaved || snapshot.isNotSavedPreviewingTheme ) {
+				disableButton = false;
+			}
+
+			snapshot.snapshotButton.prop( 'disabled', disableButton );
 
 			snapshot.snapshotButton.on( 'click', function( event ) {
 				var status;
@@ -348,7 +363,7 @@
 				}
 			} );
 
-			snapshot.editControlSettings.bind( function() {
+			snapshot.editControlSettings.bind( 'change', function() {
 				snapshot.snapshotButton.prop( 'disabled', false );
 				snapshot.updateButtonText();
 			} );
@@ -388,18 +403,6 @@
 		 */
 		resetSavedStateQuietly: function resetSavedStateQuietly() {
 			api.state( 'saved' )._value = true;
-		},
-
-		/**
-		 * Toggles date notification.
-		 *
-		 * @return {void}.
-		 */
-		toggleDateNotification: function showDateNotification() {
-			var snapshot = this;
-			if ( ! _.isEmpty( snapshot.dateNotification ) ) {
-				snapshot.dateNotification.toggle( ! snapshot.isFutureDate() );
-			}
 		},
 
 		/**
@@ -480,13 +483,11 @@
 		populateSetting: function populateSetting() {
 			var snapshot = this,
 				date = snapshot.getDateFromInputs(),
-				scheduled, isDirtyDate, editControlSettings;
+				scheduled, isDirtyDate;
 
-			editControlSettings = _.extend( {}, snapshot.editControlSettings.get() );
+			snapshot.editControlSettings( 'title' ).set( snapshot.snapshotTitle.val() );
 
 			if ( ! date || ! snapshot.data.currentUserCanPublish ) {
-				editControlSettings.title = snapshot.snapshotTitle.val();
-				snapshot.editControlSettings.set( editControlSettings );
 				return;
 			}
 
@@ -495,14 +496,38 @@
 
 			isDirtyDate = scheduled && snapshot.isFutureDate();
 			snapshot.dirtyScheduleDate.set( isDirtyDate );
-
-			editControlSettings.title = snapshot.snapshotTitle.val();
-			editControlSettings.date = snapshot.formatDate( date );
-
-			snapshot.editControlSettings.set( editControlSettings );
+			snapshot.editControlSettings( 'date' ).set( snapshot.formatDate( date ) );
 
 			snapshot.updateCountdown();
 			snapshot.editContainer.find( '.reset-time' ).toggle( scheduled );
+		},
+
+		/**
+		 * Parse query string.
+		 *
+		 * Polyfill for function was introduced into core in 4.7 as wp.customize.utils.parseQueryString.
+		 *
+		 * @param {string} queryString Query string.
+		 * @returns {object} Parsed query string.
+		 */
+		parseQueryString: function parseQueryString( queryString ) {
+			var queryParams = {};
+			_.each( queryString.split( '&' ), function( pair ) {
+				var parts, key, value;
+				parts = pair.split( '=', 2 );
+				if ( ! parts[0] ) {
+					return;
+				}
+				key = decodeURIComponent( parts[0].replace( /\+/g, ' ' ) );
+				key = key.replace( / /g, '_' ); // What PHP does.
+				if ( _.isUndefined( parts[1] ) ) {
+					value = null;
+				} else {
+					value = decodeURIComponent( parts[1].replace( /\+/g, ' ' ) );
+				}
+				queryParams[ key ] = value;
+			} );
+			return queryParams;
 		}
 	} );
 

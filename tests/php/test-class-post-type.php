@@ -84,7 +84,7 @@ class Test_Post_Type extends \WP_UnitTestCase {
 
 		$this->assertEquals( 10, has_filter( 'post_link', array( $post_type_obj, 'filter_post_type_link' ) ) );
 		$this->assertEquals( 10, has_action( 'add_meta_boxes_' . Post_Type::SLUG, array( $post_type_obj, 'setup_metaboxes' ) ) );
-		$this->assertEquals( 10, has_action( 'admin_menu', array( $post_type_obj, 'add_admin_menu_item' ) ) );
+		$this->assertEquals( 99, has_action( 'admin_menu', array( $post_type_obj, 'add_admin_menu_item' ) ) );
 		$this->assertEquals( 5, has_filter( 'map_meta_cap', array( $post_type_obj, 'remap_customize_meta_cap' ) ) );
 		$this->assertEquals( 10, has_filter( 'bulk_actions-edit-' . Post_Type::SLUG, array( $post_type_obj, 'add_snapshot_bulk_actions' ) ) );
 		$this->assertEquals( 10, has_filter( 'handle_bulk_actions-edit-' . Post_Type::SLUG, array( $post_type_obj, 'handle_snapshot_merge' ) ) );
@@ -100,6 +100,7 @@ class Test_Post_Type extends \WP_UnitTestCase {
 		$post_type_obj = $this->get_new_post_type_instance( $this->plugin->customize_snapshot_manager );
 		$post_type_obj->hooks();
 
+		$this->assertEquals( 10, has_filter( 'wp_revisions_to_keep', array( $post_type_obj, 'force_at_least_one_revision' ) ) );
 		$this->assertEquals( 100, has_action( 'add_meta_boxes_' . $this->post_type_slug, array( $post_type_obj, 'remove_slug_metabox' ) ) );
 		$this->assertEquals( 10, has_action( 'load-revision.php', array( $post_type_obj, 'suspend_kses_for_snapshot_revision_restore' ) ) );
 		$this->assertEquals( 10, has_filter( 'get_the_excerpt', array( $post_type_obj, 'filter_snapshot_excerpt' ) ) );
@@ -141,21 +142,84 @@ class Test_Post_Type extends \WP_UnitTestCase {
 	}
 
 	/**
+	 * Test forcing at least one revision.
+	 *
+	 * @covers Post_Type::force_at_least_one_revision
+	 */
+	function test_force_at_least_one_revision() {
+		add_filter( 'wp_revisions_to_keep', '__return_zero', 1 );
+		$post_type = get_plugin_instance()->customize_snapshot_manager->post_type;
+		$post_type->init();
+
+		$title = 'Revisions Disabled';
+		$data = array(
+			'blogname' => array(
+				'value' => $title,
+			),
+		);
+		$post_id = $post_type->save( array(
+			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
+			'data' => $data,
+			'status' => 'draft',
+		) );
+		wp_publish_post( $post_id );
+		$snapshot_post = get_post( $post_id );
+		$content = $post_type->get_post_content( $snapshot_post );
+		$this->assertEquals( 'publish', $snapshot_post->post_status );
+		$this->assertEquals( $data, $content );
+		$this->assertEquals( $title, get_bloginfo( 'name' ) );
+	}
+
+	/**
 	 * Test add_admin_menu_item.
 	 *
 	 * @covers \CustomizeSnapshots\Post_Type::add_admin_menu_item()
 	 */
 	public function test_add_admin_menu_item() {
 		$this->mark_incompatible();
-		global $submenu;
-		$admin_user_id = $this->factory()->user->create( array( 'role' => 'administrator' ) );
+		global $submenu, $menu;
+		$menu = $submenu = array(); // WPCS: global override ok.
+		$admin_user_id = $this->factory()->user->create( array(
+			'role' => 'administrator',
+		) );
 		wp_set_current_user( $admin_user_id );
 		$post_type_obj = new Post_Type( $this->plugin->customize_snapshot_manager );
 		$post_type_obj->add_admin_menu_item();
 		$menu_slug = 'edit.php?post_type=' . Post_Type::SLUG;
-		$this->assertArrayHasKey( 'themes.php', $submenu );
-		$this->assertArrayHasKey( 0, $submenu['themes.php'] );
-		$this->assertTrue( in_array( $menu_slug, $submenu['themes.php'][0], true ) );
+
+		$customize_url = add_query_arg( 'return', urlencode( wp_unslash( $_SERVER['REQUEST_URI'] ) ), 'customize.php' );
+		$this->assertArrayHasKey( $customize_url, $submenu );
+		$this->assertEquals( $menu_slug, $submenu[ $customize_url ][1][2] );
+
+		// Check with user with customize access.
+		$submenu = $menu = array(); // WPCS: global override ok.
+		add_filter( 'user_has_cap', array( $this, 'hack_user_can' ), 10, 3 );
+		$editor_user_id = $this->factory()->user->create( array(
+			'role' => 'editor',
+		) );
+		wp_set_current_user( $editor_user_id );
+		$post_type_obj->add_admin_menu_item();
+		$this->assertArrayHasKey( $customize_url, $submenu );
+		$this->assertEquals( $menu_slug, $submenu[ $customize_url ][1][2] );
+		remove_filter( 'user_has_cap', array( $this, 'hack_user_can' ), 10 );
+	}
+
+	/**
+	 * Allow customize caps to all users for testing.
+	 *
+	 * @see test_menu_for_customize_cap.
+	 * @param array $allcaps all caps.
+	 * @param array $caps caps.
+	 * @param array $args arg for current_user_can.
+	 *
+	 * @return array
+	 */
+	public function hack_user_can( $allcaps, $caps, $args ) {
+		if ( 'customize' === $args[0] ) {
+			$allcaps = array_merge( $allcaps, array_fill_keys( $caps, true ) );
+		}
+
+		return $allcaps;
 	}
 
 	/**
@@ -279,6 +343,9 @@ class Test_Post_Type extends \WP_UnitTestCase {
 			'data' => $data,
 			'status' => 'draft',
 		) );
+		$post_type->set_customizer_state_query_vars( $post_id, array(
+			'url' => home_url( 'hello-beautiful-world/' ),
+		) );
 		$original_actions = array(
 			'inline hide-if-no-js' => '...',
 			'edit' => '<a></a>',
@@ -288,7 +355,9 @@ class Test_Post_Type extends \WP_UnitTestCase {
 		$filtered_actions = apply_filters( 'post_row_actions', $original_actions, get_post( $post_id ) );
 		$this->assertArrayNotHasKey( 'inline hide-if-no-js', $filtered_actions );
 		$this->assertArrayHasKey( 'customize', $filtered_actions );
+		$this->assertContains( 'hello-beautiful-world', $filtered_actions['customize'] );
 		$this->assertArrayHasKey( 'front-view', $filtered_actions );
+		$this->assertContains( 'hello-beautiful-world', $filtered_actions['front-view'] );
 
 		wp_set_current_user( $subscriber_user_id );
 		$filtered_actions = apply_filters( 'post_row_actions', $original_actions, get_post( $post_id ) );
@@ -389,7 +458,7 @@ class Test_Post_Type extends \WP_UnitTestCase {
 		ob_start();
 		$post_type->render_data_metabox( get_post( $post_id ) );
 		$metabox_content = ob_get_clean();
-		$this->assertContains( 'snapshot was made when a different theme was active', $metabox_content );
+		$this->assertContains( 'changeset was made when a different theme was active', $metabox_content );
 	}
 
 	/**
@@ -595,6 +664,50 @@ class Test_Post_Type extends \WP_UnitTestCase {
 	}
 
 	/**
+	 * Test that changes to options can be saved by publishing the changeset.
+	 *
+	 * @covers \CustomizeSnapshots\Post_Type::start_pretending_customize_save_ajax_action()
+	 * @covers \CustomizeSnapshots\Post_Type::finish_pretending_customize_save_ajax_action()
+	 */
+	function test_pretending_customize_save_ajax_action() {
+		if ( ! function_exists( 'wp_generate_uuid4' ) ) {
+			$this->markTestSkipped( 'Only relevant to WordPress 4.7 and greater.' );
+		}
+
+		$_REQUEST['action'] = 'editpost';
+		set_current_screen( 'edit' );
+		$this->assertTrue( is_admin() );
+		$post_type = $this->get_new_post_type_instance( $this->plugin->customize_snapshot_manager );
+		$post_type->init();
+
+		$old_sidebars_widgets = get_option( 'sidebars_widgets' );
+		$new_sidebars_widgets = $old_sidebars_widgets;
+		$new_sidebar_1 = array_reverse( $new_sidebars_widgets['sidebar-1'] );
+
+		$post_id = $this->factory()->post->create( array(
+			'post_type' => 'customize_changeset',
+			'post_status' => 'draft',
+			'post_name' => wp_generate_uuid4(),
+			'post_content' => wp_json_encode( array(
+				'sidebars_widgets[sidebar-1]' => array(
+					'value' => $new_sidebar_1,
+				),
+			) ),
+		) );
+
+		// Save the updated sidebar widgets into the options table.
+		wp_publish_post( $post_id );
+
+		// Make sure previewing filters are removed.
+		remove_all_filters( 'option_sidebars_widgets' );
+		remove_all_filters( 'default_option_sidebars_widgets' );
+
+		// Ensure that the value has actually been written to the DB.
+		$updated_sidebars_widgets = get_option( 'sidebars_widgets' );
+		$this->assertEquals( $new_sidebar_1, $updated_sidebars_widgets['sidebar-1'] );
+	}
+
+	/**
 	 * Test granting customize capability.
 	 *
 	 * @see Post_Type::filter_user_has_cap()
@@ -693,11 +806,11 @@ class Test_Post_Type extends \WP_UnitTestCase {
 		$ids = $this->factory()->post->create_many( 2 );
 		$posts = array_map( 'get_post', $ids );
 		$post_type_obj = $this->getMockBuilder( 'CustomizeSnapshots\Post_Type' )
-		                      ->setConstructorArgs( array( $this->plugin->customize_snapshot_manager ) )
-		                      ->setMethods( array( 'merge_snapshots' ) )
-		                      ->getMock();
+							  ->setConstructorArgs( array( $this->plugin->customize_snapshot_manager ) )
+							  ->setMethods( array( 'merge_snapshots' ) )
+							  ->getMock();
 		$post_type_obj->expects( $this->once() )
-		              ->method( 'merge_snapshots' )
+					  ->method( 'merge_snapshots' )
 			->with( $posts )
 			->will( $this->returnValue( null ) );
 		$post_type_obj->handle_snapshot_merge( '', 'merge_snapshot', $ids );
@@ -759,10 +872,10 @@ class Test_Post_Type extends \WP_UnitTestCase {
 			),
 		);
 		$post_3 = $post_type->save( array(
-				'uuid' => Customize_Snapshot_Manager::generate_uuid(),
-				'status' => 'draft',
-				'data' => $value_3,
-				'date_gmt' => $date3,
+			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
+			'status' => 'draft',
+			'data' => $value_3,
+			'date_gmt' => $date3,
 		) );
 		$post_3 = get_post( $post_3 );
 		$merge_result_post = get_post( $post_type->merge_snapshots( array( $post_1, $post_2, $post_3 ) ) );
