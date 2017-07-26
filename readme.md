@@ -2,11 +2,11 @@
 # Customize Snapshots
 
 ![Banner](wp-assets/banner-1544x500.png)
-Allow Customizer states to be drafted, and previewed with a private URL.
+Provide a UI for managing Customizer changesets; save changesets as named drafts, schedule for publishing; inspect in admin and preview on frontend.
 
 **Contributors:** [xwp](https://profiles.wordpress.org/xwp), [westonruter](https://profiles.wordpress.org/westonruter), [valendesigns](https://profiles.wordpress.org/valendesigns), [utkarshpatel](https://profiles.wordpress.org/utkarshpatel), [sayedwp](https://profiles.wordpress.org/sayedwp), [newscorpau](https://profiles.wordpress.org/newscorpau)  
 **Tags:** [customizer](https://wordpress.org/plugins/tags/customizer), [customize](https://wordpress.org/plugins/tags/customize), [changesets](https://wordpress.org/plugins/tags/changesets)  
-**Requires at least:** 4.5.3  
+**Requires at least:** 4.6  
 **Tested up to:** 4.8  
 **Stable tag:** 0.6.1  
 **License:** [GPLv2 or later](http://www.gnu.org/licenses/gpl-2.0.html)  
@@ -22,38 +22,6 @@ Snapshots are an implementation of key aspects of the [customizer transactions p
 This plugin works well with [Customizer Browser History](https://wordpress.org/plugins/customizer-browser-history/), which ensures that URL in the browser corresponds to the current panel/section/control that is expanded, as well as the current URL and device being previewed.
 
 Requires PHP 5.3+. **Development of this plugin is done [on GitHub](https://github.com/xwp/wp-customize-snapshots). Pull requests welcome. Please see [issues](https://github.com/xwp/wp-customize-snapshots) reported there before going to the [plugin forum](https://wordpress.org/support/plugin/customize-snapshots).**
-### Persistent Object Caching ###
-Plugins and themes may currently only use `is_customize_preview()` to
-decide whether or not they can store a value in the object cache. For
-example, see `Twenty_Eleven_Ephemera_Widget::widget()`. However, when
-viewing a snapshot on the frontend, the `is_customize_preview()` method
-will return `false`. Plugins and themes that store values in the object
-cache must either skip storing in the object cache when `CustomizeSnapshots\is_previewing_settings()`
-is `true`, or they should include the `CustomizeSnapshots\current_snapshot_uuid()` in the cache key.
-
-Example of bypassing object cache when previewing settings inside the Customizer preview or on the frontend via snapshots:
-
-```php
-if ( function_exists( 'CustomizeSnapshots\is_previewing_settings' ) ) {
-	$bypass_object_cache = CustomizeSnapshots\is_previewing_settings();
-} else {
-	$bypass_object_cache = is_customize_preview();
-}
-$contents = null;
-if ( ! $bypass_object_cache ) {
-	$contents = wp_cache_get( 'something', 'myplugin' );
-}
-if ( ! $contents ) {
-	ob_start();
-	myplugin_do_something();
-	$contents = ob_get_clean();
-	echo $contents;
-}
-if ( ! $bypass_object_cache ) {
-	wp_cache_set( 'something', $contents, 'myplugin', HOUR_IN_SECONDS );
-}
-```
-
 
 ## Screenshots ##
 
