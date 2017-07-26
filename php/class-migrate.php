@@ -94,7 +94,7 @@ class Migrate {
 			<p>
 			<?php
 			esc_html_e( 'Existing Snapshots need to be migrated to Changesets, which was added to core in WordPress 4.7.', 'customize-snapshots' );
-			printf( ' %s <a id="customize-snapshot-migration" data-nonce="' . esc_attr( wp_create_nonce( 'customize-snapshot-migration' ) ) . '" href="javascript:void(0)" data-migration-success="%s">%s</a> %s <span class="spinner customize-snapshot-spinner"></span>', esc_html__( 'Click', 'customize-snapshots' ), esc_html__( 'Customize snapshot migration complete!', 'customize-snapshots' ), esc_html__( 'here', 'customize-snapshots' ), esc_html__( 'to start migration.', 'customize-snapshots' ) );
+			printf( ' %s <a id="customize-snapshot-migration" data-nonce="' . esc_attr( wp_create_nonce( 'customize-snapshot-migration' ) ) . '" href="javascript:void(0)" data-migration-success="%s">%s</a> %s <span class="spinner customize-snapshot-spinner"></span>', esc_html__( 'Click', 'customize-snapshots' ), esc_html__( 'Migration of snapshots to changesets complete!', 'customize-snapshots' ), esc_html__( 'here', 'customize-snapshots' ), esc_html__( 'to start migration.', 'customize-snapshots' ) );
 			?>
 			</p>
 		</div>
@@ -133,7 +133,7 @@ class Migrate {
 
 		if ( $is_doing_cli ) {
 			/* translators: %s: post count.*/
-			\WP_CLI::log( sprintf( __( 'Migrating %s Snapshots into Changeset', 'customize-snapshots' ), count( $query->posts ) ) );
+			\WP_CLI::log( sprintf( __( 'Migrating %s Snapshots into Changesets', 'customize-snapshots' ), count( $query->posts ) ) );
 		}
 
 		if ( ! empty( $query->posts ) ) {
