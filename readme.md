@@ -31,47 +31,47 @@ Requires PHP 5.3+. **Development of this plugin is done [on GitHub](https://gith
 
 ### The “Save & Publish” button becomes a combo-button that allows you to select the status for the changeset when saving. In addition to publishing, a changeset can be saved as a permanent draft (as opposed to just an auto-draft), pending review, scheduled for future publishing. A revision is made each time you press the button.
 
-![The “Save & Publish” button becomes a combo-button that allows you to select the status for the changeset when saving. In addition to publishing, a changeset can be saved as a permanent draft (as opposed to just an auto-draft), pending review, scheduled for future publishing. A revision is made each time you press the button.](wp-assets/screenshot-1.png)
+![The “Save & Publish” button becomes a combo-button that allows you to select the status for the changeset when saving. In addition to publishing, a changeset can be saved as a permanent draft (as opposed to just an auto-draft), pending review, scheduled for future publishing. A revision is made each time you press the button.](wp-assets/screenshot-1.png)
 
 ### For non-administrator users (who lack the new `customize_publish` capability) the “Publish” button is replaced with a “Submit” button. This takes the changeset and puts it into a pending status.
 
-![For non-administrator users (who lack the new `customize_publish` capability) the “Publish” button is replaced with a “Submit” button. This takes the changeset and puts it into a pending status.](wp-assets/screenshot-2.png)
+![For non-administrator users (who lack the new `customize_publish` capability) the “Publish” button is replaced with a “Submit” button. This takes the changeset and puts it into a pending status.](wp-assets/screenshot-2.png)
 
 ### When selecting to schedule a changeset, the future publish date can be supplied. Changesets can be supplied a name which serves like a commit message.
 
-![When selecting to schedule a changeset, the future publish date can be supplied. Changesets can be supplied a name which serves like a commit message.](wp-assets/screenshot-3.png)
+![When selecting to schedule a changeset, the future publish date can be supplied. Changesets can be supplied a name which serves like a commit message.](wp-assets/screenshot-3.png)
 
 ### When selecting Publish, a confirmation appears. Additionally, a link is shown which allows you to browse the frontend with the changeset applied. This preview URL can be shared with authenticated and non-authenticated users alike.
 
-![When selecting Publish, a confirmation appears. Additionally, a link is shown which allows you to browse the frontend with the changeset applied. This preview URL can be shared with authenticated and non-authenticated users alike.](wp-assets/screenshot-4.png)
+![When selecting Publish, a confirmation appears. Additionally, a link is shown which allows you to browse the frontend with the changeset applied. This preview URL can be shared with authenticated and non-authenticated users alike.](wp-assets/screenshot-4.png)
 
 ### The admin bar shows information about the current changeset when previewing the changeset on the frontend.
 
-![The admin bar shows information about the current changeset when previewing the changeset on the frontend.](wp-assets/screenshot-5.png)
+![The admin bar shows information about the current changeset when previewing the changeset on the frontend.](wp-assets/screenshot-5.png)
 
 ### The Customize link is promoted to the top in the admin menu; a link to list all changesets is also added.
 
-![The Customize link is promoted to the top in the admin menu; a link to list all changesets is also added.](wp-assets/screenshot-6.png)
+![The Customize link is promoted to the top in the admin menu; a link to list all changesets is also added.](wp-assets/screenshot-6.png)
 
 ### The Customize link in the admin bar likewise gets a submenu item to link to the changesets post list.
 
-![The Customize link in the admin bar likewise gets a submenu item to link to the changesets post list.](wp-assets/screenshot-7.png)
+![The Customize link in the admin bar likewise gets a submenu item to link to the changesets post list.](wp-assets/screenshot-7.png)
 
 ### The Changesets admin screen lists all of the changeset posts that have been saved or published. Row actions provide shortcuts to preview changeset on frontend, open changeset in Customizer for editing, or inspect the changeset's contents on the edit post screen.
 
-![The Changesets admin screen lists all of the changeset posts that have been saved or published. Row actions provide shortcuts to preview changeset on frontend, open changeset in Customizer for editing, or inspect the changeset's contents on the edit post screen.](wp-assets/screenshot-8.png)
+![The Changesets admin screen lists all of the changeset posts that have been saved or published. Row actions provide shortcuts to preview changeset on frontend, open changeset in Customizer for editing, or inspect the changeset's contents on the edit post screen.](wp-assets/screenshot-8.png)
 
 ### When excerpts are shown in the post list table, the list of settings that are contained in each changeset are displayed.
 
-![When excerpts are shown in the post list table, the list of settings that are contained in each changeset are displayed.](wp-assets/screenshot-9.png)
+![When excerpts are shown in the post list table, the list of settings that are contained in each changeset are displayed.](wp-assets/screenshot-9.png)
 
 ### Opening a changeset's edit post screen shows which settings are contained in the changeset and what their values are. Settings may be removed from a changeset here. A changeset can also be scheduled or published from here just as one would do for any post, and the settings will be saved once the changeset is published. Buttons are also present to preview the changeset on the frontend and to open the changeset in the Customizer for further revisions.
 
-![Opening a changeset's edit post screen shows which settings are contained in the changeset and what their values are. Settings may be removed from a changeset here. A changeset can also be scheduled or published from here just as one would do for any post, and the settings will be saved once the changeset is published. Buttons are also present to preview the changeset on the frontend and to open the changeset in the Customizer for further revisions.](wp-assets/screenshot-10.png)
+![Opening a changeset's edit post screen shows which settings are contained in the changeset and what their values are. Settings may be removed from a changeset here. A changeset can also be scheduled or published from here just as one would do for any post, and the settings will be saved once the changeset is published. Buttons are also present to preview the changeset on the frontend and to open the changeset in the Customizer for further revisions.](wp-assets/screenshot-10.png)
 
 ### Each time a user saves changes to an existing changeset, a new revision will be stored (if revisions are enabled in WordPress). Users' contributions to a given changeset can be inspected here and even reverted prior to publishing.
 
-![Each time a user saves changes to an existing changeset, a new revision will be stored (if revisions are enabled in WordPress). Users' contributions to a given changeset can be inspected here and even reverted prior to publishing.](wp-assets/screenshot-11.png)
+![Each time a user saves changes to an existing changeset, a new revision will be stored (if revisions are enabled in WordPress). Users' contributions to a given changeset can be inspected here and even reverted prior to publishing.](wp-assets/screenshot-11.png)
 
 ### Multiple changesets can be merged into a single changeset, allowing multiple users' work to be combined for previewing together and publishing all at once.
 
