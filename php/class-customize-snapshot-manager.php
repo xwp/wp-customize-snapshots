@@ -474,6 +474,7 @@ class Customize_Snapshot_Manager {
 	public function customize_menu( $wp_admin_bar ) {
 		add_action( 'wp_before_admin_bar_render', 'wp_customize_support_script' );
 		$this->replace_customize_link( $wp_admin_bar );
+		$this->add_changesets_admin_bar_link( $wp_admin_bar );
 		$this->add_resume_snapshot_link( $wp_admin_bar );
 		$this->add_post_edit_screen_link( $wp_admin_bar );
 		$this->add_snapshot_exit_link( $wp_admin_bar );
@@ -551,6 +552,26 @@ class Customize_Snapshot_Manager {
 
 		$customize_node->meta['class'] .= ' ab-customize-snapshots-item';
 		$wp_admin_bar->add_menu( (array) $customize_node );
+	}
+
+	/**
+	 * Adds a link to resume snapshot previewing.
+	 *
+	 * @param \WP_Admin_Bar $wp_admin_bar WP_Admin_Bar instance.
+	 */
+	public function add_changesets_admin_bar_link( $wp_admin_bar ) {
+		if ( ! $wp_admin_bar->get_node( 'customize' ) ) {
+			return;
+		}
+		$wp_admin_bar->add_node( array(
+			'id' => 'customize-changesets',
+			'parent' => 'customize',
+			'title' => __( 'Changesets', 'customize-snapshots' ),
+			'href' => admin_url( 'edit.php?post_type=customize_changeset' ),
+			'meta' => array(
+				'class' => 'ab-item',
+			),
+		) );
 	}
 
 	/**
