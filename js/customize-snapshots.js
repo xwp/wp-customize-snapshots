@@ -1239,8 +1239,7 @@
 		 * @param {string} queryString Query string.
 		 * @returns {object} Parsed query string.
 		 */
-		parseQueryString: api.utils.parseQueryString
-		},
+		parseQueryString: api.utils.parseQueryString,
 
 		/**
 		 * Handles snapshot conflict events.
