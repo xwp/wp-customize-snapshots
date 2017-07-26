@@ -7,15 +7,19 @@ License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 Tags: customizer, customize, changesets
 
-Allow Customizer states to be drafted, and previewed with a private URL.
+Provide a UI for managing Customizer changesets; save changesets as named drafts, schedule for publishing; inspect in admin and preview on frontend.
 
 == Description ==
 
-Customize Snapshots save the state of a Customizer session so it can be shared or even published at a future date. A snapshot can be shared with a private URL to both authenticated and non-authenticated users. This means anyone can preview a snapshot's settings on the front-end without loading the Customizer, and authenticated users can load the snapshot into the Customizer and publish or amend the settings at any time.
+Customize Snapshots is the feature plugin which prototyped [Customizer changesets](https://make.wordpress.org/core/2016/10/12/customize-changesets-technical-design-decisions/) which was [merged](https://make.wordpress.org/core/2016/10/12/customize-changesets-formerly-transactions-merge-proposal/) as part of WordPress 4.7.
+The name “snapshots” was chosen because the Customizer feature revolved around saving the state (taking a snapshot) of the Customizer at a given time so that the changes could be saved as a draft and scheduled for future publishing.
+The technical infrastructure for changesets was merged in WordPress 4.7 but the user interface still remains largely in the Customize Snapshots plugin, while we continue to iterate and merge additional features from the feature plugin into core.
 
-Snapshots are an implementation of key aspects of the [customizer transactions proposal](https://make.wordpress.org/core/2015/01/26/customizer-transactions-proposal/).
+For a rundown of all the features, see the screenshots below as well as the 0.6 release video:
 
-This plugin works well with [Customizer Browser History](https://wordpress.org/plugins/customizer-browser-history/), which ensures that URL in the browser corresponds to the current panel/section/control that is expanded, as well as the current URL and device being previewed.
+[youtube https://www.youtube.com/watch?v=GH0xo7bTiSs]
+
+This plugin works particularly well with [Customizer Browser History](https://wordpress.org/plugins/customizer-browser-history/), which ensures that URL in the browser corresponds to the current panel/section/control that is expanded, as well as the current URL and device being previewed.
 
 Requires PHP 5.3+. **Development of this plugin is done [on GitHub](https://github.com/xwp/wp-customize-snapshots). Pull requests welcome. Please see [issues](https://github.com/xwp/wp-customize-snapshots) reported there before going to the [plugin forum](https://wordpress.org/support/plugin/customize-snapshots).**
 
@@ -24,7 +28,7 @@ Requires PHP 5.3+. **Development of this plugin is done [on GitHub](https://gith
 1. The “Save & Publish” button becomes a combo-button that allows you to select the status for the changeset when saving. In addition to publishing, a changeset can be saved as a permanent draft (as opposed to just an auto-draft), pending review, scheduled for future publishing. A revision is made each time you press the button.
 2. For non-administrator users (who lack the new `customize_publish` capability) the “Publish” button is replaced with a “Submit” button. This takes the changeset and puts it into a pending status.
 3. When selecting to schedule a changeset, the future publish date can be supplied. Changesets can be supplied a name which serves like a commit message.
-4. When selecting Publish, a confirmation appears. Additionally, a link is shown which allows you to browse the frontend with the changeset applied
+4. When selecting Publish, a confirmation appears. Additionally, a link is shown which allows you to browse the frontend with the changeset applied. This preview URL can be shared with authenticated and non-authenticated users alike.
 5. The admin bar shows information about the current changeset when previewing the changeset on the frontend.
 6. The Customize link is promoted to the top in the admin menu; a link to list all changesets is also added.
 7. The Customize link in the admin bar likewise gets a submenu item to link to the changesets post list.
@@ -32,7 +36,7 @@ Requires PHP 5.3+. **Development of this plugin is done [on GitHub](https://gith
 9. When excerpts are shown in the post list table, the list of settings that are contained in each changeset are displayed.
 10. Opening a changeset's edit post screen shows which settings are contained in the changeset and what their values are. Settings may be removed from a changeset here. A changeset can also be scheduled or published from here just as one would do for any post, and the settings will be saved once the changeset is published. Buttons are also present to preview the changeset on the frontend and to open the changeset in the Customizer for further revisions.
 11. Each time a user saves changes to an existing changeset, a new revision will be stored (if revisions are enabled in WordPress). Users' contributions to a given changeset can be inspected here and even reverted prior to publishing.
-12. Multiple changesets can be merged into a single changeset, allowing multiple users' work to be combined for previewing together and publishing all at once.  
+12. Multiple changesets can be merged into a single changeset, allowing multiple users' work to be combined for previewing together and publishing all at once.
 
 == Changelog ==
 
