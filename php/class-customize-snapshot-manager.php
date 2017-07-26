@@ -300,14 +300,14 @@ class Customize_Snapshot_Manager {
 				'submit' => __( 'Submit', 'customize-snapshots' ),
 				'submitted' => __( 'Submitted', 'customize-snapshots' ),
 				'permsMsg' => array(
-					'save' => __( 'You do not have permission to publish changes, but you can create a snapshot by clicking the "Save" button.', 'customize-snapshots' ),
-					'update' => __( 'You do not have permission to publish changes, but you can modify this snapshot by clicking the "Update" button.', 'customize-snapshots' ),
+					'save' => __( 'You do not have permission to publish changes, but you can create a changeset by clicking the "Save" button.', 'customize-snapshots' ),
+					'update' => __( 'You do not have permission to publish changes, but you can modify this changeset by clicking the "Update" button.', 'customize-snapshots' ),
 				),
 				'aysMsg' => __( 'Changes that you made may not be saved.', 'customize-snapshots' ),
-				'errorMsg' => __( 'The snapshot could not be saved.', 'customize-snapshots' ),
+				'errorMsg' => __( 'The changeset could not be saved.', 'customize-snapshots' ),
 				'errorTitle' => __( 'Error', 'customize-snapshots' ),
-				'collapseSnapshotScheduling' => __( 'Collapse snapshot scheduling', 'customize-snapshots' ),
-				'expandSnapshotScheduling' => __( 'Expand snapshot scheduling', 'customize-snapshots' ),
+				'collapseSnapshotScheduling' => __( 'Collapse changeset scheduling', 'customize-snapshots' ),
+				'expandSnapshotScheduling' => __( 'Expand changeset scheduling', 'customize-snapshots' ),
 			),
 		) );
 
@@ -607,7 +607,7 @@ class Customize_Snapshot_Manager {
 	public function add_resume_snapshot_link( $wp_admin_bar ) {
 		$wp_admin_bar->add_menu( array(
 			'id' => 'resume-customize-snapshot',
-			'title' => __( 'Resume Snapshot Preview', 'customize-snapshots' ),
+			'title' => __( 'Resume Changeset Preview', 'customize-snapshots' ),
 			'href' => '#',
 			'meta' => array(
 				'class' => 'ab-item ab-customize-snapshots-item',
@@ -616,7 +616,7 @@ class Customize_Snapshot_Manager {
 	}
 
 	/**
-	 * Adds a "Snapshot in Dashboard" link to the Toolbar when in Snapshot mode.
+	 * Adds a "Inspect Changeset" link to the Toolbar when previewing a changeset.
 	 *
 	 * @param \WP_Admin_Bar $wp_admin_bar WP_Admin_Bar instance.
 	 */
@@ -630,7 +630,7 @@ class Customize_Snapshot_Manager {
 		}
 		$wp_admin_bar->add_menu( array(
 			'id' => 'inspect-customize-snapshot',
-			'title' => __( 'Inspect Snapshot', 'customize-snapshots' ),
+			'title' => __( 'Inspect Changeset', 'customize-snapshots' ),
 			'href' => $this->snapshot->get_edit_link( $post ),
 			'meta' => array(
 				'class' => 'ab-item ab-customize-snapshots-item',
@@ -639,7 +639,7 @@ class Customize_Snapshot_Manager {
 	}
 
 	/**
-	 * Adds an "Exit Snapshot" link to the Toolbar when in Snapshot mode.
+	 * Adds an "Exit Changeset Preview" link to the Toolbar when previewing a changeset.
 	 *
 	 * @param \WP_Admin_Bar $wp_admin_bar WP_Admin_Bar instance.
 	 */
@@ -649,7 +649,7 @@ class Customize_Snapshot_Manager {
 		}
 		$wp_admin_bar->add_menu( array(
 			'id' => 'exit-customize-snapshot',
-			'title' => __( 'Exit Snapshot Preview', 'customize-snapshots' ),
+			'title' => __( 'Exit Changeset Preview', 'customize-snapshots' ),
 			'href' => remove_query_arg( $this->get_front_uuid_param() ),
 			'meta' => array(
 				'class' => 'ab-item ab-customize-snapshots-item',
@@ -750,7 +750,7 @@ class Customize_Snapshot_Manager {
 			<# _.defaults( data, <?php echo wp_json_encode( $data ); ?> ); #>
 
 			<div id="snapshot-status-button-wrapper">
-				<label class="screen-reader-text" for="snapshot-status-button"><?php esc_attr_e( 'Snapshot Status', 'customize-snapshots' ); ?></label>
+				<label class="screen-reader-text" for="snapshot-status-button"><?php esc_attr_e( 'Changeset Status', 'customize-snapshots' ); ?></label>
 				<select id="snapshot-status-button">
 					<# _.each( data.choices, function( buttonText, status ) { #>
 							<option value="{{ status }}" data-alt-text="{{ buttonText.alt_text }}"
@@ -782,9 +782,9 @@ class Customize_Snapshot_Manager {
 			<div id="customize-snapshot">
 				<div class="snapshot-schedule-title">
 					<h3>
-						<?php esc_html_e( 'Edit Snapshot', 'customize-snapshots' ); ?>
+						<?php esc_html_e( 'Edit Changeset', 'customize-snapshots' ); ?>
 					</h3>
-					<?php $edit_snapshot_text = __( 'Edit Snapshot', 'customize-snapshots' ); ?>
+					<?php $edit_snapshot_text = __( 'Edit Changeset', 'customize-snapshots' ); ?>
 					<a href="{{ data.editLink }}" class="dashicons dashicons-external snapshot-edit-link" target="_blank" title="<?php echo esc_attr( $edit_snapshot_text ); ?>" aria-expanded="false"><span class="screen-reader-text"><?php echo esc_html( $edit_snapshot_text ); ?></span></a>
 				</div>
 
@@ -879,19 +879,19 @@ class Customize_Snapshot_Manager {
 			<# } else if ( data.remainingTime < 60 * 60 ) { #>
 			<?php
 			/* translators: %s is a placeholder for the Underscore template var */
-			echo sprintf( esc_html__( 'This snapshot is scheduled for publishing in about %s minutes.', 'customize-snapshots' ), '{{ Math.ceil( data.remainingTime / 60 ) }}' );
+			echo sprintf( esc_html__( 'This changeset is scheduled for publishing in about %s minutes.', 'customize-snapshots' ), '{{ Math.ceil( data.remainingTime / 60 ) }}' );
 			?>
 
 			<# } else if ( data.remainingTime < 24 * 60 * 60 ) { #>
 			<?php
 			/* translators: %s is a placeholder for the Underscore template var */
-			echo sprintf( esc_html__( 'This snapshot is scheduled for publishing in about %s hours.', 'customize-snapshots' ), '{{ Math.round( data.remainingTime / 60 / 60 * 10 ) / 10 }}' );
+			echo sprintf( esc_html__( 'This changeset is scheduled for publishing in about %s hours.', 'customize-snapshots' ), '{{ Math.round( data.remainingTime / 60 / 60 * 10 ) / 10 }}' );
 			?>
 
 			<# } else { #>
 				<?php
 				/* translators: %s is a placeholder for the Underscore template var */
-				echo sprintf( esc_html__( 'This snapshot is scheduled for publishing in about %s days.', 'customize-snapshots' ), '{{ Math.round( data.remainingTime / 60 / 60 / 24 * 10 ) / 10 }}' );
+				echo sprintf( esc_html__( 'This changeset is scheduled for publishing in about %s days.', 'customize-snapshots' ), '{{ Math.round( data.remainingTime / 60 / 60 / 24 * 10 ) / 10 }}' );
 				?>
 
 				<# } #>
