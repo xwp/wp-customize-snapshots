@@ -283,13 +283,13 @@ class Post_Type {
 	public function filter_snapshot_excerpt( $excerpt, $post = null ) {
 		$post = get_post( $post );
 		if ( static::SLUG === $post->post_type ) {
-			$excerpt = '<ol>';
+			$settings = array();
 			foreach ( $this->get_post_content( $post ) as $setting_id => $setting_params ) {
 				if ( ! isset( $setting_params['dirty'] ) || true === $setting_params['dirty'] ) {
-					$excerpt .= sprintf( '<li><code>%s</code></li>', esc_attr( $setting_id ) );
+					$settings[] = $setting_id;
 				}
 			}
-			$excerpt .= '</ol>';
+			$excerpt = join( ', ', array_map( 'esc_html', $settings ) );
 		}
 		return $excerpt;
 	}
