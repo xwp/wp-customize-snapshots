@@ -97,6 +97,7 @@ class Customize_Snapshot_Manager {
 		add_action( 'init', array( $this->post_type, 'init' ) );
 		add_action( 'customize_controls_enqueue_scripts', array( $this, 'enqueue_controls_scripts' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
+		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_frontend_scripts' ) );
 
 		add_action( 'customize_controls_init', array( $this, 'add_snapshot_uuid_to_return_url' ) );
 		add_action( 'customize_controls_print_footer_scripts', array( $this, 'render_templates' ) );
@@ -340,6 +341,30 @@ class Customize_Snapshot_Manager {
 				'after'
 			);
 		}
+	}
+
+	/**
+	 * Enqueue Customizer frontend scripts.
+	 */
+	public function enqueue_frontend_scripts() {
+		if ( ! current_user_can( 'customize' ) ) {
+			return;
+		}
+		$handle = 'customize-snapshots-frontend';
+		wp_enqueue_script( $handle );
+
+		$exports = array(
+			'uuid' => $this->snapshot ? $this->snapshot->uuid() : null,
+			'home_url' => wp_parse_url( home_url( '/' ) ),
+			'l10n' => array(
+				'restoreSessionPrompt' => __( 'It seems you may have inadvertently navigated away from previewing a customized state. Would you like to restore the changeset context?', 'customize-snapshots' ),
+			),
+		);
+		wp_add_inline_script(
+			$handle,
+			sprintf( 'CustomizeSnapshotsFrontend.init( %s )', wp_json_encode( $exports ) ),
+			'after'
+		);
 	}
 
 	/**
