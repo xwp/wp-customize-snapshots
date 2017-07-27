@@ -543,6 +543,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	 * Test misc admin bar extensions.
 	 *
 	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::add_post_edit_screen_link()
+	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::add_changesets_admin_bar_link()
 	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::add_snapshot_exit_link()
 	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::add_resume_snapshot_link()
 	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::remove_all_non_snapshot_admin_bar_links()
@@ -550,6 +551,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	public function test_add_post_edit_and_exit_links() {
 		global $wp_admin_bar;
 		set_current_screen( 'front' );
+		wp_set_current_user( $this->user_id );
 		require_once ABSPATH . WPINC . '/class-wp-admin-bar.php';
 
 		$this->manager->post_type->save( array(
@@ -573,6 +575,9 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		$this->assertEmpty( $wp_admin_bar->get_node( 'exit-customize-snapshot' ) );
 		$this->assertNotEmpty( $wp_admin_bar->get_node( 'wporg' ) );
 		$this->assertNotEmpty( $wp_admin_bar->get_node( 'resume-customize-snapshot' ) );
+		$changesets_node = $wp_admin_bar->get_node( 'customize-changesets' );
+		$this->assertNotEmpty( $changesets_node );
+		$this->assertEquals( 'customize', $changesets_node->parent );
 
 		$this->go_to( home_url( '?' . $this->front_param . '=' . self::UUID ) );
 		remove_all_actions( 'admin_bar_menu' );

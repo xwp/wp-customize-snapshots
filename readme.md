@@ -2,90 +2,93 @@
 # Customize Snapshots
 
 ![Banner](wp-assets/banner-1544x500.png)
-Allow Customizer states to be drafted, and previewed with a private URL.
+Provide a UI for managing Customizer changesets; save changesets as named drafts, schedule for publishing; inspect in admin and preview on frontend.
 
 **Contributors:** [xwp](https://profiles.wordpress.org/xwp), [westonruter](https://profiles.wordpress.org/westonruter), [valendesigns](https://profiles.wordpress.org/valendesigns), [utkarshpatel](https://profiles.wordpress.org/utkarshpatel), [sayedwp](https://profiles.wordpress.org/sayedwp), [newscorpau](https://profiles.wordpress.org/newscorpau)  
 **Tags:** [customizer](https://wordpress.org/plugins/tags/customizer), [customize](https://wordpress.org/plugins/tags/customize), [changesets](https://wordpress.org/plugins/tags/changesets)  
-**Requires at least:** 4.5.3  
-**Tested up to:** 4.8  
-**Stable tag:** 0.6.1  
+**Requires at least:** 4.6  
+**Tested up to:** 4.8.1  
+**Stable tag:** 0.6.2  
 **License:** [GPLv2 or later](http://www.gnu.org/licenses/gpl-2.0.html)  
 
 [![Build Status](https://travis-ci.org/xwp/wp-customize-snapshots.svg?branch=master)](https://travis-ci.org/xwp/wp-customize-snapshots) [![Coverage Status](https://coveralls.io/repos/xwp/wp-customize-snapshots/badge.svg?branch=master)](https://coveralls.io/github/xwp/wp-customize-snapshots) [![Built with Grunt](https://cdn.gruntjs.com/builtwith.svg)](http://gruntjs.com) [![devDependency Status](https://david-dm.org/xwp/wp-customize-snapshots/dev-status.svg)](https://david-dm.org/xwp/wp-customize-snapshots#info=devDependencies) 
 
 ## Description ##
 
-Customize Snapshots save the state of a Customizer session so it can be shared or even published at a future date. A snapshot can be shared with a private URL to both authenticated and non-authenticated users. This means anyone can preview a snapshot's settings on the front-end without loading the Customizer, and authenticated users can load the snapshot into the Customizer and publish or amend the settings at any time.
+Customize Snapshots is the feature plugin which prototyped [Customizer changesets](https://make.wordpress.org/core/2016/10/12/customize-changesets-technical-design-decisions/); this feature was [merged](https://make.wordpress.org/core/2016/10/12/customize-changesets-formerly-transactions-merge-proposal/) as part of WordPress 4.7. The term “snapshots” was chosen because the Customizer feature revolved around saving the state (taking a snapshot) of the Customizer at a given time so that the changes could be saved as a draft and scheduled for future publishing.
 
-Snapshots are an implementation of key aspects of the [customizer transactions proposal](https://make.wordpress.org/core/2015/01/26/customizer-transactions-proposal/).
+While the plugin's technical infrastructure for changesets was merged in WordPress 4.7, the user interface still remains largely in the Customize Snapshots plugin, in which we will continue to iterate and prototype features to merge into core.
 
-This plugin works well with [Customizer Browser History](https://wordpress.org/plugins/customizer-browser-history/), which ensures that URL in the browser corresponds to the current panel/section/control that is expanded, as well as the current URL and device being previewed.
+For a rundown of all the features, see the screenshots below as well as the 0.6 release video:
+
+[![Play video on YouTube](https://i1.ytimg.com/vi/GH0xo7bTiSs/hqdefault.jpg)](https://www.youtube.com/watch?v=GH0xo7bTiSs)
+
+This plugin works particularly well with [Customizer Browser History](https://wordpress.org/plugins/customizer-browser-history/), which ensures that URL in the browser corresponds to the current panel/section/control that is expanded, as well as the current URL and device being previewed.
 
 Requires PHP 5.3+. **Development of this plugin is done [on GitHub](https://github.com/xwp/wp-customize-snapshots). Pull requests welcome. Please see [issues](https://github.com/xwp/wp-customize-snapshots) reported there before going to the [plugin forum](https://wordpress.org/support/plugin/customize-snapshots).**
-### Persistent Object Caching ###
-Plugins and themes may currently only use `is_customize_preview()` to
-decide whether or not they can store a value in the object cache. For
-example, see `Twenty_Eleven_Ephemera_Widget::widget()`. However, when
-viewing a snapshot on the frontend, the `is_customize_preview()` method
-will return `false`. Plugins and themes that store values in the object
-cache must either skip storing in the object cache when `CustomizeSnapshots\is_previewing_settings()`
-is `true`, or they should include the `CustomizeSnapshots\current_snapshot_uuid()` in the cache key.
-
-Example of bypassing object cache when previewing settings inside the Customizer preview or on the frontend via snapshots:
-
-```php
-if ( function_exists( 'CustomizeSnapshots\is_previewing_settings' ) ) {
-	$bypass_object_cache = CustomizeSnapshots\is_previewing_settings();
-} else {
-	$bypass_object_cache = is_customize_preview();
-}
-$contents = null;
-if ( ! $bypass_object_cache ) {
-	$contents = wp_cache_get( 'something', 'myplugin' );
-}
-if ( ! $contents ) {
-	ob_start();
-	myplugin_do_something();
-	$contents = ob_get_clean();
-	echo $contents;
-}
-if ( ! $bypass_object_cache ) {
-	wp_cache_set( 'something', $contents, 'myplugin', HOUR_IN_SECONDS );
-}
-```
-
 
 ## Screenshots ##
 
-### The “Save & Publish” button is broken up into separate “Save” and “Publish” buttons. The “Save” button creates a snapshot and turns into “Update” to save a new snapshot.
+### The “Save & Publish” button becomes a combo-button that allows you to select the status for the changeset when saving. In addition to publishing, a changeset can be saved as a permanent draft (as opposed to just an auto-draft), pending review, scheduled for future publishing. A revision is made each time you press the button.
 
-![The “Save & Publish” button is broken up into separate “Save” and “Publish” buttons. The “Save” button creates a snapshot and turns into “Update” to save a new snapshot.](wp-assets/screenshot-1.png)
+![The “Save & Publish” button becomes a combo-button that allows you to select the status for the changeset when saving. In addition to publishing, a changeset can be saved as a permanent draft (as opposed to just an auto-draft), pending review, scheduled for future publishing. A revision is made each time you press the button.](wp-assets/screenshot-1.png)
 
-### For non-administrator users (who lack the new `customize_publish` capability) the “Publish” button is replaced with a “Submit” button. This takes the snapshot and puts it into a pending status.
+### For non-administrator users (who lack the new `customize_publish` capability) the “Publish” button is replaced with a “Submit” button. This takes the changeset and puts it into a pending status.
 
-![For non-administrator users (who lack the new `customize_publish` capability) the “Publish” button is replaced with a “Submit” button. This takes the snapshot and puts it into a pending status.](wp-assets/screenshot-2.png)
+![For non-administrator users (who lack the new `customize_publish` capability) the “Publish” button is replaced with a “Submit” button. This takes the changeset and puts it into a pending status.](wp-assets/screenshot-2.png)
 
-### Saving snapshot causes the snapshot UUID to appear in the URL, allowing it to be bookmarked to easily come back to later. Upon publishing, the UUID will be removed from the URL so a new snapshot can be started made.
+### When selecting to schedule a changeset, the future publish date can be supplied. Changesets can be supplied a name which serves like a commit message.
 
-![Saving snapshot causes the snapshot UUID to appear in the URL, allowing it to be bookmarked to easily come back to later. Upon publishing, the UUID will be removed from the URL so a new snapshot can be started made.](wp-assets/screenshot-3.png)
+![When selecting to schedule a changeset, the future publish date can be supplied. Changesets can be supplied a name which serves like a commit message.](wp-assets/screenshot-3.png)
 
-### The Snapshots admin page lists out all of the snapshots in the system. When the excerpt view is turned on, a list of the settings modified in the snapshot can be seen.
+### When selecting Publish, a confirmation appears. Additionally, a link is shown which allows you to browse the frontend with the changeset applied. This preview URL can be shared with authenticated and non-authenticated users alike.
 
-![The Snapshots admin page lists out all of the snapshots in the system. When the excerpt view is turned on, a list of the settings modified in the snapshot can be seen.](wp-assets/screenshot-4.png)
+![When selecting Publish, a confirmation appears. Additionally, a link is shown which allows you to browse the frontend with the changeset applied. This preview URL can be shared with authenticated and non-authenticated users alike.](wp-assets/screenshot-4.png)
 
-### Viewing a snapshot post in the admin shows all of the modified settings contained within it. A link is provided to open the snapshot in the Customizer to continue making changes.
+### The admin bar shows information about the current changeset when previewing the changeset on the frontend.
 
-![Viewing a snapshot post in the admin shows all of the modified settings contained within it. A link is provided to open the snapshot in the Customizer to continue making changes.](wp-assets/screenshot-5.png)
+![The admin bar shows information about the current changeset when previewing the changeset on the frontend.](wp-assets/screenshot-5.png)
 
-### Published snapshots are shown in the admin screen but lack the ability to open in the Customizer, as they are intended to be frozen revisions for when the Customizer was saved.
+### The Customize link is promoted to the top in the admin menu; a link to list all changesets is also added.
 
-![Published snapshots are shown in the admin screen but lack the ability to open in the Customizer, as they are intended to be frozen revisions for when the Customizer was saved.](wp-assets/screenshot-6.png)
+![The Customize link is promoted to the top in the admin menu; a link to list all changesets is also added.](wp-assets/screenshot-6.png)
 
-### Changes to snapshots are captured in revisions.
+### The Customize link in the admin bar likewise gets a submenu item to link to the changesets post list.
 
-![Changes to snapshots are captured in revisions.](wp-assets/screenshot-7.png)
+![The Customize link in the admin bar likewise gets a submenu item to link to the changesets post list.](wp-assets/screenshot-7.png)
+
+### The Changesets admin screen lists all of the changeset posts that have been saved or published. Row actions provide shortcuts to preview changeset on frontend, open changeset in Customizer for editing, or inspect the changeset's contents on the edit post screen.
+
+![The Changesets admin screen lists all of the changeset posts that have been saved or published. Row actions provide shortcuts to preview changeset on frontend, open changeset in Customizer for editing, or inspect the changeset's contents on the edit post screen.](wp-assets/screenshot-8.png)
+
+### When excerpts are shown in the post list table, the list of settings that are contained in each changeset are displayed.
+
+![When excerpts are shown in the post list table, the list of settings that are contained in each changeset are displayed.](wp-assets/screenshot-9.png)
+
+### Opening a changeset's edit post screen shows which settings are contained in the changeset and what their values are. Settings may be removed from a changeset here. A changeset can also be scheduled or published from here just as one would do for any post, and the settings will be saved once the changeset is published. Buttons are also present to preview the changeset on the frontend and to open the changeset in the Customizer for further revisions.
+
+![Opening a changeset's edit post screen shows which settings are contained in the changeset and what their values are. Settings may be removed from a changeset here. A changeset can also be scheduled or published from here just as one would do for any post, and the settings will be saved once the changeset is published. Buttons are also present to preview the changeset on the frontend and to open the changeset in the Customizer for further revisions.](wp-assets/screenshot-10.png)
+
+### Each time a user saves changes to an existing changeset, a new revision will be stored (if revisions are enabled in WordPress). Users' contributions to a given changeset can be inspected here and even reverted prior to publishing.
+
+![Each time a user saves changes to an existing changeset, a new revision will be stored (if revisions are enabled in WordPress). Users' contributions to a given changeset can be inspected here and even reverted prior to publishing.](wp-assets/screenshot-11.png)
+
+### Multiple changesets can be merged into a single changeset, allowing multiple users' work to be combined for previewing together and publishing all at once.
+
+![Multiple changesets can be merged into a single changeset, allowing multiple users' work to be combined for previewing together and publishing all at once.](wp-assets/screenshot-12.png)
 
 ## Changelog ##
+
+### 0.6.2 - 2017-07-26 ###
+* Added: Just like the admin menu has Changesets link under Customize, add Changesets link in admin bar submenu item under Customize. See <a href="https://github.com/xwp/wp-customize-snapshots/pull/143" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/143" data-id="245590687">#143</a>.
+* Fixed: Restore frontend changeset preview session resuming, to restore the previously previewed changeset in case of accidentally navigating away from frontend changeset preview. See <a href="https://github.com/xwp/wp-customize-snapshots/pull/145" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/145" data-id="245618640">#145</a>.
+* Fixed: Remove markup from changeset post list table excerpts since now escaped. See <a href="https://github.com/xwp/wp-customize-snapshots/pull/146" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/146" data-id="245622386">#146</a>.
+* Fixed: Include missing minified scripts in <code>js/compat</code> directory (only applies to WP&lt;4.7). See <a href="https://github.com/xwp/wp-customize-snapshots/pull/144" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/144" data-id="245593190">#144</a>.
+* Fixed: Hide Remove Setting link when viewing a published changeset. See <a href="https://github.com/xwp/wp-customize-snapshots/pull/141" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/141" data-id="245171302">#141</a>.
+
+See full commit log: [`0.6.1...0.6.2`](https://github.com/xwp/wp-customize-snapshots/compare/0.6.1...0.6.2)
+
+See [issues and PRs in milestone](https://github.com/xwp/wp-customize-snapshots/milestone/9?closed=1).
 
 ### 0.6.1 - 2017-07-17 ###
 * Fix exception thrown when attempting to activate plugin on Windows environment, or when plugin is in non-standard location. See <a href="https://github.com/xwp/wp-customize-snapshots/issues/105" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/105" data-id="194091302">#105</a>, <a href="https://github.com/xwp/wp-customize-snapshots/pull/139" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/139" data-id="243221610">#139</a>.

@@ -123,6 +123,11 @@ class Plugin extends Plugin_Base {
 			$src = $this->dir_url . 'js/customize-migrate' . $min . '.js';
 			$deps = array( 'jquery', 'wp-util' );
 			$wp_scripts->add( $handle, $src, $deps );
+
+			$handle = 'customize-snapshots-frontend';
+			$src = $this->dir_url . 'js/customize-snapshots-frontend' . $min . '.js';
+			$deps = array( 'jquery', 'underscore' );
+			$wp_scripts->add( $handle, $src, $deps );
 		}
 
 		$handle = 'customize-snapshots-admin';
