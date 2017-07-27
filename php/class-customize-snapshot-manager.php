@@ -920,7 +920,7 @@ class Customize_Snapshot_Manager {
 
 		<script type="text/html" id="tmpl-snapshot-conflict">
 			<div id="snapshot-conflicts-{{data.setting_id}}" class="snapshot-conflict-thickbox-content">
-				    <# _.each( data.conflicts, function( setting ) { #>
+					<# _.each( data.conflicts, function( setting ) { #>
 						<details>
 							<summary>
 								<code>{{setting.uuid}}
@@ -939,7 +939,7 @@ class Customize_Snapshot_Manager {
 								{{{setting.value}}}
 							</div>
 						</details>
-				    <# }); #>
+					<# }); #>
 			</div>
 		</script>
 

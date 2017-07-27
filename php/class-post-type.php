@@ -444,14 +444,18 @@ class Post_Type {
 						<details>
 							<summary>
 								<code>
-									<?php echo esc_html( $data['uuid'] );
+									<?php
+									echo esc_html( $data['uuid'] );
 									if ( ! empty( $data['name'] ) ) {
 										echo ' - ' . esc_html( $data['name'] );
-									} ?>
+									}
+									?>
 									</code>
 								<a target="_blank" href="<?php echo esc_url( $data['edit_link'] ); ?>" class="dashicons dashicons-external"></a>
 							</summary>
-							<?php echo $this->get_printable_setting_value( $data['value'], $setting_id, $data['setting_param'], get_post( $data['id'] ) ); // WPCS: XSS ok. ?>
+							<?php
+							echo $this->get_printable_setting_value( $data['value'], $setting_id, $data['setting_param'], get_post( $data['id'] ) ); // WPCS: XSS ok.
+							?>
 						</details>
 					<?php } ?>
 				</div>
