@@ -1115,11 +1115,11 @@ class Post_Type {
 				echo '<details open>';
 				echo '<summary>';
 				$input = '<input type="radio" class="snapshot-resolved-settings" data-setting-value-selector="snapshot-setting-preview-' . $setting_id_key . '"';
-				$input .= 'name="' . static::SLUG . '_resolve_conflict_uuid[' . array_search( $setting_id, array_keys( $snapshot_content ), true ) . ']" value=' .
-				                                   wp_json_encode( array(
-					                                   'setting_id' => $setting_id,
-					                                   'uuid' => $conflicted_data['uuid'],
-				                                   ) ) . ' ';
+				$json = wp_json_encode( array(
+					'setting_id' => $setting_id,
+					'uuid' => $conflicted_data['uuid'],
+				) );
+				$input .= sprintf( 'name="%s_resolve_conflict_uuid[%s]" value=%s', static::SLUG, array_search( $setting_id, array_keys( $snapshot_content ), true ), $json );
 				$input .= checked( $value['selected_uuid'], $conflicted_data['uuid'], false ) . '>';
 				echo $input; // WPCS: xss ok.
 				echo '<code> ' . esc_html( $conflicted_data['uuid'] ) . ' </code></summary>';
