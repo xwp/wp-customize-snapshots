@@ -70,6 +70,7 @@ class Post_Type {
 	 */
 	public function hooks() {
 		add_action( 'add_meta_boxes_' . static::SLUG, array( $this, 'remove_slug_metabox' ), 100 );
+		add_filter( 'wp_revisions_to_keep', array( $this, 'force_at_least_one_revision' ), 10, 2 );
 		add_action( 'load-revision.php', array( $this, 'suspend_kses_for_snapshot_revision_restore' ) );
 		add_filter( 'get_the_excerpt', array( $this, 'filter_snapshot_excerpt' ), 10, 2 );
 		add_filter( 'post_row_actions', array( $this, 'filter_post_row_actions' ), 10, 2 );
@@ -78,6 +79,13 @@ class Post_Type {
 		add_filter( 'content_save_pre', array( $this, 'filter_out_settings_if_removed_in_metabox' ), 10 );
 		add_action( 'admin_print_scripts-revision.php', array( $this, 'disable_revision_ui_for_published_posts' ) );
 		add_action( 'admin_notices', array( $this, 'admin_show_merge_error' ) );
+
+		// Add workaround for failure to save changes to option settings when publishing changeset outside of customizer. See https://core.trac.wordpress.org/ticket/39221#comment:14
+		if ( function_exists( '_wp_customize_publish_changeset' ) && function_exists( 'wp_doing_ajax' ) ) { // Workaround only works in WP 4.7.
+			$priority = has_action( 'transition_post_status', '_wp_customize_publish_changeset' );
+			add_action( 'transition_post_status', array( $this, 'start_pretending_customize_save_ajax_action' ), $priority - 1, 3 );
+			add_action( 'transition_post_status', array( $this, 'finish_pretending_customize_save_ajax_action' ), $priority + 1, 3 );
+		}
 	}
 
 	/**
@@ -120,6 +128,25 @@ class Post_Type {
 		$post_type_obj->show_in_rest = true;
 		$post_type_obj->rest_base = 'customize_changesets';
 		$post_type_obj->rest_controller_class = __NAMESPACE__ . '\\Snapshot_REST_API_Controller';
+	}
+
+	/**
+	 * Force at least one revision to be stored for changeset posts.
+	 *
+	 * This is useful on installs where revisions are disabled via setting WP_POST_REVISIONS to 0.
+	 * This ensures that the changeset post will not be automatically trashed.
+	 *
+	 * @see _wp_customize_publish_changeset()
+	 *
+	 * @param int      $num  Number of revisions to store.
+	 * @param \WP_Post $post Post object.
+	 * @return int Revisions to store.
+	 */
+	public function force_at_least_one_revision( $num, $post ) {
+		if ( empty( $num ) && static::SLUG === $post->post_type ) {
+			$num = 1;
+		}
+		return $num;
 	}
 
 	/**
@@ -256,13 +283,13 @@ class Post_Type {
 	public function filter_snapshot_excerpt( $excerpt, $post = null ) {
 		$post = get_post( $post );
 		if ( static::SLUG === $post->post_type ) {
-			$excerpt = '<ol>';
+			$settings = array();
 			foreach ( $this->get_post_content( $post ) as $setting_id => $setting_params ) {
 				if ( ! isset( $setting_params['dirty'] ) || true === $setting_params['dirty'] ) {
-					$excerpt .= sprintf( '<li><code>%s</code></li>', esc_attr( $setting_id ) );
+					$settings[] = $setting_id;
 				}
 			}
-			$excerpt .= '</ol>';
+			$excerpt = join( ', ', array_map( 'esc_html', $settings ) );
 		}
 		return $excerpt;
 	}
@@ -380,7 +407,9 @@ class Post_Type {
 			echo '<li>';
 			echo '<details open>';
 			echo '<summary><code>' . esc_html( $setting_id ) . '</code> ';
-			echo '<a href="#" id="' . esc_attr( $setting_id ) . '" data-text-restore="' . esc_attr__( 'Restore setting', 'customize-snapshots' ) . '" class="snapshot-toggle-setting-removal remove">' . esc_html__( 'Remove setting', 'customize-snapshots' ) . '</a>';
+			if ( 'publish' !== get_post_status( $post ) ) {
+				echo '<a href="#" id="' . esc_attr( $setting_id ) . '" data-text-restore="' . esc_attr__( 'Restore setting', 'customize-snapshots' ) . '" class="snapshot-toggle-setting-removal remove">' . esc_html__( 'Remove setting', 'customize-snapshots' ) . '</a>';
+			}
 
 			// Show error message when there was a publishing error.
 			if ( isset( $setting_params['publish_error'] ) ) {
@@ -569,6 +598,70 @@ class Post_Type {
 	}
 
 	/**
+	 * Remember whether customize_save is being pretended.
+	 *
+	 * @link https://core.trac.wordpress.org/ticket/39221#comment:14
+	 *
+	 * @var bool
+	 */
+	protected $is_pretending_customize_save_ajax_action = false;
+
+	/**
+	 * Previous value for $_REQUEST['action'].
+	 *
+	 * @link https://core.trac.wordpress.org/ticket/39221#comment:14
+	 *
+	 * @var string
+	 */
+	protected $previous_request_action_param;
+
+	/**
+	 * Start pretending customize_save Ajax action.
+	 *
+	 * Add workaround for failure to save changes to option settings when publishing changeset outside of customizer.
+	 *
+	 * @link https://core.trac.wordpress.org/ticket/39221#comment:14
+	 * @see \WP_Customize_Manager::doing_ajax()
+	 *
+	 * @param string   $new_status     New post status.
+	 * @param string   $old_status     Old post status.
+	 * @param \WP_Post $changeset_post Changeset post object.
+	 */
+	function start_pretending_customize_save_ajax_action( $new_status, $old_status, $changeset_post ) {
+		$is_publishing_changeset = ( 'customize_changeset' === $changeset_post->post_type && 'publish' === $new_status && 'publish' !== $old_status );
+		$is_customize_save_action = ( isset( $_REQUEST['action'] ) && 'customize_save' === $_REQUEST['action'] );
+		if ( ! $is_publishing_changeset || $is_customize_save_action ) {
+			return;
+		}
+		$this->is_pretending_customize_save_ajax_action = true;
+		$this->previous_request_action_param = isset( $_REQUEST['action'] ) ? $_REQUEST['action'] : null;
+		add_filter( 'wp_doing_ajax', '__return_true' );
+		$_REQUEST['action'] = 'customize_save';
+	}
+
+	/**
+	 * Finish pretending customize_save Ajax action.
+	 *
+	 * Clean up workaround for failure to save changes to option settings when publishing changeset outside of customizer.
+	 *
+	 * @link https://core.trac.wordpress.org/ticket/39221#comment:14
+	 * @see \WP_Customize_Manager::doing_ajax()
+	 *
+	 * @param string   $new_status     New post status.
+	 * @param string   $old_status     Old post status.
+	 * @param \WP_Post $changeset_post Changeset post object.
+	 */
+	function finish_pretending_customize_save_ajax_action( $new_status, $old_status, $changeset_post ) {
+		$is_publishing_changeset = ( 'customize_changeset' === $changeset_post->post_type && 'publish' === $new_status && 'publish' !== $old_status );
+		if ( ! $is_publishing_changeset || ! $this->is_pretending_customize_save_ajax_action ) {
+			return;
+		}
+		remove_filter( 'wp_doing_ajax', '__return_true' );
+		$_REQUEST['action'] = $this->previous_request_action_param;
+		$this->is_pretending_customize_save_ajax_action = false;
+	}
+
+	/**
 	 * Re-map customize meta cap to edit_theme_options primitive cap.
 	 *
 	 * @param array  $caps All caps.
@@ -684,7 +777,7 @@ class Post_Type {
 	 * @return mixed
 	 */
 	public function add_snapshot_bulk_actions( $bulk_actions ) {
-		$bulk_actions['merge_snapshot'] = __( 'Merge Changeset', 'customize-snapshots' );
+		$bulk_actions['merge_snapshot'] = __( 'Merge Changesets', 'customize-snapshots' );
 		return $bulk_actions;
 	}
 
@@ -898,6 +991,10 @@ class Post_Type {
 		if ( isset( $query_vars['scroll'] ) && is_int( $query_vars['scroll'] ) ) {
 			$stored_query_vars['scroll'] = $query_vars['scroll'];
 		}
+		if ( isset( $query_vars['previewing_theme'] ) ) {
+			$theme = $this->snapshot_manager->customize_manager->get_stylesheet();
+			$stored_query_vars['theme'] = $query_vars['previewing_theme'] ? $theme : '';
+		}
 		update_post_meta( $post_id, '_preview_url_query_vars', $stored_query_vars );
 		return $stored_query_vars;
 	}
@@ -917,11 +1014,17 @@ class Post_Type {
 		$post = get_post( $post );
 		$preview_url_query_vars = $this->get_customizer_state_query_vars( $post->ID );
 		$base_url = isset( $preview_url_query_vars['url'] ) ? $preview_url_query_vars['url'] : home_url( '/' );
-		return add_query_arg(
-			array(
-				static::FRONT_UUID_PARAM_NAME => $post->post_name,
-			),
-			$base_url
+		$current_theme = get_stylesheet();
+		$args = array(
+			static::FRONT_UUID_PARAM_NAME => $post->post_name,
 		);
+
+		if ( isset( $preview_url_query_vars['theme'] ) && $current_theme !== $preview_url_query_vars['theme'] ) {
+			$args = array_merge( $args, array(
+				'customize_theme' => $preview_url_query_vars['theme'],
+			) );
+		}
+
+		return add_query_arg( $args, $base_url );
 	}
 }

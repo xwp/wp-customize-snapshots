@@ -100,6 +100,7 @@ class Test_Post_Type extends \WP_UnitTestCase {
 		$post_type_obj = $this->get_new_post_type_instance( $this->plugin->customize_snapshot_manager );
 		$post_type_obj->hooks();
 
+		$this->assertEquals( 10, has_filter( 'wp_revisions_to_keep', array( $post_type_obj, 'force_at_least_one_revision' ) ) );
 		$this->assertEquals( 100, has_action( 'add_meta_boxes_' . $this->post_type_slug, array( $post_type_obj, 'remove_slug_metabox' ) ) );
 		$this->assertEquals( 10, has_action( 'load-revision.php', array( $post_type_obj, 'suspend_kses_for_snapshot_revision_restore' ) ) );
 		$this->assertEquals( 10, has_filter( 'get_the_excerpt', array( $post_type_obj, 'filter_snapshot_excerpt' ) ) );
@@ -138,6 +139,35 @@ class Test_Post_Type extends \WP_UnitTestCase {
 		$this->assertTrue( $post_type_obj->show_in_rest );
 		$this->assertEquals( 'customize_changesets', $post_type_obj->rest_base );
 		$this->assertEquals( __NAMESPACE__ . '\\Snapshot_REST_API_Controller', $post_type_obj->rest_controller_class );
+	}
+
+	/**
+	 * Test forcing at least one revision.
+	 *
+	 * @covers Post_Type::force_at_least_one_revision
+	 */
+	function test_force_at_least_one_revision() {
+		add_filter( 'wp_revisions_to_keep', '__return_zero', 1 );
+		$post_type = get_plugin_instance()->customize_snapshot_manager->post_type;
+		$post_type->init();
+
+		$title = 'Revisions Disabled';
+		$data = array(
+			'blogname' => array(
+				'value' => $title,
+			),
+		);
+		$post_id = $post_type->save( array(
+			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
+			'data' => $data,
+			'status' => 'draft',
+		) );
+		wp_publish_post( $post_id );
+		$snapshot_post = get_post( $post_id );
+		$content = $post_type->get_post_content( $snapshot_post );
+		$this->assertEquals( 'publish', $snapshot_post->post_status );
+		$this->assertEquals( $data, $content );
+		$this->assertEquals( $title, get_bloginfo( 'name' ) );
 	}
 
 	/**
@@ -634,6 +664,50 @@ class Test_Post_Type extends \WP_UnitTestCase {
 	}
 
 	/**
+	 * Test that changes to options can be saved by publishing the changeset.
+	 *
+	 * @covers \CustomizeSnapshots\Post_Type::start_pretending_customize_save_ajax_action()
+	 * @covers \CustomizeSnapshots\Post_Type::finish_pretending_customize_save_ajax_action()
+	 */
+	function test_pretending_customize_save_ajax_action() {
+		if ( ! function_exists( 'wp_generate_uuid4' ) ) {
+			$this->markTestSkipped( 'Only relevant to WordPress 4.7 and greater.' );
+		}
+
+		$_REQUEST['action'] = 'editpost';
+		set_current_screen( 'edit' );
+		$this->assertTrue( is_admin() );
+		$post_type = $this->get_new_post_type_instance( $this->plugin->customize_snapshot_manager );
+		$post_type->init();
+
+		$old_sidebars_widgets = get_option( 'sidebars_widgets' );
+		$new_sidebars_widgets = $old_sidebars_widgets;
+		$new_sidebar_1 = array_reverse( $new_sidebars_widgets['sidebar-1'] );
+
+		$post_id = $this->factory()->post->create( array(
+			'post_type' => 'customize_changeset',
+			'post_status' => 'draft',
+			'post_name' => wp_generate_uuid4(),
+			'post_content' => wp_json_encode( array(
+				'sidebars_widgets[sidebar-1]' => array(
+					'value' => $new_sidebar_1,
+				),
+			) ),
+		) );
+
+		// Save the updated sidebar widgets into the options table.
+		wp_publish_post( $post_id );
+
+		// Make sure previewing filters are removed.
+		remove_all_filters( 'option_sidebars_widgets' );
+		remove_all_filters( 'default_option_sidebars_widgets' );
+
+		// Ensure that the value has actually been written to the DB.
+		$updated_sidebars_widgets = get_option( 'sidebars_widgets' );
+		$this->assertEquals( $new_sidebar_1, $updated_sidebars_widgets['sidebar-1'] );
+	}
+
+	/**
 	 * Test granting customize capability.
 	 *
 	 * @see Post_Type::filter_user_has_cap()
@@ -732,11 +806,11 @@ class Test_Post_Type extends \WP_UnitTestCase {
 		$ids = $this->factory()->post->create_many( 2 );
 		$posts = array_map( 'get_post', $ids );
 		$post_type_obj = $this->getMockBuilder( 'CustomizeSnapshots\Post_Type' )
-		                      ->setConstructorArgs( array( $this->plugin->customize_snapshot_manager ) )
-		                      ->setMethods( array( 'merge_snapshots' ) )
-		                      ->getMock();
+							  ->setConstructorArgs( array( $this->plugin->customize_snapshot_manager ) )
+							  ->setMethods( array( 'merge_snapshots' ) )
+							  ->getMock();
 		$post_type_obj->expects( $this->once() )
-		              ->method( 'merge_snapshots' )
+					  ->method( 'merge_snapshots' )
 			->with( $posts )
 			->will( $this->returnValue( null ) );
 		$post_type_obj->handle_snapshot_merge( '', 'merge_snapshot', $ids );
@@ -798,10 +872,10 @@ class Test_Post_Type extends \WP_UnitTestCase {
 			),
 		);
 		$post_3 = $post_type->save( array(
-				'uuid' => Customize_Snapshot_Manager::generate_uuid(),
-				'status' => 'draft',
-				'data' => $value_3,
-				'date_gmt' => $date3,
+			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
+			'status' => 'draft',
+			'data' => $value_3,
+			'date_gmt' => $date3,
 		) );
 		$post_3 = get_post( $post_3 );
 		$merge_result_post = get_post( $post_type->merge_snapshots( array( $post_1, $post_2, $post_3 ) ) );

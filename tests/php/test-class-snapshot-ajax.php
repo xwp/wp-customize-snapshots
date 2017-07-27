@@ -38,12 +38,12 @@ class Test_Snapshot_Ajax extends \WP_Ajax_UnitTestCase {
 		remove_all_actions( 'wp_ajax_customize_snapshot_migration' );
 		delete_option( Migrate::KEY );
 		$migrate_obj = $this->getMockBuilder( 'CustomizeSnapshots\Migrate' )
-		                    ->setMethods( array( 'changeset_migrate' ) )
-							->setConstructorArgs( array( $this->plugin ) )
-		                    ->getMock();
+			->setMethods( array( 'changeset_migrate' ) )
+			->setConstructorArgs( array( $this->plugin ) )
+			->getMock();
 		$migrate_obj->expects( $this->any() )
-		            ->method( 'changeset_migrate' )
-		            ->will( $this->returnValue( 92 ) );
+			->method( 'changeset_migrate' )
+			->will( $this->returnValue( 92 ) );
 		$migrate_obj->maybe_migrate();
 		$this->set_input_vars(array(
 			'nonce' => wp_create_nonce( 'customize-snapshot-migration' ),

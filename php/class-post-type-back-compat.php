@@ -234,7 +234,7 @@ class Post_Type_Back_Compat extends Post_Type {
 		}
 		?>
 		<div class="notice notice-error is-dismissible">
-			<p><?php esc_html_e( 'Failed to publish snapshot due to an error with saving one of its settings. This may be due to a theme or plugin having been changed since the snapshot was created. See below.', 'customize-snapshots' ) ?></p>
+			<p><?php esc_html_e( 'Failed to publish snapshot due to an error with saving one of its settings. This may be due to a theme or plugin having been changed since the snapshot was created. See below.', 'customize-snapshots' ); ?></p>
 		</div>
 		<?php
 	}
