@@ -137,6 +137,7 @@ var CustomizeSnapshotsFrontend = ( function( $ ) {
 
 			request.done( function( resp ) {
 				if ( resp && resp.success ) {
+					sessionStorage.removeItem( 'customize_changeset_uuid' );
 					window.location = e.target.href;
 				}
 			} );
