@@ -109,7 +109,9 @@ class Test_Snapshot_Ajax extends \WP_Ajax_UnitTestCase {
 	 */
 	function test_handle_snapshot_fork() {
 		unset( $GLOBALS['wp_customize'] );
-		$user_id = $this->factory()->user->create( array( 'role' => 'administrator' ) );
+		$user_id = $this->factory()->user->create( array(
+			'role' => 'administrator',
+		) );
 		wp_set_current_user( $user_id );
 		$post_type = $this->get_new_post_type_instance( $this->plugin->customize_snapshot_manager );
 		$data = array(
@@ -127,7 +129,10 @@ class Test_Snapshot_Ajax extends \WP_Ajax_UnitTestCase {
 			'nonce' => wp_create_nonce( 'snapshot-fork' ),
 			'ID' => $post_id,
 		);
-		$_GET = $_POST = $_REQUEST = wp_slash( $post_vars );
+		$post_vars_slash = wp_slash( $post_vars );
+		$_GET = $post_vars_slash;
+		$_POST = $post_vars_slash;
+		$_REQUEST = $post_vars_slash;
 		$_SERVER['REQUEST_METHOD'] = 'POST';
 		$this->make_ajax_call( 'snapshot_fork' );
 		$response = json_decode( $this->_last_response, true );
@@ -137,7 +142,20 @@ class Test_Snapshot_Ajax extends \WP_Ajax_UnitTestCase {
 		$this->assertEquals( $data, $post_type->get_post_content( get_post( $response['ID'] ) ) );
 		$post = get_post( $post_id, ARRAY_A );
 		$fork_post = get_post( $response['ID'], ARRAY_A );
-		$key = array( 'ID', 'post_title', 'post_parent', 'post_name', 'guid', 'ancestors','tags_input','post_category', 'post_date', 'post_date_gmt', 'post_modified_gmt', 'post_modified' );
+		$key = array(
+			'ID',
+			'post_title',
+			'post_parent',
+			'post_name',
+			'guid',
+			'ancestors',
+			'tags_input',
+			'post_category',
+			'post_date',
+			'post_date_gmt',
+			'post_modified_gmt',
+			'post_modified',
+		);
 		foreach ( $key as $item ) {
 			unset( $fork_post[ $item ], $post[ $item ] );
 		}

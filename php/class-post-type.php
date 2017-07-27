@@ -495,13 +495,16 @@ class Post_Type {
 			'post_type' => array( static::SLUG ),
 			'post_status' => 'any',
 		) ); ?>
-		<ul id="snapshot-fork-list"><?php
+		<ul id="snapshot-fork-list">
+		<?php
 		if ( $post_query->have_posts() ) {
 			foreach ( $post_query->get_posts() as $p ) {
 				echo '<li><a href="' . esc_url( get_edit_post_link( $p ), 'raw' ) . '">' . get_the_title( $p ) . '</a></li>';
 			}
-		} ?>
-		</ul><?php
+		}
+		?>
+		</ul>
+		<?php
 		if ( $post->post_parent ) {
 			$parent = get_post( $post->post_parent );
 			echo '<h2>' . esc_html__( 'Parent:', 'customize-snapshots' ) . ' <a href="' . esc_url( get_edit_post_link( $parent, 'raw' ) ) . '">' . get_the_title( $parent ) . '</a></h2>';
@@ -1094,11 +1097,13 @@ class Post_Type {
 	 */
 	public function snapshot_admin_script_template() {
 		global $post;
-		if ( isset( $post->post_type ) && static::SLUG === $post->post_type ) { ?>
+		if ( isset( $post->post_type ) && static::SLUG === $post->post_type ) {
+			?>
 			<script type="text/html" id="tmpl-snapshot-fork-item">
 				<li><a href="{{data.edit_link}}">{{data.post_title}}</a></li>
 			</script>
-		<?php }
+			<?php
+		}
 	}
 
 	/**
