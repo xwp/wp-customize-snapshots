@@ -11,9 +11,9 @@ Provide a UI for managing Customizer changesets; save changesets as named drafts
 
 == Description ==
 
-Customize Snapshots is the feature plugin which prototyped [Customizer changesets](https://make.wordpress.org/core/2016/10/12/customize-changesets-technical-design-decisions/) which was [merged](https://make.wordpress.org/core/2016/10/12/customize-changesets-formerly-transactions-merge-proposal/) as part of WordPress 4.7.
-The name “snapshots” was chosen because the Customizer feature revolved around saving the state (taking a snapshot) of the Customizer at a given time so that the changes could be saved as a draft and scheduled for future publishing.
-The technical infrastructure for changesets was merged in WordPress 4.7 but the user interface still remains largely in the Customize Snapshots plugin, while we continue to iterate and merge additional features from the feature plugin into core.
+Customize Snapshots is the feature plugin which prototyped [Customizer changesets](https://make.wordpress.org/core/2016/10/12/customize-changesets-technical-design-decisions/); this feature was [merged](https://make.wordpress.org/core/2016/10/12/customize-changesets-formerly-transactions-merge-proposal/) as part of WordPress 4.7.
+The term “snapshots” was chosen because the Customizer feature revolved around saving the state (taking a snapshot) of the Customizer at a given time so that the changes could be saved as a draft and scheduled for future publishing.
+While the plugin's technical infrastructure for changesets was merged in WordPress 4.7,the user interface still remains largely in the Customize Snapshots plugin, in which we will continue to iterate and prototype features to merge into core.
 
 For a rundown of all the features, see the screenshots below as well as the 0.6 release video:
 
@@ -39,6 +39,18 @@ Requires PHP 5.3+. **Development of this plugin is done [on GitHub](https://gith
 12. Multiple changesets can be merged into a single changeset, allowing multiple users' work to be combined for previewing together and publishing all at once.
 
 == Changelog ==
+
+= 0.6.2 - 2017-07-26 =
+
+* Added: Just like the admin menu has Changesets link under Customize, add Changesets link in admin bar submenu item under Customize. See <a href="https://github.com/xwp/wp-customize-snapshots/pull/143" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/143" data-id="245590687">#143</a>.
+* Fixed: Restore frontend changeset preview session resuming, to restore the previously previewed changeset in case of accidentally navigating away from frontend changeset preview. See <a href="https://github.com/xwp/wp-customize-snapshots/pull/145" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/145" data-id="245618640">#145</a>.
+* Fixed: Remove markup from changeset post list table excerpts since now escaped. See <a href="https://github.com/xwp/wp-customize-snapshots/pull/146" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/146" data-id="245622386">#146</a>.
+* Fixed: Include missing minified scripts in <code>js/compat</code> directory (only applies to WP&lt;4.7). See <a href="https://github.com/xwp/wp-customize-snapshots/pull/144" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/144" data-id="245593190">#144</a>.
+* Fixed: Hide Remove Setting link when viewing a published changeset. See <a href="https://github.com/xwp/wp-customize-snapshots/pull/141" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/141" data-id="245171302">#141</a>.
+
+See full commit log: [`0.6.1...0.6.2`](https://github.com/xwp/wp-customize-snapshots/compare/0.6.1...0.6.2)
+
+See [issues and PRs in milestone](https://github.com/xwp/wp-customize-snapshots/milestone/9?closed=1).
 
 = 0.6.1 - 2017-07-17 =
 
