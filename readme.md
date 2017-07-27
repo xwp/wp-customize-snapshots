@@ -15,8 +15,8 @@ Provide a UI for managing Customizer changesets; save changesets as named drafts
 
 ## Description ##
 
-Customize Snapshots is the feature plugin which prototyped [Customizer changesets](https://make.wordpress.org/core/2016/10/12/customize-changesets-technical-design-decisions/); this feature was [merged](https://make.wordpress.org/core/2016/10/12/customize-changesets-formerly-transactions-merge-proposal/) as part of WordPress 4.7.
-The term “snapshots” was chosen because the Customizer feature revolved around saving the state (taking a snapshot) of the Customizer at a given time so that the changes could be saved as a draft and scheduled for future publishing.
+Customize Snapshots is the feature plugin which prototyped [Customizer changesets](https://make.wordpress.org/core/2016/10/12/customize-changesets-technical-design-decisions/); this feature was [merged](https://make.wordpress.org/core/2016/10/12/customize-changesets-formerly-transactions-merge-proposal/) as part of WordPress 4.7. The term “snapshots” was chosen because the Customizer feature revolved around saving the state (taking a snapshot) of the Customizer at a given time so that the changes could be saved as a draft and scheduled for future publishing.
+
 While the plugin's technical infrastructure for changesets was merged in WordPress 4.7,the user interface still remains largely in the Customize Snapshots plugin, in which we will continue to iterate and prototype features to merge into core.
 
 For a rundown of all the features, see the screenshots below as well as the 0.6 release video:
