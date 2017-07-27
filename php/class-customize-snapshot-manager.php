@@ -1014,9 +1014,9 @@ class Customize_Snapshot_Manager {
 			! isset( $args[2] )
 			||
 			(
-					'read_post' !== $args[0]
-					&&
-					'read_page' !== $args[0]
+				'read_post' !== $args[0]
+				&&
+				'read_page' !== $args[0]
 			)
 		) {
 			return $allcaps;
