@@ -1,76 +1,89 @@
 === Customize Snapshots ===
 Contributors: xwp, westonruter, valendesigns, utkarshpatel, sayedwp, newscorpau
-Requires at least: 4.5.3
-Tested up to: 4.7
-Stable tag: 0.6.0-rc1
+Requires at least: 4.6
+Tested up to: 4.8.1
+Stable tag: 0.6.2
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 Tags: customizer, customize, changesets
 
-Allow Customizer states to be drafted, and previewed with a private URL.
+Provide a UI for managing Customizer changesets; save changesets as named drafts, schedule for publishing; inspect in admin and preview on frontend.
 
 == Description ==
 
-Customize Snapshots save the state of a Customizer session so it can be shared or even published at a future date. A snapshot can be shared with a private URL to both authenticated and non-authenticated users. This means anyone can preview a snapshot's settings on the front-end without loading the Customizer, and authenticated users can load the snapshot into the Customizer and publish or amend the settings at any time.
+Customize Snapshots is the feature plugin which prototyped [Customizer changesets](https://make.wordpress.org/core/2016/10/12/customize-changesets-technical-design-decisions/); this feature was [merged](https://make.wordpress.org/core/2016/10/12/customize-changesets-formerly-transactions-merge-proposal/) as part of WordPress 4.7. The term “snapshots” was chosen because the Customizer feature revolved around saving the state (taking a snapshot) of the Customizer at a given time so that the changes could be saved as a draft and scheduled for future publishing.
 
-Snapshots are an implementation of key aspects of the [customizer transactions proposal](https://make.wordpress.org/core/2015/01/26/customizer-transactions-proposal/).
+While the plugin's technical infrastructure for changesets was merged in WordPress 4.7, the user interface still remains largely in the Customize Snapshots plugin, in which we will continue to iterate and prototype features to merge into core.
 
-This plugin works well with [Customizer Browser History](https://wordpress.org/plugins/customizer-browser-history/), which ensures that URL in the browser corresponds to the current panel/section/control that is expanded, as well as the current URL and device being previewed.
+For a rundown of all the features, see the screenshots below as well as the 0.6 release video:
+
+[youtube https://www.youtube.com/watch?v=GH0xo7bTiSs]
+
+This plugin works particularly well with [Customizer Browser History](https://wordpress.org/plugins/customizer-browser-history/), which ensures that URL in the browser corresponds to the current panel/section/control that is expanded, as well as the current URL and device being previewed.
 
 Requires PHP 5.3+. **Development of this plugin is done [on GitHub](https://github.com/xwp/wp-customize-snapshots). Pull requests welcome. Please see [issues](https://github.com/xwp/wp-customize-snapshots) reported there before going to the [plugin forum](https://wordpress.org/support/plugin/customize-snapshots).**
 
-= Persistent Object Caching =
-
-Plugins and themes may currently only use `is_customize_preview()` to
-decide whether or not they can store a value in the object cache. For
-example, see `Twenty_Eleven_Ephemera_Widget::widget()`. However, when
-viewing a snapshot on the frontend, the `is_customize_preview()` method
-will return `false`. Plugins and themes that store values in the object
-cache must either skip storing in the object cache when `CustomizeSnapshots\is_previewing_settings()`
-is `true`, or they should include the `CustomizeSnapshots\current_snapshot_uuid()` in the cache key.
-
-Example of bypassing object cache when previewing settings inside the Customizer preview or on the frontend via snapshots:
-
-<pre lang="php">
-if ( function_exists( 'CustomizeSnapshots\is_previewing_settings' ) ) {
-	$bypass_object_cache = CustomizeSnapshots\is_previewing_settings();
-} else {
-	$bypass_object_cache = is_customize_preview();
-}
-$contents = null;
-if ( ! $bypass_object_cache ) {
-	$contents = wp_cache_get( 'something', 'myplugin' );
-}
-if ( ! $contents ) {
-	ob_start();
-	myplugin_do_something();
-	$contents = ob_get_clean();
-	echo $contents;
-}
-if ( ! $bypass_object_cache ) {
-	wp_cache_set( 'something', $contents, 'myplugin', HOUR_IN_SECONDS );
-}
-</pre>
-
 == Screenshots ==
 
-1. The “Save & Publish” button is broken up into separate “Save” and “Publish” buttons. The “Save” button creates a snapshot and turns into “Update” to save a new snapshot.
-2. For non-administrator users (who lack the new `customize_publish` capability) the “Publish” button is replaced with a “Submit” button. This takes the snapshot and puts it into a pending status.
-3. Saving snapshot causes the snapshot UUID to appear in the URL, allowing it to be bookmarked to easily come back to later. Upon publishing, the UUID will be removed from the URL so a new snapshot can be started made.
-4. The Snapshots admin page lists out all of the snapshots in the system. When the excerpt view is turned on, a list of the settings modified in the snapshot can be seen.
-5. Viewing a snapshot post in the admin shows all of the modified settings contained within it. A link is provided to open the snapshot in the Customizer to continue making changes.
-6. Published snapshots are shown in the admin screen but lack the ability to open in the Customizer, as they are intended to be frozen revisions for when the Customizer was saved.
-7. Changes to snapshots are captured in revisions.
+1. The “Save & Publish” button becomes a combo-button that allows you to select the status for the changeset when saving. In addition to publishing, a changeset can be saved as a permanent draft (as opposed to just an auto-draft), pending review, scheduled for future publishing. A revision is made each time you press the button.
+2. For non-administrator users (who lack the new `customize_publish` capability) the “Publish” button is replaced with a “Submit” button. This takes the changeset and puts it into a pending status.
+3. When selecting to schedule a changeset, the future publish date can be supplied. Changesets can be supplied a name which serves like a commit message.
+4. When selecting Publish, a confirmation appears. Additionally, a link is shown which allows you to browse the frontend with the changeset applied. This preview URL can be shared with authenticated and non-authenticated users alike.
+5. The admin bar shows information about the current changeset when previewing the changeset on the frontend.
+6. The Customize link is promoted to the top in the admin menu; a link to list all changesets is also added.
+7. The Customize link in the admin bar likewise gets a submenu item to link to the changesets post list.
+8. The Changesets admin screen lists all of the changeset posts that have been saved or published. Row actions provide shortcuts to preview changeset on frontend, open changeset in Customizer for editing, or inspect the changeset's contents on the edit post screen.
+9. When excerpts are shown in the post list table, the list of settings that are contained in each changeset are displayed.
+10. Opening a changeset's edit post screen shows which settings are contained in the changeset and what their values are. Settings may be removed from a changeset here. A changeset can also be scheduled or published from here just as one would do for any post, and the settings will be saved once the changeset is published. Buttons are also present to preview the changeset on the frontend and to open the changeset in the Customizer for further revisions.
+11. Each time a user saves changes to an existing changeset, a new revision will be stored (if revisions are enabled in WordPress). Users' contributions to a given changeset can be inspected here and even reverted prior to publishing.
+12. Multiple changesets can be merged into a single changeset, allowing multiple users' work to be combined for previewing together and publishing all at once.
 
 == Changelog ==
 
-= 0.6.0 RC1 - 2017-02-06 =
+= 0.6.2 - 2017-07-26 =
+
+* Added: Just like the admin menu has Changesets link under Customize, add Changesets link in admin bar submenu item under Customize. See <a href="https://github.com/xwp/wp-customize-snapshots/pull/143" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/143" data-id="245590687">#143</a>.
+* Fixed: Restore frontend changeset preview session resuming, to restore the previously previewed changeset in case of accidentally navigating away from frontend changeset preview. See <a href="https://github.com/xwp/wp-customize-snapshots/pull/145" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/145" data-id="245618640">#145</a>.
+* Fixed: Remove markup from changeset post list table excerpts since now escaped. See <a href="https://github.com/xwp/wp-customize-snapshots/pull/146" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/146" data-id="245622386">#146</a>.
+* Fixed: Include missing minified scripts in <code>js/compat</code> directory (only applies to WP&lt;4.7). See <a href="https://github.com/xwp/wp-customize-snapshots/pull/144" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/144" data-id="245593190">#144</a>.
+* Fixed: Hide Remove Setting link when viewing a published changeset. See <a href="https://github.com/xwp/wp-customize-snapshots/pull/141" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/141" data-id="245171302">#141</a>.
+
+See full commit log: [`0.6.1...0.6.2`](https://github.com/xwp/wp-customize-snapshots/compare/0.6.1...0.6.2)
+
+See [issues and PRs in milestone](https://github.com/xwp/wp-customize-snapshots/milestone/9?closed=1).
+
+= 0.6.1 - 2017-07-17 =
+
+* Fix exception thrown when attempting to activate plugin on Windows environment, or when plugin is in non-standard location. See <a href="https://github.com/xwp/wp-customize-snapshots/issues/105" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/105" data-id="194091302">#105</a>, <a href="https://github.com/xwp/wp-customize-snapshots/pull/139" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/139" data-id="243221610">#139</a>.
+* Fix issue with saving <code>option</code> settings when publishing a changeset outside of the Customizer, such as from the edit post admin screen. See <a href="https://github.com/xwp/wp-customize-snapshots/pull/137" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/137" data-id="242616576">#137</a>, <a href="https://github.com/xwp/wp-customize-snapshots/pull/138" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/138" data-id="243123192">#138</a>.
+
+See full commit log: [`0.6.0...0.6.1`](https://github.com/xwp/wp-customize-snapshots/compare/0.6.0...0.6.1)
+
+See [issues and PRs in milestone](https://github.com/xwp/wp-customize-snapshots/milestone/8?closed=1).
+
+= 0.6.0 - 2017-07-06 =
+
+* Added: Extend, integrate with and defer to changesets in WP 4.7. See <a href="https://github.com/xwp/wp-customize-snapshots/issues/99" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/99" data-id="185500483">#99</a>, <a href="https://github.com/xwp/wp-customize-snapshots/pull/102" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/102" data-id="189592835">#102</a>, <a href="https://github.com/xwp/wp-customize-snapshots/pull/119" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/119" data-id="209975568">#119</a>, <a href="https://github.com/xwp/wp-customize-snapshots/pull/120" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/120" data-id="209979861">#120</a>, <a href="https://github.com/xwp/wp-customize-snapshots/pull/122" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/122" data-id="210213434">#122</a>, <a href="https://github.com/xwp/wp-customize-snapshots/pull/124" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/124" data-id="210397414">#124</a>, <a href="https://github.com/xwp/wp-customize-snapshots/issues/123" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/123" data-id="210248331">#123</a>, <a href="https://github.com/xwp/wp-customize-snapshots/pull/111" class="issue-link js-issue-link" data-id="206025988" title="Ensure that revisions get created when changesets are updated via explicit saves">#111</a>, <a href="https://github.com/xwp/wp-customize-snapshots/issues/108" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/108" data-id="200508804">#108</a>, <a href="https://github.com/xwp/wp-customize-snapshots/issues/112" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/112" data-id="206862695">#112</a>, <a href="https://github.com/xwp/wp-customize-snapshots/pull/127" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/127" data-id="211495205">#127</a>, <a href="https://github.com/xwp/wp-customize-snapshots/issues/131" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/131" data-id="213506857">#131</a>, <a href="https://github.com/xwp/wp-customize-snapshots/pull/132" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/132" data-id="213512349">#132</a>.
+* Added: Allow snapshots to be named. See <a href="https://github.com/xwp/wp-customize-snapshots/issues/19" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/19" data-id="151239526">#19</a>, <a href="https://github.com/xwp/wp-customize-snapshots/pull/76" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/76" data-id="171678109">#76</a>.
+* Added: Allow multiple snapshots to be merged into a single snapshot. See <a href="https://github.com/xwp/wp-customize-snapshots/issues/67" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/67" data-id="167957640">#67</a>, <a href="https://github.com/xwp/wp-customize-snapshots/pull/92" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/92" data-id="181423950">#92</a>.
+* Added: Add hooks to support customize-concurrency plugin. See <a href="https://github.com/xwp/wp-customize-snapshots/pull/87" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/87" data-id="173627962">#87</a>.
+* Added: Enable deleting settings in snapshot wp-admin/post page. See <a href="https://github.com/xwp/wp-customize-snapshots/issues/17" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/17" data-id="151236868">#17</a>, <a href="https://github.com/xwp/wp-customize-snapshots/pull/84" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/84" data-id="172899204">#84</a>.
+* Added: Remember the preview URL and expanded panel/section when saving a changeset; remember preview url query params. See <a href="https://github.com/xwp/wp-customize-snapshots/issues/107" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/107" data-id="195327448">#107</a>, <a href="https://github.com/xwp/wp-customize-snapshots/pull/129" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/129" data-id="211891590">#129</a>.
+* Fixed: Cleanup nav menu created posts if its reference doesn't exists. See <a href="https://github.com/xwp/wp-customize-snapshots/pull/135" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/135" data-id="229881526">#135</a>, <a href="https://github.com/xwp/wp-customize-snapshots/issues/133" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/133" data-id="222183825">#133</a>.
+* Fixed: Ensure that revisions get created when changesets are updated via explicit saves.
+* Fixed: Add customize as top menu for all user. See <a href="https://github.com/xwp/wp-customize-snapshots/pull/110" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/110" data-id="205838319">#110</a>, <a href="https://github.com/xwp/wp-customize-snapshots/pull/114" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/114" data-id="206963835">#114</a>.
+* Fixed: Disable quick edit. See <a href="https://github.com/xwp/wp-customize-snapshots/pull/89" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/89" data-id="174203591">#89</a>, <a href="https://github.com/xwp/wp-customize-snapshots/pull/100" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/100" data-id="185860749">#100</a>.
+* Fixed: Timezone issue on compare date. See <a href="https://github.com/xwp/wp-customize-snapshots/pull/97" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/97" data-id="185077507">#97</a>.
+* Fixed: Admin footer script hook to support WP 4.5. See <a href="https://github.com/xwp/wp-customize-snapshots/pull/94" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/94" data-id="183030691">#94</a>.
+* Fixed: Snapshot publish issue after settings save. See <a href="https://github.com/xwp/wp-customize-snapshots/pull/89" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/89" data-id="174203591">#89</a>.
+* Fided: Use non-minified scripts and styles if plugin installed via git (submodule). See <a href="https://github.com/xwp/wp-customize-snapshots/pull/91" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/91" data-id="175166327">#91</a>.
+* Fixed: Date handling compatibility with Safari. See <a href="https://github.com/xwp/wp-customize-snapshots/pull/134" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/134" data-id="222253592">#134</a>.
+
+See full commit log: [`0.5.2...0.6.0`](https://github.com/xwp/wp-customize-snapshots/compare/0.5.2...0.6.0)
 
 See [issues and PRs in milestone](https://github.com/xwp/wp-customize-snapshots/milestone/4?closed=1).
 
-See full commit log: [`0.5.2...0.6.0-rc1`](https://github.com/xwp/wp-customize-snapshots/compare/0.5.2...0.6.0-rc1)
-
-Props: Utkarsh Patel (<a href="https://github.com/PatelUtkarsh" class="user-mention">@PatelUtkarsh</a>), Sayed Taqui (<a href="https://github.com/sayedwp" class="user-mention">@sayedwp</a>), Weston Ruter (<a href="https://github.com/westonruter" class="user-mention">@westonruter</a>), Ryan Kienstra (<a href="https://github.com/kienstra" class="user-mention">@kienstra</a>), Luke Gedeon (<a href="https://github.com/lgedeon" class="user-mention">@lgedeon</a>).
+Props: Sayed Taqui (<a href="https://github.com/sayedwp" class="user-mention">@sayedwp</a>), Utkarsh Patel (<a href="https://github.com/PatelUtkarsh" class="user-mention">@PatelUtkarsh</a>), Weston Ruter (<a href="https://github.com/westonruter" class="user-mention">@westonruter</a>), Ryan Kienstra (<a href="https://github.com/kienstra" class="user-mention">@kienstra</a>), Luke Gedeon (<a href="https://github.com/lgedeon" class="user-mention">@lgedeon</a>), Derek Herman (<a href="https://github.com/valendesigns" class="user-mention">@valendesigns</a>).
 
 = 0.5.2 - 2016-08-17 =
 
