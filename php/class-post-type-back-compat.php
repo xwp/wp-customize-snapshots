@@ -133,11 +133,14 @@ class Post_Type_Back_Compat extends Post_Type {
 	public function handle_snapshot_merge_workaround() {
 		$wp_list_table = _get_list_table( 'WP_Posts_List_Table' );
 		$action = $wp_list_table->current_action();
-		if ( 'merge_snapshot' !== $action || ( isset( $_REQUEST['post_type'] ) && static::SLUG !== wp_unslash( $_REQUEST['post_type'] ) ) ) {
+		if ( 'merge_snapshot' !== $action || ( isset( $_REQUEST['post_type'] ) && static::SLUG !== sanitize_key( wp_unslash( $_REQUEST['post_type'] ) ) ) ) { // WPCS: input var ok. CSRF ok.
+			return;
+		}
+		if ( ! isset( $_REQUEST['post'] ) || ! is_array( $_REQUEST['post'] ) ) { // WPCS: input var ok. CSRF ok.
 			return;
 		}
 		check_admin_referer( 'bulk-posts' );
-		$post_ids = array_map( 'intval', $_REQUEST['post'] );
+		$post_ids = array_map( 'intval', $_REQUEST['post'] ); // WPCS: input var ok. CSRF ok.
 		if ( empty( $post_ids ) ) {
 			return;
 		}
@@ -226,12 +229,12 @@ class Post_Type_Back_Compat extends Post_Type {
 		if ( ! $current_screen || static::SLUG !== $current_screen->id || 'post' !== $current_screen->base ) {
 			return;
 		}
-		if ( ! isset( $_REQUEST['snapshot_error_on_publish'] ) ) {
+		if ( ! isset( $_REQUEST['snapshot_error_on_publish'] ) ) { // WPCS: input var ok. CSRF ok.
 			return;
 		}
 		?>
 		<div class="notice notice-error is-dismissible">
-			<p><?php esc_html_e( 'Failed to publish snapshot due to an error with saving one of its settings. This may be due to a theme or plugin having been changed since the snapshot was created. See below.', 'customize-snapshots' ) ?></p>
+			<p><?php esc_html_e( 'Failed to publish snapshot due to an error with saving one of its settings. This may be due to a theme or plugin having been changed since the snapshot was created. See below.', 'customize-snapshots' ); ?></p>
 		</div>
 		<?php
 	}

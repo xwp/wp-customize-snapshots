@@ -141,20 +141,14 @@ abstract class Plugin_Base {
 		if ( '/' !== \DIRECTORY_SEPARATOR ) {
 			$file_name = str_replace( \DIRECTORY_SEPARATOR, '/', $file_name ); // Windows compat.
 		}
-		$plugin_dir = preg_replace( '#(.*plugins[^/]*/[^/]+)(/.*)?#', '$1', $file_name, 1, $count );
-		if ( 0 === $count ) {
-			throw new Exception( "Class not located within a directory tree containing 'plugins': $file_name" );
-		}
 
-		// Make sure that we can reliably get the relative path inside of the content directory.
-		$plugin_path = $this->relative_path( $plugin_dir, 'wp-content', \DIRECTORY_SEPARATOR );
-		if ( '' === $plugin_path ) {
-			throw new Exception( 'Plugin dir is not inside of the `wp-content` directory' );
-		}
+		$plugin_dir  = dirname( dirname( $file_name ) );
+		$plugin_path = $this->relative_path( $plugin_dir, basename( content_url() ), \DIRECTORY_SEPARATOR );
 
-		$dir_url = content_url( trailingslashit( $plugin_path ) );
-		$dir_path = $plugin_dir;
+		$dir_url      = content_url( trailingslashit( $plugin_path ) );
+		$dir_path     = $plugin_dir;
 		$dir_basename = basename( $plugin_dir );
+
 		return compact( 'dir_url', 'dir_path', 'dir_basename' );
 	}
 
@@ -201,7 +195,7 @@ abstract class Plugin_Base {
 	 */
 	public function trigger_warning( $message, $code = \E_USER_WARNING ) {
 		if ( ! $this->is_wpcom_vip_prod() ) {
-			trigger_error( esc_html( get_class( $this ) . ': ' . $message ), $code );
+			trigger_error( esc_html( get_class( $this ) . ': ' . $message ), $code ); // @codingStandardsIgnoreLine because this line will not get run on WordPress.com per the condition.
 		}
 	}
 
@@ -214,7 +208,10 @@ abstract class Plugin_Base {
 	 *
 	 * @return mixed
 	 */
-	public function add_filter( $name, $callback, $args = array( 'priority' => 10, 'arg_count' => PHP_INT_MAX ) ) {
+	public function add_filter( $name, $callback, $args = array(
+		'priority' => 10,
+		'arg_count' => PHP_INT_MAX,
+	) ) {
 		return $this->_add_hook( 'filter', $name, $callback, $args );
 	}
 
@@ -227,7 +224,10 @@ abstract class Plugin_Base {
 	 *
 	 * @return mixed
 	 */
-	public function add_action( $name, $callback, $args = array( 'priority' => 10, 'arg_count' => PHP_INT_MAX ) ) {
+	public function add_action( $name, $callback, $args = array(
+		'priority' => 10,
+		'arg_count' => PHP_INT_MAX,
+	) ) {
 		return $this->_add_hook( 'action', $name, $callback, $args );
 	}
 
@@ -262,7 +262,7 @@ abstract class Plugin_Base {
 		if ( isset( $this->_called_doc_hooks[ $class_name ] ) ) {
 			$notice = sprintf( 'The add_doc_hooks method was already called on %s. Note that the Plugin_Base constructor automatically calls this method.', $class_name );
 			if ( ! $this->is_wpcom_vip_prod() ) {
-				trigger_error( esc_html( $notice ), \E_USER_NOTICE );
+				trigger_error( esc_html( $notice ), \E_USER_NOTICE ); // @codingStandardsIgnoreLine because this line will not get run on WordPress.com per the condition.
 			}
 			return;
 		}
