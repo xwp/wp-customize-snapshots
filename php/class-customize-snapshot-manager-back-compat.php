@@ -33,7 +33,7 @@ class Customize_Snapshot_Manager_Back_Compat extends Customize_Snapshot_Manager 
 		$this->hooks();
 		if ( $this->read_current_snapshot_uuid() ) {
 			$this->load_snapshot();
-		} elseif ( is_customize_preview() && isset( $_REQUEST['wp_customize_preview_ajax'] ) && 'true' === $_REQUEST['wp_customize_preview_ajax'] ) {
+		} elseif ( is_customize_preview() && isset( $_REQUEST['wp_customize_preview_ajax'] ) && 'true' === $_REQUEST['wp_customize_preview_ajax'] ) { // WPCS: input var ok; CSRF ok.
 			add_action( 'wp_loaded', array( $this, 'setup_preview_ajax_requests' ), 12 );
 		}
 	}
@@ -79,11 +79,7 @@ class Customize_Snapshot_Manager_Back_Compat extends Customize_Snapshot_Manager 
 	 * @global \WP_Customize_Manager $wp_customize
 	 */
 	public function enqueue_controls_scripts() {
-
-		// Prevent loading the Snapshot interface if the theme is not active.
-		if ( ! $this->is_theme_active() ) {
-			return;
-		}
+		$this->ensure_customize_manager();
 
 		wp_enqueue_style( 'customize-snapshots' );
 		wp_enqueue_script( 'customize-snapshots-compat' );
@@ -91,6 +87,7 @@ class Customize_Snapshot_Manager_Back_Compat extends Customize_Snapshot_Manager 
 		if ( $this->snapshot ) {
 			$post = $this->snapshot->post();
 			$this->override_post_date_default_data( $post );
+			$preview_url_query_vars = $this->post_type->get_customizer_state_query_vars( $post->ID );
 		}
 
 		// Script data array.
@@ -104,6 +101,8 @@ class Customize_Snapshot_Manager_Back_Compat extends Customize_Snapshot_Manager 
 			'currentUserCanPublish' => current_user_can( 'customize_publish' ),
 			'initialServerDate' => current_time( 'mysql', false ),
 			'initialServerTimestamp' => floor( microtime( true ) * 1000 ),
+			'theme' => $this->original_stylesheet,
+			'previewingTheme' => isset( $preview_url_query_vars['theme'] ) ? $preview_url_query_vars['theme'] : '',
 			'i18n' => array(
 				'saveButton' => __( 'Save', 'customize-snapshots' ),
 				'updateButton' => __( 'Update', 'customize-snapshots' ),
@@ -124,7 +123,11 @@ class Customize_Snapshot_Manager_Back_Compat extends Customize_Snapshot_Manager 
 			'snapshotExists' => ( $this->snapshot && $this->snapshot->saved() ),
 		) );
 
-		wp_localize_script( 'customize-snapshots-compat', '_customizeSnapshotsCompatSettings', $exports );
+		wp_scripts()->add_inline_script(
+			'customize-snapshots-compat',
+			sprintf( 'var _customizeSnapshotsCompatSettings = %s;', wp_json_encode( $exports ) ),
+			'before'
+		);
 	}
 
 	/**
@@ -491,7 +494,7 @@ class Customize_Snapshot_Manager_Back_Compat extends Customize_Snapshot_Manager 
 		global $wp;
 
 		// Skip of X-HTTP-Method-Override request header is not present.
-		if ( ! isset( $_SERVER['HTTP_X_HTTP_METHOD_OVERRIDE'] ) ) {
+		if ( ! isset( $_SERVER['HTTP_X_HTTP_METHOD_OVERRIDE'] ) || ! isset( $_SERVER['REQUEST_METHOD'] ) ) { // WPCS: input var ok.
 			return false;
 		}
 
@@ -501,8 +504,8 @@ class Customize_Snapshot_Manager_Back_Compat extends Customize_Snapshot_Manager 
 		}
 
 		// Skip if the request method is not GET or POST, or the override is the same as the original.
-		$original_request_method = $_SERVER['REQUEST_METHOD'];
-		$override_request_method = strtoupper( $_SERVER['HTTP_X_HTTP_METHOD_OVERRIDE'] );
+		$original_request_method = strtoupper( sanitize_key( $_SERVER['REQUEST_METHOD'] ) ); // WPCS: input var ok.
+		$override_request_method = strtoupper( sanitize_key( $_SERVER['HTTP_X_HTTP_METHOD_OVERRIDE'] ) ); // WPCS: input var ok.
 		if ( ! in_array( $override_request_method, array( 'GET', 'POST' ), true ) || $original_request_method === $override_request_method ) {
 			return false;
 		}
@@ -510,8 +513,8 @@ class Customize_Snapshot_Manager_Back_Compat extends Customize_Snapshot_Manager 
 		// Convert a POST request into a GET request.
 		if ( 'GET' === $override_request_method && 'POST' === $original_request_method ) {
 			$_SERVER['REQUEST_METHOD'] = $override_request_method;
-			$_GET = array_merge( $_GET, $_POST );
-			$_SERVER['QUERY_STRING'] = build_query( array_map( 'rawurlencode', wp_unslash( $_GET ) ) );
+			$_GET = array_merge( $_GET, $_POST ); // WPCS: input var ok; CSRF ok.
+			$_SERVER['QUERY_STRING'] = build_query( array_map( 'rawurlencode', wp_unslash( $_GET ) ) ); // WPCS: input var ok. CSRF ok.
 			return true;
 		}
 
@@ -570,7 +573,9 @@ class Customize_Snapshot_Manager_Back_Compat extends Customize_Snapshot_Manager 
 			},
 			$this->customize_manager->unsanitized_post_values()
 		);
-		$result = $this->snapshot->set( $settings_data, array( 'skip_validation' => true ) );
+		$result = $this->snapshot->set( $settings_data, array(
+			'skip_validation' => true,
+		) );
 		if ( ! empty( $result['errors'] ) ) {
 			add_filter( 'customize_save_response', function( $response ) use ( $result, $that ) {
 				$response['snapshot_errors'] = $that->prepare_errors_for_response( $result['errors'] );
@@ -590,8 +595,11 @@ class Customize_Snapshot_Manager_Back_Compat extends Customize_Snapshot_Manager 
 				$args['date_gmt'] = current_time( 'mysql', true );
 			}
 
-			if ( isset( $_POST['title'] ) && '' !== trim( $_POST['title'] ) ) {
-				$args['post_title'] = sanitize_text_field( wp_unslash( $_POST['title'] ) );
+			if ( isset( $_POST['title'] ) ) { // WPCS: input var ok. CSRF ok because customize_save_after happens after nonce check.
+				$title = sanitize_text_field( wp_unslash( $_POST['title'] ) ); // WPCS: Input var ok. CSRF ok because customize_save_after happens after nonce check.
+				if ( ! empty( $title ) ) {
+					$args['post_title'] = $title;
+				}
 			}
 
 			$r = $this->snapshot->save( $args );
@@ -645,6 +653,14 @@ class Customize_Snapshot_Manager_Back_Compat extends Customize_Snapshot_Manager 
 			return false;
 		}
 
+		// Populate customized state with values from snapshot.
+		$snapshot_content = $this->post_type->get_post_content( $post );
+		foreach ( $snapshot_content as $setting_id => $setting_params ) {
+			if ( array_key_exists( 'value', $setting_params ) ) {
+				$this->customize_manager->set_post_value( $setting_id, $setting_params['value'] );
+			}
+		}
+
 		if ( ! did_action( 'customize_register' ) ) {
 			/*
 			 * When running from CLI or Cron, we have to remove the action because
@@ -674,9 +690,8 @@ class Customize_Snapshot_Manager_Back_Compat extends Customize_Snapshot_Manager 
 			do_action( 'customize_register', $this->customize_manager );
 
 			// undefine( 'DOING_AJAX' )... just kidding. This is the end of the unfortunate hack and it should be fixed in Core.
-			unset( $_REQUEST['action'] );
+			unset( $_REQUEST['action'] ); // WPCS: Input var ok.
 		}
-		$snapshot_content = $this->post_type->get_post_content( $post );
 
 		if ( method_exists( $this->customize_manager, 'validate_setting_values' ) ) {
 			/** This action is documented in wp-includes/class-wp-customize-manager.php */
@@ -703,7 +718,9 @@ class Customize_Snapshot_Manager_Back_Compat extends Customize_Snapshot_Manager 
 			if ( ! isset( $setting_params['value'] ) || is_null( $setting_params['value'] ) ) {
 				if ( ! is_array( $setting_params ) ) {
 					if ( ! empty( $setting_params ) ) {
-						$setting_params = array( 'value' => $setting_params );
+						$setting_params = array(
+							'value' => $setting_params,
+						);
 					} else {
 						$setting_params = array();
 					}
@@ -714,7 +731,6 @@ class Customize_Snapshot_Manager_Back_Compat extends Customize_Snapshot_Manager 
 			}
 
 			// Unrecognized setting error.
-			$this->customize_manager->set_post_value( $setting_id, $setting_params['value'] );
 			$setting = $this->customize_manager->get_setting( $setting_id );
 			if ( ! ( $setting instanceof \WP_Customize_Setting ) ) {
 				$setting_params['publish_error'] = 'unrecognized_setting';
@@ -814,7 +830,7 @@ class Customize_Snapshot_Manager_Back_Compat extends Customize_Snapshot_Manager 
 		}
 
 		if ( isset( $_POST['status'] ) ) { // WPCS: input var ok.
-			$status = sanitize_key( $_POST['status'] );
+			$status = sanitize_key( $_POST['status'] ); // WPCS: input var ok.
 		} else {
 			$status = 'draft';
 		}
@@ -826,7 +842,7 @@ class Customize_Snapshot_Manager_Back_Compat extends Customize_Snapshot_Manager 
 			status_header( 400 );
 			wp_send_json_error( 'customize_not_allowed' );
 		}
-		$publish_date = isset( $_POST['date'] ) ? $_POST['date'] : '';
+		$publish_date = isset( $_POST['date'] ) ? sanitize_text_field( wp_unslash( $_POST['date'] ) ) : ''; // WPCS: input var ok.
 		if ( 'future' === $status ) {
 			$publish_date_obj = new \DateTime( $publish_date );
 			$current_date = new \DateTime( current_time( 'mysql' ) );
@@ -891,8 +907,11 @@ class Customize_Snapshot_Manager_Back_Compat extends Customize_Snapshot_Manager 
 		$args = array(
 			'status' => $status,
 		);
-		if ( isset( $_POST['title'] ) && '' !== trim( $_POST['title'] ) ) {
-			$args['post_title'] = sanitize_text_field( wp_unslash( $_POST['title'] ) );
+		if ( isset( $_POST['title'] ) ) { // WPCS: input var ok.
+			$title = sanitize_text_field( wp_unslash( $_POST['title'] ) ); // WPCS: input var ok.
+			if ( '' !== $title ) {
+				$args['post_title'] = $title;
+			}
 		}
 
 		if ( isset( $publish_date_obj ) && 'future' === $status ) {
@@ -986,8 +1005,8 @@ class Customize_Snapshot_Manager_Back_Compat extends Customize_Snapshot_Manager 
 		</script>
 
 		<script type="text/html" id="tmpl-snapshot-preview-link">
-			<a href="#" target="frontend-preview" id="snapshot-preview-link" class="dashicons dashicons-welcome-view-site" title="<?php esc_attr_e( 'View on frontend', 'customize-snapshots' ) ?>">
-				<span class="screen-reader-text"><?php esc_html_e( 'View on frontend', 'customize-snapshots' ) ?></span>
+			<a href="#" target="frontend-preview" id="snapshot-preview-link" class="dashicons dashicons-welcome-view-site" title="<?php esc_attr_e( 'View on frontend', 'customize-snapshots' ); ?>">
+				<span class="screen-reader-text"><?php esc_html_e( 'View on frontend', 'customize-snapshots' ); ?></span>
 			</a>
 		</script>
 

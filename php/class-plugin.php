@@ -47,7 +47,7 @@ class Plugin extends Plugin_Base {
 	 */
 	public function __construct() {
 		// Parse plugin version.
-		if ( preg_match( '/Version:\s*(\S+)/', file_get_contents( __DIR__ . '/../customize-snapshots.php' ), $matches ) ) {
+		if ( preg_match( '/Version:\s*(\S+)/', file_get_contents( __DIR__ . '/../customize-snapshots.php' ), $matches ) ) { // @codingStandardsIgnoreLine because file_get_contents() is not requesting a URL.
 			$this->version = $matches[1];
 		}
 		$this->compat = is_back_compat();
@@ -123,6 +123,11 @@ class Plugin extends Plugin_Base {
 			$src = $this->dir_url . 'js/customize-migrate' . $min . '.js';
 			$deps = array( 'jquery', 'wp-util' );
 			$wp_scripts->add( $handle, $src, $deps );
+
+			$handle = 'customize-snapshots-frontend';
+			$src = $this->dir_url . 'js/customize-snapshots-frontend' . $min . '.js';
+			$deps = array( 'jquery', 'underscore' );
+			$wp_scripts->add( $handle, $src, $deps );
 		}
 
 		$handle = 'customize-snapshots-admin';
@@ -165,10 +170,10 @@ class Plugin extends Plugin_Base {
 	 * Continue allowing support of param customize_snapshot_uuid in 4.7+.
 	 */
 	public function param_back_compat() {
-		if ( isset( $_REQUEST['customize_snapshot_uuid'] ) && ! $this->compat ) {
-			$_REQUEST['customize_changeset_uuid'] = $_REQUEST['customize_snapshot_uuid'];
-			$_GET['customize_changeset_uuid'] = $_REQUEST['customize_snapshot_uuid'];
-			$_POST['customize_changeset_uuid'] = $_REQUEST['customize_snapshot_uuid'];
+		if ( isset( $_REQUEST['customize_snapshot_uuid'] ) && ! $this->compat ) { // WPCS: input var ok. CSRF ok.
+			$_REQUEST['customize_changeset_uuid'] = $_REQUEST['customize_snapshot_uuid']; // WPCS: input var ok. CSRF ok. Sanitization ok.
+			$_GET['customize_changeset_uuid'] = $_REQUEST['customize_snapshot_uuid']; // WPCS: input var ok. CSRF ok. Sanitization ok.
+			$_POST['customize_changeset_uuid'] = $_REQUEST['customize_snapshot_uuid']; // WPCS: input var ok. CSRF ok. Sanitization ok.
 		}
 	}
 }
