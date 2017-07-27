@@ -283,13 +283,13 @@ class Post_Type {
 	public function filter_snapshot_excerpt( $excerpt, $post = null ) {
 		$post = get_post( $post );
 		if ( static::SLUG === $post->post_type ) {
-			$excerpt = '<ol>';
+			$settings = array();
 			foreach ( $this->get_post_content( $post ) as $setting_id => $setting_params ) {
 				if ( ! isset( $setting_params['dirty'] ) || true === $setting_params['dirty'] ) {
-					$excerpt .= sprintf( '<li><code>%s</code></li>', esc_attr( $setting_id ) );
+					$settings[] = $setting_id;
 				}
 			}
-			$excerpt .= '</ol>';
+			$excerpt = join( ', ', array_map( 'esc_html', $settings ) );
 		}
 		return $excerpt;
 	}
@@ -407,7 +407,9 @@ class Post_Type {
 			echo '<li>';
 			echo '<details open>';
 			echo '<summary><code>' . esc_html( $setting_id ) . '</code> ';
-			echo '<a href="#" id="' . esc_attr( $setting_id ) . '" data-text-restore="' . esc_attr__( 'Restore setting', 'customize-snapshots' ) . '" class="snapshot-toggle-setting-removal remove">' . esc_html__( 'Remove setting', 'customize-snapshots' ) . '</a>';
+			if ( 'publish' !== get_post_status( $post ) ) {
+				echo '<a href="#" id="' . esc_attr( $setting_id ) . '" data-text-restore="' . esc_attr__( 'Restore setting', 'customize-snapshots' ) . '" class="snapshot-toggle-setting-removal remove">' . esc_html__( 'Remove setting', 'customize-snapshots' ) . '</a>';
+			}
 
 			// Show error message when there was a publishing error.
 			if ( isset( $setting_params['publish_error'] ) ) {

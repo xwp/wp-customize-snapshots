@@ -15,8 +15,8 @@ module.exports = function( grunt ) {
 			},
 			all: [
 				'Gruntfile.js',
-				'js/*.js',
-				'!js/*.min.js'
+				'js/**/*.js',
+				'!js/**/*.min.js'
 			]
 		},
 
@@ -30,7 +30,7 @@ module.exports = function( grunt ) {
 					expand: true,
 					cwd: 'js/',
 					src: [
-						'**.js',
+						'**/*.js',
 						'!**.min.js'
 					],
 					dest: 'js/',
