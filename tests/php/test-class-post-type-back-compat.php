@@ -66,7 +66,9 @@ class Test_Post_Type_Back_Compat extends \WP_UnitTestCase {
 	 */
 	public function test_show_publish_error_admin_notice() {
 		global $current_screen, $post;
-		wp_set_current_user( $this->factory()->user->create( array( 'role' => 'administrator' ) ) );
+		wp_set_current_user( $this->factory()->user->create( array(
+			'role' => 'administrator',
+		) ) );
 		$post_type_obj = new Post_Type_Back_Compat( $this->plugin->customize_snapshot_manager );
 		$post_type_obj->init();
 		$post_id = $post_type_obj->save( array(
@@ -91,7 +93,10 @@ class Test_Post_Type_Back_Compat extends \WP_UnitTestCase {
 		$this->assertEmpty( ob_get_clean() );
 
 		$_REQUEST['snapshot_error_on_publish'] = '1';
-		wp_update_post( array( 'ID' => $post_id, 'post_status' => 'pending' ) );
+		wp_update_post( array(
+			'ID' => $post_id,
+			'post_status' => 'pending',
+		) );
 		$post = get_post( $post_id ); // WPCS: override ok.
 		ob_start();
 		$post_type_obj->show_publish_error_admin_notice();
@@ -150,12 +155,12 @@ class Test_Post_Type_Back_Compat extends \WP_UnitTestCase {
 		$_POST['_wpnonce'] = $_REQUEST['_wpnonce'] = $_GET['_wpnonce'] = wp_create_nonce( 'bulk-posts' );
 		$_POST['_wp_http_referer'] = $_REQUEST['_wp_http_referer'] = $_GET['_wp_http_referer'] = admin_url();
 		$post_type_obj = $this->getMockBuilder( 'CustomizeSnapshots\Post_Type_Back_Compat' )
-		                      ->setConstructorArgs( array( $this->plugin->customize_snapshot_manager ) )
-		                      ->setMethods( array( 'handle_snapshot_merge' ) )
-		                      ->getMock();
+							  ->setConstructorArgs( array( $this->plugin->customize_snapshot_manager ) )
+							  ->setMethods( array( 'handle_snapshot_merge' ) )
+							  ->getMock();
 		$post_type_obj->expects( $this->once() )
-		              ->method( 'handle_snapshot_merge' )
-		              ->will( $this->returnValue( null ) );
+					  ->method( 'handle_snapshot_merge' )
+					  ->will( $this->returnValue( null ) );
 		$post_type_obj->handle_snapshot_merge_workaround();
 	}
 
@@ -194,7 +199,9 @@ class Test_Post_Type_Back_Compat extends \WP_UnitTestCase {
 	 * @see Post_Type::save()
 	 */
 	function test_publish_snapshot() {
-		$admin_user_id = $this->factory()->user->create( array( 'role' => 'administrator' ) );
+		$admin_user_id = $this->factory()->user->create( array(
+			'role' => 'administrator',
+		) );
 		wp_set_current_user( $admin_user_id );
 		$post_type = get_plugin_instance()->customize_snapshot_manager->post_type;
 		$post_type->init();
@@ -236,7 +243,10 @@ class Test_Post_Type_Back_Compat extends \WP_UnitTestCase {
 			'data' => $data,
 			'status' => 'draft',
 		) );
-		wp_update_post( array( 'ID' => $post_id, 'post_status' => 'draft' ) );
+		wp_update_post( array(
+			'ID' => $post_id,
+			'post_status' => 'draft',
+		) );
 		$content = $post_type->get_post_content( get_post( $post_id ) );
 		$this->assertEquals( $data, $content );
 
