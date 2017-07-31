@@ -120,33 +120,10 @@ var CustomizeSnapshotsFrontend = ( function( $ ) {
 		}
 
 		publishBtn.click( function( e ) {
-			var request,
-				data = {
-					nonce: component.data.snapshotsFrontendPublishNonce,
-					uuid: component.data.uuid
-				};
-			e.preventDefault();
-
 			if ( ! window.confirm( component.data.confirmationMsg ) ) { // eslint-disable-line no-alert
 				return false;
 			}
-			if ( ! wp.customize.settings.theme.active ) {
-				data.stylesheet = wp.customize.settings.theme.stylesheet;
-			}
-			request = wp.ajax.post( component.data.action, data );
-
-			request.done( function( resp ) {
-				if ( resp && resp.success ) {
-					sessionStorage.removeItem( 'customize_changeset_uuid' );
-					window.location = e.target.href;
-				}
-			} );
-			request.fail( function( resp ) {
-				if ( resp && resp.errorMsg ) {
-					window.alert( resp.errorMsg ); // eslint-disable-line no-alert
-				}
-			} );
-
+			sessionStorage.removeItem( 'customize_changeset_uuid' );
 			return true;
 		} );
 	};

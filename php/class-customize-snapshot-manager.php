@@ -108,6 +108,7 @@ class Customize_Snapshot_Manager {
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_frontend_scripts' ) );
 
 		add_action( 'wp_ajax_customize_snapshots_frontend_publish', array( $this, 'ajax_snapshot_frontend_publish' ) );
+		add_action( 'load-edit.php', array( $this, 'snapshot_frontend_publish' ) );
 
 		add_action( 'customize_controls_init', array( $this, 'add_snapshot_uuid_to_return_url' ) );
 		add_action( 'customize_controls_print_footer_scripts', array( $this, 'render_templates' ) );
@@ -674,14 +675,17 @@ class Customize_Snapshot_Manager {
 		if ( ! $post ) {
 			return;
 		}
+
+		$href = "edit.php?post_type=customize_changeset&amp;action=publish&amp;uuid=$this->current_snapshot_uuid";
+
+		if ( isset( $_GET['customize_theme'] ) ) {
+			$href .= '&amp;stylesheet=' . sanitize_text_field( wp_unslash( $_GET['customize_theme'] ) );
+		}
+
 		$wp_admin_bar->add_menu( array(
 			'id' => 'publish-customize-snapshot',
 			'title' => __( 'Publish Changeset', 'customize-snapshots' ),
-			'href' => remove_query_arg( array(
-				$this->get_front_uuid_param(),
-				'theme',
-				$this->get_customize_uuid_param(),
-			) ),
+			'href' => admin_url( wp_nonce_url( $href, 'publish-changeset_' . $this->current_snapshot_uuid ) ),
 			'meta' => array(
 				'class' => 'ab-item ab-customize-snapshots-item',
 			),
@@ -1056,24 +1060,22 @@ class Customize_Snapshot_Manager {
 	/**
 	 * Publishes changeset from frontend.
 	 */
-	public function ajax_snapshot_frontend_publish() {
-		if ( ! check_ajax_referer( 'customize-snapshots-frontend-publish', 'nonce' ) ) {
-			status_header( 400 );
-			wp_send_json_error( 'bad_nonce' );
-		}
+	public function snapshot_frontend_publish() {
 
 		if ( ! current_user_can( get_post_type_object( 'customize_changeset' )->cap->publish_posts ) ) {
-			status_header( 403 );
-			wp_send_json_error( 'insufficient_post_permissions' );
+			wp_die( 'insufficient_post_permissions', 403 );
 		}
 
-		if ( ! isset( $_POST['uuid'] ) ) {
-			wp_send_json_error();
+		if ( ! isset( $_GET['uuid'] ) ) {
+			wp_die( __( 'UUID missing.' ), 403 );
 		}
+		$this->current_snapshot_uuid = sanitize_key( wp_unslash( $_GET['uuid'] ) );
 
-		$this->current_snapshot_uuid = sanitize_key( wp_unslash( $_POST['uuid'] ) );
-		if ( isset( $_POST['stylesheet'] ) ) {
-			$this->stylesheet = sanitize_text_field( wp_unslash( $_POST['stylesheet'] ) );
+		check_admin_referer( 'publish-changeset_' . $this->current_snapshot_uuid );
+
+
+		if ( isset( $_GET['stylesheet'] ) ) {
+			$this->stylesheet = sanitize_text_field( wp_unslash( $_GET['stylesheet'] ) );
 		}
 		$this->ensure_customize_manager();
 		$r = $this->customize_manager->save_changeset_post( array(
@@ -1083,9 +1085,18 @@ class Customize_Snapshot_Manager {
 		if ( is_wp_error( $r ) ) {
 			$msg = __( 'Publishing failed: ', 'customize-snapshots' );
 			$msg .= join( '; ', array_keys( $r->errors ) );
-			wp_send_json_error( array( 'errorMsg' => $msg ) );
+			wp_die(
+				'<p>' . $msg . '</p>',
+				403
+			);
 		} else {
-			wp_send_json_success( array( 'success' => true ) );
+			$sendback = remove_query_arg( array(
+				$this->get_front_uuid_param(),
+				'customize_theme',
+				$this->get_customize_uuid_param(),
+			), wp_get_referer() );
+			wp_redirect( $sendback );
+			exit();
 		}
 	}
 
