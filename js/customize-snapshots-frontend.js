@@ -119,7 +119,7 @@ var CustomizeSnapshotsFrontend = ( function( $ ) {
 			return;
 		}
 
-		publishBtn.click( function( e ) {
+		publishBtn.click( function() {
 			if ( ! window.confirm( component.data.confirmationMsg ) ) { // eslint-disable-line no-alert
 				return false;
 			}

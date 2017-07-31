@@ -1067,12 +1067,11 @@ class Customize_Snapshot_Manager {
 		}
 
 		if ( ! isset( $_GET['uuid'] ) ) {
-			wp_die( __( 'UUID missing.' ), 403 );
+			wp_die( __( 'UUID missing.', 'customize-snapshots' ), 403 );
 		}
 		$this->current_snapshot_uuid = sanitize_key( wp_unslash( $_GET['uuid'] ) );
 
 		check_admin_referer( 'publish-changeset_' . $this->current_snapshot_uuid );
-
 
 		if ( isset( $_GET['stylesheet'] ) ) {
 			$this->stylesheet = sanitize_text_field( wp_unslash( $_GET['stylesheet'] ) );
