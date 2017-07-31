@@ -1062,14 +1062,14 @@ class Customize_Snapshot_Manager {
 	 */
 	public function snapshot_frontend_publish() {
 
+		if ( ! isset( $_GET['uuid'] ) || ! isset( $_GET['action'] ) || 'publish' !== $_GET['action'] ) {
+			return;
+		}
+		$this->current_snapshot_uuid = sanitize_key( wp_unslash( $_GET['uuid'] ) );
+
 		if ( ! current_user_can( get_post_type_object( 'customize_changeset' )->cap->publish_posts ) ) {
 			wp_die( 'insufficient_post_permissions', 403 );
 		}
-
-		if ( ! isset( $_GET['uuid'] ) ) {
-			wp_die( __( 'UUID missing.', 'customize-snapshots' ), 403 );
-		}
-		$this->current_snapshot_uuid = sanitize_key( wp_unslash( $_GET['uuid'] ) );
 
 		check_admin_referer( 'publish-changeset_' . $this->current_snapshot_uuid );
 
