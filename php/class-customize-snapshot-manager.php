@@ -107,7 +107,6 @@ class Customize_Snapshot_Manager {
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_frontend_scripts' ) );
 
-		add_action( 'wp_ajax_customize_snapshots_frontend_publish', array( $this, 'ajax_snapshot_frontend_publish' ) );
 		add_action( 'load-edit.php', array( $this, 'snapshot_frontend_publish' ) );
 
 		add_action( 'customize_controls_init', array( $this, 'add_snapshot_uuid_to_return_url' ) );
@@ -376,8 +375,6 @@ class Customize_Snapshot_Manager {
 				'restoreSessionPrompt' => __( 'It seems you may have inadvertently navigated away from previewing a customized state. Would you like to restore the changeset context?', 'customize-snapshots' ),
 			),
 			'confirmationMsg' => __( 'Are you sure that you want to publish the Changeset?', 'customize-snapshots' ),
-			'snapshotsFrontendPublishNonce' => wp_create_nonce( 'customize-snapshots-frontend-publish' ),
-			'action' => 'customize_snapshots_frontend_publish',
 		);
 		wp_add_inline_script(
 			$handle,
@@ -676,16 +673,19 @@ class Customize_Snapshot_Manager {
 			return;
 		}
 
-		$href = "edit.php?post_type=customize_changeset&amp;action=publish&amp;uuid=$this->current_snapshot_uuid";
-
-		if ( isset( $_GET['customize_theme'] ) ) {
-			$href .= '&amp;stylesheet=' . sanitize_text_field( wp_unslash( $_GET['customize_theme'] ) );
-		}
-
+		$href = add_query_arg(
+			array(
+				'post_type' => 'customize_changeset',
+				'action' => 'frontend_publish',
+				'uuid' => $this->current_snapshot_uuid,
+				'stylesheet' => get_stylesheet(),
+			),
+			admin_url( 'edit.php' )
+		);
 		$wp_admin_bar->add_menu( array(
 			'id' => 'publish-customize-snapshot',
 			'title' => __( 'Publish Changeset', 'customize-snapshots' ),
-			'href' => admin_url( wp_nonce_url( $href, 'publish-changeset_' . $this->current_snapshot_uuid ) ),
+			'href' => wp_nonce_url( $href, 'publish-changeset_' . $this->current_snapshot_uuid ),
 			'meta' => array(
 				'class' => 'ab-item ab-customize-snapshots-item',
 			),
@@ -1062,10 +1062,14 @@ class Customize_Snapshot_Manager {
 	 */
 	public function snapshot_frontend_publish() {
 
-		if ( ! isset( $_GET['uuid'] ) || ! isset( $_GET['action'] ) || 'publish' !== $_GET['action'] ) {
+		if ( ! isset( $_GET['uuid'] ) || ! isset( $_GET['action'] ) || 'frontend_publish' !== $_GET['action'] ) {
 			return;
 		}
-		$this->current_snapshot_uuid = sanitize_key( wp_unslash( $_GET['uuid'] ) );
+		$uuid = sanitize_key( wp_unslash( $_GET['uuid'] ) );
+		if ( ! static::is_valid_uuid( $uuid ) ) {
+			return;
+		}
+		$this->current_snapshot_uuid = $uuid;
 
 		if ( ! current_user_can( get_post_type_object( 'customize_changeset' )->cap->publish_posts ) ) {
 			wp_die( 'insufficient_post_permissions', 403 );
@@ -1074,8 +1078,13 @@ class Customize_Snapshot_Manager {
 		check_admin_referer( 'publish-changeset_' . $this->current_snapshot_uuid );
 
 		if ( isset( $_GET['stylesheet'] ) ) {
-			$this->stylesheet = sanitize_text_field( wp_unslash( $_GET['stylesheet'] ) );
+			$theme = wp_get_theme( wp_unslash( $_GET['stylesheet'] ) );
+			if ( $theme->errors() ) {
+				wp_die( 'invalid_theme', 400 );
+			}
+			$this->stylesheet = $theme->get_stylesheet();
 		}
+
 		$this->ensure_customize_manager();
 		$r = $this->customize_manager->save_changeset_post( array(
 			'status' => 'publish',
@@ -1089,11 +1098,19 @@ class Customize_Snapshot_Manager {
 				403
 			);
 		} else {
+			$referer = wp_get_referer();
+
+			// Ensure redirect is set to frontend.
+			if ( empty( $referer ) || false !== strpos( parse_url( $referer, PHP_URL_PATH ), '/wp-admin/' ) ) {
+				$referer = home_url();
+			}
+
 			$sendback = remove_query_arg( array(
 				$this->get_front_uuid_param(),
 				'customize_theme',
 				$this->get_customize_uuid_param(),
-			), wp_get_referer() );
+			), $referer );
+
 			wp_redirect( $sendback );
 			exit();
 		}

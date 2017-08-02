@@ -12,10 +12,7 @@ var CustomizeSnapshotsFrontend = ( function( $ ) {
 			l10n: {
 				restoreSessionPrompt: ''
 			},
-			confirmationMsg: '',
-			action: '',
-			snapshotsFrontendPublishNonce: '',
-			errorMsg: ''
+			confirmationMsg: ''
 		}
 	};
 
