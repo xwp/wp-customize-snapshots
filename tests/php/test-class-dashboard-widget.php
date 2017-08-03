@@ -115,13 +115,8 @@ class Test_Dashboard_Widget extends \WP_UnitTestCase {
 		$_SERVER['REQUEST_METHOD'] = 'POST';
 
 		// Mock handle_snapshot_merge_bulk_actions.
-		$post_type_obj = $this->getMockBuilder( get_class( $post_type_obj ) )
-		                      ->setConstructorArgs( array( $manager ) )
-		                      ->setMethods( array( 'merge_snapshots' ) )
-		                      ->getMock();
-		$post_type_obj->expects( $this->once() )
-		              ->method( 'merge_snapshots' )
-		              ->will( $this->returnValue( null ) );
+		$post_type_obj = $this->getMockBuilder( get_class( $post_type_obj ) )->setConstructorArgs( array( $manager ) )->setMethods( array( 'merge_snapshots' ) )->getMock();
+		$post_type_obj->expects( $this->once() )->method( 'merge_snapshots' )->will( $this->returnValue( null ) );
 		$manager->post_type = $post_type_obj;
 		$dashboard = new Dashboard_Widget( $manager );
 		$dashboard->handle_future_snapshot_preview_request();

@@ -94,8 +94,11 @@ class Dashboard_Widget {
 						<span class="screen-reader-text"><?php esc_html_e( 'Month', 'customize-snapshots' ); ?></span>
 						<?php $month = $this->manager->get_month_choices(); ?>
 						<select id="snapshot-date-month" class="date-input month" data-date-input="month" name="month">
-							<?php foreach ( $month['month_choices'] as $month_choice ) {
-								echo '<option value="' . esc_attr( $month_choice['value'] ) . '" ' . selected( $date_time->format( 'm' ), $month_choice['value'], false ) . '>' . esc_html( $month_choice['text'] ) . '</option>';} ?>
+							<?php
+							foreach ( $month['month_choices'] as $month_choice ) {
+								echo '<option value="' . esc_attr( $month_choice['value'] ) . '" ' . selected( $date_time->format( 'm' ), $month_choice['value'], false ) . '>' . esc_html( $month_choice['text'] ) . '</option>';
+							}
+							?>
 						</select>
 					</label>
 					<label>
@@ -117,8 +120,10 @@ class Dashboard_Widget {
 						<span class="screen-reader-text"><?php esc_html_e( 'Minute', 'customize-snapshots' ); ?></span>
 						<input type="number" size="2" maxlength="2" autocomplete="off" class="date-input minute" data-date-input="minute" min="0" max="59" value="<?php echo intval( $date_time->format( 'i' ) ); ?>" name="minute" />
 					</label>
-					<?php wp_nonce_field( 'customize_site_state_future_snapshot_preview' );
-					submit_button( 'Preview', 'primary', 'customize-future-snapshot-preview', false ); ?>
+					<?php
+					wp_nonce_field( 'customize_site_state_future_snapshot_preview' );
+					submit_button( 'Preview', 'primary', 'customize-future-snapshot-preview', false );
+					?>
 			</div>
 		</form>
 		<?php
