@@ -66,6 +66,15 @@ class Post_Type {
 	}
 
 	/**
+	 * Get the post type slug.
+	 *
+	 * @return string Post type slug.
+	 */
+	public function get_slug() {
+		return static::SLUG;
+	}
+
+	/**
 	 * Calls common hooks Actions and filters
 	 */
 	public function hooks() {
