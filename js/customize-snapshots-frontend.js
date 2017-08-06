@@ -11,7 +11,8 @@ var CustomizeSnapshotsFrontend = ( function( $ ) {
 			uuid: '',
 			l10n: {
 				restoreSessionPrompt: ''
-			}
+			},
+			confirmationMsg: ''
 		}
 	};
 
@@ -30,6 +31,12 @@ var CustomizeSnapshotsFrontend = ( function( $ ) {
 		component.keepSessionAlive();
 		component.rememberSessionSnapshot();
 		component.handleExitSnapshotSessionLink();
+
+		if ( component.data.uuid ) {
+			$( document ).ready( function() {
+				component.setupPublishButton();
+			} );
+		}
 	};
 
 	/**
@@ -75,7 +82,8 @@ var CustomizeSnapshotsFrontend = ( function( $ ) {
 	 * @returns {void}
 	 */
 	component.rememberSessionSnapshot = function rememberSessionSnapshot() {
-		if ( ! component.hasSessionStorage || ! component.data.uuid ) {
+		var isCustomizerFramePreview = /(^|\?|&)customize_messenger_channel=/.test( location.search );
+		if ( ! component.hasSessionStorage || ! component.data.uuid || isCustomizerFramePreview ) {
 			return;
 		}
 		sessionStorage.setItem( 'customize_changeset_uuid', component.data.uuid );
@@ -94,6 +102,27 @@ var CustomizeSnapshotsFrontend = ( function( $ ) {
 			$( '#wpadminbar' ).on( 'click', '#wp-admin-bar-exit-customize-snapshot', function() {
 				sessionStorage.removeItem( 'customize_changeset_uuid' );
 			} );
+		} );
+	};
+
+	/**
+	 * Set up changesets frontend publish button in admin bar.
+	 *
+	 * @returns {void}
+	 */
+	component.setupPublishButton = function setupPublishButton() {
+		var publishBtn = $( '#wp-admin-bar-publish-customize-changeset a' );
+
+		if ( ! publishBtn.length ) {
+			return;
+		}
+
+		publishBtn.click( function() {
+			if ( ! window.confirm( component.data.confirmationMsg ) ) { // eslint-disable-line no-alert
+				return false;
+			}
+			sessionStorage.removeItem( 'customize_changeset_uuid' );
+			return true;
 		} );
 	};
 
