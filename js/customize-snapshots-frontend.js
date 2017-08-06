@@ -75,7 +75,8 @@ var CustomizeSnapshotsFrontend = ( function( $ ) {
 	 * @returns {void}
 	 */
 	component.rememberSessionSnapshot = function rememberSessionSnapshot() {
-		if ( ! component.hasSessionStorage || ! component.data.uuid ) {
+		var isCustomizerFramePreview = /(^|\?|&)customize_messenger_channel=/.test( location.search );
+		if ( ! component.hasSessionStorage || ! component.data.uuid || isCustomizerFramePreview ) {
 			return;
 		}
 		sessionStorage.setItem( 'customize_changeset_uuid', component.data.uuid );
