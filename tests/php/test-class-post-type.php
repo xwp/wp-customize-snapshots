@@ -88,7 +88,6 @@ class Test_Post_Type extends \WP_UnitTestCase {
 		$this->assertEquals( 5, has_filter( 'map_meta_cap', array( $post_type_obj, 'remap_customize_meta_cap' ) ) );
 		$this->assertEquals( 10, has_filter( 'bulk_actions-edit-' . Post_Type::SLUG, array( $post_type_obj, 'add_snapshot_bulk_actions' ) ) );
 		$this->assertEquals( 10, has_filter( 'handle_bulk_actions-edit-' . Post_Type::SLUG, array( $post_type_obj, 'handle_snapshot_merge' ) ) );
-		$this->assertEquals( 10, has_action( 'admin_print_styles-edit.php', array( $post_type_obj, 'hide_add_new_changeset_button' ) ) );
 	}
 
 	/**
@@ -958,22 +957,4 @@ class Test_Post_Type extends \WP_UnitTestCase {
 		$this->mark_incompatible();
 		$this->markTestIncomplete();
 	}
-
-	/**
-	 * Test hide_add_new_changeset_button
-	 *
-	 * @covers \CustomizeSnapshots\Post_Type::hide_add_new_changeset_button()
-	 */
-	public function test_hide_add_new_changeset_button() {
-		$this->mark_incompatible();
-		$post_type_obj = new Post_Type( $this->plugin->customize_snapshot_manager );
-		global $typenow;
-		$typenow = Post_Type::SLUG; // WPCS: Global override ok.
-		ob_start();
-		$post_type_obj->hide_add_new_changeset_button();
-		$content = ob_get_clean();
-		$this->assertContains( 'a.page-title-action', $content );
-		$this->assertContains( 'display: none;', $content );
-	}
-
 }
