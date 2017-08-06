@@ -1075,12 +1075,28 @@ class Customize_Snapshot_Manager {
 			wp_die( 'insufficient_post_permissions', 403 );
 		}
 
-		check_admin_referer( 'publish-changeset_' . $this->current_snapshot_uuid );
+		if ( ! check_ajax_referer( 'publish-changeset_' . $this->current_snapshot_uuid, false, false ) ) {
+			wp_die(
+				esc_html__( 'Oops. Unable to publish the changeset due to an expired user session. Please go back, reload the page, and try publishing again.', 'customize-snapshots' ),
+				esc_html__( 'Changeset publishing failed', 'customize-snapshots' ),
+				array(
+					'back_link' => true,
+				)
+			);
+		}
 
 		if ( isset( $_GET['stylesheet'] ) ) {
 			$theme = wp_get_theme( wp_unslash( $_GET['stylesheet'] ) );
 			if ( $theme->errors() ) {
-				wp_die( 'invalid_theme', 400 );
+				$msg = __( 'Oops. Unable to publish the changeset. The following error(s) occurred: ', 'customize-snapshots' );
+				$msg .= join( '; ', array_keys( $theme->errors()->errors ) );
+				wp_die(
+					'<p>' . esc_html( $msg ) . '</p>',
+					esc_html__( 'Changeset publishing failed', 'customize-snapshots' ),
+					array(
+						'back_link' => true,
+					)
+				);
 			}
 			$this->stylesheet = $theme->get_stylesheet();
 		}
@@ -1091,11 +1107,14 @@ class Customize_Snapshot_Manager {
 		) );
 
 		if ( is_wp_error( $r ) ) {
-			$msg = __( 'Publishing failed: ', 'customize-snapshots' );
+			$msg = __( 'Oops. Unable to publish the changeset. The following error(s) occurred: ', 'customize-snapshots' );
 			$msg .= join( '; ', array_keys( $r->errors ) );
 			wp_die(
-				'<p>' . $msg . '</p>',
-				403
+				'<p>' . esc_html( $msg ) . '</p>',
+				esc_html__( 'Changeset publishing failed', 'customize-snapshots' ),
+				array(
+					'back_link' => true,
+				)
 			);
 		} else {
 			$referer = wp_get_referer();
