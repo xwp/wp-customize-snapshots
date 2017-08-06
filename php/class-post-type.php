@@ -111,7 +111,12 @@ class Post_Type {
 		add_filter( 'map_meta_cap', array( $this, 'remap_customize_meta_cap' ), 5, 4 );
 		add_filter( 'bulk_actions-edit-' . static::SLUG, array( $this, 'add_snapshot_bulk_actions' ) );
 		add_filter( 'handle_bulk_actions-edit-' . static::SLUG, array( $this, 'handle_snapshot_merge' ), 10, 3 );
-		add_action( 'admin_print_styles-edit.php', array( $this, 'hide_add_new_changeset_button' ) );
+		add_action( 'load-post-new.php', function() {
+			if ( static::SLUG === get_current_screen()->post_type ) {
+				wp_redirect( wp_customize_url() );
+				exit;
+			}
+		} );
 	}
 
 	/**
@@ -761,22 +766,6 @@ class Post_Type {
 			}
 		</style>
 		<?php
-	}
-
-	/**
-	 * Hide add new button for customize_changeset post_type.
-	 */
-	public function hide_add_new_changeset_button() {
-		global $typenow;
-		if ( static::SLUG === $typenow ) {
-			?>
-			<style>
-				a.page-title-action {
-					display: none;
-				}
-			</style>
-			<?php
-		}
 	}
 
 	/**
