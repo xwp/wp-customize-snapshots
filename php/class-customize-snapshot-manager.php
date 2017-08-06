@@ -642,7 +642,7 @@ class Customize_Snapshot_Manager {
 	 * @param \WP_Admin_Bar $wp_admin_bar WP_Admin_Bar instance.
 	 */
 	public function add_post_edit_screen_link( $wp_admin_bar ) {
-		if ( ! $this->snapshot ) {
+		if ( ! $this->snapshot || ! current_user_can( get_post_type_object( $this->post_type->get_slug() )->cap->edit_posts ) ) {
 			return;
 		}
 		$post = $this->snapshot->post();
@@ -665,7 +665,7 @@ class Customize_Snapshot_Manager {
 	 * @param \WP_Admin_Bar $wp_admin_bar WP_Admin_Bar instance.
 	 */
 	public function add_publish_changeset_link( $wp_admin_bar ) {
-		if ( ! $this->snapshot ) {
+		if ( ! $this->snapshot || ! current_user_can( get_post_type_object( $this->post_type->get_slug() )->cap->publish_posts ) ) {
 			return;
 		}
 		$post = $this->snapshot->post();
@@ -675,7 +675,7 @@ class Customize_Snapshot_Manager {
 
 		$href = add_query_arg(
 			array(
-				'post_type' => 'customize_changeset',
+				'post_type' => $this->post_type->get_slug(),
 				'action' => 'frontend_publish',
 				'uuid' => $this->current_snapshot_uuid,
 				'stylesheet' => get_stylesheet(),
@@ -717,7 +717,7 @@ class Customize_Snapshot_Manager {
 	 * @param \WP_Admin_Bar $wp_admin_bar Admin bar.
 	 */
 	public function remove_all_non_snapshot_admin_bar_links( $wp_admin_bar ) {
-		if ( empty( $this->snapshot ) ) {
+		if ( empty( $this->snapshot ) || ! current_user_can( 'customize' ) ) {
 			return;
 		}
 		$snapshot_admin_bar_node_ids = array(
@@ -1071,16 +1071,18 @@ class Customize_Snapshot_Manager {
 		}
 		$this->current_snapshot_uuid = $uuid;
 
-		if ( ! current_user_can( get_post_type_object( 'customize_changeset' )->cap->publish_posts ) ) {
-			wp_die( 'insufficient_post_permissions', 403 );
-		}
-
-		if ( ! check_ajax_referer( 'publish-changeset_' . $this->current_snapshot_uuid, false, false ) ) {
+		$is_user_authorized = (
+			check_ajax_referer( 'publish-changeset_' . $this->current_snapshot_uuid, false, false )
+			&&
+			current_user_can( get_post_type_object( $this->post_type->get_slug() )->cap->publish_posts )
+		);
+		if ( ! $is_user_authorized ) {
 			wp_die(
 				esc_html__( 'Oops. Unable to publish the changeset due to an expired user session. Please go back, reload the page, and try publishing again.', 'customize-snapshots' ),
 				esc_html__( 'Changeset publishing failed', 'customize-snapshots' ),
 				array(
 					'back_link' => true,
+					'response' => 401,
 				)
 			);
 		}
@@ -1095,6 +1097,7 @@ class Customize_Snapshot_Manager {
 					esc_html__( 'Changeset publishing failed', 'customize-snapshots' ),
 					array(
 						'back_link' => true,
+						'response' => 400,
 					)
 				);
 			}
@@ -1114,6 +1117,7 @@ class Customize_Snapshot_Manager {
 				esc_html__( 'Changeset publishing failed', 'customize-snapshots' ),
 				array(
 					'back_link' => true,
+					'response' => 500,
 				)
 			);
 		} else {
