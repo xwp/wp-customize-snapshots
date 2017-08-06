@@ -107,7 +107,7 @@ class Customize_Snapshot_Manager {
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_frontend_scripts' ) );
 
-		add_action( 'load-edit.php', array( $this, 'snapshot_frontend_publish' ) );
+		add_action( 'load-edit.php', array( $this, 'handle_frontend_changset_publish' ) );
 
 		add_action( 'customize_controls_init', array( $this, 'add_snapshot_uuid_to_return_url' ) );
 		add_action( 'customize_controls_print_footer_scripts', array( $this, 'render_templates' ) );
@@ -518,7 +518,7 @@ class Customize_Snapshot_Manager {
 		$this->add_changesets_admin_bar_link( $wp_admin_bar );
 		$this->add_resume_snapshot_link( $wp_admin_bar );
 		$this->add_post_edit_screen_link( $wp_admin_bar );
-		$this->add_publish_snapshot_link( $wp_admin_bar );
+		$this->add_publish_changeset_link( $wp_admin_bar );
 		$this->add_snapshot_exit_link( $wp_admin_bar );
 	}
 
@@ -540,7 +540,7 @@ class Customize_Snapshot_Manager {
 				content: "\f179";
 				top: 2px;
 			}
-			#wpadminbar #wp-admin-bar-publish-customize-snapshot > .ab-item:before {
+			#wpadminbar #wp-admin-bar-publish-customize-changeset > .ab-item:before {
 				content: "\f147";
 				top: 2px;
 			}
@@ -664,7 +664,7 @@ class Customize_Snapshot_Manager {
 	 *
 	 * @param \WP_Admin_Bar $wp_admin_bar WP_Admin_Bar instance.
 	 */
-	public function add_publish_snapshot_link( $wp_admin_bar ) {
+	public function add_publish_changeset_link( $wp_admin_bar ) {
 		if ( ! $this->snapshot ) {
 			return;
 		}
@@ -683,7 +683,7 @@ class Customize_Snapshot_Manager {
 			admin_url( 'edit.php' )
 		);
 		$wp_admin_bar->add_menu( array(
-			'id' => 'publish-customize-snapshot',
+			'id' => 'publish-customize-changeset',
 			'title' => __( 'Publish Changeset', 'customize-snapshots' ),
 			'href' => wp_nonce_url( $href, 'publish-changeset_' . $this->current_snapshot_uuid ),
 			'meta' => array(
@@ -724,7 +724,7 @@ class Customize_Snapshot_Manager {
 			'customize',
 			'exit-customize-snapshot',
 			'inspect-customize-snapshot',
-			'publish-customize-snapshot',
+			'publish-customize-changeset',
 		);
 		foreach ( $wp_admin_bar->get_nodes() as $node ) {
 			if ( in_array( $node->id, $snapshot_admin_bar_node_ids, true ) || '#' === substr( $node->href, 0, 1 ) ) {
@@ -1058,9 +1058,9 @@ class Customize_Snapshot_Manager {
 	}
 
 	/**
-	 * Publishes changeset from frontend.
+	 * Handles request to publish changeset from frontend.
 	 */
-	public function snapshot_frontend_publish() {
+	public function handle_frontend_changset_publish() {
 
 		if ( ! isset( $_GET['uuid'] ) || ! isset( $_GET['action'] ) || 'frontend_publish' !== $_GET['action'] ) {
 			return;

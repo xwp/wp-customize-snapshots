@@ -105,12 +105,12 @@ var CustomizeSnapshotsFrontend = ( function( $ ) {
 	};
 
 	/**
-	 * Set up snapshot frontend publish button.
+	 * Set up changesets frontend publish button in admin bar.
 	 *
 	 * @returns {void}
 	 */
 	component.setupPublishButton = function setupPublishButton() {
-		var publishBtn = $( '#wp-admin-bar-publish-customize-snapshot a' );
+		var publishBtn = $( '#wp-admin-bar-publish-customize-changeset a' );
 
 		if ( ! publishBtn.length ) {
 			return;
