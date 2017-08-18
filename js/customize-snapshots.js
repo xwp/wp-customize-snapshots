@@ -728,39 +728,69 @@
 		 * @returns {void}
 		 */
 		setUpPreviewLink: function setUpPreviewLink() {
-			var snapshot = this;
+			var snapshot = this, setPreviewLinkHref;
 
 			snapshot.previewLink = $( $.trim( wp.template( 'snapshot-preview-link' )() ) );
 			snapshot.previewLink.attr( 'target', snapshot.data.uuid );
 			snapshot.previewLink.href = snapshot.frontendPreviewUrl.get();
 
-			snapshot.previewLink.click( function( e ) {
-				var onceProcessingComplete;
-				e.preventDefault();
+			setPreviewLinkHref = _.debounce( function() {
+				var queryVars;
 
-				snapshot.previewLink.href = snapshot.getSnapshotFrontendPreviewUrl();
+				snapshot.updateSnapshotPreviewLinkHref( false );
 
-				onceProcessingComplete = function() {
-					var request;
-					if ( api.state( 'processing' ).get() > 0 ) {
-						return;
-					}
-
-					api.state( 'processing' ).unbind( onceProcessingComplete );
-					request = api.requestChangesetUpdate();
-
-					request.done( function() {
-						window.open( snapshot.previewLink.href );
-					} );
-				};
-
-				if ( 0 === api.state( 'processing' ).get() ) {
-					onceProcessingComplete();
-				} else {
-					api.state( 'processing' ).bind( onceProcessingComplete );
+				// Add the customize_theme param to the frontend URL if the theme is not active.
+				if ( ! api.state( 'activated' ).get() ) {
+					queryVars = snapshot.parseQueryString( snapshot.previewLink.prop( 'search' ).substr( 1 ) );
+					queryVars.customize_theme = api.settings.theme.stylesheet;
+					snapshot.previewLink.prop( 'search', $.param( queryVars ) );
 				}
 			} );
+
+			snapshot.previewLink.click( function( e ) {
+				e.preventDefault();
+				snapshot.updateSnapshotPreviewLinkHref( true );
+			} );
+
+			snapshot.frontendPreviewUrl.bind( setPreviewLinkHref );
+			api.state.bind( 'change', setPreviewLinkHref );
+			api.bind( 'saved', setPreviewLinkHref );
 			$( '#customize-footer-actions .devices button' ).first().before( snapshot.previewLink );
+		},
+
+		/**
+		 * Updates the snapshot preview link href and opens the link when defined.
+		 *
+		 * @param {boolean} openLink If to open the link.
+		 * @returns {void}
+		 */
+		updateSnapshotPreviewLinkHref: function updateSnapshotPreviewLinkHref( openLink ) {
+			var onceProcessingComplete,
+				snapshot = this;
+
+			onceProcessingComplete = function() {
+				var request, href;
+				if ( api.state( 'processing' ).get() > 0 ) {
+					return;
+				}
+
+				api.state( 'processing' ).unbind( onceProcessingComplete );
+				request = api.requestChangesetUpdate();
+
+				request.done( function() {
+					href = snapshot.getSnapshotFrontendPreviewUrl();
+					snapshot.previewLink.attr( 'href', href );
+					if ( openLink ) {
+						window.open( href );
+					}
+				} );
+			};
+
+			if ( 0 === api.state( 'processing' ).get() ) {
+				onceProcessingComplete();
+			} else {
+				api.state( 'processing' ).bind( onceProcessingComplete );
+			}
 		},
 
 		/**
