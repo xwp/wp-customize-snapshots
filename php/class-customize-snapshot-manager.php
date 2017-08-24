@@ -1112,7 +1112,7 @@ class Customize_Snapshot_Manager {
 		return $allcaps;
 	}
 
-    /**
+	/**
 	 * Handles request to publish changeset from frontend.
 	 */
 	public function handle_frontend_changset_publish() {
