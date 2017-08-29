@@ -6,20 +6,52 @@
 	color: #656a6f;
 }
 
-#snapshot-expand-button {
-	display: block;
+#snapshot-preview-link {
+	float: none;
+	width: 36px;
+	cursor: pointer;
+	background: transparent;
+	border: none;
+	height: 45px;
+	padding: 0 3px;
+	margin: 0 4px 0 0;
+	-webkit-box-shadow: none;
+	box-shadow: none;
+	border-top: 1px solid transparent;
+	border-bottom: 4px solid transparent;
+	-webkit-transition: .15s color ease-in-out, .15s background-color ease-in-out, .15s border-color ease-in-out;
+	transition: .15s color ease-in-out, .15s background-color ease-in-out, .15s border-color ease-in-out;
 }
 
-#snapshot-expand-button:hover,
+#snapshot-preview-link:hover,
 #snapshot-expand-button:focus,
 #snapshot-expand-button:active {
-	color: #191e23;
+	background-color: #fff;
+}
+
+#snapshot-preview-link:before {
+	display: inline-block;
+	-webkit-font-smoothing: antialiased;
+	font: normal 20px/30px "dashicons";
+	vertical-align: top;
+	margin: 3px 0;
+	padding: 4px 8px;
+	color: #656a6f;
+	content: "\f504";
+}
+
+#snapshot-expand-button {
+	display: block;
 }
 
 #snapshot-preview-link:hover,
 #snapshot-preview-link:focus,
 #snapshot-preview-link:active {
 	color: #191e23;
+}
+
+#snapshot-preview-link:hover:before {
+	color: #0073aa;
 }
 
 #snapshot-save {
@@ -347,4 +379,3 @@
 	outline-width: 2px;
 	outline-offset: -2px;
 }
-

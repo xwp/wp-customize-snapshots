@@ -241,7 +241,6 @@
 				snapshot.statusButton.disableSelect.set( isPublishStatus );
 				snapshot.statusButton.disbleButton.set( true );
 				snapshot.snapshotExpandButton.toggle( ! isPublishStatus );
-				snapshot.previewLink.toggle( ! isPublishStatus );
 
 				if ( isPublishStatus ) {
 					snapshot.removeParamFromClose( 'customize_changeset_uuid' );
@@ -316,7 +315,7 @@
 		 */
 		addButtons: function addButtons() {
 			var snapshot = this, disableButton = true, disableSelectButton = true,
-				setPreviewLinkHref, currentTheme, savedPreviewingTheme, themeNotActiveOrSaved;
+				currentTheme, savedPreviewingTheme, themeNotActiveOrSaved;
 
 			snapshot.spinner = $( '#customize-header-actions' ).find( '.spinner' );
 			snapshot.publishButton = $( '#save' );
@@ -333,6 +332,7 @@
 				}
 			}
 
+			snapshot.setUpPreviewLink();
 			currentTheme = api.settings.theme.stylesheet; // Or previewing theme.
 			savedPreviewingTheme = snapshot.data.previewingTheme;
 			themeNotActiveOrSaved = ! api.state( 'activated' ).get() && ! savedPreviewingTheme;
@@ -346,41 +346,12 @@
 			snapshot.statusButton.disbleButton.set( disableButton );
 			snapshot.statusButton.disableSelect.set( disableSelectButton );
 
-			// Preview link.
-			snapshot.previewLink = $( $.trim( wp.template( 'snapshot-preview-link' )() ) );
-			snapshot.previewLink.toggle( api.state( 'snapshot-saved' ).get() );
-			snapshot.previewLink.attr( 'target', snapshot.data.uuid );
-			setPreviewLinkHref = _.debounce( function() {
-				var queryVars;
-				if ( api.state( 'snapshot-exists' ).get() ) {
-					snapshot.previewLink.attr( 'href', snapshot.getSnapshotFrontendPreviewUrl() );
-				} else {
-					snapshot.previewLink.attr( 'href', snapshot.frontendPreviewUrl.get() );
-				}
-
-				// Add the customize_theme param to the frontend URL if the theme is not active.
-				if ( ! api.state( 'activated' ).get() ) {
-					queryVars = snapshot.parseQueryString( snapshot.previewLink.prop( 'search' ).substr( 1 ) );
-					queryVars.customize_theme = api.settings.theme.stylesheet;
-					snapshot.previewLink.prop( 'search', $.param( queryVars ) );
-				}
-			} );
-			snapshot.frontendPreviewUrl.bind( setPreviewLinkHref );
-			setPreviewLinkHref();
-			api.state.bind( 'change', setPreviewLinkHref );
-			api.bind( 'saved', setPreviewLinkHref );
-			snapshot.statusButton.container.after( snapshot.previewLink );
-			api.state( 'snapshot-saved' ).bind( function( saved ) {
-				snapshot.previewLink.toggle( saved );
-			} );
-
 			// Edit button.
 			snapshot.snapshotExpandButton = $( $.trim( wp.template( 'snapshot-expand-button' )( {} ) ) );
 			snapshot.statusButton.container.after( snapshot.snapshotExpandButton );
 
 			if ( ! snapshot.data.editLink ) {
 				snapshot.snapshotExpandButton.hide();
-				snapshot.previewLink.hide();
 			}
 
 			api.state( 'change', function() {
@@ -389,7 +360,6 @@
 
 			api.state( 'snapshot-exists' ).bind( function( exist ) {
 				snapshot.snapshotExpandButton.toggle( exist );
-				snapshot.previewLink.toggle( exist );
 			} );
 
 			api.bind( 'change', function() {
@@ -731,13 +701,96 @@
 		 * @returns {string} URL.
 		 */
 		getSnapshotFrontendPreviewUrl: function getSnapshotFrontendPreviewUrl() {
-			var snapshot = this, a = document.createElement( 'a' );
-			a.href = snapshot.frontendPreviewUrl.get();
-			if ( a.search ) {
-				a.search += '&';
+			var snapshot = this, a = document.createElement( 'a' ),
+				params = {};
+
+			if ( api.settings.changeset && api.settings.changeset.uuid ) {
+				params.customize_changeset_uuid = api.settings.changeset.uuid;
+			} else {
+				params.customize_changeset_uuid = snapshot.data.uuid;
 			}
-			a.search += snapshot.uuidParam + '=' + snapshot.data.uuid;
+
+			a.href = snapshot.frontendPreviewUrl.get();
+			if ( snapshot.statusButton.disbleButton.get() ) {
+				return a.href;
+			}
+			if ( ! api.settings.theme.active ) {
+				params.theme = api.settings.theme.stylesheet;
+			}
+			a.search = $.param( params );
+
 			return a.href;
+		},
+
+		/**
+		 * Frontend preview link setup.
+		 *
+		 * @returns {void}
+		 */
+		setUpPreviewLink: function setUpPreviewLink() {
+			var snapshot = this, setPreviewLinkHref;
+
+			snapshot.previewLink = $( $.trim( wp.template( 'snapshot-preview-link' )() ) );
+			snapshot.previewLink.attr( 'target', snapshot.data.uuid );
+			snapshot.previewLink.href = snapshot.frontendPreviewUrl.get();
+
+			setPreviewLinkHref = _.debounce( function() {
+				var queryVars;
+
+				snapshot.updateSnapshotPreviewLinkHref( false );
+
+				// Add the customize_theme param to the frontend URL if the theme is not active.
+				if ( ! api.state( 'activated' ).get() ) {
+					queryVars = snapshot.parseQueryString( snapshot.previewLink.prop( 'search' ).substr( 1 ) );
+					queryVars.customize_theme = api.settings.theme.stylesheet;
+					snapshot.previewLink.prop( 'search', $.param( queryVars ) );
+				}
+			} );
+
+			snapshot.previewLink.click( function( e ) {
+				e.preventDefault();
+				snapshot.updateSnapshotPreviewLinkHref( true );
+			} );
+
+			snapshot.frontendPreviewUrl.bind( setPreviewLinkHref );
+			api.state.bind( 'change', setPreviewLinkHref );
+			api.bind( 'saved', setPreviewLinkHref );
+			$( '#customize-footer-actions .devices button' ).first().before( snapshot.previewLink );
+		},
+
+		/**
+		 * Updates the snapshot preview link href and opens the link when defined.
+		 *
+		 * @param {boolean} openLink If to open the link.
+		 * @returns {void}
+		 */
+		updateSnapshotPreviewLinkHref: function updateSnapshotPreviewLinkHref( openLink ) {
+			var onceProcessingComplete,
+				snapshot = this;
+
+			onceProcessingComplete = function() {
+				var request, href;
+				if ( api.state( 'processing' ).get() > 0 ) {
+					return;
+				}
+
+				api.state( 'processing' ).unbind( onceProcessingComplete );
+				request = api.requestChangesetUpdate();
+
+				request.done( function() {
+					href = snapshot.getSnapshotFrontendPreviewUrl();
+					snapshot.previewLink.attr( 'href', href );
+					if ( openLink ) {
+						window.open( href );
+					}
+				} );
+			};
+
+			if ( 0 === api.state( 'processing' ).get() ) {
+				onceProcessingComplete();
+			} else {
+				api.state( 'processing' ).bind( onceProcessingComplete );
+			}
 		},
 
 		/**
