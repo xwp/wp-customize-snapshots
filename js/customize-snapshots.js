@@ -45,18 +45,58 @@
 
 				snapshot.data.uuid = snapshot.data.uuid || api.settings.changeset.uuid;
 				snapshot.data.title = snapshot.data.title || snapshot.data.uuid;
+				snapshot.spinner = $( '#customize-header-actions' ).find( '.spinner' );
+				snapshot.saveBtn = $( '#save' );
+
+				api.state.bind( 'change', function() {
+					if ( api.state( 'activated' ).get() && '' !== api.state( 'changesetStatus' ).get() && api.state( 'saved' ).get() && 'pending' === api.state( 'selectedChangesetStatus' ).get() ) {
+						snapshot.saveBtn.val( 'Pending' );
+					}
+				} );
+
+				api.control( 'changeset_title', function( control ) {
+					var element, node, requestUpdate, toggleControl;
+
+					if ( ! control.setting ) {
+						control.setting = new api.Value( snapshot.data.title );
+					}
+
+					toggleControl = function( status ) {
+						var activate = 'publish' !== status;
+						control.active.validate = function() {
+							return activate;
+						};
+						control.active.set( activate );
+					};
+
+					toggleControl( api.state( 'selectedChangesetStatus' ).get() );
+					api.state( 'selectedChangesetStatus' ).bind( toggleControl );
+
+					control.deferred.embedded.done( function() {
+						node = control.container.find( 'input' );
+						element = new api.Element( node );
+						control.elements.push( element );
+						element.sync( control.setting );
+						element.set( control.setting() );
+					} );
+
+					requestUpdate = _.debounce( function( value ) {
+						snapshot.spinner.addClass( 'is-active' );
+						api.requestChangesetUpdate( false, {
+							title: value
+						} ).done( function() {
+							snapshot.spinner.removeClass( 'is-active' );
+						} );
+					}, 1000 );
+
+					control.setting.bind( requestUpdate );
+				} );
 
 				snapshot.editBoxAutoSaveTriggered = false;
 
 				if ( api.state.has( 'changesetStatus' ) && api.state( 'changesetStatus' ).get() ) {
 					api.state( 'snapshot-exists' ).set( true );
 				}
-
-				snapshot.extendPreviewerQuery();
-
-				snapshot.editControlSettings = new api.Values();
-				snapshot.editControlSettings.create( 'title', snapshot.data.title );
-				snapshot.editControlSettings.create( 'date', snapshot.data.publishDate );
 
 				api.bind( 'change', function() {
 					api.state( 'snapshot-submitted' ).set( false );
@@ -65,10 +105,6 @@
 				snapshot.frontendPreviewUrl = new api.Value( api.previewer.previewUrl.get() );
 				snapshot.frontendPreviewUrl.link( api.previewer.previewUrl );
 				snapshot.isNotSavedPreviewingTheme = false;
-
-				snapshot.addButtons();
-				snapshot.editSnapshotUI();
-				snapshot.prefilterAjax();
 
 				api.trigger( 'snapshots-ready', snapshot );
 			} );

@@ -120,6 +120,7 @@ class Customize_Snapshot_Manager {
 		add_filter( 'wp_insert_post_data', array( $this, 'prepare_snapshot_post_content_for_publish' ) );
 		remove_action( 'delete_post', '_wp_delete_customize_changeset_dependent_auto_drafts' );
 		add_action( 'delete_post', array( $this, 'clean_up_nav_menus_created_auto_drafts' ) );
+		add_action( 'customize_register', array( $this, 'register_controls' ) );
 	}
 
 	/**
@@ -132,6 +133,35 @@ class Customize_Snapshot_Manager {
 		if ( $this->read_current_snapshot_uuid() ) {
 			$this->load_snapshot();
 		}
+	}
+
+	public function register_controls( \WP_Customize_Manager $customize_manager ) {
+
+		$customize_manager->add_control( 'changeset_status', array(
+			'section' => 'publish_settings',
+			'settings' => array(),
+			'type' => 'radio',
+			'priority' => 1,
+			'label' => __( 'Action' ),
+			'choices' => array(
+				'publish' => __( 'Publish' ),
+				'draft' => __( 'Save Draft' ),
+				'future' => __( 'Schedule' ),
+				'pending' => __( 'Pending' ),
+			),
+			'capability' => 'customize',
+		) );
+
+		$customize_manager->get_control( 'changeset_scheduled_date' )->priority = 2;
+
+		$customize_manager->add_control( 'changeset_title', array(
+			'section' => 'publish_settings',
+			'settings' => array(),
+			'type' => 'text',
+			'priority' => 3,
+			'label' => __( 'Title' ),
+			'capability' => 'customize',
+		) );
 	}
 
 	/**
