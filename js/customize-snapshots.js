@@ -45,14 +45,25 @@
 
 				snapshot.data.uuid = snapshot.data.uuid || api.settings.changeset.uuid;
 				snapshot.data.title = snapshot.data.title || snapshot.data.uuid;
-				api.settings.changeset.branching = true;
+				snapshot.spinner = $( '#customize-header-actions' ).find( '.spinner' );
 
 				api.control( 'changeset_title', function( control ) {
-					var element, node, requestUpdate;
+					var element, node, requestUpdate, toggleControl;
 
 					if ( ! control.setting ) {
 						control.setting = new api.Value( snapshot.data.title );
 					}
+
+					toggleControl = function( status ) {
+						var activate = 'publish' !== status;
+						control.active.validate = function() {
+							return activate;
+						};
+						control.active.set( activate );
+					};
+
+					toggleControl( api.state( 'selectedChangesetStatus' ).get() );
+					api.state( 'selectedChangesetStatus' ).bind( toggleControl );
 
 					control.deferred.embedded.done( function() {
 						node = control.container.find( 'input' );
@@ -62,15 +73,16 @@
 						element.set( control.setting() );
 					} );
 
-					control.setting.bind( function( value ) {
-						requestUpdate = _.debounce( function() {
-							api.requestChangesetUpdate( false, {
-								title: value
-							} );
-						}, 1000 );
+					requestUpdate = _.debounce( function( value ) {
+						snapshot.spinner.addClass( 'is-active' );
+						api.requestChangesetUpdate( false, {
+							title: value
+						} ).done( function() {
+							snapshot.spinner.removeClass( 'is-active' );
+						} );
+					}, 1000 );
 
-						requestUpdate();
-					} );
+					control.setting.bind( requestUpdate );
 				} );
 
 				snapshot.editBoxAutoSaveTriggered = false;
