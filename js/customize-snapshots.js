@@ -46,6 +46,13 @@
 				snapshot.data.uuid = snapshot.data.uuid || api.settings.changeset.uuid;
 				snapshot.data.title = snapshot.data.title || snapshot.data.uuid;
 				snapshot.spinner = $( '#customize-header-actions' ).find( '.spinner' );
+				snapshot.saveBtn = $( '#save' );
+
+				api.state.bind( 'change', function() {
+					if ( api.state( 'activated' ).get() && '' !== api.state( 'changesetStatus' ).get() && api.state( 'saved' ).get() && 'pending' === api.state( 'selectedChangesetStatus' ).get() ) {
+						snapshot.saveBtn.val( 'Pending' );
+					}
+				} );
 
 				api.control( 'changeset_title', function( control ) {
 					var element, node, requestUpdate, toggleControl;
