@@ -45,18 +45,39 @@
 
 				snapshot.data.uuid = snapshot.data.uuid || api.settings.changeset.uuid;
 				snapshot.data.title = snapshot.data.title || snapshot.data.uuid;
+				api.settings.changeset.branching = true;
+
+				api.control( 'changeset_title', function( control ) {
+					var element, node, requestUpdate;
+
+					if ( ! control.setting ) {
+						control.setting = new api.Value( snapshot.data.title );
+					}
+
+					control.deferred.embedded.done( function() {
+						node = control.container.find( 'input' );
+						element = new api.Element( node );
+						control.elements.push( element );
+						element.sync( control.setting );
+						element.set( control.setting() );
+					} );
+
+					control.setting.bind( function( value ) {
+						requestUpdate = _.debounce( function() {
+							api.requestChangesetUpdate( false, {
+								title: value
+							} );
+						}, 1000 );
+
+						requestUpdate();
+					} );
+				} );
 
 				snapshot.editBoxAutoSaveTriggered = false;
 
 				if ( api.state.has( 'changesetStatus' ) && api.state( 'changesetStatus' ).get() ) {
 					api.state( 'snapshot-exists' ).set( true );
 				}
-
-				snapshot.extendPreviewerQuery();
-
-				snapshot.editControlSettings = new api.Values();
-				snapshot.editControlSettings.create( 'title', snapshot.data.title );
-				snapshot.editControlSettings.create( 'date', snapshot.data.publishDate );
 
 				api.bind( 'change', function() {
 					api.state( 'snapshot-submitted' ).set( false );
@@ -65,10 +86,6 @@
 				snapshot.frontendPreviewUrl = new api.Value( api.previewer.previewUrl.get() );
 				snapshot.frontendPreviewUrl.link( api.previewer.previewUrl );
 				snapshot.isNotSavedPreviewingTheme = false;
-
-				snapshot.addButtons();
-				snapshot.editSnapshotUI();
-				snapshot.prefilterAjax();
 
 				api.trigger( 'snapshots-ready', snapshot );
 			} );
