@@ -1,6 +1,6 @@
 === Customize Snapshots ===
 Contributors: xwp, westonruter, valendesigns, utkarshpatel, sayedwp, newscorpau
-Requires at least: 4.6
+Requires at least: 4.7
 Tested up to: 4.8.1
 Stable tag: 0.6.2
 Requires PHP: 5.3

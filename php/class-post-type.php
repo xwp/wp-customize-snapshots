@@ -487,8 +487,8 @@ class Post_Type {
 	 * @return int|null Post ID or null if not found.
 	 */
 	public function find_post( $uuid ) {
-		$this->snapshot_manager->ensure_customize_manager();
-		return $this->snapshot_manager->customize_manager->find_changeset_post_id( $uuid );
+		$manager = $this->snapshot_manager->ensure_customize_manager();
+		return $manager->find_changeset_post_id( $uuid );
 	}
 
 	/**
@@ -974,7 +974,7 @@ class Post_Type {
 		$stored_query_vars = array();
 		$autofocus_query_vars = array( 'autofocus[panel]', 'autofocus[section]', 'autofocus[control]' );
 
-		$this->snapshot_manager->ensure_customize_manager();
+		$wp_customize = $this->snapshot_manager->ensure_customize_manager();
 
 		foreach ( wp_array_slice_assoc( $query_vars, $autofocus_query_vars ) as $key => $value ) {
 			if ( preg_match( '/^[a-z|\[|\]|_|\-|0-9]+$/', $value ) ) {
@@ -984,14 +984,14 @@ class Post_Type {
 		if ( ! empty( $query_vars['url'] ) && wp_validate_redirect( $query_vars['url'] ) ) {
 			$stored_query_vars['url'] = esc_url_raw( $query_vars['url'] );
 		}
-		if ( isset( $query_vars['device'] ) && in_array( $query_vars['device'], array_keys( $this->snapshot_manager->customize_manager->get_previewable_devices() ), true ) ) {
+		if ( isset( $query_vars['device'] ) && in_array( $query_vars['device'], array_keys( $wp_customize->get_previewable_devices() ), true ) ) {
 			$stored_query_vars['device'] = $query_vars['device'];
 		}
 		if ( isset( $query_vars['scroll'] ) && is_int( $query_vars['scroll'] ) ) {
 			$stored_query_vars['scroll'] = $query_vars['scroll'];
 		}
 		if ( isset( $query_vars['previewing_theme'] ) ) {
-			$theme = $this->snapshot_manager->customize_manager->get_stylesheet();
+			$theme = $wp_customize->get_stylesheet();
 			$stored_query_vars['theme'] = $query_vars['previewing_theme'] ? $theme : '';
 		}
 		update_post_meta( $post_id, '_preview_url_query_vars', $stored_query_vars );
