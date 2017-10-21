@@ -45,14 +45,6 @@ class Customize_Snapshot_Manager {
 	protected $previewing_settings = false;
 
 	/**
-	 * The originally active theme.
-	 *
-	 * @access public
-	 * @var string
-	 */
-	public $original_stylesheet;
-
-	/**
 	 * New active theme.
 	 *
 	 * @access public
@@ -69,7 +61,6 @@ class Customize_Snapshot_Manager {
 	 */
 	public function __construct( Plugin $plugin ) {
 		$this->plugin = $plugin;
-		$this->original_stylesheet = get_stylesheet();
 	}
 
 	/**
@@ -97,6 +88,7 @@ class Customize_Snapshot_Manager {
 		add_filter( 'wp_insert_post_data', array( $this, 'prepare_snapshot_post_content_for_publish' ) );
 		remove_action( 'delete_post', '_wp_delete_customize_changeset_dependent_auto_drafts' );
 		add_action( 'delete_post', array( $this, 'clean_up_nav_menus_created_auto_drafts' ) );
+		add_filter( 'customize_save_response', array( $this, 'add_snapshot_var_to_customize_save' ), 10, 2 );
 	}
 
 	/**
@@ -105,7 +97,6 @@ class Customize_Snapshot_Manager {
 	function init() {
 		$this->post_type = new Post_Type( $this );
 		$this->hooks();
-		add_filter( 'customize_save_response', array( $this, 'add_snapshot_var_to_customize_save' ), 10, 2 );
 	}
 
 	/**
@@ -204,7 +195,6 @@ class Customize_Snapshot_Manager {
 			false !== strpos( parse_url( wp_get_referer(), PHP_URL_QUERY ), 'customize_changeset_uuid=' . $wp_customize->changeset_uuid() )
 		);
 		if ( $should_add_snapshot_uuid ) {
-			$wp_customize = $this->get_customize_manager();
 			$args_name = $this->get_front_uuid_param();
 			$args = array(
 				$args_name => $wp_customize->changeset_uuid(),
@@ -666,7 +656,7 @@ class Customize_Snapshot_Manager {
 	 * @param \WP_Admin_Bar $wp_admin_bar Admin bar.
 	 */
 	public function remove_all_non_snapshot_admin_bar_links( $wp_admin_bar ) {
-		if ( empty( $this->snapshot ) || ! current_user_can( 'customize' ) ) {
+		if ( ! is_customize_preview() || ! current_user_can( 'customize' ) ) {
 			return;
 		}
 		$snapshot_admin_bar_node_ids = array(
@@ -1135,7 +1125,7 @@ class Customize_Snapshot_Manager {
 		}
 		remove_action( 'delete_post', array( $this, 'clean_up_nav_menus_created_auto_drafts' ) );
 		foreach ( $data['nav_menus_created_posts']['value'] as $nav_menu_created_post_id ) {
-			if ( 'auto-draft' !== get_post_status( $nav_menu_created_post_id ) ) {
+			if ( 'auto-draft' !== get_post_status( $nav_menu_created_post_id ) && 'draft' !== get_post_status( $nav_menu_created_post_id ) ) {
 				continue;
 			}
 

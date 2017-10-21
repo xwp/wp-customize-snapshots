@@ -40,35 +40,18 @@ class Test_Post_Type extends \WP_UnitTestCase {
 		parent::setUp();
 		$GLOBALS['wp_customize'] = null; // WPCS: Global override ok.
 		$this->plugin = get_plugin_instance();
-		if ( $this->plugin->compat ) {
-			$this->post_type_slug = Post_Type_Back_Compat::SLUG;
-		} else {
-			$this->post_type_slug = Post_Type::SLUG;
-		}
+		$this->post_type_slug = Post_Type::SLUG;
 	}
 
 	/**
 	 * Get plugin instance accoding to WP version.
 	 *
-	 * @param Customize_Snapshot_Manager|Customize_Snapshot_Manager_Back_Compat $manager Manager.
+	 * @param Customize_Snapshot_Manager $manager Manager.
 	 *
-	 * @return Post_Type|Post_Type_Back_Compat Post type object.
+	 * @return Post_Type Post type object.
 	 */
 	public function get_new_post_type_instance( $manager ) {
-		if ( $this->plugin->compat ) {
-			return new Post_Type_Back_Compat( $manager );
-		} else {
-			return new Post_Type( $manager );
-		}
-	}
-
-	/**
-	 * Mark test incomplete as it is only for new versions.
-	 */
-	public function mark_incompatible() {
-		if ( $this->plugin->compat ) {
-			$this->markTestSkipped( 'This unit-test require WP version 4.7 or up.' );
-		}
+		return new Post_Type( $manager );
 	}
 
 	/**
@@ -77,7 +60,6 @@ class Test_Post_Type extends \WP_UnitTestCase {
 	 * @see Post_Type::init()
 	 */
 	public function test_init() {
-		$this->mark_incompatible();
 		$post_type_obj = $this->get_new_post_type_instance( $this->plugin->customize_snapshot_manager );
 		$this->plugin->customize_snapshot_manager->init();
 		$post_type_obj->init();
@@ -118,7 +100,6 @@ class Test_Post_Type extends \WP_UnitTestCase {
 	 */
 	public function test_extend_changeset_post_type_object() {
 		global $_wp_post_type_features;
-		$this->mark_incompatible();
 		$post_type_obj = get_post_type_object( Post_Type::SLUG );
 		$this->assertArrayHasKey( 'revisions', $_wp_post_type_features[ Post_Type::SLUG ] );
 		$this->assertTrue( $post_type_obj->show_ui );
@@ -175,7 +156,6 @@ class Test_Post_Type extends \WP_UnitTestCase {
 	 * @covers \CustomizeSnapshots\Post_Type::add_admin_menu_item()
 	 */
 	public function test_add_admin_menu_item() {
-		$this->mark_incompatible();
 		global $submenu, $menu;
 		$menu = $submenu = array(); // WPCS: global override ok.
 		$admin_user_id = $this->factory()->user->create( array(
@@ -482,7 +462,6 @@ class Test_Post_Type extends \WP_UnitTestCase {
 	 * Find a snapshot post by UUID.
 	 *
 	 * @see Post_Type::find_post()
-	 * @see Post_Type_Back_Compat::find_post()
 	 */
 	public function test_find_post() {
 		$post_type = $this->get_new_post_type_instance( $this->plugin->customize_snapshot_manager );
@@ -545,9 +524,7 @@ class Test_Post_Type extends \WP_UnitTestCase {
 			'status' => 'publish',
 		) );
 		$snapshot_post = get_post( $post_id );
-		if ( ! $this->plugin->compat ) {
-			unset( $data['foo']['publish_error'] );
-		}
+		unset( $data['foo']['publish_error'] );
 		$this->assertEquals( $data, $post_type->get_post_content( $snapshot_post ) );
 
 		// Revision.
@@ -634,9 +611,7 @@ class Test_Post_Type extends \WP_UnitTestCase {
 		) );
 		$this->assertInternalType( 'int', $r );
 		$expected = $data;
-		if ( ! $this->plugin->compat ) {
-			unset( $expected['foo']['publish_error'] );
-		}
+		unset( $expected['foo']['publish_error'] );
 		$this->assertEquals( $expected, $post_type->get_post_content( get_post( $r ) ) );
 
 		$this->assertEquals( get_stylesheet(), get_post_meta( $r, '_snapshot_theme', true ) );
@@ -954,7 +929,6 @@ class Test_Post_Type extends \WP_UnitTestCase {
 	 * @covers \CustomizeSnapshots\Post_Type::remap_customize_meta_cap()
 	 */
 	public function test_remap_customize_meta_cap() {
-		$this->mark_incompatible();
 		$this->markTestIncomplete();
 	}
 }

@@ -47,11 +47,7 @@ class Test_Snapshot_REST_API_Controller extends \WP_Test_REST_TestCase {
 		parent::setUp();
 		$this->plugin = get_plugin_instance();
 
-		if ( $this->plugin->compat ) {
-			$this->end_point = 'customize_snapshots';
-		} else {
-			$this->end_point = 'customize_changesets';
-		}
+		$this->end_point = 'customize_changesets';
 
 		$this->plugin->customize_snapshot_manager->post_type->init();
 
