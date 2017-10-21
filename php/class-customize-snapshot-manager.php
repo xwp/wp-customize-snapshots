@@ -724,20 +724,20 @@ class Customize_Snapshot_Manager {
 				$data = array(
 					'choices' => array(
 						'publish' => array(
-							'option_text' => __( 'Publish' , 'customize-snapshots' ),
-							'alt_text' => __( 'Published' , 'customize-snapshots' ),
+							'option_text' => __( 'Publish', 'customize-snapshots' ),
+							'alt_text' => __( 'Published', 'customize-snapshots' ),
 						),
 						'draft' => array(
-							'option_text' => __( 'Save Draft' , 'customize-snapshots' ),
-							'alt_text' => __( 'Draft' , 'customize-snapshots' ),
+							'option_text' => __( 'Save Draft', 'customize-snapshots' ),
+							'alt_text' => __( 'Draft', 'customize-snapshots' ),
 						),
 						'future' => array(
-							'option_text' => __( 'Schedule' , 'customize-snapshots' ),
-							'alt_text' => __( 'Scheduled' , 'customize-snapshots' ),
+							'option_text' => __( 'Schedule', 'customize-snapshots' ),
+							'alt_text' => __( 'Scheduled', 'customize-snapshots' ),
 						),
 						'pending' => array(
-							'option_text' => __( 'Save Pending' , 'customize-snapshots' ),
-							'alt_text' => __( 'Pending' , 'customize-snapshots' ),
+							'option_text' => __( 'Save Pending', 'customize-snapshots' ),
+							'alt_text' => __( 'Pending', 'customize-snapshots' ),
 						),
 					),
 					'selected' => 'publish',

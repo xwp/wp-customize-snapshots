@@ -107,7 +107,7 @@ class Post_Type {
 
 		add_filter( 'post_link', array( $this, 'filter_post_type_link' ), 10, 2 );
 		add_action( 'add_meta_boxes_' . static::SLUG, array( $this, 'setup_metaboxes' ), 10, 1 );
-		add_action( 'admin_menu',array( $this, 'add_admin_menu_item' ), 99 );
+		add_action( 'admin_menu', array( $this, 'add_admin_menu_item' ), 99 );
 		add_filter( 'map_meta_cap', array( $this, 'remap_customize_meta_cap' ), 5, 4 );
 		add_filter( 'bulk_actions-edit-' . static::SLUG, array( $this, 'add_snapshot_bulk_actions' ) );
 		add_filter( 'handle_bulk_actions-edit-' . static::SLUG, array( $this, 'handle_snapshot_merge' ), 10, 3 );
