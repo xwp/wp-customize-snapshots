@@ -41,6 +41,17 @@ Requires PHP 5.3+. **Development of this plugin is done [on GitHub](https://gith
 
 == Changelog ==
 
+= 0.7.0 - ??? =
+
+* Added: Add compatibility with 4.9, re-using features of the plugin that have been merged into core in this release. Increase minimum required version of WordPress to 4.7. See [#162](https://github.com/xwp/wp-customize-snapshots/pull/162).
+* Added: Remove hiding of Add New links for changesets in favor of just redirecting post-new.php to Customizer. See [#156](https://github.com/xwp/wp-customize-snapshots/pull/156).
+* Added: Allow publishing from preview via link in admin bar. See [#115](https://github.com/xwp/wp-customize-snapshots/pull/115), [#103](https://github.com/xwp/wp-customize-snapshots/issues/103).
+* Updated: Change link text for post list table action from “Edit” to “Inspect”. See [#155](https://github.com/xwp/wp-customize-snapshots/pull/155), [#153](https://github.com/xwp/wp-customize-snapshots/issues/153).
+* Fixed: Prevent changeset session remembrance when browsing in preview iframe. See [#154](https://github.com/xwp/wp-customize-snapshots/pull/154).
+* Added: Include required PHP version (5.3) in readme. See [#160](https://github.com/xwp/wp-customize-snapshots/pull/160), [#159](https://github.com/xwp/wp-customize-snapshots/issues/159).
+
+See [issues and PRs in milestone](https://github.com/xwp/wp-customize-snapshots/milestone/11?closed=1).
+
 = 0.6.2 - 2017-07-26 =
 
 * Added: Just like the admin menu has Changesets link under Customize, add Changesets link in admin bar submenu item under Customize. See <a href="https://github.com/xwp/wp-customize-snapshots/pull/143" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/143" data-id="245590687">#143</a>.
