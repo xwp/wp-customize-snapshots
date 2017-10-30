@@ -68,7 +68,11 @@ class Plugin extends Plugin_Base {
 		$min = ( SCRIPT_DEBUG || $is_git_repo ? '' : '.min' );
 
 		$handle = 'customize-snapshots';
-		$src = $this->dir_url . 'js/customize-snapshots' . $min . '.js';
+		if ( version_compare( strtok( get_bloginfo( 'version' ), '-' ), '4.9', '>=' ) ) {
+			$src = $this->dir_url . 'js/customize-snapshots' . $min . '.js';
+		} else {
+			$src = $this->dir_url . 'js/customize-snapshots-compat' . $min . '.js';
+		}
 		$deps = array( 'jquery', 'jquery-ui-dialog', 'jquery-ui-selectmenu', 'wp-util', 'customize-controls' );
 		$wp_scripts->add( $handle, $src, $deps );
 
@@ -100,7 +104,11 @@ class Plugin extends Plugin_Base {
 		$min = ( SCRIPT_DEBUG || $is_git_repo ? '' : '.min' );
 
 		$handle = 'customize-snapshots';
-		$src = $this->dir_url . 'css/customize-snapshots' . $min . '.css';
+		if ( version_compare( strtok( get_bloginfo( 'version' ), '-' ), '4.9', '>=' ) ) {
+			$src = $this->dir_url . 'css/customize-snapshots' . $min . '.css';
+		} else {
+			$src = $this->dir_url . 'css/customize-snapshots-compat' . $min . '.css';
+		}
 		$deps = array( 'wp-jquery-ui-dialog' );
 		$wp_styles->add( $handle, $src, $deps );
 

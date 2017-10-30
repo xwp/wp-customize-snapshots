@@ -244,6 +244,7 @@ class Customize_Snapshot_Manager {
 			}
 		}
 
+		// @todo Much of this is irrelevant as of 4.9.
 		// Script data array.
 		$exports = apply_filters( 'customize_snapshots_export_data', array(
 			'editLink' => isset( $edit_link ) ? $edit_link : '',
@@ -273,8 +274,8 @@ class Customize_Snapshot_Manager {
 
 		wp_scripts()->add_inline_script(
 			'customize-snapshots',
-			sprintf( 'var _customizeSnapshotsSettings = %s;', wp_json_encode( $exports ) ),
-			'before'
+			sprintf( 'wp.customize.snapshots = new wp.customize.Snapshots( %s );', wp_json_encode( $exports ) ),
+			'after'
 		);
 	}
 
