@@ -264,6 +264,7 @@ class Customize_Snapshot_Manager {
 					'save' => __( 'You do not have permission to publish changes, but you can create a changeset by clicking the "Save" button.', 'customize-snapshots' ),
 					'update' => __( 'You do not have permission to publish changes, but you can modify this changeset by clicking the "Update" button.', 'customize-snapshots' ),
 				),
+				'title' => __( 'Title', 'customize-snapshots' ),
 				'aysMsg' => __( 'Changes that you made may not be saved.', 'customize-snapshots' ),
 				'errorMsg' => __( 'The changeset could not be saved.', 'customize-snapshots' ),
 				'errorTitle' => __( 'Error', 'customize-snapshots' ),
