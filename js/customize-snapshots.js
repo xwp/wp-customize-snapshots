@@ -20,7 +20,7 @@
 				_.extend( snapshot.data, snapshotsConfig );
 			}
 
-			_.bindAll( snapshot, 'addTitleControl' );
+			_.bindAll( snapshot, 'addTitleControl', 'setupScheduledChangesetCountdown' );
 
 			api.bind( 'ready', function() {
 				// @todo Add snapshot-exists, snapshot-saved, snapshot-submitted states for back-compat? Skip if they are not used.
@@ -33,6 +33,7 @@
 				api.state.create( 'changesetTitle', snapshot.data.title );
 
 				snapshot.extendPreviewerQuery();
+				api.control( 'changeset_scheduled_date', snapshot.setupScheduledChangesetCountdown );
 				api.section( 'publish_settings', snapshot.addTitleControl );
 				api.trigger( 'snapshots-ready', snapshot );
 			} );
@@ -88,6 +89,7 @@
 		extendPreviewerQuery: function extendPreviewerQuery() {
 			var snapshot = this, originalQuery = api.previewer.query;
 
+			// @todo See if can be done using 'save-request-params' event?
 			api.previewer.query = function() {
 				var retval = originalQuery.apply( this, arguments );
 
@@ -135,6 +137,30 @@
 			} );
 
 			return queryVars;
+		},
+
+		/**
+		 * Setup scheduled changeset countdown.
+		 *
+		 * @param {wp.customize.Control} control Changeset schedule date control.
+		 * @return {void}
+		 */
+		setupScheduledChangesetCountdown: function( control ) {
+			var template, countdownContainer;
+
+			template = wp.template( 'snapshot-scheduled-countdown' );
+			countdownContainer = $( '<div>', {
+				'class': 'snapshot-countdown-container'
+			} );
+
+			control.deferred.embedded.done( function() {
+				control.container.append( countdownContainer );
+				api.state( 'remainingTimeToPublish' ).bind( function( time ) {
+					countdownContainer.html( template( {
+						remainingTime: time
+					} ) );
+				} );
+			} );
 		}
 	} );
 
