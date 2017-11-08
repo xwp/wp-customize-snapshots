@@ -150,15 +150,21 @@
 
 			template = wp.template( 'snapshot-scheduled-countdown' );
 			countdownContainer = $( '<div>', {
-				'class': 'snapshot-countdown-container'
+				'class': 'snapshot-countdown-container hidden'
 			} );
 
 			control.deferred.embedded.done( function() {
 				control.container.append( countdownContainer );
 				api.state( 'remainingTimeToPublish' ).bind( function( time ) {
-					countdownContainer.html( template( {
+					countdownContainer.removeClass( 'hidden' ).html( template( {
 						remainingTime: time
 					} ) );
+				} );
+
+				api.state( 'changesetStatus' ).bind( function( status ) {
+					if ( 'future' !== status ) {
+						countdownContainer.addClass( 'hidden' );
+					}
 				} );
 			} );
 		}
