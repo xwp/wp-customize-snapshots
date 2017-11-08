@@ -52,7 +52,7 @@ class Plugin extends Plugin_Base {
 	 * @action after_setup_theme, 8
 	 */
 	public function init() {
-		$this->customize_snapshot_manager = new Customize_Snapshot_Manager( $this );
+		$this->customize_snapshot_manager = is_back_compat() ? new Customize_Snapshot_Manager_Compat( $this ) : new Customize_Snapshot_Manager( $this );
 		$this->customize_snapshot_manager->init();
 	}
 
