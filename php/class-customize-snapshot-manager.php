@@ -680,6 +680,10 @@ class Customize_Snapshot_Manager {
 			</div>
 		</script>
 
+		<script type="text/html" id="tmpl-snapshot-edit-link-control">
+			<a href="#" target="_blank"><span class="dashicons dashicons-external"></span> <?php esc_html_e( 'Edit', 'customize-snapshots' ); ?></a>
+		</script>
+
 		<script id="tmpl-snapshot-scheduled-countdown" type="text/html">
 			<# if ( data.remainingTime < 2 * 60 ) { #>
 			<?php esc_html_e( 'This is scheduled for publishing in about a minute.', 'customize-snapshots' ); ?>

@@ -1,5 +1,5 @@
 /* global wp, $ */
-/* eslint consistent-this: [ "error", "snapshot" ] */
+/* eslint consistent-this: [ "error", "snapshot", "control" ] */
 
 (function( api ) {
 	'use strict';
@@ -20,7 +20,7 @@
 				_.extend( snapshot.data, snapshotsConfig );
 			}
 
-			_.bindAll( snapshot, 'addTitleControl', 'setupScheduledChangesetCountdown' );
+			_.bindAll( snapshot, 'setupScheduledChangesetCountdown' );
 
 			api.bind( 'ready', function() {
 				// @todo Add snapshot-exists, snapshot-saved, snapshot-submitted states for back-compat? Skip if they are not used.
@@ -31,10 +31,16 @@
 				snapshot.data.uuid = snapshot.data.uuid || api.settings.changeset.uuid;
 				snapshot.data.title = snapshot.data.title || snapshot.data.uuid;
 				api.state.create( 'changesetTitle', snapshot.data.title );
+				api.state.create( 'changesetEditLink', snapshot.data.editLink );
 
 				snapshot.extendPreviewerQuery();
 				api.control( 'changeset_scheduled_date', snapshot.setupScheduledChangesetCountdown );
-				api.section( 'publish_settings', snapshot.addTitleControl );
+
+				api.section( 'publish_settings', function( section ) {
+					snapshot.addTitleControl( section );
+					snapshot.addEditChangesetControl( section );
+				} );
+
 				api.trigger( 'snapshots-ready', snapshot );
 			} );
 		},
@@ -167,6 +173,45 @@
 					}
 				} );
 			} );
+		},
+
+		/**
+		 * Add edit changeset post link.
+		 *
+		 * @param {wp.customize.Section} section Section.
+		 * @return {void}
+		 */
+		addEditChangesetControl: function( section ) {
+			var editLinkControl;
+
+			editLinkControl = api.Control.extend( {
+				defaults: _.extend( {}, api.Control.prototype.defaults, {
+					templateId: 'snapshot-edit-link-control'
+				} ),
+				ready: function() {
+					var control = this, link;
+					link = control.container.find( 'a' );
+					link.attr( 'href', control.setting() );
+					control.setting.bind( function( value ) {
+					    link.attr( 'href', value );
+					} );
+
+					control.toggleEditLinkControl();
+					api.state( 'changesetStatus' ).bind( function() {
+						control.toggleEditLinkControl();
+					} );
+				},
+				toggleEditLinkControl: function() {
+					this.active.set( 'publish' !== api.state( 'changesetStatus' ).get() && api.state( 'changesetStatus' ).get() );
+				}
+			} );
+
+			api.control.add( new editLinkControl( 'edit_changeset', {
+				type: 'edit-changeset-link',
+				section: section.id,
+				priority: 30,
+				setting: api.state( 'changesetEditLink' )
+			} ) );
 		}
 	} );
 
