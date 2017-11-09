@@ -10,7 +10,11 @@
 		data: {
 			inspectLink: '',
 			title: '',
-			i18n: {},
+			i18n: {
+				title: '',
+				savePending: '',
+				pendingSaved: ''
+			},
 			statusChoices: []
 		},
 
@@ -41,10 +45,13 @@
 					snapshot.addInspectChangesetControl( section );
 				} );
 
-				// @todo TBD.
 				api.state.bind( 'change', function() {
-					if ( api.state( 'activated' ).get() && '' !== api.state( 'changesetStatus' ).get() && api.state( 'saved' ).get() && 'pending' === api.state( 'selectedChangesetStatus' ).get() ) {
-						snapshot.saveBtn.val( 'Pending' );
+					if ( api.state( 'activated' ).get() && 'pending' === api.state( 'selectedChangesetStatus' ).get() ) {
+						if ( api.state( 'saved' ).get() && api.state( 'selectedChangesetStatus' ).get() === api.state( 'changesetStatus' ).get() ) {
+							snapshot.saveBtn.val( snapshot.data.i18n.pendingSaved );
+						} else {
+							snapshot.saveBtn.val( snapshot.data.i18n.savePending );
+						}
 					}
 				} );
 

@@ -271,6 +271,8 @@ class Customize_Snapshot_Manager {
 			'statusChoices' => $status_choices,
 			'i18n' => array(
 				'title' => __( 'Title', 'customize-snapshots' ),
+				'savePending' => __( 'Save Pending', 'customize-snapshots' ),
+				'pendingSaved' => __( 'Pending Saved', 'customize-snapshots' ),
 			),
 		) );
 
