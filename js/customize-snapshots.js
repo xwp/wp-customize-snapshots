@@ -39,12 +39,6 @@
 				snapshot.extendPreviewerQuery();
 				api.control( 'changeset_scheduled_date', snapshot.setupScheduledChangesetCountdown );
 
-				api.section( 'publish_settings', function( section ) {
-					snapshot.addPendingToStatusControl();
-					snapshot.addTitleControl( section );
-					snapshot.addInspectChangesetControl( section );
-				} );
-
 				api.state.bind( 'change', function() {
 					if ( api.state( 'activated' ).get() && 'pending' === api.state( 'selectedChangesetStatus' ).get() ) {
 						if ( api.state( 'saved' ).get() && api.state( 'selectedChangesetStatus' ).get() === api.state( 'changesetStatus' ).get() ) {
@@ -53,6 +47,12 @@
 							snapshot.saveBtn.val( snapshot.data.i18n.savePending );
 						}
 					}
+				} );
+
+				api.section( 'publish_settings', function( section ) {
+					snapshot.addPendingToStatusControl();
+					snapshot.addTitleControl( section );
+					snapshot.addInspectChangesetControl( section );
 				} );
 
 				api.trigger( 'snapshots-ready', snapshot );
