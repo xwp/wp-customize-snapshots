@@ -36,8 +36,14 @@
 				api.state.create( 'changesetTitle', snapshot.data.title );
 				api.state.create( 'changesetInspectLink', snapshot.data.inspectLink );
 
-				snapshot.extendPreviewerQuery();
 				api.control( 'changeset_scheduled_date', snapshot.setupScheduledChangesetCountdown );
+
+				api.bind( 'save-request-params', function( data ) {
+					if ( api.state( 'selectedChangesetStatus' ) && 'publish' !== api.state( 'selectedChangesetStatus' ) ) {
+						data.customizer_state_query_vars = JSON.stringify( snapshot.getStateQueryVars() );
+						data.customize_changeset_title = api.state( 'changesetTitle' );
+					}
+				} );
 
 				api.state.bind( 'change', function() {
 					if ( api.state( 'activated' ).get() && 'pending' === api.state( 'selectedChangesetStatus' ).get() ) {
@@ -110,27 +116,6 @@
 				}
 				return undefined;
 			} );
-		},
-
-		/**
-		 * Amend the preview query so we can update the snapshot during `changeset_save`.
-		 *
-		 * @return {void}
-		 */
-		extendPreviewerQuery: function extendPreviewerQuery() {
-			var snapshot = this, originalQuery = api.previewer.query;
-
-			// @todo See if can be done using 'save-request-params' event?
-			api.previewer.query = function() {
-				var retval = originalQuery.apply( this, arguments );
-
-				if ( api.state( 'selectedChangesetStatus' ) && 'publish' !== api.state( 'selectedChangesetStatus' ) ) {
-					retval.customizer_state_query_vars = JSON.stringify( snapshot.getStateQueryVars() );
-					retval.customize_changeset_title = api.state( 'changesetTitle' );
-				}
-
-				return retval;
-			};
 		},
 
 		/**
