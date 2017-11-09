@@ -138,7 +138,7 @@ class Test_Post_Type extends \WP_UnitTestCase {
 			),
 		);
 		$post_id = $post_type->save( array(
-			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
+			'uuid' => wp_generate_uuid4(),
 			'data' => $data,
 			'status' => 'draft',
 		) );
@@ -818,7 +818,7 @@ class Test_Post_Type extends \WP_UnitTestCase {
 		$post_type = $this->get_new_post_type_instance( $this->plugin->customize_snapshot_manager );
 		$date1 = gmdate( 'Y-m-d H:i:s' );
 		$post_1 = $post_type->save( array(
-			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
+			'uuid' => wp_generate_uuid4(),
 			'status' => 'draft',
 			'data' => array(
 				'foo' => array(
@@ -837,7 +837,7 @@ class Test_Post_Type extends \WP_UnitTestCase {
 		);
 		$date2 = gmdate( 'Y-m-d H:i:s', ( time() + 60 ) );
 		$post_2 = $post_type->save( array(
-			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
+			'uuid' => wp_generate_uuid4(),
 			'status' => 'draft',
 			'data' => $value,
 			'date_gmt' => $date2,
@@ -865,7 +865,7 @@ class Test_Post_Type extends \WP_UnitTestCase {
 			),
 		);
 		$post_3 = $post_type->save( array(
-			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
+			'uuid' => wp_generate_uuid4(),
 			'status' => 'draft',
 			'data' => $value_3,
 			'date_gmt' => $date3,

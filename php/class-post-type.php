@@ -870,7 +870,7 @@ class Post_Type {
 			$merged_snapshot_data[ $key ]['merge_conflict'] = $original_values;
 		}
 		$post_id = $this->save( array(
-			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
+			'uuid' => wp_generate_uuid4(),
 			'status' => 'draft',
 			'data' => $merged_snapshot_data,
 			'date_gmt' => gmdate( 'Y-m-d H:i:s' ),

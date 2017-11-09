@@ -39,19 +39,18 @@
 					snapshot.addInspectChangesetControl( section );
 				} );
 
-				api.bind( 'save', function( request ) {
-					request.done( function( response ) {
-						console.warn( response );
-						if ( response.edit_link ) {
-							api.state( 'changesetInspectLink' ).set( response.edit_link );
-						}
-						if ( response.title ) {
-							api.state( 'changesetTitle' ).set( response.title );
-						}
-					} );
-				} );
-
 				api.trigger( 'snapshots-ready', snapshot );
+			} );
+
+			api.bind( 'save', function( request ) {
+				request.done( function( response ) {
+					if ( response.edit_link ) {
+						api.state( 'changesetInspectLink' ).set( response.edit_link );
+					}
+					if ( response.title ) {
+						api.state( 'changesetTitle' ).set( response.title );
+					}
+				} );
 			} );
 		},
 

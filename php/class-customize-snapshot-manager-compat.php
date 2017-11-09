@@ -91,50 +91,12 @@ class Customize_Snapshot_Manager_Compat extends Customize_Snapshot_Manager {
 	}
 
 	/**
-	 * Get edit post link.
-	 *
-	 * @param int|\WP_Post $post_id Post.
-	 *
-	 * @return null|string Post edit link.
-	 */
-	public function get_edit_link( $post_id ) {
-		$has_filter = has_filter( 'get_edit_post_link', '__return_empty_string' );
-		if ( $has_filter ) {
-			remove_filter( 'get_edit_post_link', '__return_empty_string' );
-		}
-		$link = get_edit_post_link( $post_id, 'raw' );
-		if ( $has_filter ) {
-			add_filter( 'get_edit_post_link', '__return_empty_string' );
-		}
-		return $link;
-	}
-
-	/**
 	 * Return true if it's a customize_save Ajax request.
 	 *
 	 * @return bool True if it's an Ajax request, false otherwise.
 	 */
 	public function doing_customize_save_ajax() {
 		return isset( $_REQUEST['action'] ) && sanitize_key( wp_unslash( $_REQUEST['action'] ) ) === 'customize_save'; // WPCS: input var ok. CSRF ok.
-	}
-
-
-	/**
-	 * Ensure Customizer manager is instantiated.
-	 *
-	 * @global \WP_Customize_Manager $wp_customize
-	 * @return \WP_Customize_Manager Manager.
-	 */
-	public function ensure_customize_manager() {
-		global $wp_customize;
-
-		$args = array();
-		if ( empty( $wp_customize ) || ! ( $wp_customize instanceof \WP_Customize_Manager ) ) {
-			require_once( ABSPATH . WPINC . '/class-wp-customize-manager.php' );
-			$wp_customize = new \WP_Customize_Manager( $args ); // WPCS: override ok.
-		}
-
-		return $wp_customize;
 	}
 
 	/**
@@ -381,32 +343,6 @@ class Customize_Snapshot_Manager_Compat extends Customize_Snapshot_Manager {
 			);
 		}
 		return $exported_errors;
-	}
-
-	/**
-	 * Generate a snapshot uuid.
-	 *
-	 * @return string
-	 */
-	static public function generate_uuid() {
-		return sprintf( '%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
-			mt_rand( 0, 0xffff ), mt_rand( 0, 0xffff ),
-			mt_rand( 0, 0xffff ),
-			mt_rand( 0, 0x0fff ) | 0x4000,
-			mt_rand( 0, 0x3fff ) | 0x8000,
-			mt_rand( 0, 0xffff ), mt_rand( 0, 0xffff ), mt_rand( 0, 0xffff )
-		);
-	}
-
-	/**
-	 * Determine whether the supplied UUID is in the right format.
-	 *
-	 * @param string $uuid Snapshot UUID.
-	 *
-	 * @return bool
-	 */
-	static public function is_valid_uuid( $uuid ) {
-		return 0 !== preg_match( '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/', $uuid );
 	}
 
 	/**

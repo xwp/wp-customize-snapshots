@@ -385,7 +385,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	/**
 	 * Tests generate_uuid.
 	 *
-	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::generate_uuid()
+	 * @covers \CustomizeSnapshots\wp_generate_uuid4()
 	 */
 	public function test_generate_uuid() {
 		$this->markTestIncomplete();
@@ -697,12 +697,12 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 			'role' => 'administrator',
 		) ) );
 		$post_id = $this->manager->post_type->save( array(
-			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
+			'uuid' => wp_generate_uuid4(),
 			'data' => $data,
 			'status' => 'draft',
 		) );
 		$copy_post_id = $this->manager->post_type->save( array(
-			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
+			'uuid' => wp_generate_uuid4(),
 			'data' => $data,
 			'status' => 'draft',
 		) );
