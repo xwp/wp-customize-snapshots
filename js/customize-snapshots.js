@@ -173,10 +173,10 @@
 		/**
 		 * Setup scheduled changeset countdown.
 		 *
-		 * @param {wp.customize.Control} control Changeset schedule date control.
+		 * @param {wp.customize.Control} dateControl Changeset schedule date control.
 		 * @return {void}
 		 */
-		setupScheduledChangesetCountdown: function( control ) {
+		setupScheduledChangesetCountdown: function( dateControl ) {
 			var template, countdownContainer;
 
 			template = wp.template( 'snapshot-scheduled-countdown' );
@@ -184,8 +184,8 @@
 				'class': 'snapshot-countdown-container hidden'
 			} );
 
-			control.deferred.embedded.done( function() {
-				control.container.append( countdownContainer );
+			dateControl.deferred.embedded.done( function() {
+				dateControl.container.append( countdownContainer );
 				api.state( 'remainingTimeToPublish' ).bind( function( time ) {
 					countdownContainer.removeClass( 'hidden' ).html( template( {
 						remainingTime: time
