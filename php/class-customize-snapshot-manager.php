@@ -680,8 +680,8 @@ class Customize_Snapshot_Manager {
 			</div>
 		</script>
 
-		<script type="text/html" id="tmpl-snapshot-edit-link-control">
-			<a href="#" target="_blank"><span class="dashicons dashicons-external"></span> <?php esc_html_e( 'Edit', 'customize-snapshots' ); ?></a>
+		<script type="text/html" id="tmpl-snapshot-inspect-link-control">
+			<a href="#" target="_blank"><span class="dashicons dashicons-external"></span> <?php esc_html_e( 'Inspect', 'customize-snapshots' ); ?></a>
 		</script>
 
 		<script id="tmpl-snapshot-scheduled-countdown" type="text/html">

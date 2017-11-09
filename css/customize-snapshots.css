@@ -7,12 +7,12 @@
 	margin-top: 10px;
 }
 
-.customize-control-edit-changeset-link {
+.customize-control-inspect-changeset-link {
 	width: auto;
 	float: right;
 	margin-top: -31px;
 }
 
-.customize-control-edit-changeset-link .dashicons {
+.customize-control-inspect-changeset-link .dashicons {
 	text-decoration: none;
 }

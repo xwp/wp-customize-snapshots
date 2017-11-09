@@ -8,7 +8,7 @@
 		// @todo Add stuff.
 
 		data: {
-			editLink: '',
+			inspectLink: '',
 			title: '',
 			i18n: {}
 		},
@@ -31,14 +31,14 @@
 				snapshot.data.uuid = snapshot.data.uuid || api.settings.changeset.uuid;
 				snapshot.data.title = snapshot.data.title || snapshot.data.uuid;
 				api.state.create( 'changesetTitle', snapshot.data.title );
-				api.state.create( 'changesetEditLink', snapshot.data.editLink );
+				api.state.create( 'changesetInspectLink', snapshot.data.inspectLink );
 
 				snapshot.extendPreviewerQuery();
 				api.control( 'changeset_scheduled_date', snapshot.setupScheduledChangesetCountdown );
 
 				api.section( 'publish_settings', function( section ) {
 					snapshot.addTitleControl( section );
-					snapshot.addEditChangesetControl( section );
+					snapshot.addInspectChangesetControl( section );
 				} );
 
 				api.trigger( 'snapshots-ready', snapshot );
@@ -176,17 +176,17 @@
 		},
 
 		/**
-		 * Add edit changeset post link.
+		 * Add inspect changeset post link.
 		 *
 		 * @param {wp.customize.Section} section Section.
 		 * @return {void}
 		 */
-		addEditChangesetControl: function( section ) {
-			var editLinkControl;
+		addInspectChangesetControl: function( section ) {
+			var inspectLinkControl;
 
-			editLinkControl = api.Control.extend( {
+			inspectLinkControl = api.Control.extend( {
 				defaults: _.extend( {}, api.Control.prototype.defaults, {
-					templateId: 'snapshot-edit-link-control'
+					templateId: 'snapshot-inspect-link-control'
 				} ),
 				ready: function() {
 					var control = this, link;
@@ -206,11 +206,11 @@
 				}
 			} );
 
-			api.control.add( new editLinkControl( 'edit_changeset', {
-				type: 'edit-changeset-link',
+			api.control.add( new inspectLinkControl( 'inspect_changeset', {
+				type: 'inspect-changeset-link',
 				section: section.id,
 				priority: 30,
-				setting: api.state( 'changesetEditLink' )
+				setting: api.state( 'changesetInspectLink' )
 			} ) );
 		}
 	} );
