@@ -10,7 +10,8 @@
 		data: {
 			inspectLink: '',
 			title: '',
-			i18n: {}
+			i18n: {},
+			statusChoices: []
 		},
 
 		initialize: function initialize( snapshotsConfig ) {
@@ -35,6 +36,7 @@
 				api.control( 'changeset_scheduled_date', snapshot.setupScheduledChangesetCountdown );
 
 				api.section( 'publish_settings', function( section ) {
+					snapshot.addPendingToStatusControl( section );
 					snapshot.addTitleControl( section );
 					snapshot.addInspectChangesetControl( section );
 				} );
@@ -221,6 +223,26 @@
 				priority: 30,
 				setting: api.state( 'changesetInspectLink' )
 			} ) );
+		},
+
+		/**
+		 * Add pending status to changeset status control.
+		 *
+		 * @return {void}
+		 */
+		addPendingToStatusControl: function() {
+			var snapshot = this, params, coreStatusControl;
+
+			coreStatusControl = api.control( 'changeset_status' );
+
+			coreStatusControl.deferred.embedded.done( function() {
+				params = _.extend( {}, coreStatusControl.params );
+				coreStatusControl.container.remove();
+				api.control.remove( 'changeset_status' );
+
+				params.choices = snapshot.data.statusChoices;
+				api.control.add( new api.Control( 'changeset_status', params ) );
+			} );
 		}
 	} );
 

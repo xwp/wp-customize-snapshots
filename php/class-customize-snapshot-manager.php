@@ -236,12 +236,39 @@ class Customize_Snapshot_Manager {
 			}
 		}
 
+		$current_user_can_publish = current_user_can( 'customize_publish' );
+		$status_choices = array();
+
+		if ( $current_user_can_publish ) {
+			$status_choices[] = array(
+				'status' => 'publish',
+				'label' => __( 'Publish', 'customize-snapshots' ),
+			);
+		}
+
+		$status_choices[] = array(
+			'status' => 'draft',
+			'label' => __( 'Save Draft', 'customize-snapshots' ),
+		);
+		$status_choices[] = array(
+			'status' => 'pending',
+			'label' => __( 'Save Pending', 'customize-snapshots' ),
+		);
+
+		if ( $current_user_can_publish ) {
+			$status_choices[] = array(
+				'status' => 'future',
+				'label' => _x( 'Schedule', 'customizer changeset action/button label', 'customize-snapshots' ),
+			);
+		}
+
 		// Script data array.
 		$exports = apply_filters( 'customize_snapshots_export_data', array(
 			'inspectLink' => isset( $edit_link ) ? $edit_link : '',
 			'title' => isset( $post->post_title ) ? $post->post_title : '',
-			'currentUserCanPublish' => current_user_can( 'customize_publish' ),
+			'currentUserCanPublish' => $current_user_can_publish, // @todo Remove if not required.
 			'previewingTheme' => isset( $preview_url_query_vars['theme'] ) ? $preview_url_query_vars['theme'] : '',
+			'statusChoices' => $status_choices,
 			'i18n' => array(
 				'title' => __( 'Title', 'customize-snapshots' ),
 			),
