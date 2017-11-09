@@ -197,6 +197,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		$manager->init();
 		$this->assertEquals( 10, has_action( 'init', array( $manager->post_type, 'init' ) ) );
 		$this->assertEquals( 10, has_action( 'customize_controls_enqueue_scripts', array( $manager, 'enqueue_controls_scripts' ) ) );
+		$this->assertEquals( 10, has_filter( 'customize_changeset_branching', '__return_true' ) );
 		$this->assertEquals( 10, has_action( 'admin_enqueue_scripts', array( $manager, 'enqueue_admin_scripts' ) ) );
 		$this->assertEquals( 10, has_action( 'customize_controls_init', array( $manager, 'add_snapshot_uuid_to_return_url' ) ) );
 		$this->assertEquals( 10, has_action( 'customize_controls_print_footer_scripts', array( $manager, 'render_templates' ) ) );
@@ -239,7 +240,6 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		$manager = new Customize_Snapshot_Manager( $this->plugin );
 		$data = $manager->add_snapshot_var_to_customize_save( array(), $manager->ensure_customize_manager() );
 		$this->assertArrayHasKey( 'edit_link', $data );
-		$this->assertArrayHasKey( 'publish_date', $data );
 		$this->assertArrayHasKey( 'title', $data );
 	}
 
@@ -501,48 +501,8 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		$templates = ob_get_contents();
 		ob_end_clean();
 		$this->assertContains( 'tmpl-snapshot-dialog-error', $templates );
-		$this->assertContains( 'tmpl-snapshot-preview-link', $templates );
-		$this->assertContains( 'tmpl-snapshot-expand-button', $templates );
-		$this->assertContains( 'tmpl-snapshot-edit-container', $templates );
+		$this->assertContains( 'tmpl-snapshot-inspect-link-control', $templates );
 		$this->assertContains( 'tmpl-snapshot-scheduled-countdown', $templates );
-		$this->assertContains( 'tmpl-snapshot-submit', $templates );
-	}
-
-	/**
-	 * Test format_gmt_offset
-	 *
-	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::format_gmt_offset()
-	 */
-	public function test_format_gmt_offset() {
-		$offset = $this->manager->format_gmt_offset( 7.0 );
-		$this->assertEquals( '+7', $offset );
-	}
-
-	/**
-	 * Test month choices
-	 *
-	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::get_month_choices()
-	 */
-	public function test_get_month_choices() {
-		$data = $this->manager->get_month_choices();
-		$this->assertArrayHasKey( 'month_choices', $data );
-		$this->assertCount( 12, $data['month_choices'] );
-	}
-
-	/**
-	 * Test override post date if empty.
-	 *
-	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::override_post_date_default_data()
-	 */
-	public function test_override_post_date_default_data() {
-		$post_id = $this->factory()->post->create();
-		$post = get_post( $post_id );
-		$post->post_date = $post->post_date_gmt = $post->post_modified = $post->post_modified_gmt = '0000-00-00 00:00:00';
-		$this->manager->override_post_date_default_data( $post );
-		$this->assertNotEquals( $post->post_date, '0000-00-00 00:00:00' );
-		$this->assertNotEquals( $post->post_date_gmt, '0000-00-00 00:00:00' );
-		$this->assertNotEquals( $post->post_modified, '0000-00-00 00:00:00' );
-		$this->assertNotEquals( $post->post_modified_gmt, '0000-00-00 00:00:00' );
 	}
 
 	/**

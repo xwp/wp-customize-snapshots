@@ -26,13 +26,6 @@ class Customize_Snapshot_Manager_Compat extends Customize_Snapshot_Manager {
 	const AJAX_ACTION = 'customize_update_snapshot';
 
 	/**
-	 * Post type.
-	 *
-	 * @var Post_Type
-	 */
-	public $post_type;
-
-	/**
 	 * Whether the snapshot settings are being previewed.
 	 *
 	 * @var bool
@@ -64,14 +57,6 @@ class Customize_Snapshot_Manager_Compat extends Customize_Snapshot_Manager {
 		remove_action( 'delete_post', '_wp_delete_customize_changeset_dependent_auto_drafts' );
 		add_action( 'delete_post', array( $this, 'clean_up_nav_menus_created_auto_drafts' ) );
 		add_filter( 'customize_save_response', array( $this, 'add_snapshot_var_to_customize_save' ), 10, 2 );
-	}
-
-	/**
-	 * Init.
-	 */
-	function init() {
-		$this->post_type = new Post_Type( $this );
-		$this->hooks();
 	}
 
 	/**
@@ -987,25 +972,6 @@ class Customize_Snapshot_Manager_Compat extends Customize_Snapshot_Manager {
 			wp_redirect( $sendback );
 			exit();
 		}
-	}
-
-	/**
-	 * Save the preview url query vars in changeset meta.
-	 *
-	 * @param int $post_id Post id.
-	 */
-	public function save_customizer_state_query_vars( $post_id ) {
-		if ( ! isset( $_POST['customizer_state_query_vars'] ) ) {
-			return;
-		}
-
-		$original_query_vars = json_decode( wp_unslash( $_POST['customizer_state_query_vars'] ), true );
-
-		if ( empty( $original_query_vars ) || ! is_array( $original_query_vars ) ) {
-			return;
-		}
-
-		$this->post_type->set_customizer_state_query_vars( $post_id, $original_query_vars );
 	}
 
 	/**

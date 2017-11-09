@@ -63,7 +63,7 @@ class Customize_Snapshot_Manager {
 	 */
 	function hooks() {
 		add_action( 'init', array( $this->post_type, 'init' ) );
-		add_filter( 'customize_changeset_branching', '__return_true' ); // For WordPress 4.9.
+		add_filter( 'customize_changeset_branching', '__return_true' );
 		add_action( 'customize_controls_enqueue_scripts', array( $this, 'enqueue_controls_scripts' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_frontend_scripts' ) );
@@ -231,7 +231,6 @@ class Customize_Snapshot_Manager {
 			$post = get_post( $post_id );
 			$preview_url_query_vars = $this->post_type->get_customizer_state_query_vars( $post->ID );
 			if ( $post instanceof \WP_Post ) {
-				$this->override_post_date_default_data( $post );
 				$edit_link = $this->get_edit_link( $post_id );
 			}
 		}
@@ -715,32 +714,6 @@ class Customize_Snapshot_Manager {
 			<# } #>
 		</script>
 		<?php
-	}
-
-	/**
-	 * Override default date values to a post.
-	 *
-	 * @param \WP_Post $post Post.
-	 * @return \WP_Post Object if the post data did not apply.
-	 */
-	public function override_post_date_default_data( \WP_Post &$post ) {
-		if ( ! is_array( $post ) ) {
-			// Make sure that empty dates are not used in case of setting invalidity.
-			$empty_date = '0000-00-00 00:00:00';
-			if ( $empty_date === $post->post_date ) {
-				$post->post_date = current_time( 'mysql', false );
-			}
-			if ( $empty_date === $post->post_date_gmt ) {
-				$post->post_date_gmt = current_time( 'mysql', true );
-			}
-			if ( $empty_date === $post->post_modified ) {
-				$post->post_modified = current_time( 'mysql', false );
-			}
-			if ( $empty_date === $post->post_modified_gmt ) {
-				$post->post_modified_gmt = current_time( 'mysql', true );
-			}
-		}
-		return $post;
 	}
 
 	/**
