@@ -23,8 +23,6 @@
 			_.bindAll( snapshot, 'setupScheduledChangesetCountdown' );
 
 			api.bind( 'ready', function() {
-				// @todo Add snapshot-exists, snapshot-saved, snapshot-submitted states for back-compat? Skip if they are not used.
-
 				snapshot.spinner = $( '#customize-header-actions' ).find( '.spinner' );
 				snapshot.saveBtn = $( '#save' );
 
@@ -39,6 +37,18 @@
 				api.section( 'publish_settings', function( section ) {
 					snapshot.addTitleControl( section );
 					snapshot.addInspectChangesetControl( section );
+				} );
+
+				api.bind( 'save', function( request ) {
+					request.done( function( response ) {
+						console.warn( response );
+						if ( response.edit_link ) {
+							api.state( 'changesetInspectLink' ).set( response.edit_link );
+						}
+						if ( response.title ) {
+							api.state( 'changesetTitle' ).set( response.title );
+						}
+					} );
 				} );
 
 				api.trigger( 'snapshots-ready', snapshot );
@@ -202,7 +212,7 @@
 					} );
 				},
 				toggleEditLinkControl: function() {
-					this.active.set( 'publish' !== api.state( 'changesetStatus' ).get() && api.state( 'changesetStatus' ).get() );
+					this.active.set( _.contains( [ 'draft', 'future', 'pending' ], api.state( 'changesetStatus' ).get() ) );
 				}
 			} );
 

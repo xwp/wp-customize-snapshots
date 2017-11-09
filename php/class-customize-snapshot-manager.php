@@ -103,7 +103,6 @@ class Customize_Snapshot_Manager {
 	public function add_snapshot_var_to_customize_save( $response, $customize_manager ) {
 		$changeset_post = get_post( $customize_manager->changeset_post_id() );
 		$response['edit_link'] = $this->get_edit_link( $changeset_post->ID );
-		$response['publish_date'] = $changeset_post->post_date;
 		$response['title'] = $changeset_post->post_title;
 		return $response;
 	}
@@ -225,9 +224,9 @@ class Customize_Snapshot_Manager {
 		wp_enqueue_script( 'customize-snapshots' );
 
 		$post = null;
-
 		$preview_url_query_vars = array();
 		$post_id = $this->get_customize_manager()->changeset_post_id();
+
 		if ( $post_id ) {
 			$post = get_post( $post_id );
 			$preview_url_query_vars = $this->post_type->get_customizer_state_query_vars( $post->ID );
@@ -239,19 +238,12 @@ class Customize_Snapshot_Manager {
 
 		// Script data array.
 		$exports = apply_filters( 'customize_snapshots_export_data', array(
-			'editLink' => isset( $edit_link ) ? $edit_link : '',
+			'inspectLink' => isset( $edit_link ) ? $edit_link : '',
 			'title' => isset( $post->post_title ) ? $post->post_title : '',
 			'currentUserCanPublish' => current_user_can( 'customize_publish' ),
 			'previewingTheme' => isset( $preview_url_query_vars['theme'] ) ? $preview_url_query_vars['theme'] : '',
 			'i18n' => array(
-				'permsMsg' => array(
-					'save' => __( 'You do not have permission to publish changes, but you can create a changeset by clicking the "Save" button.', 'customize-snapshots' ),
-					'update' => __( 'You do not have permission to publish changes, but you can modify this changeset by clicking the "Update" button.', 'customize-snapshots' ),
-				),
 				'title' => __( 'Title', 'customize-snapshots' ),
-				'aysMsg' => __( 'Changes that you made may not be saved.', 'customize-snapshots' ),
-				'errorMsg' => __( 'The changeset could not be saved.', 'customize-snapshots' ),
-				'errorTitle' => __( 'Error', 'customize-snapshots' ),
 			),
 		) );
 
