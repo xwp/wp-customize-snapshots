@@ -77,9 +77,9 @@
 		 * @return {void}
 		 */
 		addTitleControl: function( section ) {
-		    var snapshot = this, control, toggleControl;
+		    var snapshot = this, titleControl, toggleControl;
 
-			control = new api.Control( 'changeset_title', {
+			titleControl = new api.Control( 'changeset_title', {
 				type: 'text',
 				label: snapshot.data.i18n.title,
 				section: section.id,
@@ -87,14 +87,14 @@
 				priority: 31
 			} );
 
-			api.control.add( control );
+			api.control.add( titleControl );
 
 			toggleControl = function( status ) {
 				var activate = 'publish' !== status;
-				control.active.validate = function() {
+				titleControl.active.validate = function() {
 					return activate;
 				};
-				control.active.set( activate );
+				titleControl.active.set( activate );
 			};
 
 			toggleControl( api.state( 'selectedChangesetStatus' ).get() );
