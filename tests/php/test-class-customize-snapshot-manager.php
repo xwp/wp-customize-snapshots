@@ -383,15 +383,6 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	}
 
 	/**
-	 * Tests generate_uuid.
-	 *
-	 * @covers \CustomizeSnapshots\wp_generate_uuid4()
-	 */
-	public function test_generate_uuid() {
-		$this->markTestIncomplete();
-	}
-
-	/**
 	 * Tests is_valid_uuid.
 	 *
 	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::is_valid_uuid()

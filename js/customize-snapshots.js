@@ -36,9 +36,16 @@
 				api.control( 'changeset_scheduled_date', snapshot.setupScheduledChangesetCountdown );
 
 				api.section( 'publish_settings', function( section ) {
-					snapshot.addPendingToStatusControl( section );
+					snapshot.addPendingToStatusControl();
 					snapshot.addTitleControl( section );
 					snapshot.addInspectChangesetControl( section );
+				} );
+
+				// @todo TBD.
+				api.state.bind( 'change', function() {
+					if ( api.state( 'activated' ).get() && '' !== api.state( 'changesetStatus' ).get() && api.state( 'saved' ).get() && 'pending' === api.state( 'selectedChangesetStatus' ).get() ) {
+						snapshot.saveBtn.val( 'Pending' );
+					}
 				} );
 
 				api.trigger( 'snapshots-ready', snapshot );
