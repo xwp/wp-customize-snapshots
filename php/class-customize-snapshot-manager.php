@@ -155,17 +155,6 @@ class Customize_Snapshot_Manager {
 	}
 
 	/**
-	 * Is previewing another theme.
-	 *
-	 * @return bool Whether theme is active.
-	 *
-	 * @deprecated in favor of WP_Customize_Manager::is_theme_active()
-	 */
-	public function is_theme_active() {
-		return is_customize_preview() && $this->get_customize_manager()->is_theme_active();
-	}
-
-	/**
 	 * Add snapshot UUID the Customizer return URL.
 	 *
 	 * If the Customizer was loaded from a referring URL had a changeset UUID, then ensure the return URL also includes this param.
