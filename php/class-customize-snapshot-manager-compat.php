@@ -17,22 +17,6 @@ namespace CustomizeSnapshots;
 class Customize_Snapshot_Manager_Compat extends Customize_Snapshot_Manager {
 
 	/**
-	 * Action nonce.
-	 *
-	 * @todo Remove if no longer being used.
-	 *
-	 * @type string
-	 */
-	const AJAX_ACTION = 'customize_update_snapshot';
-
-	/**
-	 * Whether the snapshot settings are being previewed.
-	 *
-	 * @var bool
-	 */
-	protected $previewing_settings = false;
-
-	/**
 	 * Init common hooks.
 	 *
 	 * @global \WP_Customize_Manager $wp_customize
@@ -342,60 +326,6 @@ class Customize_Snapshot_Manager_Compat extends Customize_Snapshot_Manager {
 			'id' => 'inspect-customize-snapshot',
 			'title' => __( 'Inspect Changeset', 'customize-snapshots' ),
 			'href' => $this->get_edit_link( $post_id ),
-			'meta' => array(
-				'class' => 'ab-item ab-customize-snapshots-item',
-			),
-		) );
-	}
-
-	/**
-	 * Adds a "Publish Changeset" link to the Toolbar when in Snapshot mode.
-	 *
-	 * @param \WP_Admin_Bar $wp_admin_bar WP_Admin_Bar instance.
-	 */
-	public function add_publish_changeset_link( $wp_admin_bar ) {
-		if ( ! is_customize_preview() || ! current_user_can( get_post_type_object( $this->post_type->get_slug() )->cap->publish_posts ) ) {
-			return;
-		}
-
-		$wp_customize = $this->get_customize_manager();
-		$post_id = $wp_customize->changeset_post_id();
-		if ( ! $post_id ) {
-			return;
-		}
-
-		$href = add_query_arg(
-			array(
-				'post_type' => $this->post_type->get_slug(),
-				'action' => 'frontend_publish',
-				'uuid' => $wp_customize->changeset_uuid(),
-				'stylesheet' => get_stylesheet(),
-			),
-			admin_url( 'edit.php' )
-		);
-		$wp_admin_bar->add_menu( array(
-			'id' => 'publish-customize-changeset',
-			'title' => __( 'Publish Changeset', 'customize-snapshots' ),
-			'href' => wp_nonce_url( $href, 'publish-changeset_' . $wp_customize->changeset_uuid() ),
-			'meta' => array(
-				'class' => 'ab-item ab-customize-snapshots-item',
-			),
-		) );
-	}
-
-	/**
-	 * Adds an "Exit Changeset Preview" link to the Toolbar when previewing a changeset.
-	 *
-	 * @param \WP_Admin_Bar $wp_admin_bar WP_Admin_Bar instance.
-	 */
-	public function add_snapshot_exit_link( $wp_admin_bar ) {
-		if ( ! is_customize_preview() ) {
-			return;
-		}
-		$wp_admin_bar->add_menu( array(
-			'id' => 'exit-customize-snapshot',
-			'title' => __( 'Exit Changeset Preview', 'customize-snapshots' ),
-			'href' => remove_query_arg( $this->get_front_uuid_param() ),
 			'meta' => array(
 				'class' => 'ab-item ab-customize-snapshots-item',
 			),
@@ -719,124 +649,6 @@ class Customize_Snapshot_Manager_Compat extends Customize_Snapshot_Manager {
 			}
 		}
 		return $post;
-	}
-
-	/**
-	 * Get Post_Type from dynamic class.
-	 *
-	 * @return string Post type.
-	 */
-	public function get_post_type() {
-		return Post_Type::SLUG;
-	}
-
-	/**
-	 * Get Frontend UUID param.
-	 *
-	 * @return string param.
-	 */
-	public function get_front_uuid_param() {
-		return Post_Type::FRONT_UUID_PARAM_NAME;
-	}
-
-	/**
-	 * Get customize uuid param name.
-	 *
-	 * @return string customize param name.
-	 */
-	public function get_customize_uuid_param() {
-		return Post_Type::CUSTOMIZE_UUID_PARAM_NAME;
-	}
-
-	/**
-	 * Handles request to publish changeset from frontend.
-	 */
-	public function handle_frontend_changeset_publish() {
-
-		if ( ! isset( $_GET['uuid'] ) || ! isset( $_GET['action'] ) || 'frontend_publish' !== $_GET['action'] ) {
-			return;
-		}
-		$uuid = sanitize_key( wp_unslash( $_GET['uuid'] ) );
-		if ( ! static::is_valid_uuid( $uuid ) ) {
-			return;
-		}
-
-		$is_user_authorized = (
-			check_ajax_referer( 'publish-changeset_' . $uuid, false, false )
-			&&
-			current_user_can( get_post_type_object( $this->post_type->get_slug() )->cap->publish_posts )
-		);
-		if ( ! $is_user_authorized ) {
-			wp_die(
-				esc_html__( 'Oops. Unable to publish the changeset due to an expired user session. Please go back, reload the page, and try publishing again.', 'customize-snapshots' ),
-				esc_html__( 'Changeset publishing failed', 'customize-snapshots' ),
-				array(
-					'back_link' => true,
-					'response' => 401,
-				)
-			);
-		}
-
-		$stylesheet = null;
-		if ( isset( $_GET['stylesheet'] ) ) {
-			$theme = wp_get_theme( wp_unslash( $_GET['stylesheet'] ) );
-			if ( $theme->errors() ) {
-				$msg = __( 'Oops. Unable to publish the changeset. The following error(s) occurred: ', 'customize-snapshots' );
-				$msg .= join( '; ', array_keys( $theme->errors()->errors ) );
-				wp_die(
-					'<p>' . esc_html( $msg ) . '</p>',
-					esc_html__( 'Changeset publishing failed', 'customize-snapshots' ),
-					array(
-						'back_link' => true,
-						'response' => 400,
-					)
-				);
-			}
-			$stylesheet = $theme->get_stylesheet();
-		}
-
-		$wp_customize = $this->get_customize_manager();
-		$args = array();
-		if ( empty( $wp_customize ) || ! ( $wp_customize instanceof \WP_Customize_Manager ) ) {
-			require_once( ABSPATH . WPINC . '/class-wp-customize-manager.php' );
-			$args['changeset_uuid'] = $uuid;
-			if ( $stylesheet ) {
-				$args['theme'] = $stylesheet;
-			}
-			$wp_customize = new \WP_Customize_Manager( $args ); // WPCS: override ok.
-		}
-		$r = $wp_customize->save_changeset_post( array(
-			'status' => 'publish',
-		) );
-
-		if ( is_wp_error( $r ) ) {
-			$msg = __( 'Oops. Unable to publish the changeset. The following error(s) occurred: ', 'customize-snapshots' );
-			$msg .= join( '; ', array_keys( $r->errors ) );
-			wp_die(
-				'<p>' . esc_html( $msg ) . '</p>',
-				esc_html__( 'Changeset publishing failed', 'customize-snapshots' ),
-				array(
-					'back_link' => true,
-					'response' => 500,
-				)
-			);
-		} else {
-			$referer = wp_get_referer();
-
-			// Ensure redirect is set to frontend.
-			if ( empty( $referer ) || false !== strpos( parse_url( $referer, PHP_URL_PATH ), '/wp-admin/' ) ) {
-				$referer = home_url();
-			}
-
-			$sendback = remove_query_arg( array(
-				$this->get_front_uuid_param(),
-				'customize_theme',
-				$this->get_customize_uuid_param(),
-			), $referer );
-
-			wp_redirect( $sendback );
-			exit();
-		}
 	}
 
 	/**
