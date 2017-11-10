@@ -172,31 +172,6 @@ class Customize_Snapshot_Manager_Compat extends Customize_Snapshot_Manager {
 	}
 
 	/**
-	 * Enqueue admin scripts.
-	 *
-	 * These files control the behavior and styling of links to remove settings.
-	 * Published snapshots can't be edited, so these files are not needed on those pages.
-	 *
-	 * @param String $hook Current page in admin.
-	 */
-	public function enqueue_admin_scripts( $hook ) {
-		global $post;
-		$handle = 'customize-snapshots-admin';
-		if ( ( 'post.php' === $hook ) && isset( $post->post_type ) && ( $this->get_post_type() === $post->post_type ) && ( 'publish' !== $post->post_status ) ) {
-			wp_enqueue_script( $handle );
-			wp_enqueue_style( $handle );
-			$exports = array(
-				'deleteInputName' => $this->get_post_type() . '_remove_settings[]',
-			);
-			wp_add_inline_script(
-				$handle,
-				sprintf( 'CustomizeSnapshotsAdmin.init( %s )', wp_json_encode( $exports ) ),
-				'after'
-			);
-		}
-	}
-
-	/**
 	 * Enqueue Customizer frontend scripts.
 	 */
 	public function enqueue_frontend_scripts() {

@@ -244,15 +244,6 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	}
 
 	/**
-	 * Tests enqueue_admin_scripts.
-	 *
-	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::enqueue_admin_scripts()
-	 */
-	public function test_enqueue_admin_scripts() {
-		$this->markTestIncomplete();
-	}
-
-	/**
 	 * Tests ensure_customize_manager.
 	 *
 	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::ensure_customize_manager()
