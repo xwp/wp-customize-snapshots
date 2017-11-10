@@ -127,15 +127,6 @@ class Customize_Snapshot_Manager {
 	}
 
 	/**
-	 * Return true if it's a customize_save Ajax request.
-	 *
-	 * @return bool True if it's an Ajax request, false otherwise.
-	 */
-	public function doing_customize_save_ajax() {
-		return isset( $_REQUEST['action'] ) && sanitize_key( wp_unslash( $_REQUEST['action'] ) ) === 'customize_save'; // WPCS: input var ok. CSRF ok.
-	}
-
-	/**
 	 * Get the customize manager.
 	 *
 	 * @return \WP_Customize_Manager Manager.

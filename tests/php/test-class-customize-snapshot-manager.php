@@ -253,22 +253,6 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	}
 
 	/**
-	 * Tests doing_customize_save_ajax.
-	 *
-	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::doing_customize_save_ajax()
-	 */
-	public function test_doing_customize_save_ajax() {
-		$manager = $this->get_snapshot_manager_instance( $this->plugin );
-		$this->assertFalse( $manager->doing_customize_save_ajax() );
-
-		$_REQUEST['action'] = 'foo';
-		$this->assertFalse( $manager->doing_customize_save_ajax() );
-
-		$_REQUEST['action'] = 'customize_save';
-		$this->assertTrue( $manager->doing_customize_save_ajax() );
-	}
-
-	/**
 	 * Tests ensure_customize_manager.
 	 *
 	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::ensure_customize_manager()
