@@ -98,23 +98,6 @@ class Customize_Snapshot_Manager_Compat extends Customize_Snapshot_Manager {
 	}
 
 	/**
-	 * Encode JSON with pretty formatting.
-	 *
-	 * @param array $value The snapshot value.
-	 * @return string
-	 */
-	static public function encode_json( $value ) {
-		$flags = 0;
-
-		$flags |= \JSON_PRETTY_PRINT;
-
-		if ( defined( '\JSON_UNESCAPED_SLASHES' ) ) {
-			$flags |= \JSON_UNESCAPED_SLASHES;
-		}
-		return wp_json_encode( $value, $flags );
-	}
-
-	/**
 	 * Enqueue styles & scripts for the Customizer.
 	 *
 	 * @action customize_controls_enqueue_scripts
@@ -194,67 +177,6 @@ class Customize_Snapshot_Manager_Compat extends Customize_Snapshot_Manager {
 			sprintf( 'CustomizeSnapshotsFrontend.init( %s )', wp_json_encode( $exports ) ),
 			'after'
 		);
-	}
-
-	/**
-	 * Create initial changeset revision.
-	 *
-	 * This should be removed once #30854 is resolved.
-	 *
-	 * @link https://core.trac.wordpress.org/ticket/30854
-	 *
-	 * @param int $post_id Post ID.
-	 */
-	public function create_initial_changeset_revision( $post_id ) {
-		if ( 0 === count( wp_get_post_revisions( $post_id ) ) ) {
-			wp_save_post_revision( $post_id );
-		}
-	}
-
-	/**
-	 * Prepare snapshot post content for publishing.
-	 *
-	 * Strips out publish_error from content, with it potentially being re-added
-	 * in a secondary wp_update_post() call if any of the settings in the post
-	 * were not able to be saved.
-	 *
-	 * @param array $data    An array of slashed post data.
-	 * @return array Post data.
-	 */
-	public function prepare_snapshot_post_content_for_publish( $data ) {
-		$is_publishing_snapshot = (
-			isset( $data['post_type'] )
-			&&
-			$this->get_post_type() === $data['post_type']
-			&&
-			'publish' === $data['post_status']
-			&&
-			(
-				empty( $data['ID'] )
-				||
-				'publish' !== get_post_status( $data['ID'] )
-			)
-		);
-		if ( ! $is_publishing_snapshot ) {
-			return $data;
-		}
-
-		$post_content = json_decode( wp_unslash( $data['post_content'] ), true );
-		if ( ! is_array( $post_content ) ) {
-			return $data;
-		}
-
-		// Remove publish_error from post_content.
-		foreach ( $post_content as $setting_id => &$setting_params ) {
-			if ( is_array( $setting_params ) ) {
-				unset( $setting_params['publish_error'] );
-			}
-		}
-
-		$data['post_content'] = wp_slash( self::encode_json( $post_content ) );
-
-		// @todo We could incorporate more of the logic from save_settings_with_publish_snapshot here to pre-emptively set the pending status.
-		return $data;
 	}
 
 	/**
