@@ -14,8 +14,7 @@
 				title: '',
 				savePending: '',
 				pendingSaved: ''
-			},
-			pendingStatusChoice: []
+			}
 		},
 
 		initialize: function initialize( snapshotsConfig ) {
@@ -238,7 +237,10 @@
 				params = _.extend( {}, coreStatusControl.params );
 				coreStatusControl.container.remove();
 				api.control.remove( 'changeset_status' );
-				params.choices.splice( index, 0, snapshot.data.pendingStatusChoice );
+				params.choices.splice( index, 0, {
+					label: snapshot.data.i18n.savePending,
+					status: 'pending'
+				} );
 				api.control.add( new api.Control( 'changeset_status', params ) );
 			} );
 		}

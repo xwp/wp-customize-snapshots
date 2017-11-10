@@ -240,10 +240,6 @@ class Customize_Snapshot_Manager {
 			'inspectLink' => isset( $edit_link ) ? $edit_link : '',
 			'title' => isset( $post->post_title ) ? $post->post_title : '',
 			'previewingTheme' => isset( $preview_url_query_vars['theme'] ) ? $preview_url_query_vars['theme'] : '',
-			'pendingStatusChoice' => array(
-				'status' => 'pending',
-				'label' => __( 'Save Pending', 'customize-snapshots' ),
-			),
 			'i18n' => array(
 				'title' => __( 'Title', 'customize-snapshots' ),
 				'savePending' => __( 'Save Pending', 'customize-snapshots' ),
