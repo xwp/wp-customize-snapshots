@@ -204,7 +204,6 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		$this->assertEquals( 41, has_action( 'admin_bar_menu', array( $manager, 'customize_menu' ) ) );
 		$this->assertEquals( 100000, has_action( 'admin_bar_menu', array( $manager, 'remove_all_non_snapshot_admin_bar_links' ) ) );
 		$this->assertEquals( 10, has_action( 'wp_before_admin_bar_render', array( $manager, 'print_admin_bar_styles' ) ) );
-		$this->assertEquals( 10, has_filter( 'removable_query_args', array( $manager, 'filter_removable_query_args' ) ) );
 		$this->assertEquals( 10, has_action( 'save_post_' . $manager->get_post_type(), array( $manager, 'create_initial_changeset_revision' ) ) );
 		$this->assertEquals( 10, has_action( 'save_post_' . $manager->get_post_type(), array( $manager, 'save_customizer_state_query_vars' ) ) );
 		$this->assertEquals( 10, has_filter( 'wp_insert_post_data', array( $manager, 'prepare_snapshot_post_content_for_publish' ) ) );
@@ -336,16 +335,6 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 			'post_status' => 'publish',
 		) );
 		$this->assertEquals( $validate_data, json_decode( wp_unslash( $data_without_errors['post_content'] ), true ) );
-	}
-
-	/**
-	 * Test adding snapshot_error_on_publish to removable_query_args.
-	 *
-	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::filter_removable_query_args()
-	 */
-	public function test_filter_removable_query_args() {
-		$manager = $this->get_snapshot_manager_instance( $this->plugin );
-		$this->assertContains( 'snapshot_error_on_publish', $manager->filter_removable_query_args( array() ) );
 	}
 
 	/**

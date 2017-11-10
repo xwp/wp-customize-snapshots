@@ -75,7 +75,6 @@ class Customize_Snapshot_Manager {
 		add_action( 'admin_bar_menu', array( $this, 'customize_menu' ), 41 );
 		add_action( 'admin_bar_menu', array( $this, 'remove_all_non_snapshot_admin_bar_links' ), 100000 );
 		add_action( 'wp_before_admin_bar_render', array( $this, 'print_admin_bar_styles' ) );
-		add_filter( 'removable_query_args', array( $this, 'filter_removable_query_args' ) );
 		add_action( 'save_post_' . $this->get_post_type(), array( $this, 'create_initial_changeset_revision' ) );
 		add_action( 'save_post_' . $this->get_post_type(), array( $this, 'save_customizer_state_query_vars' ) );
 		add_filter( 'wp_insert_post_data', array( $this, 'prepare_snapshot_post_content_for_publish' ) );
@@ -345,17 +344,6 @@ class Customize_Snapshot_Manager {
 
 		// @todo We could incorporate more of the logic from save_settings_with_publish_snapshot here to pre-emptively set the pending status.
 		return $data;
-	}
-
-	/**
-	 * Add snapshot_error_on_publish to removable_query_args.
-	 *
-	 * @param array $query_args Query args.
-	 * @return array Removable query args.
-	 */
-	public function filter_removable_query_args( $query_args ) {
-		$query_args[] = 'snapshot_error_on_publish';
-		return $query_args;
 	}
 
 	/**
