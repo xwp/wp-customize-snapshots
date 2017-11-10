@@ -15,7 +15,7 @@
 				savePending: '',
 				pendingSaved: ''
 			},
-			statusChoices: []
+			pendingStatusChoice: []
 		},
 
 		initialize: function initialize( snapshotsConfig ) {
@@ -120,7 +120,7 @@
 
 		/**
 		 * Get state query vars.
-		 * @todo Reuse method in compat mode?
+		 * @todo Reuse method in compat?
 		 *
 		 * @return {{}} Query vars for scroll, device, url, and autofocus.
 		 */
@@ -230,7 +230,7 @@
 		 * @return {void}
 		 */
 		addPendingToStatusControl: function() {
-			var snapshot = this, params, coreStatusControl;
+			var snapshot = this, params, coreStatusControl, index = 2;
 
 			coreStatusControl = api.control( 'changeset_status' );
 
@@ -238,8 +238,7 @@
 				params = _.extend( {}, coreStatusControl.params );
 				coreStatusControl.container.remove();
 				api.control.remove( 'changeset_status' );
-
-				params.choices = snapshot.data.statusChoices;
+				params.choices.splice( index, 0, snapshot.data.pendingStatusChoice );
 				api.control.add( new api.Control( 'changeset_status', params ) );
 			} );
 		}
