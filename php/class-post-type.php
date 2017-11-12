@@ -686,6 +686,20 @@ class Post_Type {
 	 */
 	public function remap_customize_meta_cap( $caps, $cap ) {
 		$post_type_obj = get_post_type_object( static::SLUG );
+
+		/*
+		 * This remap_customize_meta_cap method runs at map_meta_cap priority 5 and so here we just-in-time remove
+		 * the unnecessary WP_Customize_Manager::grant_edit_post_capability_for_changeset() method added as a
+		 * map_meta_cap filter with priority 10. This method is added during autosave request in
+		 * WP_Customize_Manager::save_changeset_post() function in 4.9, but the logic in this
+		 * remap_customize_meta_cap method in Customize Snapshots makes the core function obsolete.
+		 */
+		remove_filter(
+			'map_meta_cap',
+			array( $this->snapshot_manager->get_customize_manager(), 'grant_edit_post_capability_for_changeset' ),
+			10
+		);
+
 		if ( isset( $post_type_obj->cap->$cap ) && 'customize' === $post_type_obj->cap->$cap ) {
 			foreach ( $caps as &$required_cap ) {
 				if ( 'customize' === $required_cap ) {
