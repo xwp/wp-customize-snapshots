@@ -87,6 +87,7 @@ class Customize_Snapshot_Manager {
 	public function add_snapshot_var_to_customize_save( $response, $customize_manager ) {
 		$changeset_post = get_post( $customize_manager->changeset_post_id() );
 		$response['edit_link'] = $this->get_edit_link( $changeset_post->ID );
+		$response['publish_date'] = $changeset_post->post_date; // @todo Remove when drop support for < 4.9.
 		$response['title'] = $changeset_post->post_title;
 		return $response;
 	}
@@ -350,6 +351,8 @@ class Customize_Snapshot_Manager {
 
 	/**
 	 * Determine whether the supplied UUID is in the right format.
+	 *
+	 * @todo Use wp_is_uuid().
 	 *
 	 * @param string $uuid Snapshot UUID.
 	 *

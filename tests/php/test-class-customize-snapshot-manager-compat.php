@@ -188,28 +188,6 @@ class Test_Customize_Snapshot_Manager_Compat extends \WP_UnitTestCase {
 	}
 
 	/**
-	 * Test common hooks.
-	 *
-	 * @see \CustomizeSnapshots\Customize_Snapshot_Manager_Compat::hooks()
-	 */
-	function test_hooks() {
-		$manager = $this->get_snapshot_manager_instance( $this->plugin );
-		$manager->init();
-		$this->assertEquals( 10, has_action( 'init', array( $manager->post_type, 'init' ) ) );
-		$this->assertEquals( 10, has_action( 'customize_controls_enqueue_scripts', array( $manager, 'enqueue_controls_scripts' ) ) );
-		$this->assertEquals( 10, has_action( 'admin_enqueue_scripts', array( $manager, 'enqueue_admin_scripts' ) ) );
-		$this->assertEquals( 10, has_action( 'customize_controls_init', array( $manager, 'add_snapshot_uuid_to_return_url' ) ) );
-		$this->assertEquals( 10, has_action( 'customize_controls_print_footer_scripts', array( $manager, 'render_templates' ) ) );
-		$this->assertEquals( 41, has_action( 'admin_bar_menu', array( $manager, 'customize_menu' ) ) );
-		$this->assertEquals( 100000, has_action( 'admin_bar_menu', array( $manager, 'remove_all_non_snapshot_admin_bar_links' ) ) );
-		$this->assertEquals( 10, has_action( 'wp_before_admin_bar_render', array( $manager, 'print_admin_bar_styles' ) ) );
-		$this->assertEquals( 10, has_action( 'save_post_' . $manager->get_post_type(), array( $manager, 'create_initial_changeset_revision' ) ) );
-		$this->assertEquals( 10, has_action( 'save_post_' . $manager->get_post_type(), array( $manager, 'save_customizer_state_query_vars' ) ) );
-		$this->assertEquals( 10, has_filter( 'wp_insert_post_data', array( $manager, 'prepare_snapshot_post_content_for_publish' ) ) );
-		$this->assertEquals( 10, has_action( 'delete_post', array( $manager, 'clean_up_nav_menus_created_auto_drafts' ) ) );
-	}
-
-	/**
 	 * Test enqueue controls scripts.
 	 *
 	 * @see Customize_Snapshot_Manager_Compat::enqueue_controls_scripts()
@@ -261,27 +239,6 @@ class Test_Customize_Snapshot_Manager_Compat extends \WP_UnitTestCase {
 		$data = $this->manager->get_month_choices();
 		$this->assertArrayHasKey( 'month_choices', $data );
 		$this->assertCount( 12, $data['month_choices'] );
-	}
-
-	/**
-	 * Tests add_snapshot_var_to_customize_save.
-	 *
-	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::add_snapshot_var_to_customize_save()
-	 */
-	public function test_add_snapshot_var_to_customize_save() {
-		global $wp_customize;
-		$changeset_uuid = wp_generate_uuid4();
-		get_plugin_instance()->customize_snapshot_manager->post_type->save( array(
-			'uuid' => $changeset_uuid,
-			'data' => array(),
-			'status' => 'draft',
-		) );
-		$wp_customize = new \WP_Customize_Manager( compact( 'changeset_uuid' ) );
-		$manager = new Customize_Snapshot_Manager_Compat( $this->plugin );
-		$data = $manager->add_snapshot_var_to_customize_save( array(), $manager->ensure_customize_manager() );
-		$this->assertArrayHasKey( 'edit_link', $data );
-		$this->assertArrayHasKey( 'publish_date', $data );
-		$this->assertArrayHasKey( 'title', $data );
 	}
 
 	/**
