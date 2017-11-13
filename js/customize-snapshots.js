@@ -53,7 +53,7 @@
 					snapshot.addPendingToStatusControl();
 					snapshot.addTitleControl( section );
 					snapshot.addInspectChangesetControl( section );
-					snapshot.addCreateNewChangesetControl( section );
+					snapshot.addCreateAnotherChangesetControl( section );
 				} );
 
 				// For backward compat.
@@ -250,22 +250,34 @@
 		/**
 		 * Add new changeset link control.
 		 *
+		 * @todo Reuse inspect-link-control control.
+		 *
 		 * @param {wp.customize.Section} section Section.
 		 * @return {void}
 		 */
-		addCreateNewChangesetControl: function( section ) {
-			var newChangesetControl;
+		addCreateAnotherChangesetControl: function( section ) {
+			var anotherChangesetControl;
 
-			newChangesetControl = api.Control.extend( {
+			anotherChangesetControl = api.Control.extend( {
 				defaults: _.extend( {}, api.Control.prototype.defaults, {
-					templateId: 'snapshot-new-changeset-link-control'
-				} )
+					templateId: 'snapshot-another-changeset-link-control'
+				} ),
+				ready: function() {
+					var control = this;
+					control.toggleAnotherChangesetControl();
+					api.state( 'changesetStatus' ).bind( function() {
+						control.toggleAnotherChangesetControl();
+					} );
+				},
+				toggleAnotherChangesetControl: function() {
+					this.active.set( _.contains( [ 'draft', 'future', 'pending' ], api.state( 'changesetStatus' ).get() ) );
+				}
 			} );
 
-			api.control.add( new newChangesetControl( 'changeset_new_link', {
-				type: 'changeset-new-link',
+			api.control.add( new anotherChangesetControl( 'another_changeset_link', {
+				type: 'another-changeset-link',
 				section: section.id,
-				priority: 32
+				priority: 101
 			} ) );
 		},
 
