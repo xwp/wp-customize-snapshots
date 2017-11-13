@@ -16,3 +16,7 @@
 .customize-control-inspect-changeset-link .dashicons {
 	text-decoration: none;
 }
+
+.customize-control-changeset-new-link {
+	margin-top: 15px;
+}

@@ -53,6 +53,7 @@
 					snapshot.addPendingToStatusControl();
 					snapshot.addTitleControl( section );
 					snapshot.addInspectChangesetControl( section );
+					snapshot.addCreateNewChangesetControl( section );
 				} );
 
 				// For backward compat.
@@ -244,6 +245,28 @@
 				} );
 				api.control.add( new api.Control( 'changeset_status', params ) );
 			} );
+		},
+
+		/**
+		 * Add new changeset link control.
+		 *
+		 * @param {wp.customize.Section} section Section.
+		 * @return {void}
+		 */
+		addCreateNewChangesetControl: function( section ) {
+			var newChangesetControl;
+
+			newChangesetControl = api.Control.extend( {
+				defaults: _.extend( {}, api.Control.prototype.defaults, {
+					templateId: 'snapshot-new-changeset-link-control'
+				} )
+			} );
+
+			api.control.add( new newChangesetControl( 'changeset_new_link', {
+				type: 'changeset-new-link',
+				section: section.id,
+				priority: 32
+			} ) );
 		},
 
 		/**

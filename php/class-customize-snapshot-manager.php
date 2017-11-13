@@ -613,7 +613,12 @@ class Customize_Snapshot_Manager {
 		</script>
 
 		<script type="text/html" id="tmpl-snapshot-inspect-link-control">
-			<a href="#" target="_blank"><span class="dashicons dashicons-external"></span><?php esc_html_e( 'Inspect', 'customize-snapshots' ); ?></a>
+			<a class="button-link" href="#" target="_blank"><span class="dashicons dashicons-external"></span><?php esc_html_e( 'Inspect', 'customize-snapshots' ); ?></a>
+		</script>
+
+		<script type="text/html" id="tmpl-snapshot-new-changeset-link-control">
+			<?php $new_changeset_link = add_query_arg( 'changeset_uuid', wp_generate_uuid4(), admin_url( 'customize.php' ) ); ?>
+			<a class="button-link" href="<?php echo esc_url( $new_changeset_link ); ?>"><?php esc_html_e( 'Create New Changeset', 'customize-snapshots' ); ?></a>
 		</script>
 
 		<script id="tmpl-snapshot-scheduled-countdown" type="text/html">
