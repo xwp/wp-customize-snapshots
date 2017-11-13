@@ -5,7 +5,6 @@
 	'use strict';
 
 	api.Snapshots = api.Class.extend( {
-		// @todo Add stuff.
 
 		data: {
 			inspectLink: '',
@@ -24,14 +23,10 @@
 				_.extend( snapshot.data, snapshotsConfig );
 			}
 
-			_.bindAll( snapshot, 'setupScheduledChangesetCountdown' );
-
 			api.bind( 'ready', function() {
-				snapshot.spinner = $( '#customize-header-actions' ).find( '.spinner' );
-				snapshot.saveBtn = $( '#save' );
+				var saveBtn = $( '#save' );
 
-				snapshot.data.uuid = snapshot.data.uuid || api.settings.changeset.uuid;
-				snapshot.data.title = snapshot.data.title || snapshot.data.uuid;
+				snapshot.data.title = snapshot.data.title || api.settings.changeset.uuid;
 				api.state.create( 'changesetTitle', snapshot.data.title );
 				api.state.create( 'changesetInspectLink', snapshot.data.inspectLink );
 
@@ -47,9 +42,9 @@
 				api.state.bind( 'change', function() {
 					if ( api.state( 'activated' ).get() && 'pending' === api.state( 'selectedChangesetStatus' ).get() ) {
 						if ( api.state( 'saved' ).get() && api.state( 'selectedChangesetStatus' ).get() === api.state( 'changesetStatus' ).get() ) {
-							snapshot.saveBtn.val( snapshot.data.i18n.pendingSaved );
+							saveBtn.val( snapshot.data.i18n.pendingSaved );
 						} else {
-							snapshot.saveBtn.val( snapshot.data.i18n.savePending );
+							saveBtn.val( snapshot.data.i18n.savePending );
 						}
 					}
 				} );
@@ -59,6 +54,10 @@
 					snapshot.addTitleControl( section );
 					snapshot.addInspectChangesetControl( section );
 				} );
+
+				// For backward compat.
+				snapshot.frontendPreviewUrl = new api.Value( api.previewer.previewUrl.get() );
+				snapshot.frontendPreviewUrl.link( api.previewer.previewUrl );
 
 				api.trigger( 'snapshots-ready', snapshot );
 			} );
@@ -71,6 +70,9 @@
 					if ( response.title ) {
 						api.state( 'changesetTitle' ).set( response.title );
 					}
+
+					// Trigger an event for plugins to use, for backward compat.
+					api.trigger( 'customize-snapshots-update', response );
 				} );
 			} );
 		},
@@ -119,7 +121,6 @@
 
 		/**
 		 * Get state query vars.
-		 * @todo Reuse method in compat?
 		 *
 		 * @return {{}} Query vars for scroll, device, url, and autofocus.
 		 */
@@ -243,6 +244,15 @@
 				} );
 				api.control.add( new api.Control( 'changeset_status', params ) );
 			} );
+		},
+
+		/**
+		 * Get the preview URL with the snapshot UUID attached for backward compat.
+		 *
+		 * @returns {string} URL.
+		 */
+		getSnapshotFrontendPreviewUrl: function() {
+			return api.previewer.getFrontendPreviewUrl();
 		}
 	} );
 
