@@ -36,6 +36,8 @@ class Plugin extends Plugin_Base {
 		if ( preg_match( '/Version:\s*(\S+)/', file_get_contents( __DIR__ . '/../customize-snapshots.php' ), $matches ) ) { // @codingStandardsIgnoreLine because file_get_contents() is not requesting a URL.
 			$this->version = $matches[1];
 		}
+
+		add_filter( 'customize_changeset_branching', '__return_true' );
 		load_plugin_textdomain( 'customize-snapshots' );
 		$this->param_back_compat();
 		parent::__construct();

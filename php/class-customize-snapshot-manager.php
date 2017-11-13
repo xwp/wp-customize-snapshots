@@ -48,7 +48,6 @@ class Customize_Snapshot_Manager {
 	 */
 	function hooks() {
 		add_action( 'init', array( $this->post_type, 'init' ) );
-		add_filter( 'customize_changeset_branching', '__return_true' );
 		add_action( 'customize_controls_enqueue_scripts', array( $this, 'enqueue_controls_scripts' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_frontend_scripts' ) );
