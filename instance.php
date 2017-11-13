@@ -27,9 +27,6 @@ function get_plugin_instance() {
 /**
  * Convenience function for whether settings are being previewed.
  *
- * @see Customize_Snapshot_Manager::is_previewing_settings()
- * @see Customize_Snapshot_Manager::preview_snapshot_settings()
- *
  * @return bool Whether previewing settings.
  */
 function is_previewing_settings() {

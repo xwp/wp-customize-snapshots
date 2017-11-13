@@ -31,21 +31,6 @@ class Customize_Snapshot_Manager {
 	public $post_type;
 
 	/**
-	 * Whether the snapshot settings are being previewed.
-	 *
-	 * @var bool
-	 */
-	protected $previewing_settings = false;
-
-	/**
-	 * New active theme.
-	 *
-	 * @access public
-	 * @var string
-	 */
-	public $stylesheet;
-
-	/**
 	 * Constructor.
 	 *
 	 * @access public
