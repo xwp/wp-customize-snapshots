@@ -192,9 +192,9 @@
 		 * @return {void}
 		 */
 		addInspectChangesetControl: function( section ) {
-			var inspectLinkControl;
+			var InspectLinkControl;
 
-			inspectLinkControl = api.Control.extend( {
+			InspectLinkControl = api.Control.extend( {
 				defaults: _.extend( {}, api.Control.prototype.defaults, {
 					templateId: 'snapshot-inspect-link-control'
 				} ),
@@ -216,7 +216,7 @@
 				}
 			} );
 
-			api.control.add( new inspectLinkControl( 'inspect_changeset', {
+			api.control.add( new InspectLinkControl( 'inspect_changeset', {
 				type: 'inspect-changeset-link',
 				section: section.id,
 				priority: 30,

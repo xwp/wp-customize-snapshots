@@ -140,15 +140,17 @@ class Customize_Snapshot_Manager_Compat extends Customize_Snapshot_Manager {
 					<select id="snapshot-status-button">
 						<# _.each( data.choices, function( buttonText, status ) { #>
 							<option value="{{ status }}" data-alt-text="{{ buttonText.alt_text }}"
-							<# if ( data.selected == status ) { #>
-								selected="selected"
+								<# if ( data.selected == status ) { #>
+									selected="selected"
 								<# } #>
-									<# if ( 'publish' == status ) { #>
-										data-confirm-text="{{ data.confirm_publish_text }}"
-										data-publish-text="{{ data.choices.publish.option_text }}"
-										<# } #>
-											>{{ buttonText.option_text }}</option>
-											<# } ); #>
+								<# if ( 'publish' == status ) { #>
+									data-confirm-text="{{ data.confirm_publish_text }}"
+									data-publish-text="{{ data.choices.publish.option_text }}"
+								<# } #>
+								>
+									{{ buttonText.option_text }}
+								</option>
+							<# } ); #>
 					</select>
 					<button class="snapshot-status-button-overlay button button-primary" data-button-text="{{ data.choices[ data.selected ].option_text }}" data-alt-text="{{ data.choices[ data.selected ].alt_text }}">
 						{{ data.choices[ data.selected ].option_text }}
@@ -202,14 +204,15 @@ class Customize_Snapshot_Manager_Compat extends Customize_Snapshot_Manager {
 												<# if ( _.isObject( choice ) && ! _.isUndefined( choice.text ) && ! _.isUndefined( choice.value ) ) {
 													text = choice.text;
 													value = choice.value;
-													} #>
-													<option value="{{ value }}"
+												} #>
+												<option value="{{ value }}"
 													<# if (choice.value == data.month) { #>
 														selected="selected"
-														<# } #>>
-															{{ text }}
-															</option>
-															<# } ); #>
+													<# } #>
+													>
+														{{ text }}
+												</option>
+											<# } ); #>
 										</select>
 								</label>
 								<label>
