@@ -212,7 +212,7 @@
 					} );
 				},
 				toggleEditLinkControl: function() {
-					this.active.set( _.contains( [ 'draft', 'future', 'pending' ], api.state( 'changesetStatus' ).get() ) );
+					this.active.set( ! _.contains( [ '', 'auto-draft' ], api.state( 'changesetStatus' ).get() ) );
 				}
 			} );
 
