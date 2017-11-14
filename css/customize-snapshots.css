@@ -15,6 +15,7 @@
 
 .customize-control-inspect-changeset-link .dashicons {
 	text-decoration: none;
+	padding-right: 4px;
 }
 
 .customize-control-another-changeset-link {
