@@ -12,7 +12,8 @@
 			i18n: {
 				title: '',
 				savePending: '',
-				pendingSaved: ''
+				pendingSaved: '',
+				aysMsg: ''
 			}
 		},
 
@@ -82,7 +83,7 @@
 		 * @return {void}
 		 */
 		addTitleControl: function( section ) {
-		    var snapshot = this, titleControl, toggleControl;
+		    var snapshot = this, titleControl;
 
 			titleControl = new api.Control( 'changeset_title', {
 				type: 'text',
@@ -93,17 +94,6 @@
 			} );
 
 			api.control.add( titleControl );
-
-			toggleControl = function( status ) {
-				var activate = 'publish' !== status;
-				titleControl.active.validate = function() {
-					return activate;
-				};
-				titleControl.active.set( activate );
-			};
-
-			toggleControl( api.state( 'selectedChangesetStatus' ).get() );
-			api.state( 'selectedChangesetStatus' ).bind( toggleControl );
 
 			api.state( 'changesetTitle' ).bind( function() {
 				api.state( 'saved' ).set( false );
