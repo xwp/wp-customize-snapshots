@@ -1,5 +1,6 @@
 /* global wp, $ */
 /* eslint consistent-this: [ "error", "snapshot", "control" ] */
+/* eslint no-magic-numbers: ["error", { "ignore": [0, 1] }] */
 
 (function( api ) {
 	'use strict';
@@ -218,7 +219,7 @@
 		 * @return {void}
 		 */
 		addPendingToStatusControl: function() {
-			var snapshot = this, params, coreStatusControl, index = 2;
+			var snapshot = this, params, coreStatusControl, draftIndex = 0;
 
 			coreStatusControl = api.control( 'changeset_status' );
 
@@ -226,7 +227,14 @@
 				params = _.extend( {}, coreStatusControl.params );
 				coreStatusControl.container.remove();
 				api.control.remove( 'changeset_status' );
-				params.choices.splice( index, 0, {
+
+				_.each( params.choices, function( statusConfig, index ) {
+					if ( 'draft' === statusConfig.status ) {
+						draftIndex = index;
+					}
+				} );
+
+				params.choices.splice( draftIndex + 1, 0, {
 					label: snapshot.data.i18n.savePending,
 					status: 'pending'
 				} );
