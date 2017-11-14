@@ -33,10 +33,8 @@
 				api.control( 'changeset_scheduled_date', snapshot.setupScheduledChangesetCountdown );
 
 				api.bind( 'save-request-params', function( data ) {
-					if ( api.state( 'selectedChangesetStatus' ) && 'publish' !== api.state( 'selectedChangesetStatus' ) ) {
-						data.customizer_state_query_vars = JSON.stringify( snapshot.getStateQueryVars() );
-						data.customize_changeset_title = api.state( 'changesetTitle' );
-					}
+					data.customizer_state_query_vars = JSON.stringify( snapshot.getStateQueryVars() );
+					data.customize_changeset_title = api.state( 'changesetTitle' );
 				} );
 
 				api.state.bind( 'change', function() {
