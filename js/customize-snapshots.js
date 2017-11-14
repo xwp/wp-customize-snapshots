@@ -28,7 +28,7 @@
 
 				snapshot.data.title = snapshot.data.title || api.settings.changeset.uuid;
 				api.state.create( 'changesetTitle', snapshot.data.title );
-				api.state.create( 'changesetInspectLink', snapshot.data.inspectLink );
+				api.state.create( 'changesetInspectUrl', snapshot.data.inspectLink );
 
 				api.control( 'changeset_scheduled_date', snapshot.setupScheduledChangesetCountdown );
 
@@ -65,7 +65,7 @@
 			api.bind( 'save', function( request ) {
 				request.done( function( response ) {
 					if ( response.edit_link ) {
-						api.state( 'changesetInspectLink' ).set( response.edit_link );
+						api.state( 'changesetInspectUrl' ).set( response.edit_link );
 					}
 					if ( response.title ) {
 						api.state( 'changesetTitle' ).set( response.title );
@@ -220,7 +220,7 @@
 				type: 'inspect-changeset-link',
 				section: section.id,
 				priority: 30,
-				setting: api.state( 'changesetInspectLink' )
+				setting: api.state( 'changesetInspectUrl' )
 			} ) );
 		},
 
