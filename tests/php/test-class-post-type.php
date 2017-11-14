@@ -166,7 +166,6 @@ class Test_Post_Type extends \WP_UnitTestCase {
 		$post_type_obj->add_admin_menu_item();
 		$menu_slug = 'edit.php?post_type=' . Post_Type::SLUG;
 
-		$this->markTestIncomplete(); // @todo To be fixed.
 		$customize_url = add_query_arg( 'return', urlencode( wp_unslash( $_SERVER['REQUEST_URI'] ) ), 'customize.php' );
 		$this->assertArrayHasKey( $customize_url, $submenu );
 		$this->assertEquals( $menu_slug, $submenu[ $customize_url ][1][2] );
