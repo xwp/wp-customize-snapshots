@@ -286,8 +286,6 @@ class Customize_Snapshot_Manager {
 	/**
 	 * Prepare snapshot post content for publishing.
 	 *
-	 * @todo Move to compat?
-	 *
 	 * Strips out publish_error from content, with it potentially being re-added
 	 * in a secondary wp_update_post() call if any of the settings in the post
 	 * were not able to be saved.
