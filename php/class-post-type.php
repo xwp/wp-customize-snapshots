@@ -88,6 +88,7 @@ class Post_Type {
 		add_filter( 'content_save_pre', array( $this, 'filter_out_settings_if_removed_in_metabox' ), 10 );
 		add_action( 'admin_print_scripts-revision.php', array( $this, 'disable_revision_ui_for_published_posts' ) );
 		add_action( 'admin_notices', array( $this, 'admin_show_merge_error' ) );
+		add_filter( 'display_post_states', array( $this, 'display_post_states' ), 10, 2 );
 
 		// Add workaround for failure to save changes to option settings when publishing changeset outside of customizer. See https://core.trac.wordpress.org/ticket/39221#comment:14
 		if ( function_exists( '_wp_customize_publish_changeset' ) && function_exists( 'wp_doing_ajax' ) ) { // Workaround only works in WP 4.7.
@@ -1039,5 +1040,24 @@ class Post_Type {
 		}
 
 		return add_query_arg( $args, $base_url );
+	}
+
+	/**
+	 * Display snapshot save error on post list table.
+	 *
+	 * @param array    $states Display states.
+	 * @param \WP_Post $post   Post object.
+	 *
+	 * @return mixed
+	 */
+	public function display_post_states( $states, $post ) {
+		if ( static::SLUG !== $post->post_type ) {
+			return $states;
+		}
+		$maybe_error = get_post_meta( $post->ID, 'snapshot_error_on_publish', true );
+		if ( $maybe_error ) {
+			$states['snapshot_error'] = __( 'Error on publish', 'customize-snapshots' );
+		}
+		return $states;
 	}
 }

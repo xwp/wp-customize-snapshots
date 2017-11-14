@@ -91,6 +91,7 @@ class Test_Post_Type extends \WP_UnitTestCase {
 		$this->assertEquals( 10, has_filter( 'content_save_pre', array( $post_type_obj, 'filter_out_settings_if_removed_in_metabox' ) ) );
 		$this->assertEquals( 10, has_action( 'admin_print_scripts-revision.php', array( $post_type_obj, 'disable_revision_ui_for_published_posts' ) ) );
 		$this->assertEquals( 10, has_action( 'admin_notices', array( $post_type_obj, 'admin_show_merge_error' ) ) );
+		$this->assertEquals( 10, has_filter( 'display_post_states', array( $post_type_obj, 'display_post_states' ) ) );
 	}
 
 	/**
@@ -949,5 +950,25 @@ class Test_Post_Type extends \WP_UnitTestCase {
 	 */
 	public function test_remap_customize_meta_cap() {
 		$this->markTestIncomplete();
+	}
+
+	/**
+	 * Tests display_post_states.
+	 *
+	 * @covers \CustomizeSnapshots\Post_Type_Back_Compat::display_post_states()
+	 */
+	public function test_display_post_states() {
+		$post_type_obj = new Post_Type( $this->plugin->customize_snapshot_manager );
+
+		$post_id = $post_type_obj->save( array(
+			'uuid' => self::UUID,
+			'data' => array( 'foo' => array( 'value' => 'bar' ) ),
+		) );
+		$states = $post_type_obj->display_post_states( array(), get_post( $post_id ) );
+		$this->assertArrayNotHasKey( 'snapshot_error', $states );
+
+		update_post_meta( $post_id, 'snapshot_error_on_publish', true );
+		$states = $post_type_obj->display_post_states( array(), get_post( $post_id ) );
+		$this->assertArrayHasKey( 'snapshot_error', $states );
 	}
 }
