@@ -92,6 +92,7 @@ class Test_Post_Type extends \WP_UnitTestCase {
 		$this->assertEquals( 10, has_action( 'admin_print_scripts-revision.php', array( $post_type_obj, 'disable_revision_ui_for_published_posts' ) ) );
 		$this->assertEquals( 10, has_action( 'admin_notices', array( $post_type_obj, 'admin_show_merge_error' ) ) );
 		$this->assertEquals( 10, has_filter( 'display_post_states', array( $post_type_obj, 'display_post_states' ) ) );
+		$this->assertEquals( 10, has_action( 'admin_notices', array( $post_type_obj, 'show_publish_error_admin_notice' ) ) );
 	}
 
 	/**
@@ -955,7 +956,7 @@ class Test_Post_Type extends \WP_UnitTestCase {
 	/**
 	 * Tests display_post_states.
 	 *
-	 * @covers \CustomizeSnapshots\Post_Type_Back_Compat::display_post_states()
+	 * @covers \CustomizeSnapshots\Post_Type::display_post_states()
 	 */
 	public function test_display_post_states() {
 		$post_type_obj = new Post_Type( $this->plugin->customize_snapshot_manager );
@@ -970,5 +971,51 @@ class Test_Post_Type extends \WP_UnitTestCase {
 		update_post_meta( $post_id, 'snapshot_error_on_publish', true );
 		$states = $post_type_obj->display_post_states( array(), get_post( $post_id ) );
 		$this->assertArrayHasKey( 'snapshot_error', $states );
+	}
+
+	/**
+	 * Tests show_publish_error_admin_notice.
+	 *
+	 * @covers \CustomizeSnapshots\Post_Type::show_publish_error_admin_notice()
+	 */
+	public function test_show_publish_error_admin_notice() {
+		global $current_screen, $post;
+		wp_set_current_user( $this->factory()->user->create( array(
+			'role' => 'administrator',
+		) ) );
+		$post_type_obj = new Post_Type( $this->plugin->customize_snapshot_manager );
+		$post_type_obj->init();
+		$post_id = $post_type_obj->save( array(
+			'uuid' => self::UUID,
+			'data' => array(),
+		) );
+
+		ob_start();
+		$post_type_obj->show_publish_error_admin_notice();
+		$this->assertEmpty( ob_get_clean() );
+
+		$current_screen = \WP_Screen::get( 'customize_snapshot' ); // WPCS: Override ok.
+		$current_screen->id = 'customize_snapshot';
+		$current_screen->base = 'edit';
+		ob_start();
+		$post_type_obj->show_publish_error_admin_notice();
+		$this->assertEmpty( ob_get_clean() );
+
+		$current_screen->base = 'post';
+		ob_start();
+		$post_type_obj->show_publish_error_admin_notice();
+		$this->assertEmpty( ob_get_clean() );
+
+		$_REQUEST['snapshot_error_on_publish'] = '1';
+		wp_update_post( array(
+			'ID' => $post_id,
+			'post_status' => 'pending',
+		) );
+		$post = get_post( $post_id ); // WPCS: override ok.
+		ob_start();
+		$post_type_obj->show_publish_error_admin_notice();
+
+		$this->markTestIncomplete();
+		$this->assertContains( 'notice-error', ob_get_clean() ); // @todo Test failing.
 	}
 }

@@ -89,6 +89,7 @@ class Post_Type {
 		add_action( 'admin_print_scripts-revision.php', array( $this, 'disable_revision_ui_for_published_posts' ) );
 		add_action( 'admin_notices', array( $this, 'admin_show_merge_error' ) );
 		add_filter( 'display_post_states', array( $this, 'display_post_states' ), 10, 2 );
+		add_action( 'admin_notices', array( $this, 'show_publish_error_admin_notice' ) );
 
 		// Add workaround for failure to save changes to option settings when publishing changeset outside of customizer. See https://core.trac.wordpress.org/ticket/39221#comment:14
 		if ( function_exists( '_wp_customize_publish_changeset' ) && function_exists( 'wp_doing_ajax' ) ) { // Workaround only works in WP 4.7.
@@ -1059,5 +1060,26 @@ class Post_Type {
 			$states['snapshot_error'] = __( 'Error on publish', 'customize-snapshots' );
 		}
 		return $states;
+	}
+
+	/**
+	 * Show an admin notice when publishing fails and the post gets kicked back to pending.
+	 */
+	public function show_publish_error_admin_notice() {
+		if ( ! function_exists( 'get_current_screen' ) ) {
+			return;
+		}
+		$current_screen = get_current_screen();
+		if ( ! $current_screen || static::SLUG !== $current_screen->id || 'post' !== $current_screen->base ) {
+			return;
+		}
+		if ( ! isset( $_REQUEST['snapshot_error_on_publish'] ) ) { // WPCS: input var ok. CSRF ok.
+			return;
+		}
+		?>
+		<div class="notice notice-error is-dismissible">
+			<p><?php esc_html_e( 'Failed to publish snapshot due to an error with saving one of its settings. This may be due to a theme or plugin having been changed since the snapshot was created. See below.', 'customize-snapshots' ); ?></p>
+		</div>
+		<?php
 	}
 }
