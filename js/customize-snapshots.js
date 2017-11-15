@@ -1,8 +1,8 @@
-/* global wp, $ */
+/* global wp, jQuery */
 /* eslint consistent-this: [ "error", "snapshot", "control" ] */
 /* eslint no-magic-numbers: ["error", { "ignore": [0, 1] }] */
 
-(function( api ) {
+(function( api, $ ) {
 	'use strict';
 
 	api.Snapshots = api.Class.extend( {
@@ -204,12 +204,12 @@
 					    link.attr( 'href', value );
 					} );
 
-					control.toggleEditLinkControl();
+					control.toggleInspectChangesetControl();
 					api.state( 'changesetStatus' ).bind( function() {
-						control.toggleEditLinkControl();
+						control.toggleInspectChangesetControl();
 					} );
 				},
-				toggleEditLinkControl: function() {
+				toggleInspectChangesetControl: function() {
 					this.active.set( ! _.contains( [ '', 'auto-draft' ], api.state( 'changesetStatus' ).get() ) );
 				}
 			} );
@@ -261,4 +261,4 @@
 		}
 	} );
 
-})( wp.customize );
+})( wp.customize, jQuery );
