@@ -151,16 +151,24 @@
 		 * @return {void}
 		 */
 		setupScheduledChangesetCountdown: function( dateControl ) {
-			var template, countdownContainer;
+			var template, countdownContainer, setNextChangesetUUID;
 
 			template = wp.template( 'snapshot-scheduled-countdown' );
 			countdownContainer = $( '<div>', {
 				'class': 'snapshot-countdown-container hidden'
 			} );
 
+			setNextChangesetUUID = function( response ) {
+				api.state( 'changesetTitle' ).set( response.next_changeset_uuid );
+				api.unbind( 'saved', setNextChangesetUUID );
+			};
+
 			dateControl.deferred.embedded.done( function() {
 				dateControl.container.append( countdownContainer );
 				api.state( 'remainingTimeToPublish' ).bind( function( time ) {
+					if ( 0 === parseInt( time, 10 ) ) {
+						api.bind( 'saved', setNextChangesetUUID );
+					}
 					countdownContainer.removeClass( 'hidden' ).html( template( {
 						remainingTime: time
 					} ) );
