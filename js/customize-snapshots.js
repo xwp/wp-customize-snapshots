@@ -160,6 +160,7 @@
 
 			setNextChangesetUUID = function( response ) {
 				api.state( 'changesetTitle' ).set( response.next_changeset_uuid );
+				api.state( 'saved' ).set( true );
 				api.unbind( 'saved', setNextChangesetUUID );
 			};
 
