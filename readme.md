@@ -80,7 +80,7 @@ Requires PHP 5.3+. **Development of this plugin is done [on GitHub](https://gith
 
 ## Changelog ##
 
-### 0.7.0 - ??? ###
+### 0.7.0 - 2017-11-15 ###
 * Added: Add compatibility with 4.9, re-using features of the plugin that have been merged into core in this release. Increase minimum required version of WordPress to 4.7. See [#162](https://github.com/xwp/wp-customize-snapshots/pull/162).
 * Added: Remove hiding of Add New links for changesets in favor of just redirecting post-new.php to Customizer. See [#156](https://github.com/xwp/wp-customize-snapshots/pull/156).
 * Added: Allow publishing from preview via link in admin bar. See [#115](https://github.com/xwp/wp-customize-snapshots/pull/115), [#103](https://github.com/xwp/wp-customize-snapshots/issues/103).
