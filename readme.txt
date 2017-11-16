@@ -1,8 +1,8 @@
 === Customize Snapshots ===
 Contributors: xwp, westonruter, valendesigns, utkarshpatel, sayedwp, newscorpau
 Requires at least: 4.7
-Tested up to: 4.8.1
-Stable tag: 0.6.2
+Tested up to: 4.9
+Stable tag: 0.7.0
 Requires PHP: 5.3
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
@@ -51,7 +51,8 @@ Requires PHP 5.3+. **Development of this plugin is done [on GitHub](https://gith
 * Added: Include required PHP version (5.3) in readme. See [#160](https://github.com/xwp/wp-customize-snapshots/pull/160), [#159](https://github.com/xwp/wp-customize-snapshots/issues/159).
 * Updated: Dev dependencies.
 
-Props: Sayed Taqui (<a href="https://github.com/sayedwp" class="user-mention">@sayedwp</a>), Weston Ruter (<a href="https://github.com/westonruter" class="user-mention">@westonruter</a>), Miina Sikk (<a href="https://github.com/miina" class="user-mention">@miina</a>), Derek Herman (<a href="https://github.com/valendesigns" class="user-mention">@valendesigns</a>)
+Props: Sayed Taqui (<a href="https://github.com/sayedwp" class="user-mention">@sayedwp</a>), Weston Ruter (<a href="https://github.com/westonruter" class="user-mention">@westonruter</a>), Miina Sikk (<a href="https://github.com/miina" class="user-mention">@miina</a>), Derek Herman (<a href="https://github.com/valendesigns" class="user-mention">@valendesigns</a>), Ryan Kienstra (<a href="https://github.com/kienstra" class="user-mention">@kienstra</a>), Anne Louise Currie (<a href="https://github.com/alcurrie" class="user-mention">@alcurrie</a>).
+
 See [issues and PRs in milestone](https://github.com/xwp/wp-customize-snapshots/milestone/11?closed=1) and [`0.6.2...0.7.0`](https://github.com/xwp/wp-customize-snapshots/compare/0.6.2...0.7.0) commit log.
 
 = 0.6.2 - 2017-07-26 =

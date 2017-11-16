@@ -7,8 +7,8 @@ Provide a UI for managing Customizer changesets; save changesets as named drafts
 **Contributors:** [xwp](https://profiles.wordpress.org/xwp), [westonruter](https://profiles.wordpress.org/westonruter), [valendesigns](https://profiles.wordpress.org/valendesigns), [utkarshpatel](https://profiles.wordpress.org/utkarshpatel), [sayedwp](https://profiles.wordpress.org/sayedwp), [newscorpau](https://profiles.wordpress.org/newscorpau)  
 **Tags:** [customizer](https://wordpress.org/plugins/tags/customizer), [customize](https://wordpress.org/plugins/tags/customize), [changesets](https://wordpress.org/plugins/tags/changesets)  
 **Requires at least:** 4.7  
-**Tested up to:** 4.8.1  
-**Stable tag:** 0.6.2  
+**Tested up to:** 4.9  
+**Stable tag:** 0.7.0  
 **License:** [GPLv2 or later](http://www.gnu.org/licenses/gpl-2.0.html)  
 **Requires PHP:** 5.3  
 
@@ -89,7 +89,8 @@ Requires PHP 5.3+. **Development of this plugin is done [on GitHub](https://gith
 * Added: Include required PHP version (5.3) in readme. See [#160](https://github.com/xwp/wp-customize-snapshots/pull/160), [#159](https://github.com/xwp/wp-customize-snapshots/issues/159).
 * Updated: Dev dependencies.
 
-Props: Sayed Taqui (<a href="https://github.com/sayedwp" class="user-mention">@sayedwp</a>), Weston Ruter (<a href="https://github.com/westonruter" class="user-mention">@westonruter</a>), Miina Sikk (<a href="https://github.com/miina" class="user-mention">@miina</a>), Derek Herman (<a href="https://github.com/valendesigns" class="user-mention">@valendesigns</a>)
+Props: Sayed Taqui (<a href="https://github.com/sayedwp" class="user-mention">@sayedwp</a>), Weston Ruter (<a href="https://github.com/westonruter" class="user-mention">@westonruter</a>), Miina Sikk (<a href="https://github.com/miina" class="user-mention">@miina</a>), Derek Herman (<a href="https://github.com/valendesigns" class="user-mention">@valendesigns</a>), Ryan Kienstra (<a href="https://github.com/kienstra" class="user-mention">@kienstra</a>), Anne Louise Currie (<a href="https://github.com/alcurrie" class="user-mention">@alcurrie</a>).
+
 See [issues and PRs in milestone](https://github.com/xwp/wp-customize-snapshots/milestone/11?closed=1) and [`0.6.2...0.7.0`](https://github.com/xwp/wp-customize-snapshots/compare/0.6.2...0.7.0) commit log.
 
 ### 0.6.2 - 2017-07-26 ###
