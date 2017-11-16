@@ -27,18 +27,11 @@ function get_plugin_instance() {
 /**
  * Convenience function for whether settings are being previewed.
  *
- * @see Customize_Snapshot_Manager::is_previewing_settings()
- * @see Customize_Snapshot_Manager::preview_snapshot_settings()
- *
  * @return bool Whether previewing settings.
  */
 function is_previewing_settings() {
 	$manager = get_plugin_instance()->customize_snapshot_manager;
-	if ( get_plugin_instance()->compat ) {
-		return $manager->is_previewing_settings();
-	} else {
-		return ( isset( $manager->customize_manager ) && $manager->customize_manager->is_preview() ) || did_action( 'customize_preview_init' );
-	}
+	return ( isset( $manager->customize_manager ) && $manager->customize_manager->is_preview() ) || did_action( 'customize_preview_init' );
 }
 
 /**
@@ -47,13 +40,14 @@ function is_previewing_settings() {
  * @see Customize_Snapshot_Manager::$current_snapshot_uuid
  *
  * @return string|null The current snapshot UUID or null if no snapshot.
+ * @global \WP_Customize_Manager $wp_customize
  */
 function current_snapshot_uuid() {
-	$customize_snapshot_uuid = get_plugin_instance()->customize_snapshot_manager->current_snapshot_uuid;
-	if ( empty( $customize_snapshot_uuid ) ) {
+	global $wp_customize;
+	if ( empty( $wp_customize ) ) {
 		return null;
 	} else {
-		return $customize_snapshot_uuid;
+		return $wp_customize->changeset_uuid();
 	}
 }
 
@@ -70,5 +64,5 @@ function is_back_compat() {
 	if ( false !== $pos ) {
 		$wp_version = substr( $wp_version, 0, $pos );
 	}
-	return version_compare( $wp_version, '4.7', '<' );
+	return version_compare( $wp_version, '4.9', '<' );
 }

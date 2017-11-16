@@ -6,7 +6,7 @@ Provide a UI for managing Customizer changesets; save changesets as named drafts
 
 **Contributors:** [xwp](https://profiles.wordpress.org/xwp), [westonruter](https://profiles.wordpress.org/westonruter), [valendesigns](https://profiles.wordpress.org/valendesigns), [utkarshpatel](https://profiles.wordpress.org/utkarshpatel), [sayedwp](https://profiles.wordpress.org/sayedwp), [newscorpau](https://profiles.wordpress.org/newscorpau)  
 **Tags:** [customizer](https://wordpress.org/plugins/tags/customizer), [customize](https://wordpress.org/plugins/tags/customize), [changesets](https://wordpress.org/plugins/tags/changesets)  
-**Requires at least:** 4.6  
+**Requires at least:** 4.7  
 **Tested up to:** 4.8.1  
 **Stable tag:** 0.6.2  
 **License:** [GPLv2 or later](http://www.gnu.org/licenses/gpl-2.0.html)  
@@ -79,6 +79,18 @@ Requires PHP 5.3+. **Development of this plugin is done [on GitHub](https://gith
 ![Multiple changesets can be merged into a single changeset, allowing multiple users' work to be combined for previewing together and publishing all at once.](wp-assets/screenshot-12.png)
 
 ## Changelog ##
+
+### 0.7.0 - 2017-11-15 ###
+* Added: Add compatibility with 4.9, re-using features of the plugin that have been merged into core in this release. Increase minimum required version of WordPress to 4.7. See [#162](https://github.com/xwp/wp-customize-snapshots/pull/162).
+* Added: Remove hiding of Add New links for changesets in favor of just redirecting `post-new.php` to Customizer. See [#156](https://github.com/xwp/wp-customize-snapshots/pull/156).
+* Added: Allow publishing from preview via link in admin bar. See [#115](https://github.com/xwp/wp-customize-snapshots/pull/115), [#103](https://github.com/xwp/wp-customize-snapshots/issues/103).
+* Updated: Change link text for post list table action from “Edit” to “Inspect”. See [#155](https://github.com/xwp/wp-customize-snapshots/pull/155), [#153](https://github.com/xwp/wp-customize-snapshots/issues/153).
+* Fixed: Prevent changeset session remembrance when browsing in preview iframe. See [#154](https://github.com/xwp/wp-customize-snapshots/pull/154).
+* Added: Include required PHP version (5.3) in readme. See [#160](https://github.com/xwp/wp-customize-snapshots/pull/160), [#159](https://github.com/xwp/wp-customize-snapshots/issues/159).
+* Updated: Dev dependencies.
+
+Props: Sayed Taqui (<a href="https://github.com/sayedwp" class="user-mention">@sayedwp</a>), Weston Ruter (<a href="https://github.com/westonruter" class="user-mention">@westonruter</a>), Miina Sikk (<a href="https://github.com/miina" class="user-mention">@miina</a>), Derek Herman (<a href="https://github.com/valendesigns" class="user-mention">@valendesigns</a>)
+See [issues and PRs in milestone](https://github.com/xwp/wp-customize-snapshots/milestone/11?closed=1) and [`0.6.2...0.7.0`](https://github.com/xwp/wp-customize-snapshots/compare/0.6.2...0.7.0) commit log.
 
 ### 0.6.2 - 2017-07-26 ###
 * Added: Just like the admin menu has Changesets link under Customize, add Changesets link in admin bar submenu item under Customize. See <a href="https://github.com/xwp/wp-customize-snapshots/pull/143" class="issue-link js-issue-link" data-url="https://github.com/xwp/wp-customize-snapshots/issues/143" data-id="245590687">#143</a>.

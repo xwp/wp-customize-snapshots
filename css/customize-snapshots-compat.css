@@ -1,0 +1,350 @@
+#snapshot-preview-link,
+#snapshot-expand-button {
+	float: right;
+	margin-top: 13px;
+	margin-right: 4px;
+	color: #656a6f;
+}
+
+#snapshot-expand-button {
+	display: block;
+}
+
+#snapshot-expand-button:hover,
+#snapshot-expand-button:focus,
+#snapshot-expand-button:active {
+	color: #191e23;
+}
+
+#snapshot-preview-link:hover,
+#snapshot-preview-link:focus,
+#snapshot-preview-link:active {
+	color: #191e23;
+}
+
+#snapshot-save {
+	float: right;
+	margin-top: 9px;
+	margin-right: 9px;
+}
+
+#customize-header-actions:not(.button-added) .button#save {
+	visibility: hidden;
+}
+
+#snapshot-dialog-form h4 {
+	font-weight: bold;
+	font-size: 14px;
+	line-height: 1.5em;
+	margin: 0 0 .65em;
+	padding: .25em 0 0;
+}
+
+#snapshot-dialog-form p,
+#snapshot-dialog-link a,
+#snapshot-dialog-error p {
+	margin-top: .5em;
+}
+
+#snapshot-dialog-form label {
+	padding-bottom: 1em;
+}
+
+#snapshot-dialog-link {
+	word-wrap: break-word;
+}
+
+.wp-customizer.js .ui-dialog {
+	z-index: 999999;
+}
+
+@media screen and (max-width: 640px) {
+	#snapshot-save {
+		margin-top: 6px;
+		margin-right: 6px;
+	}
+}
+
+#customize-snapshot {
+	background: #fff !important;
+	border-bottom: 1px solid #ddd;
+	line-height: 1.5;
+	left: 0;
+	top: 46px;
+	position: absolute;
+	width: 100%;
+	box-shadow: 0 5px 0 0 rgba(0, 0, 0, 0.05);
+	padding: 10px;
+	box-sizing: border-box;
+}
+
+#customize-snapshot .snapshot-schedule-title {
+	color: #555;
+}
+
+#customize-snapshot .snapshot-schedule-title h3 {
+	margin: .2em 2em .75em 0;
+}
+
+#customize-snapshot .snapshot-schedule-description {
+	margin-bottom: 0.5em;
+	margin-top: 0;
+}
+
+#customize-snapshot .timezone-info {
+	margin-top: 0.5em;
+	font-size: smaller;
+}
+
+#customize-snapshot a.snapshot-edit-link {
+	position: absolute;
+	top: 4px;
+	right: 1px;
+	width: 20px;
+	height: 20px;
+	cursor: pointer;
+	-webkit-box-shadow: none;
+	box-shadow: none;
+	-webkit-appearance: none;
+	background: transparent;
+	color: #555;
+	border: none;
+	padding: 10px;
+}
+
+#customize-snapshot a.snapshot-edit-link:focus,
+#customize-snapshot a.snapshot-edit-link:hover {
+	color: #0073aa;
+}
+
+#customize-snapshot a.snapshot-edit-link:before {
+	padding: 4px;
+	position: absolute;
+	top: 5px;
+	left: 6px;
+	-webkit-border-radius: 100%;
+	border-radius: 100%;
+}
+
+#customize-snapshot a.snapshot-edit-link:focus:before {
+	-webkit-box-shadow:
+		0 0 0 1px #5b9dd9,
+		0 0 2px 1px rgba(30, 140, 190, .8);
+	box-shadow:
+		0 0 0 1px #5b9dd9,
+		0 0 2px 1px rgba(30, 140, 190, .8);
+}
+
+#customize-snapshot .accordion-section-title {
+	padding: 10px;
+}
+
+#customize-snapshot .reset-time {
+	font-weight: normal;
+	font-size: 80%;
+	display: none;
+}
+
+.snapshot-schedule-control.date-inputs {
+	display: flex;
+	display: -ms-flexbox;
+	align-items: center;
+	-webkit-box-align: center;
+	-ms-flex-align: center;
+	justify-content: flex-start;
+	-webkit-box-pack: start;
+	-ms-flex-pack: start;
+}
+
+.snapshot-schedule-control input.date-input {
+	-moz-appearance: textfield;
+	-webkit-appearance: textfield;
+	padding-left: 5px; /* 10px padding is not ideal for such small inputs */
+	padding-right: 5px;
+}
+
+.snapshot-schedule-control label {
+	display: inline-block; /* To align items when flex is not supported */
+}
+
+.snapshot-schedule-control .year.date-input {
+	min-width: 4em;
+}
+
+.snapshot-schedule-control input[type="number"] {
+	width: 100%;
+}
+
+.snapshot-schedule-control .time-special-char {
+	padding-left: 2px;
+	padding-right: 2px;
+}
+
+.snapshot-schedule-control select {
+	height: 28px;
+}
+
+@media screen and ( max-width: 782px ) {
+	.snapshot-schedule-control select {
+		height: 40px;
+	}
+}
+
+.snapshot-schedule-control input.date-input::-webkit-outer-spin-button,
+.snapshot-schedule-control input.date-input::-webkit-inner-spin-button {
+	-webkit-appearance: none;
+	margin: 0;
+}
+
+.wp-full-overlay .wp-full-overlay-sidebar .wp-full-overlay-header {
+	padding-left: 15px;
+	z-index: 500101;
+}
+
+.select2-container {
+	z-index: 500100 !important;
+}
+
+.snapshot-control input[type="text"] {
+	width: 100%;
+	line-height: 18px;
+	margin: 0;
+}
+
+#customize-snapshot .snapshot-schedule-title h3 {
+	font-size: 16px;
+}
+
+#customize-snapshot .snapshot-controls {
+	list-style: none;
+	margin: 0;
+}
+
+.snapshot-future-date-notification.notice {
+	margin-bottom: 5px;
+	border-top: 1px solid #eee;
+	padding: 5px;
+}
+
+/*Status Button*/
+/** @todo Need to add snapshot specific class for all ui classes. **/
+
+#snapshot-status-button-wrapper {
+	float: right;
+	position: relative;
+	margin-top: 9px;
+	height: 28px;
+}
+
+#snapshot-status-button-wrapper .button-primary {
+	margin-top: 0;
+	-webkit-touch-callout: none; /* iOS Safari */
+	-webkit-user-select: none; /* Chrome/Safari/Opera */
+	-moz-user-select: none; /* Firefox */
+	-ms-user-select: none; /* Internet Explorer/Edge */
+	user-select: none;
+}
+
+.snapshot-status-button-wrapper .button:active{
+	-webkit-transform: none;
+	-moz-transform: none;
+	-ms-transform: none;
+	-o-transform: none;
+	transform: none; /* 4.7 added translateY(1px) */
+}
+
+.ui-selectmenu-menu {
+	padding: 0;
+	margin: 0;
+	position: absolute;
+	top: 0;
+	left: 0;
+	display: none;
+}
+
+.ui-selectmenu-menu .ui-menu {
+	overflow: auto;
+	margin: 0;
+	margin-top: 2px;
+	overflow-x: hidden;
+	background: #FFFFFF;
+	border-top: 0;
+	border-radius: 0 0 5px 5px;
+	box-shadow: 0 1px 4px 0 rgba(33, 38, 34, .12), 0 2px 11px 0 rgba(30, 36, 37, .14)
+}
+
+.ui-selectmenu-menu .ui-menu li {
+	padding: 5px 10px 5px 5px;
+	margin: 0;
+}
+
+.ui-selectmenu-menu .ui-menu .ui-state-focus {
+	background: #0073aa;
+	color: #FFFFFF;
+	cursor: pointer;
+}
+
+.ui-selectmenu-menu .ui-menu .ui-selectmenu-optgroup {
+	font-size: 1em;
+	font-weight: bold;
+	line-height: 1.5;
+	padding: 2px 0.4em;
+	margin: 0.5em 0 0 0;
+	height: auto;
+	border: 0;
+}
+
+.ui-selectmenu-open {
+	display: block;
+}
+
+#snapshot-status-button-wrapper .ui-selectmenu-button span.dashicons {
+	text-indent: 0;
+	float: right;
+	border-radius: 0 3px 3px 0;
+	padding-left: 0;
+	padding-right: 0;
+	-webkit-box-shadow: none;
+	-moz-box-shadow: none;
+	box-shadow: none;
+	font-size: 20px;
+	width: 20px;
+}
+
+#snapshot-status-button-wrapper .ui-selectmenu-button span.dashicons:before {
+	display: inline-block;
+	margin-left: -3px;
+}
+
+@media screen and ( max-width: 640px ) {
+	#snapshot-status-button-wrapper .ui-selectmenu-button span.dashicons {
+		font-size: 17px;
+	}
+}
+
+.ui-selectmenu-button span.ui-selectmenu-text {
+	border-radius: 3px 0 0 3px;
+	opacity: 0;
+}
+
+.ui-selectmenu-menu.ui-front {
+	z-index: 999999;
+}
+
+.snapshot-status-button-overlay.button {
+	width: calc( 100% - 20px );
+	height: 28px;
+	position: absolute;
+	top: 0;
+	left: 0;
+	z-index: 1;
+	border-radius: 3px 0 0 3px;
+	box-shadow: none;
+}
+
+#customize-header-actions .ui-selectmenu-button {
+	display: inline-block;
+	outline-width: 2px;
+	outline-offset: -2px;
+}
+

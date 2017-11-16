@@ -2,6 +2,10 @@ PATH_INCLUDES='*.* php js css tests'
 WPCS_GIT_TREE=develop
 ASSETS_DIR=wp-assets
 
+if [[ ${TRAVIS_PHP_VERSION:0:3} == "5.2" ]] || [[ ${TRAVIS_PHP_VERSION:0:3} == "5.3" ]]; then
+	DEV_LIB_SKIP="$DEV_LIB_SKIP,phpcs"
+fi
+
 function after_wp_install {
     echo "Installing REST API..."
     svn export -q https://plugins.svn.wordpress.org/rest-api/trunk/ "$WP_CORE_DIR/src/wp-content/plugins/rest-api"
