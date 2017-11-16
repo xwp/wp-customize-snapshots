@@ -12,6 +12,12 @@
 	<rule ref="Squiz.Commenting.FunctionComment.ScalarTypeHintMissing">
 		<severity>0</severity>
 	</rule>
+	<rule ref="WordPress.Arrays.MultipleStatementAlignment.DoubleArrowNotAligned">
+		<severity>0</severity>
+	</rule>
+	<rule ref="Generic.Formatting.MultipleStatementAlignment.NotSameWarning">
+		<severity>0</severity>
+	</rule>
 	<rule ref="Squiz.PHP.DisallowMultipleAssignments.Found">
 		<!-- See https://github.com/squizlabs/PHP_CodeSniffer/issues/1277 -->
 		<severity>0</severity>

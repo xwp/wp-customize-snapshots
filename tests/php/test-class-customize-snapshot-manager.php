@@ -74,13 +74,11 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	function setUp() {
 		parent::setUp();
 		$this->plugin = get_plugin_instance();
-		if ( $this->plugin->compat ) {
-			$this->front_param = 'customize_snapshot_uuid';
-		} else {
-			$this->front_param = 'customize_changeset_uuid';
-		}
+		$this->front_param = 'customize_changeset_uuid';
 		require_once( ABSPATH . WPINC . '/class-wp-customize-manager.php' );
-		$GLOBALS['wp_customize'] = new \WP_Customize_Manager(); // WPCS: global override ok.
+		$GLOBALS['wp_customize'] = new \WP_Customize_Manager( array(
+			'changeset_uuid' => self::UUID,
+		) ); // WPCS: global override ok.
 		$this->wp_customize = $GLOBALS['wp_customize'];
 
 		$this->wp_customize->add_setting( 'foo', array( 'default' => 'foo_default' ) );
@@ -158,23 +156,10 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	 *
 	 * @param Plugin $plugin Plugin object.
 	 *
-	 * @return Customize_Snapshot_Manager|Customize_Snapshot_Manager_Back_Compat Manager new instace.
+	 * @return Customize_Snapshot_Manager Manager new instace.
 	 */
 	function get_snapshot_manager_instance( $plugin ) {
-		if ( $this->plugin->compat ) {
-			return new Customize_Snapshot_Manager_Back_Compat( $plugin );
-		} else {
-			return new Customize_Snapshot_Manager( $plugin );
-		}
-	}
-
-	/**
-	 * Mark test incomplete as it is only for new versions.
-	 */
-	public function mark_incompatible() {
-		if ( $this->plugin->compat ) {
-			$this->markTestSkipped( 'This unit-test require WP version 4.7 or up.' );
-		}
+		return new Customize_Snapshot_Manager( $plugin );
 	}
 
 	/**
@@ -183,30 +168,8 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	 * @see Customize_Snapshot_Manager::__construct()
 	 */
 	function test_construct_without_customize() {
-		$this->mark_incompatible();
 		$this->assertInstanceOf( 'CustomizeSnapshots\Customize_Snapshot_Manager', $this->manager );
 		$this->assertInstanceOf( 'CustomizeSnapshots\Plugin', $this->manager->plugin );
-		$this->assertNull( $this->manager->current_snapshot_uuid );
-	}
-
-	/**
-	 * Test constructor with Customizer.
-	 *
-	 * @see Customize_Snapshot_Manager::__construct()
-	 */
-	function test_construct_with_customize() {
-		$this->mark_incompatible();
-		wp_set_current_user( $this->user_id );
-		$this->do_customize_boot_actions( true );
-		$this->assertTrue( is_customize_preview() );
-		$_REQUEST[ $this->front_param ] = self::UUID;
-		$manager = $this->get_snapshot_manager_instance( $this->plugin );
-		$manager->init();
-		$this->assertEquals( $manager->current_snapshot_uuid, self::UUID );
-		$this->assertInstanceOf( 'CustomizeSnapshots\Post_Type', $manager->post_type );
-		$this->assertInstanceOf( 'CustomizeSnapshots\Customize_Snapshot', $manager->snapshot() );
-		$this->assertEquals( 0, has_action( 'init', array( $manager, 'create_post_type' ) ) );
-		$this->assertEquals( 10, has_action( 'customize_controls_enqueue_scripts', array( $manager, 'enqueue_controls_scripts' ) ) );
 	}
 
 	/**
@@ -234,13 +197,13 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		$manager->init();
 		$this->assertEquals( 10, has_action( 'init', array( $manager->post_type, 'init' ) ) );
 		$this->assertEquals( 10, has_action( 'customize_controls_enqueue_scripts', array( $manager, 'enqueue_controls_scripts' ) ) );
+		$this->assertEquals( 10, has_filter( 'customize_changeset_branching', '__return_true' ) );
 		$this->assertEquals( 10, has_action( 'admin_enqueue_scripts', array( $manager, 'enqueue_admin_scripts' ) ) );
 		$this->assertEquals( 10, has_action( 'customize_controls_init', array( $manager, 'add_snapshot_uuid_to_return_url' ) ) );
 		$this->assertEquals( 10, has_action( 'customize_controls_print_footer_scripts', array( $manager, 'render_templates' ) ) );
 		$this->assertEquals( 41, has_action( 'admin_bar_menu', array( $manager, 'customize_menu' ) ) );
 		$this->assertEquals( 100000, has_action( 'admin_bar_menu', array( $manager, 'remove_all_non_snapshot_admin_bar_links' ) ) );
 		$this->assertEquals( 10, has_action( 'wp_before_admin_bar_render', array( $manager, 'print_admin_bar_styles' ) ) );
-		$this->assertEquals( 10, has_filter( 'removable_query_args', array( $manager, 'filter_removable_query_args' ) ) );
 		$this->assertEquals( 10, has_action( 'save_post_' . $manager->get_post_type(), array( $manager, 'create_initial_changeset_revision' ) ) );
 		$this->assertEquals( 10, has_action( 'save_post_' . $manager->get_post_type(), array( $manager, 'save_customizer_state_query_vars' ) ) );
 		$this->assertEquals( 10, has_filter( 'wp_insert_post_data', array( $manager, 'prepare_snapshot_post_content_for_publish' ) ) );
@@ -253,7 +216,6 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::init()
 	 */
 	public function test_init_hooks() {
-		$this->mark_incompatible();
 		$manager = $this->get_snapshot_manager_instance( $this->plugin );
 		$manager->init();
 		$this->assertEquals( 10, has_filter( 'customize_save_response', array( $manager, 'add_snapshot_var_to_customize_save' ) ) );
@@ -261,93 +223,23 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	}
 
 	/**
-	 * Tests load_snapshot.
-	 *
-	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::load_snapshot()
-	 */
-	public function test_load_snapshot() {
-		$this->mark_incompatible();
-		$manager = new Customize_Snapshot_Manager( $this->plugin );
-		$this->assertNull( $manager->snapshot );
-		$this->assertNull( $manager->customize_manager );
-		$manager->load_snapshot();
-		$this->assertInstanceOf( __NAMESPACE__ . '\\Customize_Snapshot', $manager->snapshot );
-		$this->assertInstanceOf( '\WP_Customize_Manager', $manager->customize_manager );
-	}
-	/**
 	 * Tests add_snapshot_var_to_customize_save.
 	 *
 	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::add_snapshot_var_to_customize_save()
 	 */
 	public function test_add_snapshot_var_to_customize_save() {
-		$this->mark_incompatible();
 		global $wp_customize;
-		$uuid = wp_generate_uuid4();
+		$changeset_uuid = wp_generate_uuid4();
 		get_plugin_instance()->customize_snapshot_manager->post_type->save( array(
-			'uuid' => $uuid,
+			'uuid' => $changeset_uuid,
 			'data' => array(),
 			'status' => 'draft',
 		) );
+		$wp_customize = new \WP_Customize_Manager( compact( 'changeset_uuid' ) );
 		$manager = new Customize_Snapshot_Manager( $this->plugin );
-		$wp_customize = null; // WPCS: global override ok.
-		$manager->current_snapshot_uuid = $uuid;
-		$manager->load_snapshot();
-		$data = $manager->add_snapshot_var_to_customize_save( array(), $manager->customize_manager );
+		$data = $manager->add_snapshot_var_to_customize_save( array(), $manager->ensure_customize_manager() );
 		$this->assertArrayHasKey( 'edit_link', $data );
-		$this->assertArrayHasKey( 'publish_date', $data );
 		$this->assertArrayHasKey( 'title', $data );
-	}
-
-	/**
-	 * Tests enqueue_admin_scripts.
-	 *
-	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::enqueue_admin_scripts()
-	 */
-	public function test_enqueue_admin_scripts() {
-		$this->markTestIncomplete();
-	}
-
-	/**
-	 * Tests init hooks.
-	 *
-	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::init()
-	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::read_current_snapshot_uuid()
-	 */
-	public function test_read_current_snapshot_uuid() {
-		$manager = $this->get_snapshot_manager_instance( $this->plugin );
-		$manager->init();
-
-		$this->assertFalse( $manager->read_current_snapshot_uuid() );
-		$this->assertNull( $manager->current_snapshot_uuid );
-
-		$_REQUEST[ $manager->get_customize_uuid_param() ] = 'bad';
-		$this->assertFalse( $manager->read_current_snapshot_uuid() );
-		$this->assertNull( $manager->current_snapshot_uuid );
-
-		$_REQUEST[ $manager->get_customize_uuid_param() ] = self::UUID;
-		$this->assertTrue( $manager->read_current_snapshot_uuid() );
-		$this->assertEquals( self::UUID, $manager->current_snapshot_uuid );
-
-		$_REQUEST[ $manager->get_customize_uuid_param() ] = self::UUID;
-		$manager = $this->get_snapshot_manager_instance( $this->plugin );
-		$manager->init();
-		$this->assertEquals( self::UUID, $manager->current_snapshot_uuid );
-	}
-
-	/**
-	 * Tests doing_customize_save_ajax.
-	 *
-	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::doing_customize_save_ajax()
-	 */
-	public function test_doing_customize_save_ajax() {
-		$manager = $this->get_snapshot_manager_instance( $this->plugin );
-		$this->assertFalse( $manager->doing_customize_save_ajax() );
-
-		$_REQUEST['action'] = 'foo';
-		$this->assertFalse( $manager->doing_customize_save_ajax() );
-
-		$_REQUEST['action'] = 'customize_save';
-		$this->assertTrue( $manager->doing_customize_save_ajax() );
 	}
 
 	/**
@@ -358,26 +250,10 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	public function test_ensure_customize_manager() {
 		global $wp_customize;
 		$wp_customize = null; // WPCS: global override ok.
-		$manager = $this->get_snapshot_manager_instance( $this->plugin );
-		$this->assertEmpty( $manager->customize_manager );
-		$manager->ensure_customize_manager();
-		$this->assertInstanceOf( 'WP_Customize_Manager', $manager->customize_manager );
-		$this->assertInstanceOf( 'WP_Customize_Manager', $wp_customize );
-	}
-
-	/**
-	 * Tests is_theme_active.
-	 *
-	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::is_theme_active()
-	 */
-	public function test_is_theme_active() {
-		global $wp_customize;
-		$wp_customize = null; // WPCS: global override ok.
-		$manager = $this->get_snapshot_manager_instance( $this->plugin );
-		$this->assertTrue( $manager->is_theme_active() );
-
-		$manager->ensure_customize_manager();
-		$this->assertTrue( $manager->is_theme_active() );
+		$snapshot_manager = $this->get_snapshot_manager_instance( $this->plugin );
+		$customize_manager = $snapshot_manager->ensure_customize_manager();
+		$this->assertInstanceOf( 'WP_Customize_Manager', $customize_manager );
+		$this->assertSame( $customize_manager, $wp_customize );
 	}
 
 	/**
@@ -386,19 +262,21 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	 * @see Customize_Snapshot_Manager::add_snapshot_uuid_to_return_url()
 	 */
 	public function test_add_snapshot_uuid_to_return_url() {
-		global $wp_version;
-		if ( version_compare( $wp_version, '4.4-beta', '>=' ) ) {
-			wp_set_current_user( $this->factory()->user->create( array( 'role' => 'administrator' ) ) );
-			$_GET[ $this->front_param ] = self::UUID;
-			$_REQUEST[ $this->front_param ] = self::UUID;
-			$manager = $this->get_snapshot_manager_instance( $this->plugin );
-			$manager->init();
-			$manager->ensure_customize_manager();
-			do_action( 'setup_theme' );
-			$this->assertNotContains( $this->front_param, $manager->customize_manager->get_return_url() );
-			$manager->add_snapshot_uuid_to_return_url();
-			$this->assertContains( $this->front_param, $manager->customize_manager->get_return_url() );
-		}
+		global $wp_customize;
+		wp_set_current_user( $this->factory()->user->create( array( 'role' => 'administrator' ) ) );
+
+		$manager = $this->get_snapshot_manager_instance( $this->plugin );
+		$wp_customize = $manager->ensure_customize_manager();
+		$_SERVER['HTTP_REFERER'] = wp_slash( add_query_arg(
+			'customize_changeset_uuid',
+			$wp_customize->changeset_uuid(),
+			home_url( '/' )
+		) );
+		$wp_customize->start_previewing_theme();
+		$wp_customize->set_return_url( home_url( '/' ) );
+		$this->assertNotContains( $this->front_param, $wp_customize->get_return_url() );
+		$manager->add_snapshot_uuid_to_return_url();
+		$this->assertContains( $this->front_param, $wp_customize->get_return_url() );
 	}
 
 	/**
@@ -427,18 +305,6 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		$manager->enqueue_controls_scripts();
 		$this->assertTrue( wp_script_is( 'customize-snapshots', 'enqueued' ) );
 		$this->assertTrue( wp_style_is( 'customize-snapshots', 'enqueued' ) );
-	}
-
-	/**
-	 * Test snapshot method.
-	 *
-	 * @see Customize_Snapshot_Manager::snapshot()
-	 */
-	function test_snapshot() {
-		$_REQUEST[ $this->front_param ] = self::UUID;
-		$manager = $this->get_snapshot_manager_instance( $this->plugin );
-		$manager->init();
-		$this->assertInstanceOf( 'CustomizeSnapshots\Customize_Snapshot', $manager->snapshot() );
 	}
 
 	/**
@@ -472,30 +338,11 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	}
 
 	/**
-	 * Test adding snapshot_error_on_publish to removable_query_args.
-	 *
-	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::filter_removable_query_args()
-	 */
-	public function test_filter_removable_query_args() {
-		$manager = $this->get_snapshot_manager_instance( $this->plugin );
-		$this->assertContains( 'snapshot_error_on_publish', $manager->filter_removable_query_args( array() ) );
-	}
-
-	/**
 	 * Test prepare_errors_for_response.
 	 *
 	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::prepare_errors_for_response()
 	 */
 	public function test_prepare_errors_for_response() {
-		$this->markTestIncomplete();
-	}
-
-	/**
-	 * Tests generate_uuid.
-	 *
-	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::generate_uuid()
-	 */
-	public function test_generate_uuid() {
 		$this->markTestIncomplete();
 	}
 
@@ -583,10 +430,19 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		remove_all_actions( 'admin_bar_menu' );
 		$manager = $this->get_snapshot_manager_instance( $this->plugin );
 		$_REQUEST[ $this->front_param ] = self::UUID;
-		if ( ! $this->plugin->compat ) {
-			global $wp_customize;
-			$wp_customize = null; // WPCS: Override OK.
-		}
+
+		global $wp_customize;
+		$wp_customize = $manager->ensure_customize_manager(); // WPCS: Override OK.
+		$wp_customize->start_previewing_theme();
+		$wp_customize->register_controls();
+		$wp_customize->save_changeset_post( array(
+			'data' => array(
+				'blogname' => array(
+					'value' => 'Blogname',
+				),
+			),
+		) );
+
 		$manager->init();
 		$wp_admin_bar = new \WP_Admin_Bar(); // WPCS: Override OK.
 		$wp_admin_bar->initialize();
@@ -609,48 +465,8 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		$templates = ob_get_contents();
 		ob_end_clean();
 		$this->assertContains( 'tmpl-snapshot-dialog-error', $templates );
-		$this->assertContains( 'tmpl-snapshot-preview-link', $templates );
-		$this->assertContains( 'tmpl-snapshot-expand-button', $templates );
-		$this->assertContains( 'tmpl-snapshot-edit-container', $templates );
+		$this->assertContains( 'tmpl-snapshot-inspect-link-control', $templates );
 		$this->assertContains( 'tmpl-snapshot-scheduled-countdown', $templates );
-		$this->assertContains( 'tmpl-snapshot-submit', $templates );
-	}
-
-	/**
-	 * Test format_gmt_offset
-	 *
-	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::format_gmt_offset()
-	 */
-	public function test_format_gmt_offset() {
-		$offset = $this->manager->format_gmt_offset( 7.0 );
-		$this->assertEquals( '+7', $offset );
-	}
-
-	/**
-	 * Test month choices
-	 *
-	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::get_month_choices()
-	 */
-	public function test_get_month_choices() {
-		$data = $this->manager->get_month_choices();
-		$this->assertArrayHasKey( 'month_choices', $data );
-		$this->assertCount( 12, $data['month_choices'] );
-	}
-
-	/**
-	 * Test override post date if empty.
-	 *
-	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::override_post_date_default_data()
-	 */
-	public function test_override_post_date_default_data() {
-		$post_id = $this->factory()->post->create();
-		$post = get_post( $post_id );
-		$post->post_date = $post->post_date_gmt = $post->post_modified = $post->post_modified_gmt = '0000-00-00 00:00:00';
-		$this->manager->override_post_date_default_data( $post );
-		$this->assertNotEquals( $post->post_date, '0000-00-00 00:00:00' );
-		$this->assertNotEquals( $post->post_date_gmt, '0000-00-00 00:00:00' );
-		$this->assertNotEquals( $post->post_modified, '0000-00-00 00:00:00' );
-		$this->assertNotEquals( $post->post_modified_gmt, '0000-00-00 00:00:00' );
 	}
 
 	/**
@@ -659,12 +475,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::get_post_type()
 	 */
 	public function test_get_post_type() {
-		$plugin = get_plugin_instance();
-		if ( $plugin->compat ) {
-			$this->assertEquals( $this->manager->get_post_type(), Post_Type_Back_Compat::SLUG );
-		} else {
-			$this->assertEquals( $this->manager->get_post_type(), Post_Type::SLUG );
-		}
+		$this->assertEquals( $this->manager->get_post_type(), Post_Type::SLUG );
 	}
 
 	/**
@@ -673,12 +484,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::get_front_uuid_param()
 	 */
 	public function test_get_front_uuid_param() {
-		$plugin = get_plugin_instance();
-		if ( $plugin->compat ) {
-			$this->assertEquals( $this->manager->get_front_uuid_param(), Post_Type_Back_Compat::FRONT_UUID_PARAM_NAME );
-		} else {
-			$this->assertEquals( $this->manager->get_front_uuid_param(), Post_Type::FRONT_UUID_PARAM_NAME );
-		}
+		$this->assertEquals( $this->manager->get_front_uuid_param(), Post_Type::FRONT_UUID_PARAM_NAME );
 	}
 
 	/**
@@ -687,12 +493,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::get_customize_uuid_param()
 	 */
 	public function test_get_customize_uuid_param() {
-		$plugin = get_plugin_instance();
-		if ( $plugin->compat ) {
-			$this->assertEquals( $this->manager->get_customize_uuid_param(), Post_Type_Back_Compat::CUSTOMIZE_UUID_PARAM_NAME );
-		} else {
-			$this->assertEquals( $this->manager->get_customize_uuid_param(), Post_Type::CUSTOMIZE_UUID_PARAM_NAME );
-		}
+		$this->assertEquals( $this->manager->get_customize_uuid_param(), Post_Type::CUSTOMIZE_UUID_PARAM_NAME );
 	}
 
 	/**
@@ -714,6 +515,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 
 		$manager = $this->get_snapshot_manager_instance( $this->plugin );
 		$manager->init();
+		$manager->ensure_customize_manager()->start_previewing_theme();
 
 		// Ensure customize link remains unknown if user lacks cap.
 		wp_set_current_user( 0 );
@@ -795,7 +597,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	/**
 	 * Test clean_up_nav_menus_created_auto_drafts
 	 *
-	 * @convers \CustomizeSnapshots\Customize_Snapshot_Manager::clean_up_nav_menus_created_auto_drafts()
+	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::clean_up_nav_menus_created_auto_drafts()
 	 */
 	public function test_clean_up_nav_menus_created_auto_drafts() {
 		$nav_created_post_ids = $this->factory()->post->create_many( 2, array(
@@ -810,12 +612,12 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 			'role' => 'administrator',
 		) ) );
 		$post_id = $this->manager->post_type->save( array(
-			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
+			'uuid' => wp_generate_uuid4(),
 			'data' => $data,
 			'status' => 'draft',
 		) );
 		$copy_post_id = $this->manager->post_type->save( array(
-			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
+			'uuid' => wp_generate_uuid4(),
 			'data' => $data,
 			'status' => 'draft',
 		) );

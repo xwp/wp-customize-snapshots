@@ -1,8 +1,9 @@
 === Customize Snapshots ===
 Contributors: xwp, westonruter, valendesigns, utkarshpatel, sayedwp, newscorpau
-Requires at least: 4.6
-Tested up to: 4.8.1
-Stable tag: 0.6.2
+Requires at least: 4.7
+Tested up to: 4.9
+Stable tag: 0.7.0
+Requires PHP: 5.3
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 Tags: customizer, customize, changesets
@@ -11,9 +12,9 @@ Provide a UI for managing Customizer changesets; save changesets as named drafts
 
 == Description ==
 
-Customize Snapshots is the feature plugin which prototyped [Customizer changesets](https://make.wordpress.org/core/2016/10/12/customize-changesets-technical-design-decisions/); this feature was [merged](https://make.wordpress.org/core/2016/10/12/customize-changesets-formerly-transactions-merge-proposal/) as part of WordPress 4.7.
-The term “snapshots” was chosen because the Customizer feature revolved around saving the state (taking a snapshot) of the Customizer at a given time so that the changes could be saved as a draft and scheduled for future publishing.
-While the plugin's technical infrastructure for changesets was merged in WordPress 4.7,the user interface still remains largely in the Customize Snapshots plugin, in which we will continue to iterate and prototype features to merge into core.
+Customize Snapshots is the feature plugin which prototyped [Customizer changesets](https://make.wordpress.org/core/2016/10/12/customize-changesets-technical-design-decisions/); this feature was [merged](https://make.wordpress.org/core/2016/10/12/customize-changesets-formerly-transactions-merge-proposal/) as part of WordPress 4.7. The term “snapshots” was chosen because the Customizer feature revolved around saving the state (taking a snapshot) of the Customizer at a given time so that the changes could be saved as a draft and scheduled for future publishing.
+
+While the plugin's technical infrastructure for changesets was merged in WordPress 4.7, the user interface still remains largely in the Customize Snapshots plugin, in which we will continue to iterate and prototype features to merge into core.
 
 For a rundown of all the features, see the screenshots below as well as the 0.6 release video:
 
@@ -39,6 +40,20 @@ Requires PHP 5.3+. **Development of this plugin is done [on GitHub](https://gith
 12. Multiple changesets can be merged into a single changeset, allowing multiple users' work to be combined for previewing together and publishing all at once.
 
 == Changelog ==
+
+= 0.7.0 - 2017-11-15 =
+
+* Added: Add compatibility with 4.9, re-using features of the plugin that have been merged into core in this release. Increase minimum required version of WordPress to 4.7. See [#162](https://github.com/xwp/wp-customize-snapshots/pull/162).
+* Added: Remove hiding of Add New links for changesets in favor of just redirecting `post-new.php` to Customizer. See [#156](https://github.com/xwp/wp-customize-snapshots/pull/156).
+* Added: Allow publishing from preview via link in admin bar. See [#115](https://github.com/xwp/wp-customize-snapshots/pull/115), [#103](https://github.com/xwp/wp-customize-snapshots/issues/103).
+* Updated: Change link text for post list table action from “Edit” to “Inspect”. See [#155](https://github.com/xwp/wp-customize-snapshots/pull/155), [#153](https://github.com/xwp/wp-customize-snapshots/issues/153).
+* Fixed: Prevent changeset session remembrance when browsing in preview iframe. See [#154](https://github.com/xwp/wp-customize-snapshots/pull/154).
+* Added: Include required PHP version (5.3) in readme. See [#160](https://github.com/xwp/wp-customize-snapshots/pull/160), [#159](https://github.com/xwp/wp-customize-snapshots/issues/159).
+* Updated: Dev dependencies.
+
+Props: Sayed Taqui (<a href="https://github.com/sayedwp" class="user-mention">@sayedwp</a>), Weston Ruter (<a href="https://github.com/westonruter" class="user-mention">@westonruter</a>), Miina Sikk (<a href="https://github.com/miina" class="user-mention">@miina</a>), Derek Herman (<a href="https://github.com/valendesigns" class="user-mention">@valendesigns</a>), Ryan Kienstra (<a href="https://github.com/kienstra" class="user-mention">@kienstra</a>), Anne Louise Currie (<a href="https://github.com/alcurrie" class="user-mention">@alcurrie</a>).
+
+See [issues and PRs in milestone](https://github.com/xwp/wp-customize-snapshots/milestone/11?closed=1) and [`0.6.2...0.7.0`](https://github.com/xwp/wp-customize-snapshots/compare/0.6.2...0.7.0) commit log.
 
 = 0.6.2 - 2017-07-26 =
 
