@@ -988,7 +988,7 @@ class Post_Type {
 	 */
 	public function set_customizer_state_query_vars( $post_id, $query_vars ) {
 		$stored_query_vars = array();
-		$autofocus_query_vars = array( 'autofocus[panel]', 'autofocus[section]', 'autofocus[control]' );
+		$autofocus_query_vars = array( 'autofocus[panel]', 'autofocus[section]', 'autofocus[outer_section]', 'autofocus[control]' );
 
 		$wp_customize = $this->snapshot_manager->ensure_customize_manager();
 
