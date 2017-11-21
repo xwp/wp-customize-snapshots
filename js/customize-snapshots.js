@@ -119,6 +119,7 @@
 			queryVars = {
 				'autofocus[control]': null,
 				'autofocus[section]': null,
+				'autofocus[outer_section]': null,
 				'autofocus[panel]': null
 			};
 
@@ -133,12 +134,18 @@
 			_.find( [ 'control', 'section', 'panel' ], function( constructType ) {
 				var found = false;
 				api[ constructType ].each( function( construct ) { // @todo Core needs to support more Backbone methods on wp.customize.Values().
-					if ( ! found && construct.expanded && construct.expanded.get() ) {
+					if ( ! found && construct.expanded && construct.expanded.get() && ! construct.extended( api.OuterSection ) ) {
 						queryVars[ 'autofocus[' + constructType + ']' ] = construct.id;
 						found = true;
 					}
 				} );
 				return found;
+			} );
+
+			api.section.each( function( section ) {
+				if ( section.expanded && section.expanded.get() && section.extended( api.OuterSection ) ) {
+					queryVars[ 'autofocus[outer_section]' ] = section.id;
+				}
 			} );
 
 			return queryVars;

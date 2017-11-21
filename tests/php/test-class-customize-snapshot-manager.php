@@ -568,6 +568,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 			'url' => home_url( 'about/' ),
 			'autofocus[panel]' => 'widgets',
 			'autofocus[section]' => 'sidebar-widgets-sidebar-1',
+			'autofocus[outer_section]' => 'publish_settings',
 			'autofocus[control]' => 'widget_test[123]',
 		);
 
@@ -588,6 +589,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 			'url' => 'http://bogus.example.com/',
 			'autofocus[panel]' => 'badid!',
 			'autofocus[section]' => '#sobad',
+			'autofocus[outer_section]' => '$#superbad',
 			'autofocus[control]' => '*horrible',
 			'unrecognized' => 'yes',
 		) );
