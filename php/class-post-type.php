@@ -211,7 +211,7 @@ class Post_Type {
 	 *
 	 * @see \sanitize_post()
 	 */
-	function suspend_kses() {
+	public function suspend_kses() {
 		if ( false !== has_filter( 'content_save_pre', 'wp_filter_post_kses' ) ) {
 			$this->kses_suspended = true;
 			kses_remove_filters();
@@ -223,7 +223,7 @@ class Post_Type {
 	 *
 	 * @see \sanitize_post()
 	 */
-	function restore_kses() {
+	public function restore_kses() {
 		if ( $this->kses_suspended ) {
 			kses_init_filters();
 			$this->kses_suspended = false;
@@ -262,7 +262,7 @@ class Post_Type {
 	 *
 	 * @codeCoverageIgnore
 	 */
-	function suspend_kses_for_snapshot_revision_restore() {
+	public function suspend_kses_for_snapshot_revision_restore() {
 		if ( ! isset( $_GET['revision'] ) ) { // WPCS: input var ok. CSRF ok.
 			return;
 		}
