@@ -217,15 +217,14 @@ class Test_Post_Type extends \WP_UnitTestCase {
 				'blogname' => array( 'value' => 'Hello' ),
 			),
 		) );
-		$param = $this->plugin->customize_snapshot_manager->get_front_uuid_param();
 		$this->assertContains(
-			$param . '=' . self::UUID,
+			Post_Type::FRONT_UUID_PARAM_NAME . '=' . self::UUID,
 			$post_type->filter_post_type_link( '', get_post( $post_id ) )
 		);
 
 		remove_all_filters( 'post_type_link' );
 		$post_type->init();
-		$this->assertContains( $param . '=' . self::UUID, get_permalink( $post_id ) );
+		$this->assertContains( Post_Type::FRONT_UUID_PARAM_NAME . '=' . self::UUID, get_permalink( $post_id ) );
 	}
 
 	/**

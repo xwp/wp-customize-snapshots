@@ -204,8 +204,8 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		$this->assertEquals( 41, has_action( 'admin_bar_menu', array( $manager, 'customize_menu' ) ) );
 		$this->assertEquals( 100000, has_action( 'admin_bar_menu', array( $manager, 'remove_all_non_snapshot_admin_bar_links' ) ) );
 		$this->assertEquals( 10, has_action( 'wp_before_admin_bar_render', array( $manager, 'print_admin_bar_styles' ) ) );
-		$this->assertEquals( 10, has_action( 'save_post_' . $manager->get_post_type(), array( $manager, 'create_initial_changeset_revision' ) ) );
-		$this->assertEquals( 10, has_action( 'save_post_' . $manager->get_post_type(), array( $manager, 'save_customizer_state_query_vars' ) ) );
+		$this->assertEquals( 10, has_action( 'save_post_' . Post_Type::SLUG, array( $manager, 'create_initial_changeset_revision' ) ) );
+		$this->assertEquals( 10, has_action( 'save_post_' . Post_Type::SLUG, array( $manager, 'save_customizer_state_query_vars' ) ) );
 		$this->assertEquals( 10, has_filter( 'wp_insert_post_data', array( $manager, 'prepare_snapshot_post_content_for_publish' ) ) );
 		$this->assertEquals( 10, has_action( 'delete_post', array( $manager, 'clean_up_nav_menus_created_auto_drafts' ) ) );
 	}
@@ -330,7 +330,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 			'baz' => array( 'value' => null ),
 		);
 		$data_without_errors = $this->manager->prepare_snapshot_post_content_for_publish( array(
-			'post_type' => $this->manager->get_post_type(),
+			'post_type' => Post_Type::SLUG,
 			'post_content' => Customize_Snapshot_Manager::encode_json( $data ),
 			'post_status' => 'publish',
 		) );
@@ -470,33 +470,6 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	}
 
 	/**
-	 * Tests get_post_type.
-	 *
-	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::get_post_type()
-	 */
-	public function test_get_post_type() {
-		$this->assertEquals( $this->manager->get_post_type(), Post_Type::SLUG );
-	}
-
-	/**
-	 * Tests get_front_uuid_param.
-	 *
-	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::get_front_uuid_param()
-	 */
-	public function test_get_front_uuid_param() {
-		$this->assertEquals( $this->manager->get_front_uuid_param(), Post_Type::FRONT_UUID_PARAM_NAME );
-	}
-
-	/**
-	 * Tests get_customize_uuid_param.
-	 *
-	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::get_customize_uuid_param()
-	 */
-	public function test_get_customize_uuid_param() {
-		$this->assertEquals( $this->manager->get_customize_uuid_param(), Post_Type::CUSTOMIZE_UUID_PARAM_NAME );
-	}
-
-	/**
 	 * Test replace_customize_link.
 	 *
 	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::replace_customize_link()
@@ -505,13 +478,10 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		global $wp_admin_bar;
 		set_current_screen( 'front' );
 
-		$front_param = $this->manager->get_front_uuid_param();
-		$customize_param = $this->manager->get_customize_uuid_param();
-
 		require_once ABSPATH . WPINC . '/class-wp-admin-bar.php';
 		remove_all_actions( 'admin_bar_menu' );
-		$this->go_to( home_url( '?' . $front_param . '=' . self::UUID ) );
-		$_REQUEST[ $front_param ] = self::UUID;
+		$this->go_to( home_url( '?' . Post_Type::FRONT_UUID_PARAM_NAME . '=' . self::UUID ) );
+		$_REQUEST[ Post_Type::FRONT_UUID_PARAM_NAME ] = self::UUID;
 
 		$manager = $this->get_snapshot_manager_instance( $this->plugin );
 		$manager->init();
@@ -536,8 +506,8 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		$parsed_url = wp_parse_url( $node->href );
 		$query_params = array();
 		parse_str( $parsed_url['query'], $query_params );
-		$this->assertArrayHasKey( $customize_param, $query_params );
-		$this->assertEquals( self::UUID, $query_params[ $customize_param ] );
+		$this->assertArrayHasKey( Post_Type::CUSTOMIZE_UUID_PARAM_NAME, $query_params );
+		$this->assertEquals( self::UUID, $query_params[ Post_Type::CUSTOMIZE_UUID_PARAM_NAME ] );
 		$this->assertArrayHasKey( 'url', $query_params );
 		$parsed_preview_url = wp_parse_url( $query_params['url'] );
 		$this->assertArrayNotHasKey( 'query', $parsed_preview_url );

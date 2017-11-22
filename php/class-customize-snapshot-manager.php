@@ -46,7 +46,7 @@ class Customize_Snapshot_Manager {
 	 *
 	 * @global \WP_Customize_Manager $wp_customize
 	 */
-	function hooks() {
+	public function hooks() {
 		add_action( 'init', array( $this->post_type, 'init' ) );
 		add_action( 'customize_controls_enqueue_scripts', array( $this, 'enqueue_controls_scripts' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
@@ -59,8 +59,8 @@ class Customize_Snapshot_Manager {
 		add_action( 'admin_bar_menu', array( $this, 'customize_menu' ), 41 );
 		add_action( 'admin_bar_menu', array( $this, 'remove_all_non_snapshot_admin_bar_links' ), 100000 );
 		add_action( 'wp_before_admin_bar_render', array( $this, 'print_admin_bar_styles' ) );
-		add_action( 'save_post_' . $this->get_post_type(), array( $this, 'create_initial_changeset_revision' ) );
-		add_action( 'save_post_' . $this->get_post_type(), array( $this, 'save_customizer_state_query_vars' ) );
+		add_action( 'save_post_' . Post_Type::SLUG, array( $this, 'create_initial_changeset_revision' ) );
+		add_action( 'save_post_' . Post_Type::SLUG, array( $this, 'save_customizer_state_query_vars' ) );
 		add_filter( 'wp_insert_post_data', array( $this, 'prepare_snapshot_post_content_for_publish' ) );
 		remove_action( 'delete_post', '_wp_delete_customize_changeset_dependent_auto_drafts' );
 		add_action( 'delete_post', array( $this, 'clean_up_nav_menus_created_auto_drafts' ) );
@@ -70,7 +70,7 @@ class Customize_Snapshot_Manager {
 	/**
 	 * Init.
 	 */
-	function init() {
+	public function init() {
 		$this->post_type = new Post_Type( $this );
 		$this->hooks();
 	}
@@ -115,7 +115,7 @@ class Customize_Snapshot_Manager {
 	 *
 	 * @return \WP_Customize_Manager Manager.
 	 */
-	function get_customize_manager() {
+	public function get_customize_manager() {
 		global $wp_customize;
 		return $wp_customize;
 	}
@@ -151,7 +151,7 @@ class Customize_Snapshot_Manager {
 			false !== strpos( parse_url( wp_get_referer(), PHP_URL_QUERY ), 'customize_changeset_uuid=' . $wp_customize->changeset_uuid() )
 		);
 		if ( $should_add_snapshot_uuid ) {
-			$args_name = $this->get_front_uuid_param();
+			$args_name = Post_Type::FRONT_UUID_PARAM_NAME;
 			$args = array(
 				$args_name => $wp_customize->changeset_uuid(),
 			);
@@ -229,11 +229,11 @@ class Customize_Snapshot_Manager {
 	public function enqueue_admin_scripts( $hook ) {
 		global $post;
 		$handle = 'customize-snapshots-admin';
-		if ( ( 'post.php' === $hook ) && isset( $post->post_type ) && ( $this->get_post_type() === $post->post_type ) && ( 'publish' !== $post->post_status ) ) {
+		if ( ( 'post.php' === $hook ) && isset( $post->post_type ) && ( Post_Type::SLUG === $post->post_type ) && ( 'publish' !== $post->post_status ) ) {
 			wp_enqueue_script( $handle );
 			wp_enqueue_style( $handle );
 			$exports = array(
-				'deleteInputName' => $this->get_post_type() . '_remove_settings[]',
+				'deleteInputName' => Post_Type::SLUG . '_remove_settings[]',
 			);
 			wp_add_inline_script(
 				$handle,
@@ -297,7 +297,7 @@ class Customize_Snapshot_Manager {
 		$is_publishing_snapshot = (
 			isset( $data['post_type'] )
 			&&
-			$this->get_post_type() === $data['post_type']
+			Post_Type::SLUG === $data['post_type']
 			&&
 			'publish' === $data['post_status']
 			&&
@@ -425,7 +425,7 @@ class Customize_Snapshot_Manager {
 		$preview_url_parsed = wp_parse_url( $customize_node->href );
 		parse_str( $preview_url_parsed['query'], $preview_url_query_params );
 		if ( ! empty( $preview_url_query_params['url'] ) ) {
-			$preview_url_query_params['url'] = rawurlencode( remove_query_arg( array( $this->get_front_uuid_param() ), $preview_url_query_params['url'] ) );
+			$preview_url_query_params['url'] = rawurlencode( remove_query_arg( array( Post_Type::FRONT_UUID_PARAM_NAME ), $preview_url_query_params['url'] ) );
 			$customize_node->href = preg_replace(
 				'/(?<=\?).*?(?=#|$)/',
 				build_query( $preview_url_query_params ),
@@ -435,7 +435,7 @@ class Customize_Snapshot_Manager {
 
 		$wp_customize = $this->get_customize_manager();
 		$args = array(
-			$this->get_customize_uuid_param() => $wp_customize->changeset_uuid(),
+			Post_Type::CUSTOMIZE_UUID_PARAM_NAME => $wp_customize->changeset_uuid(),
 		);
 
 		$post_id = $wp_customize->changeset_post_id();
@@ -559,7 +559,7 @@ class Customize_Snapshot_Manager {
 		$wp_admin_bar->add_menu( array(
 			'id' => 'exit-customize-snapshot',
 			'title' => __( 'Exit Changeset Preview', 'customize-snapshots' ),
-			'href' => remove_query_arg( $this->get_front_uuid_param() ),
+			'href' => remove_query_arg( Post_Type::FRONT_UUID_PARAM_NAME ),
 			'meta' => array(
 				'class' => 'ab-item ab-customize-snapshots-item',
 			),
@@ -644,33 +644,6 @@ class Customize_Snapshot_Manager {
 	}
 
 	/**
-	 * Get Post_Type from dynamic class.
-	 *
-	 * @return string Post type.
-	 */
-	public function get_post_type() {
-		return Post_Type::SLUG;
-	}
-
-	/**
-	 * Get Frontend UUID param.
-	 *
-	 * @return string param.
-	 */
-	public function get_front_uuid_param() {
-		return Post_Type::FRONT_UUID_PARAM_NAME;
-	}
-
-	/**
-	 * Get customize uuid param name.
-	 *
-	 * @return string customize param name.
-	 */
-	public function get_customize_uuid_param() {
-		return Post_Type::CUSTOMIZE_UUID_PARAM_NAME;
-	}
-
-	/**
 	 * Handles request to publish changeset from frontend.
 	 */
 	public function handle_frontend_changeset_publish() {
@@ -703,14 +676,14 @@ class Customize_Snapshot_Manager {
 		if ( isset( $_GET['stylesheet'] ) ) {
 			$theme = wp_get_theme( wp_unslash( $_GET['stylesheet'] ) );
 			if ( $theme->errors() ) {
-				$msg = __( 'Oops. Unable to publish the changeset. The following error(s) occurred: ', 'customize-snapshots' );
+				$msg  = __( 'Oops. Unable to publish the changeset. The following error(s) occurred: ', 'customize-snapshots' );
 				$msg .= join( '; ', array_keys( $theme->errors()->errors ) );
 				wp_die(
 					'<p>' . esc_html( $msg ) . '</p>',
 					esc_html__( 'Changeset publishing failed', 'customize-snapshots' ),
 					array(
 						'back_link' => true,
-						'response' => 400,
+						'response'  => 400,
 					)
 				);
 			}
@@ -718,7 +691,7 @@ class Customize_Snapshot_Manager {
 		}
 
 		$wp_customize = $this->get_customize_manager();
-		$args = array();
+		$args         = array();
 		if ( empty( $wp_customize ) || ! ( $wp_customize instanceof \WP_Customize_Manager ) ) {
 			require_once( ABSPATH . WPINC . '/class-wp-customize-manager.php' );
 			$args['changeset_uuid'] = $uuid;
@@ -732,7 +705,7 @@ class Customize_Snapshot_Manager {
 		) );
 
 		if ( is_wp_error( $r ) ) {
-			$msg = __( 'Oops. Unable to publish the changeset. The following error(s) occurred: ', 'customize-snapshots' );
+			$msg  = __( 'Oops. Unable to publish the changeset. The following error(s) occurred: ', 'customize-snapshots' );
 			$msg .= join( '; ', array_keys( $r->errors ) );
 			wp_die(
 				'<p>' . esc_html( $msg ) . '</p>',
@@ -751,9 +724,9 @@ class Customize_Snapshot_Manager {
 			}
 
 			$sendback = remove_query_arg( array(
-				$this->get_front_uuid_param(),
+				Post_Type::FRONT_UUID_PARAM_NAME,
 				'customize_theme',
-				$this->get_customize_uuid_param(),
+				Post_Type::CUSTOMIZE_UUID_PARAM_NAME,
 			), $referer );
 
 			wp_redirect( $sendback );
@@ -789,7 +762,7 @@ class Customize_Snapshot_Manager {
 		global $wpdb;
 		$changeset_post = get_post( $changeset_post_id );
 
-		if ( ! ( $changeset_post instanceof \WP_Post ) || $changeset_post->post_type !== $this->get_post_type() ) {
+		if ( ! ( $changeset_post instanceof \WP_Post ) || Post_Type::SLUG !== $changeset_post->post_type ) {
 			return;
 		}
 
@@ -812,7 +785,7 @@ class Customize_Snapshot_Manager {
 			if ( ! class_exists( 'Customize_Posts_Plugin' ) ) {
 				// If customize post plugin is not installed we search for nav_menus_created_posts and lookup for reference via php code.
 				// Todo: Improve logic to find reference below.
-				$query = $wpdb->prepare( "SELECT ID FROM {$wpdb->posts} WHERE post_type = %s AND ID != %d ", $this->get_post_type(), $changeset_post_id );
+				$query = $wpdb->prepare( "SELECT ID FROM {$wpdb->posts} WHERE post_type = %s AND ID != %d ", Post_Type::SLUG, $changeset_post_id );
 				$query .= $wpdb->prepare( ' AND post_content LIKE %s AND post_content LIKE %s LIMIT 50', '%' . $wpdb->esc_like( '"nav_menus_created_posts":' ) . '%', '%' . $nav_menu_created_post_id . '%' );
 				$post_ids = $wpdb->get_col( $query ); // WPCS: unprepared SQL ok.
 				$should_delete = true;
