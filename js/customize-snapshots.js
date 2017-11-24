@@ -1,5 +1,5 @@
 /* global wp, jQuery, _ */
-/* eslint consistent-this: [ "error", "snapshot", "control" ] */
+/* eslint consistent-this: [ "error", "snapshot", "inspectControl" ] */
 /* eslint no-magic-numbers: ["error", { "ignore": [0, 1] }] */
 /* eslint max-nested-callbacks: ["error", 4] */
 
@@ -224,16 +224,16 @@
 					templateId: 'snapshot-inspect-link-control'
 				} ),
 				ready: function() {
-					var control = this, link;
-					link = control.container.find( 'a' );
-					link.attr( 'href', control.setting() );
-					control.setting.bind( function( value ) {
+					var inspectControl = this, link;
+					link = inspectControl.container.find( 'a' );
+					link.attr( 'href', inspectControl.setting() );
+					inspectControl.setting.bind( function( value ) {
 					    link.attr( 'href', value );
 					} );
 
-					control.toggleInspectChangesetControl();
+					inspectControl.toggleInspectChangesetControl();
 					api.state( 'changesetStatus' ).bind( function() {
-						control.toggleInspectChangesetControl();
+						inspectControl.toggleInspectChangesetControl();
 					} );
 				},
 				toggleInspectChangesetControl: function() {
@@ -401,61 +401,61 @@
 			snapshot.conflict.pendingRequest[setting.id] = setting.findControls();
 
 			snapshot.conflict._debouncedTimeoutId = _.delay( function sendConflictRequest() {
-					var data, settingIds;
+				var data, settingIds;
 
-					settingIds = _.keys( snapshot.conflict.pendingRequest );
+				settingIds = _.keys( snapshot.conflict.pendingRequest );
 
-					if ( _.isEmpty( settingIds ) ) {
-						return;
-					}
+				if ( _.isEmpty( settingIds ) ) {
+					return;
+				}
 
-					data = {
-						setting_ids: settingIds,
-						nonce: snapshot.data.conflictNonce,
-						changeset_uuid: api.settings.changeset.uuid
-					};
+				data = {
+					setting_ids: settingIds,
+					nonce: snapshot.data.conflictNonce,
+					changeset_uuid: api.settings.changeset.uuid
+				};
 
-					snapshot.conflict._currentRequest = wp.ajax.post( 'customize_snapshot_conflict_check', data );
+				snapshot.conflict._currentRequest = wp.ajax.post( 'customize_snapshot_conflict_check', data );
 
-					snapshot.conflict._currentRequest.done( function( returnData ) {
-						var multiple, controls, buttonTemplate, notification, notificationsContainer;
+				snapshot.conflict._currentRequest.done( function( returnData ) {
+					var multiple, controls, buttonTemplate, notification, notificationsContainer;
 
-						if ( ! _.isEmpty( returnData ) ) {
-							_.each( returnData, function( value, key ) {
-								snapshot.conflict.controls[key] = $( $.trim( snapshot.conflict.warningTemplate( {
-									setting_id: key,
-									conflicts: value
-								} ) ) );
+					if ( ! _.isEmpty( returnData ) ) {
+						_.each( returnData, function( value, key ) {
+							snapshot.conflict.controls[key] = $( $.trim( snapshot.conflict.warningTemplate( {
+								setting_id: key,
+								conflicts: value
+							} ) ) );
 
-								multiple = false;
-								controls = snapshot.conflict.pendingRequest[key];
-								buttonTemplate = $( $.trim( snapshot.conflict.conflictButtonTemplate( {
-									setting_id: key
-								} ) ) );
+							multiple = false;
+							controls = snapshot.conflict.pendingRequest[key];
+							buttonTemplate = $( $.trim( snapshot.conflict.conflictButtonTemplate( {
+								setting_id: key
+							} ) ) );
 
-								_.each( controls, function( control ) {
-									if ( control && control.notifications && api.Notification && control.container ) {
-										control.notificationsTemplate = snapshot.conflict.notificationTemplate;
-										notification = new api.Notification( snapshot.conflict.notificationCode, {
-											type: 'warning',
-											message: $.trim( buttonTemplate.html() )
-										} );
-										control.notifications.add( snapshot.conflict.notificationCode, notification );
-										if ( ! multiple ) {
-											notificationsContainer = control.container.find( '.customize-control-notifications-container' );
-											if ( notificationsContainer.length ) {
-												snapshot.conflict.controls[key].insertAfter( notificationsContainer );
-												snapshot.updateConflictValueMarkup( key, snapshot.conflict.controls[key] );
-											}
+							_.each( controls, function( control ) {
+								if ( control && control.notifications && api.Notification && control.container ) {
+									control.notificationsTemplate = snapshot.conflict.notificationTemplate;
+									notification = new api.Notification( snapshot.conflict.notificationCode, {
+										type: 'warning',
+										message: $.trim( buttonTemplate.html() )
+									} );
+									control.notifications.add( snapshot.conflict.notificationCode, notification );
+									if ( ! multiple ) {
+										notificationsContainer = control.container.find( '.customize-control-notifications-container' );
+										if ( notificationsContainer.length ) {
+											snapshot.conflict.controls[key].insertAfter( notificationsContainer );
+											snapshot.updateConflictValueMarkup( key, snapshot.conflict.controls[key] );
 										}
-										control.container.find( '.snapshot-conflicts-button' ).show();
-										multiple = true;
 									}
-								} );
+									control.container.find( '.snapshot-conflicts-button' ).show();
+									multiple = true;
+								}
 							} );
-						}
-						snapshot.conflict.pendingRequest = {};
-					} );
+						} );
+					}
+					snapshot.conflict.pendingRequest = {};
+				} );
 				},
 				snapshot.conflict.refreshBuffer
 			);
