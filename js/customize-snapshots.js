@@ -1,7 +1,8 @@
-/* global wp, jQuery */
+/* global wp, jQuery, _ */
 /* eslint consistent-this: [ "error", "snapshot", "control" ] */
 /* eslint no-magic-numbers: ["error", { "ignore": [0, 1] }] */
 /* eslint max-nested-callbacks: ["error", 4] */
+
 (function( api, $ ) {
 	'use strict';
 
@@ -22,13 +23,13 @@
 
 		conflict: {
 			warningTemplate: wp.template( 'snapshot-conflict' ),
-			icon: wp.template( 'snapshot-conflict-button' ),
+			conflictButtonTemplate: wp.template( 'snapshot-conflict-button' ),
+			notificationTemplate: wp.template( 'snapshot-notification-template' ),
+			conflictValueTemplate: wp.template( 'snapshot-conflict-value' ),
 			refreshBuffer: 250,
 			controls: {},
 			pendingRequest: {},
-			notificationCode: 'snapshot_conflict',
-			notificationTemplate: wp.template( 'snapshot-notification-template' ),
-			conflictValueTemplate: wp.template( 'snapshot-conflict-value' )
+			notificationCode: 'snapshot_conflict'
 		},
 
 		initialize: function initialize( snapshotsConfig ) {
@@ -37,6 +38,8 @@
 			if ( _.isObject( snapshotsConfig ) ) {
 				_.extend( snapshot.data, snapshotsConfig );
 			}
+
+			_.bindAll( snapshot, 'addConflictButton' );
 
 			api.bind( 'ready', function() {
 				var saveBtn = $( '#save' );
@@ -90,12 +93,8 @@
 				} );
 			} );
 
-			api.control.bind( 'add', function( control ) {
-				snapshot.addConflictButton( control );
-			} );
-			api.control.each( function( control ) {
-				snapshot.addConflictButton( control );
-			} );
+			api.control.bind( 'add', snapshot.addConflictButton );
+			api.control.each( snapshot.addConflictButton );
 		},
 
 		/**
@@ -301,10 +300,12 @@
 					_.each( snapshot.conflict.controls, function( control ) {
 						control.remove();
 					} );
+
 					if ( snapshot.conflict._currentRequest ) {
 						snapshot.conflict._currentRequest.abort();
 						snapshot.conflict._currentRequest = null;
 					}
+
 					snapshot.conflict.controls = {};
 					snapshot.conflict.pendingRequest = {};
 
@@ -336,6 +337,7 @@
 					return;
 				}
 
+				// @todo Move this outside because being used other method also?
 				onFirstChange = snapshot.onConflictFirstChange = function() {
 					_.each( control.settings, function( setting ) {
 						setting.unbind( onFirstChange );
@@ -352,6 +354,7 @@
 				hasDirty = _.find( control.settings, function( setting ) {
 					return setting._dirty;
 				} );
+
 				if ( hasDirty ) {
 					onFirstChange();
 				} else {
@@ -380,46 +383,56 @@
 			if ( _.isUndefined( controlObj ) || _.isUndefined( controlObj.notifications ) ) {
 				return;
 			}
+
 			if ( snapshot.conflict._currentRequest ) {
 				snapshot.conflict._currentRequest.abort();
 				snapshot.conflict._currentRequest = null;
 			}
+
 			if ( snapshot.conflict._debouncedTimeoutId ) {
 				clearTimeout( snapshot.conflict._debouncedTimeoutId );
 				snapshot.conflict._debouncedTimeoutId = null;
 			}
+
 			if ( ! _.isFunction( setting.findControls ) ) {
 				return;
 			}
+
 			snapshot.conflict.pendingRequest[setting.id] = setting.findControls();
 
-			snapshot.conflict._debouncedTimeoutId = setTimeout(
-				function sendConflictRequest() {
+			snapshot.conflict._debouncedTimeoutId = _.delay( function sendConflictRequest() {
 					var data, settingIds;
+
 					settingIds = _.keys( snapshot.conflict.pendingRequest );
+
 					if ( _.isEmpty( settingIds ) ) {
 						return;
 					}
+
 					data = {
 						setting_ids: settingIds,
 						nonce: snapshot.data.conflictNonce,
 						changeset_uuid: api.settings.changeset.uuid
 					};
+
 					snapshot.conflict._currentRequest = wp.ajax.post( 'customize_snapshot_conflict_check', data );
 
 					snapshot.conflict._currentRequest.done( function( returnData ) {
 						var multiple, controls, buttonTemplate, notification, notificationsContainer;
+
 						if ( ! _.isEmpty( returnData ) ) {
 							_.each( returnData, function( value, key ) {
 								snapshot.conflict.controls[key] = $( $.trim( snapshot.conflict.warningTemplate( {
 									setting_id: key,
 									conflicts: value
 								} ) ) );
+
 								multiple = false;
 								controls = snapshot.conflict.pendingRequest[key];
-								buttonTemplate = $( $.trim( snapshot.conflict.icon( {
+								buttonTemplate = $( $.trim( snapshot.conflict.conflictButtonTemplate( {
 									setting_id: key
 								} ) ) );
+
 								_.each( controls, function( control ) {
 									if ( control && control.notifications && api.Notification && control.container ) {
 										control.notificationsTemplate = snapshot.conflict.notificationTemplate;
@@ -451,15 +464,19 @@
 		/**
 		 * Update markup with current value
 		 *
-		 * @param {string} settingID setting id.
+		 * @param {string} settingId setting id.
 		 * @param {object} selector control container or conflict markup container.
 		 *
 		 * @return {void}
 		 */
-		updateConflictValueMarkup: function updateConflictValueMarkup( settingID, selector ) {
-			var snapshot = this, snapshotCurrentValueSelector = selector.find( 'details:first .snapshot-value' ), newCurrentValueMarkup;
+		updateConflictValueMarkup: function updateConflictValueMarkup( settingId, selector ) {
+			var snapshot = this, newCurrentValueMarkup,
+				snapshotCurrentValueSelector = selector.find( 'details:first .snapshot-value' );
+
 			if ( snapshotCurrentValueSelector.length ) {
-				newCurrentValueMarkup = snapshot.conflict.conflictValueTemplate( { value: api( settingID ).get() } );
+				newCurrentValueMarkup = snapshot.conflict.conflictValueTemplate( {
+					value: api( settingId ).get()
+				} );
 				snapshotCurrentValueSelector.html( newCurrentValueMarkup );
 			}
 		}
