@@ -403,7 +403,7 @@
 					data = {
 						setting_ids: settingIds,
 						nonce: snapshot.data.conflictNonce,
-						customize_changeset_uuid: api.settings.changeset.uuid
+						changeset_uuid: api.settings.changeset.uuid
 					};
 					snapshot.conflict._currentRequest = wp.ajax.post( 'customize_snapshot_conflict_check', data );
 

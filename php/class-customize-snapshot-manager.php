@@ -882,15 +882,26 @@ class Customize_Snapshot_Manager {
 		if ( ! check_ajax_referer( Post_Type::SLUG . '_conflict', 'nonce', false ) ) {
 			status_header( 400 );
 			wp_send_json_error( 'bad_nonce' );
-		} elseif ( ! current_user_can( 'customize' ) ) {
+		}
+		if ( ! current_user_can( 'customize' ) ) {
 			status_header( 403 );
 			wp_send_json_error( 'customize_not_allowed' );
-		} elseif ( ! isset( $_SERVER['REQUEST_METHOD'] ) || 'POST' !== $_SERVER['REQUEST_METHOD'] ) { // WPCS: input var ok.
+		}
+		if ( ! isset( $_SERVER['REQUEST_METHOD'] ) || 'POST' !== $_SERVER['REQUEST_METHOD'] ) { // WPCS: input var ok.
 			status_header( 405 );
 			wp_send_json_error( 'bad_method' );
-		} elseif ( empty( $wp_customize->changeset_uuid() ) ) {
+		}
+		$changeset_uuid = wp_unslash( $_POST['changeset_uuid'] );
+		if ( ! self::is_valid_uuid( $changeset_uuid ) ) {
 			status_header( 400 );
-			wp_send_json_error( 'invalid_customize_snapshot_uuid' );
+			wp_send_json_error( 'bad_uuid' );
+		}
+		require_once ABSPATH . WPINC . '/class-wp-customize-manager.php';
+		if ( ! ( $wp_customize instanceof \WP_Customize_Manager ) ) {
+			$wp_customize = new \WP_Customize_Manager( compact( 'changeset_uuid' ) );
+			$post_id      = $wp_customize->changeset_post_id();
+		} else {
+			$post_id = $wp_customize->find_changeset_post_id( $changeset_uuid );
 		}
 
 		if ( isset( $_POST['setting_ids'] ) ) { // WPCS: input var ok.
@@ -903,7 +914,7 @@ class Customize_Snapshot_Manager {
 			wp_send_json_error( 'required_param_missing' );
 		}
 		$post = get_post( $wp_customize->changeset_post_id() );
-		if ( empty( $setting_ids ) && $post ) {
+		if ( empty( $setting_ids ) && $post instanceof \WP_Post ) {
 			$content  = $this->post_type->get_post_content( $post );
 			$settings = array_keys( $content );
 		} else {
@@ -913,7 +924,8 @@ class Customize_Snapshot_Manager {
 			status_header( 400 );
 			wp_send_json_error( 'no_setting_to_check' );
 		}
-		$return = $this->post_type->get_conflicted_settings( $post, $settings );
+		$changeset_post = $post_id ? get_post( $post_id ) : null;
+		$return         = $this->post_type->get_conflicted_settings( $changeset_post, $settings );
 		foreach ( $return as $setting_key => &$items ) {
 			foreach ( $items as &$item ) {
 				$item['value'] = $this->post_type->get_printable_setting_value( $item['value'], $setting_key, $item['setting_param'], get_post( $item['id'] ) );

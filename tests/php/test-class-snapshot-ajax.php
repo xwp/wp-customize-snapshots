@@ -63,10 +63,10 @@ class Test_Snapshot_Ajax extends \WP_Ajax_UnitTestCase {
 		$this->set_current_user( 'administrator' );
 		$uuid = wp_generate_uuid4();
 		$this->set_input_vars( array(
-			'action'                         => 'customize_snapshot_conflict_check',
-			'nonce'                          => wp_create_nonce( Post_Type::SLUG . '_conflict' ),
-			Post_Type::FRONT_UUID_PARAM_NAME => $uuid,
-			'setting_ids'                    => array( 'foo' ),
+			'action'                             => 'customize_snapshot_conflict_check',
+			'nonce'                              => wp_create_nonce( Post_Type::SLUG . '_conflict' ),
+			Post_Type::CUSTOMIZE_UUID_PARAM_NAME => $uuid,
+			'setting_ids'                        => array( 'foo' ),
 		) );
 
 		$plugin = new Plugin();
