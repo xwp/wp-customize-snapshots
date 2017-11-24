@@ -378,7 +378,7 @@
 		 * @return {void}
 		 */
 		handleConflictRequest: function handleConflictRequest( setting, controlObj ) {
-			var snapshot = this;
+			var snapshot = this, sendConflictRequest;
 
 			if ( _.isUndefined( controlObj ) || _.isUndefined( controlObj.notifications ) ) {
 				return;
@@ -400,7 +400,7 @@
 
 			snapshot.conflict.pendingRequest[setting.id] = setting.findControls();
 
-			snapshot.conflict._debouncedTimeoutId = _.delay( function sendConflictRequest() {
+			sendConflictRequest = function() {
 				var data, settingIds;
 
 				settingIds = _.keys( snapshot.conflict.pendingRequest );
@@ -456,9 +456,9 @@
 					}
 					snapshot.conflict.pendingRequest = {};
 				} );
-				},
-				snapshot.conflict.refreshBuffer
-			);
+			};
+
+			snapshot.conflict._debouncedTimeoutId = _.delay( sendConflictRequest, snapshot.conflict.refreshBuffer );
 		},
 
 		/**
