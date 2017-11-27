@@ -348,7 +348,7 @@
 			control.deferred.embedded.done( function() {
 				var hasDirty, updateCurrentValue, bindFirstChange = false;
 
-				if ( ! control.setting ) {
+				if ( ! control.setting || api.section( control.section() ).extended( api.OuterSection ) ) {
 					return;
 				}
 
