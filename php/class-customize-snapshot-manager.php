@@ -647,7 +647,7 @@ class Customize_Snapshot_Manager {
 		</script>
 
 		<script type="text/html" id="tmpl-snapshot-conflict-button">
-			<?php $title_text = __( 'click to expand', 'customize-snapshots' ); ?>
+			<?php $title_text = __( 'Conflicts found in the following snapshots', 'customize-snapshots' ); ?>
 			<# id= data.setting_id.replace( /\]/g, '\\]' ).replace( /\[/g, '\\[' ); #>
 			<span>
 				<?php esc_html_e( 'Conflicts', 'customize-snapshots' ); ?>
