@@ -28,7 +28,7 @@
 			conflictValueTemplate: wp.template( 'snapshot-conflict-value' ),
 			refreshBuffer: 250,
 			controlThickboxes: {},
-			pendingRequest: {},
+			controlsWithPendingRequest: {},
 			notificationCode: 'snapshot_conflict'
 		},
 
@@ -39,7 +39,7 @@
 				_.extend( snapshot.data, snapshotsConfig );
 			}
 
-			_.bindAll( snapshot, 'addConflictButton', 'handleConflictRequestOnFirstChange' );
+			_.bindAll( snapshot, 'addConflictButton', 'handleConflictRequestOnFirstChange', 'sendConflictRequest', 'resetConflicts' );
 
 			api.bind( 'ready', function() {
 				var saveBtn = $( '#save' );
@@ -74,7 +74,6 @@
 				// For backward compat.
 				snapshot.frontendPreviewUrl = new api.Value( api.previewer.previewUrl.get() );
 				snapshot.frontendPreviewUrl.link( api.previewer.previewUrl );
-				snapshot.handleEventForConflicts();
 
 				api.trigger( 'snapshots-ready', snapshot );
 			} );
@@ -93,6 +92,7 @@
 				} );
 			} );
 
+			api.state( 'saved' ).bind( snapshot.resetConflicts );
 			api.control.bind( 'add', snapshot.addConflictButton );
 			api.control.each( snapshot.addConflictButton );
 		},
@@ -288,35 +288,35 @@
 		},
 
 		/**
-		 * Handles snapshot conflict events.
+		 * Resets conflicts.
 		 *
 		 * @return {void}
 		 */
-		handleEventForConflicts: function handleEventForConflicts() {
+		resetConflicts: function resetConflicts( saved ) {
 			var snapshot = this;
 
-			api.state( 'saved' ).bind( function( saved ) {
-				if ( saved ) {
-					_.each( snapshot.conflict.controlThickboxes, function( thickBox ) {
-						thickBox.remove();
-					} );
+			if ( ! saved ) {
+				return;
+			}
 
-					if ( snapshot.conflict.currentRequest ) {
-						snapshot.conflict.currentRequest.abort();
-						snapshot.conflict.currentRequest = null;
-					}
+			_.each( snapshot.conflict.controlThickboxes, function( thickBox ) {
+				thickBox.remove();
+			} );
 
-					snapshot.conflict.controlThickboxes = {};
-					snapshot.conflict.pendingRequest = {};
+			if ( snapshot.conflict.currentRequest ) {
+				snapshot.conflict.currentRequest.abort();
+				snapshot.conflict.currentRequest = null;
+			}
 
-					api.control.each( function( control ) {
-						_.each( control.settings, function( setting ) {
-							setting.unbind( snapshot.handleConflictRequestOnFirstChange );
-						} );
-						control.notifications.remove( snapshot.conflict.notificationCode );
-						snapshot.addConflictButton( control );
-					} );
-				}
+			snapshot.conflict.controlThickboxes = {};
+			snapshot.conflict.controlsWithPendingRequest = {};
+
+			api.control.each( function( control ) {
+				_.each( control.settings, function( setting ) {
+					setting.unbind( snapshot.handleConflictRequestOnFirstChange );
+				} );
+				control.notifications.remove( snapshot.conflict.notificationCode );
+				snapshot.addConflictButton( control );
 			} );
 		},
 
@@ -382,14 +382,14 @@
 		 * Handles the snapshot conflict request
 		 *
 		 * @param {object} setting to check conflicts
-		 * @param {object} controlObj object
+		 * @param {object} control object
 		 *
 		 * @return {void}
 		 */
-		handleConflictRequest: function handleConflictRequest( setting, controlObj ) {
-			var snapshot = this, sendConflictRequest;
+		handleConflictRequest: function handleConflictRequest( setting, control ) {
+			var snapshot = this;
 
-			if ( _.isUndefined( controlObj ) || _.isUndefined( controlObj.notifications ) ) {
+			if ( _.isUndefined( control ) || _.isUndefined( control.notifications ) ) {
 				return;
 			}
 
@@ -398,76 +398,80 @@
 				snapshot.conflict.currentRequest = null;
 			}
 
-			if ( snapshot.conflict._debouncedTimeoutId ) {
-				clearTimeout( snapshot.conflict._debouncedTimeoutId );
-				snapshot.conflict._debouncedTimeoutId = null;
+			if ( snapshot.conflict.conflictRequestTimeout ) {
+				clearTimeout( snapshot.conflict.conflictRequestTimeout );
+				snapshot.conflict.conflictRequestTimeout = null;
 			}
 
 			if ( ! _.isFunction( setting.findControls ) ) {
 				return;
 			}
 
-			snapshot.conflict.pendingRequest[setting.id] = setting.findControls();
+			snapshot.conflict.controlsWithPendingRequest[ setting.id ] = setting.findControls();
+			snapshot.conflict.conflictRequestTimeout = _.delay( snapshot.sendConflictRequest, snapshot.conflict.refreshBuffer );
+		},
 
-			sendConflictRequest = function() {
-				var data, settingIds;
+		/**
+		 * Send Conflict Request
+		 *
+		 * @return {void}
+		 */
+		sendConflictRequest: function() {
+			var snapshot = this, settingIds;
 
-				settingIds = _.keys( snapshot.conflict.pendingRequest );
+			settingIds = _.keys( snapshot.conflict.controlsWithPendingRequest );
 
-				if ( _.isEmpty( settingIds ) ) {
-					return;
-				}
+			if ( _.isEmpty( settingIds ) ) {
+				return;
+			}
 
-				data = {
-					setting_ids: settingIds,
-					nonce: snapshot.data.conflictNonce,
-					changeset_uuid: api.settings.changeset.uuid
-				};
+			snapshot.conflict.currentRequest = wp.ajax.post( 'customize_snapshot_conflict_check', {
+				setting_ids: settingIds,
+				nonce: snapshot.data.conflictNonce,
+				changeset_uuid: api.settings.changeset.uuid
+			} );
 
-				snapshot.conflict.currentRequest = wp.ajax.post( 'customize_snapshot_conflict_check', data );
+			snapshot.conflict.currentRequest.done( function( response ) {
+				var multiple, controls, buttonTemplate, notification, notificationsContainer;
 
-				snapshot.conflict.currentRequest.done( function( returnData ) {
-					var multiple, controls, buttonTemplate, notification, notificationsContainer;
+				if ( ! _.isEmpty( response ) ) {
+					_.each( response, function( value, key ) {
 
-					if ( ! _.isEmpty( returnData ) ) {
-						_.each( returnData, function( value, key ) {
-							snapshot.conflict.controlThickboxes[ key ] = $( $.trim( snapshot.conflict.warningTemplate( {
-								setting_id: key,
-								conflicts: value
-							} ) ) );
+						snapshot.conflict.controlThickboxes[ key ] = $( $.trim( snapshot.conflict.warningTemplate( {
+							setting_id: key,
+							conflicts: value
+						} ) ) );
 
-							multiple = false;
-							controls = snapshot.conflict.pendingRequest[ key ];
-							buttonTemplate = $( $.trim( snapshot.conflict.conflictButtonTemplate( {
-								setting_id: key
-							} ) ) );
+						multiple = false;
+						controls = snapshot.conflict.controlsWithPendingRequest[ key ];
+						buttonTemplate = $( $.trim( snapshot.conflict.conflictButtonTemplate( {
+							setting_id: key
+						} ) ) );
 
-							_.each( controls, function( control ) {
-								if ( control && control.notifications && api.Notification && control.container ) {
-									control.notificationsTemplate = snapshot.conflict.notificationTemplate;
-									notification = new api.Notification( snapshot.conflict.notificationCode, {
-										type: 'warning',
-										message: $.trim( buttonTemplate.html() )
-									} );
-									control.notifications.add( snapshot.conflict.notificationCode, notification );
-									if ( ! multiple ) {
-										notificationsContainer = control.container.find( '.customize-control-notifications-container' );
-										if ( notificationsContainer.length ) {
-											snapshot.conflict.controlThickboxes[ key ].insertAfter( notificationsContainer );
-											snapshot.updateConflictValueMarkup( key, snapshot.conflict.controlThickboxes[key] );
-										}
-									}
-									control.container.find( '.snapshot-conflicts-button' ).show();
-									multiple = true;
-								}
+						_.each( controls, function( control ) {
+							control.notificationsTemplate = snapshot.conflict.notificationTemplate;
+							notification = new api.Notification( snapshot.conflict.notificationCode, {
+								type: 'warning',
+								message: $.trim( buttonTemplate.html() )
 							} );
-						} );
-					}
-					snapshot.conflict.pendingRequest = {};
-				} );
-			};
 
-			snapshot.conflict._debouncedTimeoutId = _.delay( sendConflictRequest, snapshot.conflict.refreshBuffer );
+							control.notifications.add( snapshot.conflict.notificationCode, notification );
+
+							if ( ! multiple ) {
+								notificationsContainer = control.container.find( '.customize-control-notifications-container' );
+								if ( notificationsContainer.length ) {
+									snapshot.conflict.controlThickboxes[ key ].insertAfter( notificationsContainer );
+									snapshot.updateConflictValueMarkup( key, snapshot.conflict.controlThickboxes[key] );
+								}
+							}
+
+							control.container.find( '.snapshot-conflicts-button' ).show();
+							multiple = true;
+						} );
+					} );
+				}
+				snapshot.conflict.controlsWithPendingRequest = {};
+			} );
 		},
 
 		/**
