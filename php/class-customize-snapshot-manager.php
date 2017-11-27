@@ -666,7 +666,7 @@ class Customize_Snapshot_Manager {
 		<script type="text/html" id="tmpl-snapshot-conflict">
 			<div id="snapshot-conflicts-{{data.setting_id}}" class="snapshot-conflict-thickbox-content thickbox">
 					<# _.each( data.conflicts, function( setting ) { #>
-						<details>
+						<details class="snapshot-conflict-details">
 							<summary>
 								<code>{{setting.uuid}}
 									<# if ( ! _.isEmpty( setting.name ) ) {
@@ -680,9 +680,9 @@ class Customize_Snapshot_Manager {
 									<a target="_blank" href="{{setting.edit_link}}" class="dashicons dashicons-external"></a>
 								<# } #>
 							</summary>
-							<div class="snapshot-value">
+							<article class="snapshot-value">
 								{{{setting.value}}}
-							</div>
+							</article>
 						</details>
 					<# }); #>
 			</div>

@@ -30,3 +30,80 @@ a.snapshot-conflicts-button {
 .snapshot-conflict-thickbox-content {
 	display: none;
 }
+
+.snapshot-conflict-details {
+	padding-bottom: 8px;
+}
+
+.snapshot-conflict-details code {
+	background: transparent;
+}
+
+.snapshot-conflict-details:first-child {
+	margin-top: 10px;
+}
+
+.snapshot-conflict-details summary {
+	cursor: pointer;
+}
+
+.snapshot-conflict-details {
+	margin: 0 0 1px 0;
+}
+.snapshot-conflict-details summary {
+	padding: 6px 5px;
+	cursor: pointer;
+	background: #f1f1f1;
+	border: 1px solid #ccc;
+	border-radius: 2px;
+	user-select: none;
+}
+.snapshot-conflict-details summary .details-open-indicator {
+	position: absolute;
+	visibility: hidden;
+}
+
+.snapshot-conflict-details summary::-webkit-details-marker {
+	display: none;
+}
+.snapshot-conflict-details summary:before {
+	content: "\f139";
+	font: normal 20px/29px dashicons;
+	speak: none;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+	font-size: 24px;
+	float: left;
+	color: #737272;
+	transform: rotate( 0deg );
+	transition: transform 0.3s ease-out;
+	margin-top: -5px;
+}
+
+.snapshot-conflict-details summary:hover:after {
+	opacity: 0.7;
+}
+.snapshot-conflict-details summary:focus {
+	outline: none;
+}
+.snapshot-conflict-details article {
+	padding: 0 10px;
+	border: solid 1px #ccc;
+	background: white;
+}
+.snapshot-conflict-details[open] summary {
+	color: #101046;
+	text-shadow: none;
+	background: #ccc;
+}
+.snapshot-conflict-details[open] summary:before {
+	transform: rotate(90deg);
+}
+
+.snapshot-conflict-details[open] article {
+	border-radius: 0 0 2px 2px;
+}
+
+.snapshot-conflict-details a {
+	float: right;
+}
