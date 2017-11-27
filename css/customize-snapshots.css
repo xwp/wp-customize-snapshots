@@ -100,3 +100,7 @@ a.snapshot-conflicts-button {
 	margin-top: 4px;
 	display: inline-block;
 }
+
+.wp-customizer #TB_ajaxContent {
+	width: auto !Important;
+}
