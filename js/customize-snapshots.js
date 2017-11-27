@@ -290,6 +290,7 @@
 		/**
 		 * Resets conflicts.
 		 *
+		 * @param {boolean} saved saved or not.
 		 * @return {void}
 		 */
 		resetConflicts: function resetConflicts( saved ) {
