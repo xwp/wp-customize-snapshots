@@ -104,3 +104,7 @@ a.snapshot-conflicts-button {
 .wp-customizer #TB_ajaxContent {
 	width: auto !Important;
 }
+
+.wp-customizer #TB_overlay, .wp-customizer #TB_window{
+	z-index: 500001;
+}
