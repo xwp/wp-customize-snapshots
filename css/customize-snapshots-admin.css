@@ -14,3 +14,78 @@ details .snapshot-toggle-setting-removal {
 a.snapshot-thickbox {
 	color: #FFC107;
 }
+
+.snapshot-conflict-details {
+	padding-bottom: 8px;
+}
+
+.snapshot-conflict-details code {
+	background: transparent;
+}
+
+.snapshot-conflict-details:first-child {
+	margin-top: 10px;
+}
+
+.snapshot-conflict-details summary {
+	padding: 6px 5px 6px 15px;
+	cursor: pointer;
+	border: 1px solid #e5e5e5;
+	box-shadow: 0 1px 1px rgba(0,0,0,0.04);
+	background: #ffffff;
+	user-select: none;
+	overflow: hidden;
+	height: 22px;
+	line-height: 22px;
+}
+
+.snapshot-conflict-details summary .details-open-indicator {
+	position: absolute;
+	visibility: hidden;
+}
+
+.snapshot-conflict-details article {
+	padding: 0 10px;
+	background: #ffffff;
+	border: 1px solid #e5e5e5;
+	box-shadow: 0 1px 1px rgba(0,0,0,0.04);
+}
+
+.snapshot-conflict-details[open] summary,
+.snapshot-conflict-details[open] summary:hover {
+	border-color: #999;
+	box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.snapshot-conflict-details a {
+	float: right;
+}
+
+.wp-customizer #TB_window {
+	background: #f1f1f1;
+}
+
+.wp-customizer #TB_title {
+	height: 35px;
+}
+
+.wp-customizer #TB_ajaxWindowTitle {
+	line-height: 35px;
+}
+
+.wp-customizer .tb-close-icon,
+.wp-customizer #TB_closeWindowButton {
+	line-height: 35px;
+	width: 35px;
+	height: 35px;
+}
+
+.wp-customizer .tb-close-icon:before {
+	margin-top: 4px;
+	display: inline-block;
+}
+
+.post-type-customize_changeset #TB_ajaxContent {
+	width: auto !Important;
+	background: #f1f1f1;
+}

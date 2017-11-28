@@ -458,7 +458,7 @@ class Post_Type {
 				echo '<a href="#TB_inline?width=600&height=550&inlineId=snapshot-' . esc_attr( $setting_id_key ) . '" class="dashicons dashicons-warning thickbox snapshot-thickbox" title="' . esc_attr( $title_text ) . '"></a>'; ?>
 				<div id="snapshot-<?php echo esc_attr( $setting_id ); ?>" style="display:none;">
 					<?php foreach ( $conflicts_settings[ $setting_id ] as $data ) { ?>
-						<details>
+						<details class="snapshot-conflict-details">
 							<summary>
 								<code>
 									<?php
@@ -470,9 +470,9 @@ class Post_Type {
 									</code>
 								<a target="_blank" href="<?php echo esc_url( $data['edit_link'] ); ?>" class="dashicons dashicons-external"></a>
 							</summary>
-							<?php
-							echo $this->get_printable_setting_value( $data['value'], $setting_id, $data['setting_param'], get_post( $data['id'] ) ); // WPCS: XSS ok.
-							?>
+							<article class="snapshot-value">
+								<?php echo $this->get_printable_setting_value( $data['value'], $setting_id, $data['setting_param'], get_post( $data['id'] ) ); // WPCS: XSS ok. ?>
+							</article>
 						</details>
 					<?php } ?>
 				</div>
