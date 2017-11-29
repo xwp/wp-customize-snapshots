@@ -88,6 +88,8 @@ class Post_Type {
 		add_filter( 'content_save_pre', array( $this, 'filter_out_settings_if_removed_in_metabox' ), 10 );
 		add_action( 'admin_print_scripts-revision.php', array( $this, 'disable_revision_ui_for_published_posts' ) );
 		add_action( 'admin_notices', array( $this, 'admin_show_merge_error' ) );
+		add_filter( 'display_post_states', array( $this, 'display_post_states' ), 10, 2 );
+		add_action( 'admin_notices', array( $this, 'show_publish_error_admin_notice' ) );
 
 		// Add workaround for failure to save changes to option settings when publishing changeset outside of customizer. See https://core.trac.wordpress.org/ticket/39221#comment:14
 		if ( function_exists( '_wp_customize_publish_changeset' ) && function_exists( 'wp_doing_ajax' ) ) { // Workaround only works in WP 4.7.
@@ -97,7 +99,6 @@ class Post_Type {
 		}
 		add_action( 'wp_ajax_snapshot_fork', array( $this, 'handle_snapshot_fork' ) );
 		add_action( 'admin_footer-post.php', array( $this, 'snapshot_admin_script_template' ) );
-		add_filter( 'display_post_states', array( $this, 'display_post_states' ), 10, 2 );
 	}
 
 	/**
@@ -110,7 +111,7 @@ class Post_Type {
 
 		add_filter( 'post_link', array( $this, 'filter_post_type_link' ), 10, 2 );
 		add_action( 'add_meta_boxes_' . static::SLUG, array( $this, 'setup_metaboxes' ), 10, 1 );
-		add_action( 'admin_menu',array( $this, 'add_admin_menu_item' ), 99 );
+		add_action( 'admin_menu', array( $this, 'add_admin_menu_item' ), 99 );
 		add_filter( 'map_meta_cap', array( $this, 'remap_customize_meta_cap' ), 5, 4 );
 		add_filter( 'bulk_actions-edit-' . static::SLUG, array( $this, 'add_snapshot_bulk_actions' ) );
 		add_filter( 'handle_bulk_actions-edit-' . static::SLUG, array( $this, 'handle_snapshot_merge' ), 10, 3 );
@@ -212,7 +213,7 @@ class Post_Type {
 	 *
 	 * @see \sanitize_post()
 	 */
-	function suspend_kses() {
+	public function suspend_kses() {
 		if ( false !== has_filter( 'content_save_pre', 'wp_filter_post_kses' ) ) {
 			$this->kses_suspended = true;
 			kses_remove_filters();
@@ -224,7 +225,7 @@ class Post_Type {
 	 *
 	 * @see \sanitize_post()
 	 */
-	function restore_kses() {
+	public function restore_kses() {
 		if ( $this->kses_suspended ) {
 			kses_init_filters();
 			$this->kses_suspended = false;
@@ -271,7 +272,7 @@ class Post_Type {
 	 *
 	 * @codeCoverageIgnore
 	 */
-	function suspend_kses_for_snapshot_revision_restore() {
+	public function suspend_kses_for_snapshot_revision_restore() {
 		if ( ! isset( $_GET['revision'] ) ) { // WPCS: input var ok. CSRF ok.
 			return;
 		}
@@ -533,8 +534,8 @@ class Post_Type {
 	 * @return int|null Post ID or null if not found.
 	 */
 	public function find_post( $uuid ) {
-		$this->snapshot_manager->ensure_customize_manager();
-		return $this->snapshot_manager->customize_manager->find_changeset_post_id( $uuid );
+		$manager = $this->snapshot_manager->ensure_customize_manager();
+		return $manager->find_changeset_post_id( $uuid );
 	}
 
 	/**
@@ -732,6 +733,20 @@ class Post_Type {
 	 */
 	public function remap_customize_meta_cap( $caps, $cap ) {
 		$post_type_obj = get_post_type_object( static::SLUG );
+
+		/*
+		 * This remap_customize_meta_cap method runs at map_meta_cap priority 5 and so here we just-in-time remove
+		 * the unnecessary WP_Customize_Manager::grant_edit_post_capability_for_changeset() method added as a
+		 * map_meta_cap filter with priority 10. This method is added during autosave request in
+		 * WP_Customize_Manager::save_changeset_post() function in 4.9, but the logic in this
+		 * remap_customize_meta_cap method in Customize Snapshots makes the core function obsolete.
+		 */
+		remove_filter(
+			'map_meta_cap',
+			array( $this->snapshot_manager->get_customize_manager(), 'grant_edit_post_capability_for_changeset' ),
+			10
+		);
+
 		if ( isset( $post_type_obj->cap->$cap ) && 'customize' === $post_type_obj->cap->$cap ) {
 			foreach ( $caps as &$required_cap ) {
 				if ( 'customize' === $required_cap ) {
@@ -775,24 +790,6 @@ class Post_Type {
 		}
 
 		return $allcaps;
-	}
-
-	/**
-	 * Display snapshot states post list table.
-	 *
-	 * @param array    $states Display states.
-	 * @param \WP_Post $post   Post object.
-	 *
-	 * @return mixed
-	 */
-	public function display_post_states( $states, $post ) {
-		if ( static::SLUG !== $post->post_type ) {
-			return $states;
-		}
-		if ( $post->post_parent ) {
-			$states['forked'] = __( 'Forked', 'customize-snapshots' );
-		}
-		return $states;
 	}
 
 	/**
@@ -934,7 +931,7 @@ class Post_Type {
 			$merged_snapshot_data[ $key ]['merge_conflict'] = $original_values;
 		}
 		$post_id = $this->save( array(
-			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
+			'uuid' => wp_generate_uuid4(),
 			'status' => 'draft',
 			'data' => $merged_snapshot_data,
 			'date_gmt' => gmdate( 'Y-m-d H:i:s' ),
@@ -1036,9 +1033,9 @@ class Post_Type {
 	 */
 	public function set_customizer_state_query_vars( $post_id, $query_vars ) {
 		$stored_query_vars = array();
-		$autofocus_query_vars = array( 'autofocus[panel]', 'autofocus[section]', 'autofocus[control]' );
+		$autofocus_query_vars = array( 'autofocus[panel]', 'autofocus[section]', 'autofocus[outer_section]', 'autofocus[control]' );
 
-		$this->snapshot_manager->ensure_customize_manager();
+		$wp_customize = $this->snapshot_manager->ensure_customize_manager();
 
 		foreach ( wp_array_slice_assoc( $query_vars, $autofocus_query_vars ) as $key => $value ) {
 			if ( preg_match( '/^[a-z|\[|\]|_|\-|0-9]+$/', $value ) ) {
@@ -1048,14 +1045,14 @@ class Post_Type {
 		if ( ! empty( $query_vars['url'] ) && wp_validate_redirect( $query_vars['url'] ) ) {
 			$stored_query_vars['url'] = esc_url_raw( $query_vars['url'] );
 		}
-		if ( isset( $query_vars['device'] ) && in_array( $query_vars['device'], array_keys( $this->snapshot_manager->customize_manager->get_previewable_devices() ), true ) ) {
+		if ( isset( $query_vars['device'] ) && in_array( $query_vars['device'], array_keys( $wp_customize->get_previewable_devices() ), true ) ) {
 			$stored_query_vars['device'] = $query_vars['device'];
 		}
 		if ( isset( $query_vars['scroll'] ) && is_int( $query_vars['scroll'] ) ) {
 			$stored_query_vars['scroll'] = $query_vars['scroll'];
 		}
 		if ( isset( $query_vars['previewing_theme'] ) ) {
-			$theme = $this->snapshot_manager->customize_manager->get_stylesheet();
+			$theme = $wp_customize->get_stylesheet();
 			$stored_query_vars['theme'] = $query_vars['previewing_theme'] ? $theme : '';
 		}
 		update_post_meta( $post_id, '_preview_url_query_vars', $stored_query_vars );
@@ -1089,6 +1086,49 @@ class Post_Type {
 		}
 
 		return add_query_arg( $args, $base_url );
+	}
+
+	/**
+	 * Display snapshot save error on post list table.
+	 *
+	 * @param array    $states Display states.
+	 * @param \WP_Post $post   Post object.
+	 *
+	 * @return mixed
+	 */
+	public function display_post_states( $states, $post ) {
+		if ( static::SLUG !== $post->post_type ) {
+			return $states;
+		}
+		$maybe_error = get_post_meta( $post->ID, 'snapshot_error_on_publish', true );
+		if ( $maybe_error ) {
+			$states['snapshot_error'] = __( 'Error on publish', 'customize-snapshots' );
+		}
+		if ( $post->post_parent ) {
+			$states['forked'] = __( 'Forked', 'customize-snapshots' );
+		}
+		return $states;
+	}
+
+	/**
+	 * Show an admin notice when publishing fails and the post gets kicked back to pending.
+	 */
+	public function show_publish_error_admin_notice() {
+		if ( ! function_exists( 'get_current_screen' ) ) {
+			return;
+		}
+		$current_screen = get_current_screen();
+		if ( ! $current_screen || static::SLUG !== $current_screen->id || 'post' !== $current_screen->base ) {
+			return;
+		}
+		if ( ! isset( $_REQUEST['snapshot_error_on_publish'] ) ) { // WPCS: input var ok. CSRF ok.
+			return;
+		}
+		?>
+		<div class="notice notice-error is-dismissible">
+			<p><?php esc_html_e( 'Failed to publish snapshot due to an error with saving one of its settings. This may be due to a theme or plugin having been changed since the snapshot was created. See below.', 'customize-snapshots' ); ?></p>
+		</div>
+		<?php
 	}
 
 	/**
@@ -1132,7 +1172,7 @@ class Post_Type {
 			wp_send_json_error( 'unauthorized_user' );
 		}
 
-		$uuid = Customize_Snapshot_Manager::generate_uuid();
+		$uuid = wp_generate_uuid4();
 		$new_post_arr = array(
 			'menu_order' => $parent_post->menu_order,
 			'comment_status' => $parent_post->comment_status,

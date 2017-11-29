@@ -26,33 +26,6 @@ class Test_Snapshot_Ajax extends \WP_Ajax_UnitTestCase {
 		$this->plugin = get_plugin_instance();
 		parent::setUp();
 	}
-	/**
-	 * Test handle_migrate_changeset_request.
-	 *
-	 * @see Migrate::handle_migrate_changeset_request()
-	 */
-	function test_handle_migrate_changeset_request() {
-		$this->mark_incompatible();
-		remove_all_actions( 'wp_ajax_customize_snapshot_migration' );
-		delete_option( Migrate::KEY );
-		$migrate_obj = $this->getMockBuilder( 'CustomizeSnapshots\Migrate' )
-			->setMethods( array( 'changeset_migrate' ) )
-			->setConstructorArgs( array( $this->plugin ) )
-			->getMock();
-		$migrate_obj->expects( $this->any() )
-			->method( 'changeset_migrate' )
-			->will( $this->returnValue( 92 ) );
-		$migrate_obj->maybe_migrate();
-		$this->set_input_vars(array(
-			'nonce' => wp_create_nonce( 'customize-snapshot-migration' ),
-			'limit' => 1,
-		));
-		$this->make_ajax_call( 'customize_snapshot_migration' );
-		$response = json_decode( $this->_last_response, true );
-		$this->assertTrue( $response['success'] );
-		$this->assertArrayHasKey( 'remaining_posts', $response['data'] );
-		$this->assertEquals( 91, $response['data']['remaining_posts'] );
-	}
 
 	/**
 	 * Helper to keep it DRY
@@ -79,30 +52,6 @@ class Test_Snapshot_Ajax extends \WP_Ajax_UnitTestCase {
 	}
 
 	/**
-	 * Get plugin instance accoding to WP version.
-	 *
-	 * @param Customize_Snapshot_Manager|Customize_Snapshot_Manager_Back_Compat $manager Manager.
-	 *
-	 * @return Post_Type|Post_Type_Back_Compat Post type object.
-	 */
-	public function get_new_post_type_instance( $manager ) {
-		if ( $this->plugin->compat ) {
-			return new Post_Type_Back_Compat( $manager );
-		} else {
-			return new Post_Type( $manager );
-		}
-	}
-
-	/**
-	 * Mark test incomplete as it is only for new versions.
-	 */
-	public function mark_incompatible() {
-		if ( $this->plugin->compat ) {
-			$this->markTestSkipped( 'This unit-test require WP version 4.7 or up.' );
-		}
-	}
-
-	/**
 	 * Test snapshot fork ajax request.
 	 *
 	 * @covers \CustomizeSnapshots\Post_Type::handle_snapshot_fork()
@@ -113,14 +62,14 @@ class Test_Snapshot_Ajax extends \WP_Ajax_UnitTestCase {
 			'role' => 'administrator',
 		) );
 		wp_set_current_user( $user_id );
-		$post_type = $this->get_new_post_type_instance( $this->plugin->customize_snapshot_manager );
+		$post_type = new Post_Type( $this->plugin->customize_snapshot_manager );
 		$data = array(
 			'foo' => array(
 				'value' => 'bar',
 			),
 		);
 		$post_id = $post_type->save( array(
-			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
+			'uuid' => wp_generate_uuid4(),
 			'data' => $data,
 			'status' => 'draft',
 		) );

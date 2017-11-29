@@ -17,13 +17,6 @@ namespace CustomizeSnapshots;
 class Customize_Snapshot_Manager {
 
 	/**
-	 * Action nonce.
-	 *
-	 * @type string
-	 */
-	const AJAX_ACTION = 'customize_update_snapshot';
-
-	/**
 	 * Plugin instance.
 	 *
 	 * @var Plugin
@@ -33,56 +26,9 @@ class Customize_Snapshot_Manager {
 	/**
 	 * Post type.
 	 *
-	 * @var Post_Type|Post_Type_Back_Compat
+	 * @var Post_Type
 	 */
 	public $post_type;
-
-	/**
-	 * Customize_Snapshot instance.
-	 *
-	 * @todo Rename `Customize_Snapshot` to just `Snapshot`.
-	 *
-	 * @var Customize_Snapshot|Customize_Snapshot_Back_Compat
-	 */
-	public $snapshot;
-
-	/**
-	 * Customize manager.
-	 *
-	 * @var \WP_Customize_Manager
-	 */
-	public $customize_manager;
-
-	/**
-	 * Snapshot UUID for the current request.
-	 *
-	 * @access public
-	 * @var string
-	 */
-	public $current_snapshot_uuid;
-
-	/**
-	 * Whether the snapshot settings are being previewed.
-	 *
-	 * @var bool
-	 */
-	protected $previewing_settings = false;
-
-	/**
-	 * The originally active theme.
-	 *
-	 * @access public
-	 * @var string
-	 */
-	public $original_stylesheet;
-
-	/**
-	 * New active theme.
-	 *
-	 * @access public
-	 * @var string
-	 */
-	public $stylesheet;
 
 	/**
 	 * Constructor.
@@ -93,7 +39,6 @@ class Customize_Snapshot_Manager {
 	 */
 	public function __construct( Plugin $plugin ) {
 		$this->plugin = $plugin;
-		$this->original_stylesheet = get_stylesheet();
 	}
 
 	/**
@@ -101,45 +46,33 @@ class Customize_Snapshot_Manager {
 	 *
 	 * @global \WP_Customize_Manager $wp_customize
 	 */
-	function hooks() {
+	public function hooks() {
 		add_action( 'init', array( $this->post_type, 'init' ) );
 		add_action( 'customize_controls_enqueue_scripts', array( $this, 'enqueue_controls_scripts' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_frontend_scripts' ) );
 
-		add_action( 'load-edit.php', array( $this, 'handle_frontend_changset_publish' ) );
+		add_action( 'load-edit.php', array( $this, 'handle_frontend_changeset_publish' ) );
 
 		add_action( 'customize_controls_init', array( $this, 'add_snapshot_uuid_to_return_url' ) );
 		add_action( 'customize_controls_print_footer_scripts', array( $this, 'render_templates' ) );
 		add_action( 'admin_bar_menu', array( $this, 'customize_menu' ), 41 );
 		add_action( 'admin_bar_menu', array( $this, 'remove_all_non_snapshot_admin_bar_links' ), 100000 );
 		add_action( 'wp_before_admin_bar_render', array( $this, 'print_admin_bar_styles' ) );
-		add_filter( 'removable_query_args', array( $this, 'filter_removable_query_args' ) );
-		add_action( 'save_post_' . $this->get_post_type(), array( $this, 'create_initial_changeset_revision' ) );
-		add_action( 'save_post_' . $this->get_post_type(), array( $this, 'save_customizer_state_query_vars' ) );
+		add_action( 'save_post_' . Post_Type::SLUG, array( $this, 'create_initial_changeset_revision' ) );
+		add_action( 'save_post_' . Post_Type::SLUG, array( $this, 'save_customizer_state_query_vars' ) );
 		add_filter( 'wp_insert_post_data', array( $this, 'prepare_snapshot_post_content_for_publish' ) );
 		remove_action( 'delete_post', '_wp_delete_customize_changeset_dependent_auto_drafts' );
 		add_action( 'delete_post', array( $this, 'clean_up_nav_menus_created_auto_drafts' ) );
+		add_filter( 'customize_save_response', array( $this, 'add_snapshot_var_to_customize_save' ), 10, 2 );
 	}
 
 	/**
 	 * Init.
 	 */
-	function init() {
+	public function init() {
 		$this->post_type = new Post_Type( $this );
 		$this->hooks();
-		add_filter( 'customize_save_response', array( $this, 'add_snapshot_var_to_customize_save' ), 10, 2 );
-		if ( $this->read_current_snapshot_uuid() ) {
-			$this->load_snapshot();
-		}
-	}
-
-	/**
-	 * Load Snapshot.
-	 */
-	public function load_snapshot() {
-		$this->ensure_customize_manager();
-		$this->snapshot = new Customize_Snapshot( $this );
 	}
 
 	/**
@@ -152,48 +85,46 @@ class Customize_Snapshot_Manager {
 	 */
 	public function add_snapshot_var_to_customize_save( $response, $customize_manager ) {
 		$changeset_post = get_post( $customize_manager->changeset_post_id() );
-		$response['edit_link'] = $this->snapshot->get_edit_link( $changeset_post->ID );
-		$response['publish_date'] = $changeset_post->post_date;
+		$response['edit_link'] = $this->get_edit_link( $changeset_post->ID );
+		$response['publish_date'] = $changeset_post->post_date; // @todo Remove when drop support for < 4.9.
 		$response['title'] = $changeset_post->post_title;
 		return $response;
 	}
 
 	/**
-	 * Read the current snapshot UUID from the request.
+	 * Get edit post link.
 	 *
-	 * @returns bool Whether a valid snapshot was read.
+	 * @param int|\WP_Post $post_id Post.
+	 *
+	 * @return null|string Post edit link.
 	 */
-	public function read_current_snapshot_uuid() {
-		$customize_arg = $this->get_customize_uuid_param();
-		$frontend_arg = $this->get_front_uuid_param();
-		$uuid = null;
-		if ( isset( $_REQUEST[ $customize_arg ] ) ) { // WPCS: input var ok. CSRF ok.
-			$uuid = sanitize_key( wp_unslash( $_REQUEST[ $customize_arg ] ) ); // WPCS: input var ok. CSRF ok.
-		} elseif ( isset( $_REQUEST[ $frontend_arg ] ) ) { // WPCS: input var ok. CSRF ok.
-			$uuid = sanitize_key( wp_unslash( $_REQUEST[ $frontend_arg ] ) ); // WPCS: input var ok. CSRF ok.
+	public function get_edit_link( $post_id ) {
+		$has_filter = has_filter( 'get_edit_post_link', '__return_empty_string' );
+		if ( $has_filter ) {
+			remove_filter( 'get_edit_post_link', '__return_empty_string' );
 		}
-
-		if ( $uuid && static::is_valid_uuid( $uuid ) ) {
-			$this->current_snapshot_uuid = $uuid;
-			return true;
+		$link = get_edit_post_link( $post_id, 'raw' );
+		if ( $has_filter ) {
+			add_filter( 'get_edit_post_link', '__return_empty_string' );
 		}
-		$this->current_snapshot_uuid = null;
-		return false;
+		return $link;
 	}
 
 	/**
-	 * Return true if it's a customize_save Ajax request.
+	 * Get the customize manager.
 	 *
-	 * @return bool True if it's an Ajax request, false otherwise.
+	 * @return \WP_Customize_Manager Manager.
 	 */
-	public function doing_customize_save_ajax() {
-		return isset( $_REQUEST['action'] ) && sanitize_key( wp_unslash( $_REQUEST['action'] ) ) === 'customize_save'; // WPCS: input var ok. CSRF ok.
+	public function get_customize_manager() {
+		global $wp_customize;
+		return $wp_customize;
 	}
 
 	/**
 	 * Ensure Customizer manager is instantiated.
 	 *
 	 * @global \WP_Customize_Manager $wp_customize
+	 * @return \WP_Customize_Manager Manager.
 	 */
 	public function ensure_customize_manager() {
 		global $wp_customize;
@@ -201,60 +132,31 @@ class Customize_Snapshot_Manager {
 		$args = array();
 		if ( empty( $wp_customize ) || ! ( $wp_customize instanceof \WP_Customize_Manager ) ) {
 			require_once( ABSPATH . WPINC . '/class-wp-customize-manager.php' );
-
-			if ( null !== $this->current_snapshot_uuid ) {
-				$args['changeset_uuid'] = $this->current_snapshot_uuid;
-			}
-
-			if ( null !== $this->stylesheet ) {
-				$args['theme'] = $this->stylesheet;
-			}
-
 			$wp_customize = new \WP_Customize_Manager( $args ); // WPCS: override ok.
 		}
 
-		$this->customize_manager = $wp_customize;
-	}
-
-	/**
-	 * Is previewing another theme.
-	 *
-	 * @return bool Whether theme is active.
-	 *
-	 * @deprecated in favor of WP_Customize_Manager::is_theme_active()
-	 * @todo move to back compat?
-	 */
-	public function is_theme_active() {
-		if ( empty( $this->customize_manager ) ) {
-			return true;
-		}
-		return $this->customize_manager->get_stylesheet() === $this->original_stylesheet;
+		return $wp_customize;
 	}
 
 	/**
 	 * Add snapshot UUID the Customizer return URL.
 	 *
-	 * If the Customizer was loaded with a snapshot UUID, let the return URL include this snapshot.
-	 *
-	 * @todo move to back compat?
+	 * If the Customizer was loaded from a referring URL had a changeset UUID, then ensure the return URL also includes this param.
 	 */
 	public function add_snapshot_uuid_to_return_url() {
+		$wp_customize = $this->get_customize_manager();
 		$should_add_snapshot_uuid = (
-			isset( $_GET[ $this->get_front_uuid_param() ] )
+			is_customize_preview()
 			&&
-			$this->current_snapshot_uuid
-			&&
-			$this->customize_manager->is_theme_active()
-			&&
-			false === strpos( $this->customize_manager->get_return_url(), '/wp-admin/' )
+			false !== strpos( parse_url( wp_get_referer(), PHP_URL_QUERY ), 'customize_changeset_uuid=' . $wp_customize->changeset_uuid() )
 		);
 		if ( $should_add_snapshot_uuid ) {
-			$args_name = $this->get_front_uuid_param();
+			$args_name = Post_Type::FRONT_UUID_PARAM_NAME;
 			$args = array(
-				$args_name => $this->current_snapshot_uuid,
+				$args_name => $wp_customize->changeset_uuid(),
 			);
-			$return_url = add_query_arg( array_map( 'rawurlencode', $args ), $this->customize_manager->get_return_url() );
-			$this->customize_manager->set_return_url( $return_url );
+			$return_url = add_query_arg( array_map( 'rawurlencode', $args ), $wp_customize->get_return_url() );
+			$this->get_customize_manager()->set_return_url( $return_url );
 		}
 	}
 
@@ -282,54 +184,37 @@ class Customize_Snapshot_Manager {
 	 * @global \WP_Customize_Manager $wp_customize
 	 */
 	public function enqueue_controls_scripts() {
-		$this->ensure_customize_manager();
-
 		wp_enqueue_style( 'customize-snapshots' );
 		wp_enqueue_script( 'customize-snapshots' );
 
 		$post = null;
+		$preview_url_query_vars = array();
+		$post_id = $this->get_customize_manager()->changeset_post_id();
 
-		if ( $this->snapshot ) {
-			$post_id = $this->customize_manager->changeset_post_id();
+		if ( $post_id ) {
 			$post = get_post( $post_id );
 			$preview_url_query_vars = $this->post_type->get_customizer_state_query_vars( $post->ID );
 			if ( $post instanceof \WP_Post ) {
-				$this->override_post_date_default_data( $post );
-				$edit_link = $this->snapshot->get_edit_link( $post );
+				$edit_link = $this->get_edit_link( $post_id );
 			}
 		}
 
 		// Script data array.
 		$exports = apply_filters( 'customize_snapshots_export_data', array(
-			'editLink' => isset( $edit_link ) ? $edit_link : '',
-			'publishDate' => isset( $post->post_date ) ? $post->post_date : '',
+			'inspectLink' => isset( $edit_link ) ? $edit_link : '',
 			'title' => isset( $post->post_title ) ? $post->post_title : '',
-			'postStatus' => isset( $post->post_status ) ? $post->post_status : '',
-			'currentUserCanPublish' => current_user_can( 'customize_publish' ),
-			'initialServerDate' => current_time( 'mysql', false ),
-			'initialServerTimestamp' => floor( microtime( true ) * 1000 ),
 			'previewingTheme' => isset( $preview_url_query_vars['theme'] ) ? $preview_url_query_vars['theme'] : '',
 			'i18n' => array(
-				'saveButton' => __( 'Save', 'customize-snapshots' ),
-				'updateButton' => __( 'Update', 'customize-snapshots' ),
-				'submit' => __( 'Submit', 'customize-snapshots' ),
-				'submitted' => __( 'Submitted', 'customize-snapshots' ),
-				'permsMsg' => array(
-					'save' => __( 'You do not have permission to publish changes, but you can create a changeset by clicking the "Save" button.', 'customize-snapshots' ),
-					'update' => __( 'You do not have permission to publish changes, but you can modify this changeset by clicking the "Update" button.', 'customize-snapshots' ),
-				),
-				'aysMsg' => __( 'Changes that you made may not be saved.', 'customize-snapshots' ),
-				'errorMsg' => __( 'The changeset could not be saved.', 'customize-snapshots' ),
-				'errorTitle' => __( 'Error', 'customize-snapshots' ),
-				'collapseSnapshotScheduling' => __( 'Collapse changeset scheduling', 'customize-snapshots' ),
-				'expandSnapshotScheduling' => __( 'Expand changeset scheduling', 'customize-snapshots' ),
+				'title' => __( 'Title', 'customize-snapshots' ),
+				'savePending' => __( 'Save Pending', 'customize-snapshots' ),
+				'pendingSaved' => __( 'Pending Saved', 'customize-snapshots' ),
 			),
 		) );
 
 		wp_scripts()->add_inline_script(
 			'customize-snapshots',
-			sprintf( 'var _customizeSnapshotsSettings = %s;', wp_json_encode( $exports ) ),
-			'before'
+			sprintf( 'wp.customize.snapshots = new wp.customize.Snapshots( %s );', wp_json_encode( $exports ) ),
+			'after'
 		);
 	}
 
@@ -344,11 +229,11 @@ class Customize_Snapshot_Manager {
 	public function enqueue_admin_scripts( $hook ) {
 		global $post;
 		$handle = 'customize-snapshots-admin';
-		if ( ( 'post.php' === $hook ) && isset( $post->post_type ) && ( $this->get_post_type() === $post->post_type ) && ( 'publish' !== $post->post_status ) ) {
+		if ( ( 'post.php' === $hook ) && isset( $post->post_type ) && ( Post_Type::SLUG === $post->post_type ) && ( 'publish' !== $post->post_status ) ) {
 			wp_enqueue_script( $handle );
 			wp_enqueue_style( $handle );
 			$exports = array(
-				'deleteInputName' => $this->get_post_type() . '_remove_settings[]',
+				'deleteInputName' => Post_Type::SLUG . '_remove_settings[]',
 			);
 			wp_add_inline_script(
 				$handle,
@@ -362,14 +247,14 @@ class Customize_Snapshot_Manager {
 	 * Enqueue Customizer frontend scripts.
 	 */
 	public function enqueue_frontend_scripts() {
-		if ( ! current_user_can( 'customize' ) ) {
+		if ( ! is_customize_preview() || ! current_user_can( 'customize' ) ) {
 			return;
 		}
 		$handle = 'customize-snapshots-frontend';
 		wp_enqueue_script( $handle );
 
 		$exports = array(
-			'uuid' => $this->snapshot ? $this->snapshot->uuid() : null,
+			'uuid' => $this->get_customize_manager()->changeset_uuid(),
 			'home_url' => wp_parse_url( home_url( '/' ) ),
 			'l10n' => array(
 				'restoreSessionPrompt' => __( 'It seems you may have inadvertently navigated away from previewing a customized state. Would you like to restore the changeset context?', 'customize-snapshots' ),
@@ -381,15 +266,6 @@ class Customize_Snapshot_Manager {
 			sprintf( 'CustomizeSnapshotsFrontend.init( %s )', wp_json_encode( $exports ) ),
 			'after'
 		);
-	}
-
-	/**
-	 * Get the Customize_Snapshot instance.
-	 *
-	 * @return Customize_Snapshot
-	 */
-	public function snapshot() {
-		return $this->snapshot;
 	}
 
 	/**
@@ -421,7 +297,7 @@ class Customize_Snapshot_Manager {
 		$is_publishing_snapshot = (
 			isset( $data['post_type'] )
 			&&
-			$this->get_post_type() === $data['post_type']
+			Post_Type::SLUG === $data['post_type']
 			&&
 			'publish' === $data['post_status']
 			&&
@@ -454,17 +330,6 @@ class Customize_Snapshot_Manager {
 	}
 
 	/**
-	 * Add snapshot_error_on_publish to removable_query_args.
-	 *
-	 * @param array $query_args Query args.
-	 * @return array Removable query args.
-	 */
-	public function filter_removable_query_args( $query_args ) {
-		$query_args[] = 'snapshot_error_on_publish';
-		return $query_args;
-	}
-
-	/**
 	 * Prepare a WP_Error for sending to JS.
 	 *
 	 * @param \WP_Error $error Error.
@@ -482,22 +347,9 @@ class Customize_Snapshot_Manager {
 	}
 
 	/**
-	 * Generate a snapshot uuid.
-	 *
-	 * @return string
-	 */
-	static public function generate_uuid() {
-		return sprintf( '%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
-			mt_rand( 0, 0xffff ), mt_rand( 0, 0xffff ),
-			mt_rand( 0, 0xffff ),
-			mt_rand( 0, 0x0fff ) | 0x4000,
-			mt_rand( 0, 0x3fff ) | 0x8000,
-			mt_rand( 0, 0xffff ), mt_rand( 0, 0xffff ), mt_rand( 0, 0xffff )
-		);
-	}
-
-	/**
 	 * Determine whether the supplied UUID is in the right format.
+	 *
+	 * @todo Use wp_is_uuid().
 	 *
 	 * @param string $uuid Snapshot UUID.
 	 *
@@ -559,7 +411,7 @@ class Customize_Snapshot_Manager {
 	 * @param \WP_Admin_Bar $wp_admin_bar WP_Admin_Bar instance.
 	 */
 	public function replace_customize_link( $wp_admin_bar ) {
-		if ( empty( $this->snapshot ) ) {
+		if ( ! is_customize_preview() ) {
 			return;
 		}
 
@@ -573,7 +425,7 @@ class Customize_Snapshot_Manager {
 		$preview_url_parsed = wp_parse_url( $customize_node->href );
 		parse_str( $preview_url_parsed['query'], $preview_url_query_params );
 		if ( ! empty( $preview_url_query_params['url'] ) ) {
-			$preview_url_query_params['url'] = rawurlencode( remove_query_arg( array( $this->get_front_uuid_param() ), $preview_url_query_params['url'] ) );
+			$preview_url_query_params['url'] = rawurlencode( remove_query_arg( array( Post_Type::FRONT_UUID_PARAM_NAME ), $preview_url_query_params['url'] ) );
 			$customize_node->href = preg_replace(
 				'/(?<=\?).*?(?=#|$)/',
 				build_query( $preview_url_query_params ),
@@ -581,14 +433,15 @@ class Customize_Snapshot_Manager {
 			);
 		}
 
+		$wp_customize = $this->get_customize_manager();
 		$args = array(
-			$this->get_customize_uuid_param() => $this->current_snapshot_uuid,
+			Post_Type::CUSTOMIZE_UUID_PARAM_NAME => $wp_customize->changeset_uuid(),
 		);
 
-		$post = $this->snapshot->post();
+		$post_id = $wp_customize->changeset_post_id();
 
-		if ( $post ) {
-			$customizer_state_query_vars = $this->post_type->get_customizer_state_query_vars( $post->ID );
+		if ( $post_id ) {
+			$customizer_state_query_vars = $this->post_type->get_customizer_state_query_vars( $post_id );
 			unset( $customizer_state_query_vars['url'] );
 			$args = array_merge( $args, $customizer_state_query_vars );
 		}
@@ -642,17 +495,17 @@ class Customize_Snapshot_Manager {
 	 * @param \WP_Admin_Bar $wp_admin_bar WP_Admin_Bar instance.
 	 */
 	public function add_post_edit_screen_link( $wp_admin_bar ) {
-		if ( ! $this->snapshot || ! current_user_can( get_post_type_object( $this->post_type->get_slug() )->cap->edit_posts ) ) {
+		if ( ! is_customize_preview() || ! current_user_can( get_post_type_object( $this->post_type->get_slug() )->cap->edit_posts ) ) {
 			return;
 		}
-		$post = $this->snapshot->post();
-		if ( ! $post ) {
+		$post_id = $this->get_customize_manager()->changeset_post_id();
+		if ( ! $post_id ) {
 			return;
 		}
 		$wp_admin_bar->add_menu( array(
 			'id' => 'inspect-customize-snapshot',
 			'title' => __( 'Inspect Changeset', 'customize-snapshots' ),
-			'href' => $this->snapshot->get_edit_link( $post ),
+			'href' => $this->get_edit_link( $post_id ),
 			'meta' => array(
 				'class' => 'ab-item ab-customize-snapshots-item',
 			),
@@ -665,11 +518,13 @@ class Customize_Snapshot_Manager {
 	 * @param \WP_Admin_Bar $wp_admin_bar WP_Admin_Bar instance.
 	 */
 	public function add_publish_changeset_link( $wp_admin_bar ) {
-		if ( ! $this->snapshot || ! current_user_can( get_post_type_object( $this->post_type->get_slug() )->cap->publish_posts ) ) {
+		if ( ! is_customize_preview() || ! current_user_can( get_post_type_object( $this->post_type->get_slug() )->cap->publish_posts ) ) {
 			return;
 		}
-		$post = $this->snapshot->post();
-		if ( ! $post ) {
+
+		$wp_customize = $this->get_customize_manager();
+		$post_id = $wp_customize->changeset_post_id();
+		if ( ! $post_id ) {
 			return;
 		}
 
@@ -677,7 +532,7 @@ class Customize_Snapshot_Manager {
 			array(
 				'post_type' => $this->post_type->get_slug(),
 				'action' => 'frontend_publish',
-				'uuid' => $this->current_snapshot_uuid,
+				'uuid' => $wp_customize->changeset_uuid(),
 				'stylesheet' => get_stylesheet(),
 			),
 			admin_url( 'edit.php' )
@@ -685,7 +540,7 @@ class Customize_Snapshot_Manager {
 		$wp_admin_bar->add_menu( array(
 			'id' => 'publish-customize-changeset',
 			'title' => __( 'Publish Changeset', 'customize-snapshots' ),
-			'href' => wp_nonce_url( $href, 'publish-changeset_' . $this->current_snapshot_uuid ),
+			'href' => wp_nonce_url( $href, 'publish-changeset_' . $wp_customize->changeset_uuid() ),
 			'meta' => array(
 				'class' => 'ab-item ab-customize-snapshots-item',
 			),
@@ -698,13 +553,13 @@ class Customize_Snapshot_Manager {
 	 * @param \WP_Admin_Bar $wp_admin_bar WP_Admin_Bar instance.
 	 */
 	public function add_snapshot_exit_link( $wp_admin_bar ) {
-		if ( ! $this->snapshot ) {
+		if ( ! is_customize_preview() ) {
 			return;
 		}
 		$wp_admin_bar->add_menu( array(
 			'id' => 'exit-customize-snapshot',
 			'title' => __( 'Exit Changeset Preview', 'customize-snapshots' ),
-			'href' => remove_query_arg( $this->get_front_uuid_param() ),
+			'href' => remove_query_arg( Post_Type::FRONT_UUID_PARAM_NAME ),
 			'meta' => array(
 				'class' => 'ab-item ab-customize-snapshots-item',
 			),
@@ -717,7 +572,7 @@ class Customize_Snapshot_Manager {
 	 * @param \WP_Admin_Bar $wp_admin_bar Admin bar.
 	 */
 	public function remove_all_non_snapshot_admin_bar_links( $wp_admin_bar ) {
-		if ( empty( $this->snapshot ) || ! current_user_can( 'customize' ) ) {
+		if ( ! is_customize_preview() || ! current_user_can( 'customize' ) ) {
 			return;
 		}
 		$snapshot_admin_bar_node_ids = array(
@@ -750,185 +605,15 @@ class Customize_Snapshot_Manager {
 	 * Underscore (JS) templates for dialog windows.
 	 */
 	public function render_templates() {
-		$this->add_edit_box_template();
 		?>
-		<script type="text/html" id="tmpl-snapshot-preview-link">
-			<a href="#" target="frontend-preview" id="snapshot-preview-link" class="dashicons dashicons-welcome-view-site" title="<?php esc_attr_e( 'View on frontend', 'customize-snapshots' ); ?>">
-				<span class="screen-reader-text"><?php esc_html_e( 'View on frontend', 'customize-snapshots' ); ?></span>
-			</a>
-		</script>
-
-		<script type="text/html" id="tmpl-snapshot-expand-button">
-			<a href="javascript:void(0)" id="snapshot-expand-button" role="button" aria-controls="snapshot-schedule" aria-pressed="false" class="dashicons dashicons-edit"></a>
-		</script>
-
-		<script type="text/html" id="tmpl-snapshot-save">
-			<button id="snapshot-save" class="button button-secondary">
-				{{ data.buttonText }}
-			</button>
-		</script>
-
-		<script type="text/html" id="tmpl-snapshot-submit">
-			<button id="snapshot-submit" class="button button-primary">
-				{{ data.buttonText }}
-			</button>
-		</script>
-
 		<script type="text/html" id="tmpl-snapshot-dialog-error">
 			<div id="snapshot-dialog-error" title="{{ data.title }}">
 				<p>{{ data.message }}</p>
 			</div>
 		</script>
 
-		<script type="text/html" id="tmpl-snapshot-status-button">
-			<?php
-				$data = array(
-					'choices' => array(
-						'publish' => array(
-							'option_text' => __( 'Publish' , 'customize-snapshots' ),
-							'alt_text' => __( 'Published' , 'customize-snapshots' ),
-						),
-						'draft' => array(
-							'option_text' => __( 'Save Draft' , 'customize-snapshots' ),
-							'alt_text' => __( 'Draft' , 'customize-snapshots' ),
-						),
-						'future' => array(
-							'option_text' => __( 'Schedule' , 'customize-snapshots' ),
-							'alt_text' => __( 'Scheduled' , 'customize-snapshots' ),
-						),
-						'pending' => array(
-							'option_text' => __( 'Save Pending' , 'customize-snapshots' ),
-							'alt_text' => __( 'Pending' , 'customize-snapshots' ),
-						),
-					),
-					'selected' => 'publish',
-					'confirm_publish_text' => __( 'Confirm Publish', 'customize-snapshots' ),
-				);
-			?>
-
-			<# _.defaults( data, <?php echo wp_json_encode( $data ); ?> ); #>
-
-			<div id="snapshot-status-button-wrapper">
-				<label class="screen-reader-text" for="snapshot-status-button"><?php esc_attr_e( 'Changeset Status', 'customize-snapshots' ); ?></label>
-				<select id="snapshot-status-button">
-					<# _.each( data.choices, function( buttonText, status ) { #>
-							<option value="{{ status }}" data-alt-text="{{ buttonText.alt_text }}"
-								<# if ( data.selected == status ) { #>
-									selected="selected"
-								<# } #>
-								<# if ( 'publish' == status ) { #>
-									data-confirm-text="{{ data.confirm_publish_text }}"
-									data-publish-text="{{ data.choices.publish.option_text }}"
-								<# } #>
-								>{{ buttonText.option_text }}</option>
-					<# } ); #>
-				</select>
-				<button class="snapshot-status-button-overlay button button-primary" data-button-text="{{ data.choices[ data.selected ].option_text }}" data-alt-text="{{ data.choices[ data.selected ].alt_text }}">
-					{{ data.choices[ data.selected ].option_text }}
-				</button>
-			</div>
-		</script>
-		<?php
-	}
-
-	/**
-	 * Add edit box template.
-	 */
-	public function add_edit_box_template() {
-		$data = $this->get_month_choices();
-		?>
-		<script type="text/html" id="tmpl-snapshot-edit-container">
-			<div id="customize-snapshot">
-				<div class="snapshot-schedule-title">
-					<h3>
-						<?php esc_html_e( 'Edit Changeset', 'customize-snapshots' ); ?>
-					</h3>
-					<?php $edit_snapshot_text = __( 'Edit Changeset', 'customize-snapshots' ); ?>
-					<a href="{{ data.editLink }}" class="dashicons dashicons-external snapshot-edit-link" target="_blank" title="<?php echo esc_attr( $edit_snapshot_text ); ?>" aria-expanded="false"><span class="screen-reader-text"><?php echo esc_html( $edit_snapshot_text ); ?></span></a>
-				</div>
-
-				<ul class="snapshot-controls">
-					<li class="snapshot-control snapshot-control-title">
-						<label for="snapshot-title" class="customize-control-title">
-							<?php esc_html_e( 'Title', 'customize-snapshots' ); ?>
-						</label>
-						<input id="snapshot-title" type="text" value="{{data.title}}">
-					</li>
-					<# if ( data.currentUserCanPublish ) { #>
-						<li class="snapshot-control snapshot-control-date">
-							<label for="snapshot-date-month" class="customize-control-title">
-								<?php esc_html_e( 'Scheduling', 'customize-snapshots' ); ?>
-								<span class="reset-time">(<a href="#" title="<?php esc_attr_e( 'Reset scheduled date to original or current date', 'customize-snapshots' ); ?>"><?php esc_html_e( 'Reset', 'customize-snapshots' ); ?></a>)</span>
-							</label>
-							<p class="snapshot-schedule-description">
-								<?php esc_html_e( 'Schedule changes to publish (go live) at a future date.', 'customize-snapshots' ); ?>
-							</p>
-							<div class="snapshot-future-date-notification notice notice-error ">
-								<?php esc_html_e( 'Please select a future date.', 'customize-snapshots' ); ?>
-							</div>
-							<div class="snapshot-schedule-control date-inputs clear">
-								<label>
-									<span class="screen-reader-text"><?php esc_html_e( 'Month', 'customize-snapshots' ); ?></span>
-									<# _.defaults( data, <?php echo wp_json_encode( $data ); ?> ); #>
-										<select id="snapshot-date-month" class="date-input month" data-date-input="month">
-											<# _.each( data.month_choices, function( choice ) { #>
-												<# if ( _.isObject( choice ) && ! _.isUndefined( choice.text ) && ! _.isUndefined( choice.value ) ) {
-														text = choice.text;
-														value = choice.value;
-														} #>
-													<option value="{{ value }}"
-													<# if (choice.value == data.month) { #>
-														selected="selected"
-														<# } #>>
-															{{ text }}
-															</option>
-															<# } ); #>
-										</select>
-								</label>
-								<label>
-									<span class="screen-reader-text"><?php esc_html_e( 'Day', 'customize-snapshots' ); ?></span>
-									<input type="number" size="2" maxlength="2" autocomplete="off" class="date-input day" data-date-input="day" min="1" max="31" value="{{ data.day }}" />
-								</label>
-								<span class="time-special-char">,</span>
-								<label>
-									<span class="screen-reader-text"><?php esc_html_e( 'Year', 'customize-snapshots' ); ?></span>
-									<input type="number" size="4" maxlength="4" autocomplete="off" class="date-input year" data-date-input="year" min="<?php echo esc_attr( date( 'Y' ) ); ?>" value="{{ data.year }}" max="9999" />
-								</label>
-								<span class="time-special-char">@</span>
-								<label>
-									<span class="screen-reader-text"><?php esc_html_e( 'Hour', 'customize-snapshots' ); ?></span>
-									<input type="number" size="2" maxlength="2" autocomplete="off" class="date-input hour" data-date-input="hour" min="0" max="23" value="{{ data.hour }}" />
-								</label>
-								<span class="time-special-char">:</span>
-								<label>
-									<span class="screen-reader-text"><?php esc_html_e( 'Minute', 'customize-snapshots' ); ?></span>
-									<input type="number" size="2" maxlength="2" autocomplete="off" class="date-input minute" data-date-input="minute" min="0" max="59" value="{{ data.minute }}" />
-								</label>
-							</div>
-							<div class="timezone-info">
-								<span class="snapshot-scheduled-countdown" role="timer"></span>
-								<?php
-								$tz_string = get_option( 'timezone_string' );
-								if ( $tz_string ) {
-									$tz = new \DateTimezone( $tz_string );
-									$formatted_gmt_offset = $this->format_gmt_offset( $tz->getOffset( new \DateTime() ) / 3600 );
-									$tz_name = str_replace( '_', ' ', $tz->getName() );
-
-									/* translators: 1: timezone name, 2: gmt offset  */
-									$timezone_description = sprintf( __( 'This site\'s dates are in the %1$s timezone (currently UTC%2$s).', 'customize-snapshots' ), $tz_name, $formatted_gmt_offset );
-								} else {
-									$formatted_gmt_offset = $this->format_gmt_offset( get_option( 'gmt_offset' ) );
-
-									/* translators: %s: gmt offset  */
-									$timezone_description = sprintf( __( 'Dates are in UTC%s.', 'customize-snapshots' ), $formatted_gmt_offset );
-								}
-								echo esc_html( $timezone_description );
-								?>
-							</div>
-						</li>
-						<# } #>
-				</ul>
-			</div>
+		<script type="text/html" id="tmpl-snapshot-inspect-link-control">
+			<a class="button-link" href="#" target="_blank"><span class="dashicons dashicons-external"></span><?php esc_html_e( 'Inspect', 'customize-snapshots' ); ?></a>
 		</script>
 
 		<script id="tmpl-snapshot-scheduled-countdown" type="text/html">
@@ -948,119 +633,20 @@ class Customize_Snapshot_Manager {
 			?>
 
 			<# } else { #>
-				<?php
-				/* translators: %s is a placeholder for the Underscore template var */
-				echo sprintf( esc_html__( 'This changeset is scheduled for publishing in about %s days.', 'customize-snapshots' ), '{{ Math.round( data.remainingTime / 60 / 60 / 24 * 10 ) / 10 }}' );
-				?>
+			<?php
+			/* translators: %s is a placeholder for the Underscore template var */
+			echo sprintf( esc_html__( 'This changeset is scheduled for publishing in about %s days.', 'customize-snapshots' ), '{{ Math.round( data.remainingTime / 60 / 60 / 24 * 10 ) / 10 }}' );
+			?>
 
-				<# } #>
+			<# } #>
 		</script>
 		<?php
 	}
 
 	/**
-	 * Format GMT Offset.
-	 *
-	 * @see wp_timezone_choice()
-	 * @param float $offset Offset in hours.
-	 * @return string Formatted offset.
-	 */
-	public function format_gmt_offset( $offset ) {
-		if ( 0 <= $offset ) {
-			$formatted_offset = '+' . (string) $offset;
-		} else {
-			$formatted_offset = (string) $offset;
-		}
-		$formatted_offset = str_replace(
-			array( '.25', '.5', '.75' ),
-			array( ':15', ':30', ':45' ),
-			$formatted_offset
-		);
-		return $formatted_offset;
-	}
-
-	/**
-	 * Generate options for the month Select.
-	 *
-	 * Based on touch_time().
-	 *
-	 * @see touch_time()
-	 *
-	 * @return array
-	 */
-	public function get_month_choices() {
-		global $wp_locale;
-		$months = array();
-		for ( $i = 1; $i < 13; $i = $i + 1 ) {
-			$month_number = zeroise( $i, 2 );
-			$month_text = $wp_locale->get_month_abbrev( $wp_locale->get_month( $i ) );
-
-			/* translators: 1: month number (01, 02, etc.), 2: month abbreviation */
-			$months[ $i ]['text'] = sprintf( __( '%1$s-%2$s', 'customize-snapshots' ), $month_number, $month_text );
-			$months[ $i ]['value'] = $month_number;
-		}
-		return array(
-			'month_choices' => $months,
-		);
-	}
-
-	/**
-	 * Override default date values to a post.
-	 *
-	 * @param \WP_Post $post Post.
-	 * @return \WP_Post Object if the post data did not apply.
-	 */
-	public function override_post_date_default_data( \WP_Post &$post ) {
-		if ( ! is_array( $post ) ) {
-			// Make sure that empty dates are not used in case of setting invalidity.
-			$empty_date = '0000-00-00 00:00:00';
-			if ( $empty_date === $post->post_date ) {
-				$post->post_date = current_time( 'mysql', false );
-			}
-			if ( $empty_date === $post->post_date_gmt ) {
-				$post->post_date_gmt = current_time( 'mysql', true );
-			}
-			if ( $empty_date === $post->post_modified ) {
-				$post->post_modified = current_time( 'mysql', false );
-			}
-			if ( $empty_date === $post->post_modified_gmt ) {
-				$post->post_modified_gmt = current_time( 'mysql', true );
-			}
-		}
-		return $post;
-	}
-
-	/**
-	 * Get Post_Type from dynamic class.
-	 *
-	 * @return string Post type.
-	 */
-	public function get_post_type() {
-		return constant( get_class( $this->post_type ) . '::SLUG' );
-	}
-
-	/**
-	 * Get Frontend UUID param.
-	 *
-	 * @return string param.
-	 */
-	public function get_front_uuid_param() {
-		return constant( get_class( $this->post_type ) . '::FRONT_UUID_PARAM_NAME' );
-	}
-
-	/**
-	 * Get customize uuid param name.
-	 *
-	 * @return string customize param name.
-	 */
-	public function get_customize_uuid_param() {
-		return constant( get_class( $this->post_type ) . '::CUSTOMIZE_UUID_PARAM_NAME' );
-	}
-
-	/**
 	 * Handles request to publish changeset from frontend.
 	 */
-	public function handle_frontend_changset_publish() {
+	public function handle_frontend_changeset_publish() {
 
 		if ( ! isset( $_GET['uuid'] ) || ! isset( $_GET['action'] ) || 'frontend_publish' !== $_GET['action'] ) {
 			return;
@@ -1069,10 +655,9 @@ class Customize_Snapshot_Manager {
 		if ( ! static::is_valid_uuid( $uuid ) ) {
 			return;
 		}
-		$this->current_snapshot_uuid = $uuid;
 
 		$is_user_authorized = (
-			check_ajax_referer( 'publish-changeset_' . $this->current_snapshot_uuid, false, false )
+			check_ajax_referer( 'publish-changeset_' . $uuid, false, false )
 			&&
 			current_user_can( get_post_type_object( $this->post_type->get_slug() )->cap->publish_posts )
 		);
@@ -1087,30 +672,40 @@ class Customize_Snapshot_Manager {
 			);
 		}
 
+		$stylesheet = null;
 		if ( isset( $_GET['stylesheet'] ) ) {
 			$theme = wp_get_theme( wp_unslash( $_GET['stylesheet'] ) );
 			if ( $theme->errors() ) {
-				$msg = __( 'Oops. Unable to publish the changeset. The following error(s) occurred: ', 'customize-snapshots' );
+				$msg  = __( 'Oops. Unable to publish the changeset. The following error(s) occurred: ', 'customize-snapshots' );
 				$msg .= join( '; ', array_keys( $theme->errors()->errors ) );
 				wp_die(
 					'<p>' . esc_html( $msg ) . '</p>',
 					esc_html__( 'Changeset publishing failed', 'customize-snapshots' ),
 					array(
 						'back_link' => true,
-						'response' => 400,
+						'response'  => 400,
 					)
 				);
 			}
-			$this->stylesheet = $theme->get_stylesheet();
+			$stylesheet = $theme->get_stylesheet();
 		}
 
-		$this->ensure_customize_manager();
-		$r = $this->customize_manager->save_changeset_post( array(
+		$wp_customize = $this->get_customize_manager();
+		$args         = array();
+		if ( empty( $wp_customize ) || ! ( $wp_customize instanceof \WP_Customize_Manager ) ) {
+			require_once( ABSPATH . WPINC . '/class-wp-customize-manager.php' );
+			$args['changeset_uuid'] = $uuid;
+			if ( $stylesheet ) {
+				$args['theme'] = $stylesheet;
+			}
+			$wp_customize = new \WP_Customize_Manager( $args ); // WPCS: override ok.
+		}
+		$r = $wp_customize->save_changeset_post( array(
 			'status' => 'publish',
 		) );
 
 		if ( is_wp_error( $r ) ) {
-			$msg = __( 'Oops. Unable to publish the changeset. The following error(s) occurred: ', 'customize-snapshots' );
+			$msg  = __( 'Oops. Unable to publish the changeset. The following error(s) occurred: ', 'customize-snapshots' );
 			$msg .= join( '; ', array_keys( $r->errors ) );
 			wp_die(
 				'<p>' . esc_html( $msg ) . '</p>',
@@ -1129,9 +724,9 @@ class Customize_Snapshot_Manager {
 			}
 
 			$sendback = remove_query_arg( array(
-				$this->get_front_uuid_param(),
+				Post_Type::FRONT_UUID_PARAM_NAME,
 				'customize_theme',
-				$this->get_customize_uuid_param(),
+				Post_Type::CUSTOMIZE_UUID_PARAM_NAME,
 			), $referer );
 
 			wp_redirect( $sendback );
@@ -1167,7 +762,7 @@ class Customize_Snapshot_Manager {
 		global $wpdb;
 		$changeset_post = get_post( $changeset_post_id );
 
-		if ( ! ( $changeset_post instanceof \WP_Post ) || $changeset_post->post_type !== $this->get_post_type() ) {
+		if ( ! ( $changeset_post instanceof \WP_Post ) || Post_Type::SLUG !== $changeset_post->post_type ) {
 			return;
 		}
 
@@ -1177,7 +772,7 @@ class Customize_Snapshot_Manager {
 		}
 		remove_action( 'delete_post', array( $this, 'clean_up_nav_menus_created_auto_drafts' ) );
 		foreach ( $data['nav_menus_created_posts']['value'] as $nav_menu_created_post_id ) {
-			if ( 'auto-draft' !== get_post_status( $nav_menu_created_post_id ) ) {
+			if ( 'auto-draft' !== get_post_status( $nav_menu_created_post_id ) && 'draft' !== get_post_status( $nav_menu_created_post_id ) ) {
 				continue;
 			}
 
@@ -1190,7 +785,7 @@ class Customize_Snapshot_Manager {
 			if ( ! class_exists( 'Customize_Posts_Plugin' ) ) {
 				// If customize post plugin is not installed we search for nav_menus_created_posts and lookup for reference via php code.
 				// Todo: Improve logic to find reference below.
-				$query = $wpdb->prepare( "SELECT ID FROM {$wpdb->posts} WHERE post_type = %s AND ID != %d ", $this->get_post_type(), $changeset_post_id );
+				$query = $wpdb->prepare( "SELECT ID FROM {$wpdb->posts} WHERE post_type = %s AND ID != %d ", Post_Type::SLUG, $changeset_post_id );
 				$query .= $wpdb->prepare( ' AND post_content LIKE %s AND post_content LIKE %s LIMIT 50', '%' . $wpdb->esc_like( '"nav_menus_created_posts":' ) . '%', '%' . $nav_menu_created_post_id . '%' );
 				$post_ids = $wpdb->get_col( $query ); // WPCS: unprepared SQL ok.
 				$should_delete = true;
