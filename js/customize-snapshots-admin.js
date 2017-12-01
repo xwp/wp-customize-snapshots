@@ -1,44 +1,13 @@
-/* global jQuery */
+/* global jQuery, wp */
 /* exported CustomizeSnapshotsAdmin */
-var CustomizeSnapshotsAdmin = (function( $, wp ) {
+
+var CustomizeSnapshotsAdmin = (function( $ ) {
 	'use strict';
-	var component = {};
 
-	component.data = {
-		deleteInputName: 'customize_snapshot_remove_settings[]'
-	};
-
-	/**
-	 * Handles snapshot fork actions.
-	 *
-	 * @return {void}
-	 */
-	component.forkClick = function() {
-		var $forkButton = $( '#snapshot-fork' ),
-			$forkSpinner = $( '.snapshot-fork-spinner' ),
-			$forkList = $( '#snapshot-fork-list' ),
-			forkItemTemplate = wp.template( 'snapshot-fork-item' );
-
-		$forkButton.on( 'click', function( e ) {
-			var request;
-			$forkSpinner.addClass( 'is-active' );
-			request = wp.ajax.post( 'snapshot_fork', {
-				ID: $forkButton.data( 'post-id' ),
-				nonce: $forkButton.data( 'nonce' )
-			} );
-
-			request.always( function() {
-				$forkSpinner.removeClass( 'is-active' );
-			} );
-
-			request.done( function( data ) {
-				var item;
-				item = $( $.trim( forkItemTemplate( data ) ) );
-				$forkList.append( item );
-			} );
-
-			e.preventDefault();
-		} );
+	var component = {
+		data: {
+			deleteInputName: 'customize_snapshot_remove_settings[]'
+		}
 	};
 
 	/**
@@ -47,100 +16,116 @@ var CustomizeSnapshotsAdmin = (function( $, wp ) {
 	 * @return {void}
 	 */
 	component.init = function() {
-		$( function() {
-			component.forkClick();
-			component.deleteSetting();
+		component.forkButton = $( '#snapshot-fork' );
+		component.forkSpinner = $( '.snapshot-fork-spinner' );
+		component.forkList = $( '#snapshot-fork-list' );
+		component.toogleSettingRemovalLink = $( '.snapshot-toggle-setting-removal' );
+
+		component.forkItemTemplate = wp.template( 'snapshot-fork-item' );
+		component.linkActions = {
+			remove: 'remove',
+			restore: 'restore'
+		};
+		component.dataSlug = 'cs-action';
+
+		component.toogleSettingRemovalLink.data( component.dataSlug, component.linkActions.remove );
+
+		component.forkButton.on( 'click', component.fork );
+		component.toogleSettingRemovalLink.on( 'click', component.toggleSettingRemoval );
+	};
+
+	/**
+	 * Handles snapshot fork actions.
+	 *
+	 * @return {void}
+	 */
+	component.fork = function( event ) {
+		var request;
+
+		event.preventDefault();
+
+		component.forkButton.prop( 'disabled', true );
+		component.forkSpinner.addClass( 'is-active' );
+
+		request = wp.ajax.post( 'snapshot_fork', {
+			post_id: component.forkButton.data( 'post-id' ),
+			nonce: component.forkButton.data( 'nonce' )
+		} );
+
+		request.done( function( data ) {
+			component.forkList.append( $( $.trim( component.forkItemTemplate( data ) ) ) );
+		} );
+
+		request.always( function() {
+			component.forkSpinner.removeClass( 'is-active' );
+			component.forkButton.prop( 'disabled', false );
 		} );
 	};
 
 	/**
-	 * Handles snapshot setting delete actions.
+	 * Change link text.
 	 *
+	 * @param {object} link jQuery selector of toggle setting removal link.
 	 * @return {void}
 	 */
-	component.deleteSetting = function() {
-		var $linkToRemoveOrRestore = $( '.snapshot-toggle-setting-removal' ),
-			linkActions = ['remove', 'restore'],
-			dataSlug = 'cs-action';
+	component.changeLinkText = function( link ) {
+		var oldLinkText = link.text(),
+			newLinkText = link.data( 'text-restore' );
 
-		$linkToRemoveOrRestore.data( dataSlug, linkActions[0] );
+		link.data( 'text-restore', oldLinkText ).text( newLinkText );
+	};
 
-		component.isLinkSetToRemoveSetting = function( $link ) {
-			return linkActions[ 0 ] === component.getClickedLinkAction( $link );
-		};
+	/**
+	 * Show setting and changeset link text.
+	 *
+	 * @param {object} link jQuery selector of toggle setting removal link.
+	 * @return {void}
+	 */
+	component.showSettingAndChangeLinkText = function( link ) {
+		var settingId = link.attr( 'id' );
 
-		component.isLinkSetToRestoreSetting = function( $link ) {
-			return linkActions[ 1 ] === component.getClickedLinkAction( $link );
-		};
+		link.data( component.dataSlug, component.linkActions.remove );
+		component.changeLinkText( link );
+		$( 'input[name="' + component.data.deleteInputName + '"][value="' + settingId + '"]' ).remove();
+		link.parents( 'details' ).removeClass( 'snapshot-setting-removed' );
+	};
 
-		component.getClickedLinkAction = function( $link ) {
-			return $link.data( dataSlug );
-		};
+	/**
+	 * Hide setting and change link text.
+	 *
+	 * @param {object} link jQuery selector of toggle setting removal link.
+	 * @return {void}
+	 */
+	component.hideSettingAndChangeLinkText = function( link ) {
+		var hiddenInput, settingId = link.attr( 'id' );
 
-		component.hideSettingAndChangeLinkText = function( $link ) {
-			var $settingDisplay, settingId;
-			$settingDisplay = component.getSettingDisplay( $link );
-			settingId = component.getSettingId( $link );
+		hiddenInput = $( '<input>' ).attr( {
+			'name': component.data.deleteInputName,
+			'type': 'hidden'
+		} ).val( settingId );
 
-			$link.data( dataSlug, linkActions[ 1 ] )
-				.after( component.constructHiddenInputWithValue( settingId ) );
-			component.changeLinkText( $link );
-			$settingDisplay.removeAttr( 'open' )
-				.addClass( 'snapshot-setting-removed' );
-		};
+		link.data( component.dataSlug, component.linkActions.restore ).after( hiddenInput );
+		component.changeLinkText( link );
+		link.parents( 'details' ).removeAttr( 'open' ).addClass( 'snapshot-setting-removed' );
+	};
 
-		component.getSettingDisplay = function( $link ) {
-			return $link.parents( 'details' );
-		};
+	/**
+	 * Remove or restore settings.
+	 *
+	 * @param {object} event Event.
+	 * @return {void}
+	 */
+	component.toggleSettingRemoval = function( event ) {
+		var link = $( this );
 
-		component.getSettingId = function( $link ) {
-			return $link.attr( 'id' );
-		};
+		event.preventDefault();
 
-		component.constructHiddenInputWithValue = function( settingId ) {
-			return $( '<input>' ).attr( {
-				'name': component.data.deleteInputName,
-				'type': 'hidden'
-			} )
-			.val( settingId );
-		};
-
-		component.changeLinkText = function( $link ) {
-			var oldLinkText, newLinkText;
-			oldLinkText = $link.text();
-			newLinkText = $link.data( 'text-restore' );
-
-			$link.data( 'text-restore', oldLinkText )
-				.text( newLinkText );
-		};
-
-		component.showSettingAndChangeLinkText = function( $link ) {
-			var $settingDisplay, settingId;
-			$settingDisplay = component.getSettingDisplay( $link );
-			settingId = component.getSettingId( $link );
-
-			$link.data( dataSlug, linkActions[ 0 ] );
-			component.changeLinkText( $link );
-			component.removeHiddenInputWithValue( settingId );
-			$settingDisplay.removeClass( 'snapshot-setting-removed' );
-		};
-
-		component.removeHiddenInputWithValue = function( settingId ) {
-			$( 'input[name="' + component.data.deleteInputName + '"][value="' + settingId + '"]' ).remove();
-		};
-
-		$linkToRemoveOrRestore.on( 'click', function( event ) {
-			var $clickedLink = $( this );
-
-			event.preventDefault();
-
-			if ( component.isLinkSetToRemoveSetting( $clickedLink ) ) {
-				component.hideSettingAndChangeLinkText( $clickedLink );
-			} else if ( component.isLinkSetToRestoreSetting( $clickedLink ) ) {
-				component.showSettingAndChangeLinkText( $clickedLink );
-			}
-		} );
+		if ( component.linkActions.remove === link.data( component.dataSlug ) ) {
+			component.hideSettingAndChangeLinkText( link );
+		} else if ( component.linkActions[ 1 ] === link.data( component.dataSlug ) ) {
+			component.showSettingAndChangeLinkText( link );
+		}
 	};
 
 	return component;
-})( jQuery, window.wp );
+})( jQuery );

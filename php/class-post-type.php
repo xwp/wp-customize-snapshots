@@ -1154,12 +1154,12 @@ class Post_Type {
 			wp_send_json_error( 'bad_request' );
 		}
 
-		if ( ! isset( $_POST['ID'] ) || ! intval( $_POST['ID'] ) ) {
+		if ( ! isset( $_POST['post_id'] ) || ! intval( $_POST['post_id'] ) ) {
 			status_header( 400 );
 			wp_send_json_error( 'wrong_input' );
 		}
 
-		$post_id = intval( $_POST['ID'] );
+		$post_id = intval( $_POST['post_id'] );
 		$parent_post = get_post( $post_id );
 		if ( static::SLUG !== $parent_post->post_type ) {
 			status_header( 400 );
