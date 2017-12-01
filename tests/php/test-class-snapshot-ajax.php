@@ -76,7 +76,7 @@ class Test_Snapshot_Ajax extends \WP_Ajax_UnitTestCase {
 		$post_vars = array(
 			'action' => 'snapshot_fork',
 			'nonce' => wp_create_nonce( 'snapshot-fork' ),
-			'ID' => $post_id,
+			'post_id' => $post_id,
 		);
 		$post_vars_slash = wp_slash( $post_vars );
 		$_GET = $post_vars_slash;
@@ -88,7 +88,7 @@ class Test_Snapshot_Ajax extends \WP_Ajax_UnitTestCase {
 		$this->assertArrayHasKey( 'data', $response );
 		$response = $response['data'];
 		$this->assertEquals( $post_id, $response['post_parent'] );
-		$this->assertEquals( $data, $post_type->get_post_content( get_post( $response['ID'] ) ) );
+		$this->assertEquals( $data, $post_type->get_post_content( get_post( $response['post_id'] ) ) );
 		$post = get_post( $post_id, ARRAY_A );
 		$fork_post = get_post( $response['ID'], ARRAY_A );
 		$key = array(
@@ -109,7 +109,7 @@ class Test_Snapshot_Ajax extends \WP_Ajax_UnitTestCase {
 			unset( $fork_post[ $item ], $post[ $item ] );
 		}
 		$this->assertSame( $fork_post, $post );
-		$this->assertEquals( get_post_meta( $post_id ), get_post_meta( $response['ID'] ) );
+		$this->assertEquals( get_post_meta( $post_id ), get_post_meta( $response['post_id'] ) );
 	}
 
 }
