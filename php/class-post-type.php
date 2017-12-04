@@ -961,7 +961,7 @@ class Post_Type {
 	 *
 	 * In each snapshot's edit page, there are JavaScript-controlled links to remove each setting.
 	 * On clicking a setting, the JS sets a hidden input field with that setting's ID.
-	 * And these settings appear in $_POST as the array 'customize_snapshot_remove_settings.'
+	 * And these settings appear in $_POST as the array 'customize_changeset_remove_settings.'
 	 * So look for these removed settings in that array, on saving.
 	 * And possibly filter out those settings from the post content.
 	 *

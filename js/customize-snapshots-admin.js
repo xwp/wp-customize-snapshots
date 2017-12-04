@@ -6,7 +6,7 @@ var CustomizeSnapshotsAdmin = (function( $ ) {
 
 	var component = {
 		data: {
-			deleteInputName: 'customize_snapshot_remove_settings[]'
+			deleteInputName: 'customize_changeset_remove_settings[]'
 		},
 		dataSlug: 'cs-action',
 		linkActions: {
