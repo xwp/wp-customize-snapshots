@@ -7,6 +7,11 @@ var CustomizeSnapshotsAdmin = (function( $ ) {
 	var component = {
 		data: {
 			deleteInputName: 'customize_snapshot_remove_settings[]'
+		},
+		dataSlug: 'cs-action',
+		linkActions: {
+			remove: 'remove',
+			restore: 'restore'
 		}
 	};
 
@@ -22,12 +27,6 @@ var CustomizeSnapshotsAdmin = (function( $ ) {
 		component.toogleSettingRemovalLink = $( '.snapshot-toggle-setting-removal' );
 
 		component.forkItemTemplate = wp.template( 'snapshot-fork-item' );
-		component.linkActions = {
-			remove: 'remove',
-			restore: 'restore'
-		};
-		component.dataSlug = 'cs-action';
-
 		component.toogleSettingRemovalLink.data( component.dataSlug, component.linkActions.remove );
 
 		component.forkButton.on( 'click', component.fork );
@@ -122,7 +121,7 @@ var CustomizeSnapshotsAdmin = (function( $ ) {
 
 		if ( component.linkActions.remove === link.data( component.dataSlug ) ) {
 			component.hideSettingAndChangeLinkText( link );
-		} else if ( component.linkActions[ 1 ] === link.data( component.dataSlug ) ) {
+		} else if ( component.linkActions.restore === link.data( component.dataSlug ) ) {
 			component.showSettingAndChangeLinkText( link );
 		}
 	};
