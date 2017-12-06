@@ -47,11 +47,7 @@ class Test_Snapshot_REST_API_Controller extends \WP_Test_REST_TestCase {
 		parent::setUp();
 		$this->plugin = get_plugin_instance();
 
-		if ( $this->plugin->compat ) {
-			$this->end_point = 'customize_snapshots';
-		} else {
-			$this->end_point = 'customize_changesets';
-		}
+		$this->end_point = 'customize_changesets';
 
 		$this->plugin->customize_snapshot_manager->post_type->init();
 
@@ -78,7 +74,7 @@ class Test_Snapshot_REST_API_Controller extends \WP_Test_REST_TestCase {
 			$post_id = $this->plugin->customize_snapshot_manager->post_type->save( array_merge(
 				$snapshot_params,
 				array(
-					'uuid' => Customize_Snapshot_Manager::generate_uuid(),
+					'uuid' => wp_generate_uuid4(),
 					'author' => $user_id,
 					'data' => array( 'blogname' => array( 'value' => "Snapshot $i" ) ),
 				)
@@ -234,7 +230,7 @@ class Test_Snapshot_REST_API_Controller extends \WP_Test_REST_TestCase {
 		wp_set_current_user( $this->factory()->user->create( array( 'role' => 'administrator' ) ) );
 		$request = new \WP_REST_Request( 'POST', '/wp/v2/' . $this->end_point );
 		$request->set_param( 'content', array( 'blogname' => array( 'value' => 'test' ) ) );
-		$request->set_param( 'slug', Customize_Snapshot_Manager::generate_uuid() );
+		$request->set_param( 'slug', wp_generate_uuid4() );
 		$response = $this->server->dispatch( $request );
 		$this->assertErrorResponse( 'rest_cannot_create', $response );
 	}

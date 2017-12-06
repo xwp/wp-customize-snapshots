@@ -47,11 +47,7 @@ class Test_Post_Type extends \WP_UnitTestCase {
 		parent::setUp();
 		$GLOBALS['wp_customize'] = null; // WPCS: Global override ok.
 		$this->plugin = get_plugin_instance();
-		if ( $this->plugin->compat ) {
-			$this->post_type_slug = Post_Type_Back_Compat::SLUG;
-		} else {
-			$this->post_type_slug = Post_Type::SLUG;
-		}
+		$this->post_type_slug = Post_Type::SLUG;
 		$this->snapshot_merge_sample_data = array(
 			'foo' => array(
 				'value' => 'bar',
@@ -81,25 +77,12 @@ class Test_Post_Type extends \WP_UnitTestCase {
 	/**
 	 * Get plugin instance accoding to WP version.
 	 *
-	 * @param Customize_Snapshot_Manager|Customize_Snapshot_Manager_Back_Compat $manager Manager.
+	 * @param Customize_Snapshot_Manager $manager Manager.
 	 *
-	 * @return Post_Type|Post_Type_Back_Compat Post type object.
+	 * @return Post_Type Post type object.
 	 */
 	public function get_new_post_type_instance( $manager ) {
-		if ( $this->plugin->compat ) {
-			return new Post_Type_Back_Compat( $manager );
-		} else {
-			return new Post_Type( $manager );
-		}
-	}
-
-	/**
-	 * Mark test incomplete as it is only for new versions.
-	 */
-	public function mark_incompatible() {
-		if ( $this->plugin->compat ) {
-			$this->markTestSkipped( 'This unit-test require WP version 4.7 or up.' );
-		}
+		return new Post_Type( $manager );
 	}
 
 	/**
@@ -108,7 +91,6 @@ class Test_Post_Type extends \WP_UnitTestCase {
 	 * @see Post_Type::init()
 	 */
 	public function test_init() {
-		$this->mark_incompatible();
 		$post_type_obj = $this->get_new_post_type_instance( $this->plugin->customize_snapshot_manager );
 		$this->plugin->customize_snapshot_manager->init();
 		$post_type_obj->init();
@@ -140,6 +122,8 @@ class Test_Post_Type extends \WP_UnitTestCase {
 		$this->assertEquals( 10, has_filter( 'content_save_pre', array( $post_type_obj, 'filter_out_settings_if_removed_in_metabox' ) ) );
 		$this->assertEquals( 10, has_action( 'admin_print_scripts-revision.php', array( $post_type_obj, 'disable_revision_ui_for_published_posts' ) ) );
 		$this->assertEquals( 10, has_action( 'admin_notices', array( $post_type_obj, 'admin_show_merge_error' ) ) );
+		$this->assertEquals( 10, has_filter( 'display_post_states', array( $post_type_obj, 'display_post_states' ) ) );
+		$this->assertEquals( 10, has_action( 'admin_notices', array( $post_type_obj, 'show_publish_error_admin_notice' ) ) );
 		$this->assertEquals( 10, has_action( 'admin_notices', array( $post_type_obj, 'admin_show_merge_error' ) ) );
 		$this->assertEquals( 11, has_filter( 'content_save_pre', array( $post_type_obj, 'filter_selected_conflict_setting' ) ) );
 	}
@@ -151,7 +135,6 @@ class Test_Post_Type extends \WP_UnitTestCase {
 	 */
 	public function test_extend_changeset_post_type_object() {
 		global $_wp_post_type_features;
-		$this->mark_incompatible();
 		$post_type_obj = get_post_type_object( Post_Type::SLUG );
 		$this->assertArrayHasKey( 'revisions', $_wp_post_type_features[ Post_Type::SLUG ] );
 		$this->assertTrue( $post_type_obj->show_ui );
@@ -190,7 +173,7 @@ class Test_Post_Type extends \WP_UnitTestCase {
 			),
 		);
 		$post_id = $post_type->save( array(
-			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
+			'uuid' => wp_generate_uuid4(),
 			'data' => $data,
 			'status' => 'draft',
 		) );
@@ -208,7 +191,6 @@ class Test_Post_Type extends \WP_UnitTestCase {
 	 * @covers \CustomizeSnapshots\Post_Type::add_admin_menu_item()
 	 */
 	public function test_add_admin_menu_item() {
-		$this->mark_incompatible();
 		global $submenu, $menu;
 		$menu = $submenu = array(); // WPCS: global override ok.
 		$admin_user_id = $this->factory()->user->create( array(
@@ -268,15 +250,14 @@ class Test_Post_Type extends \WP_UnitTestCase {
 				'blogname' => array( 'value' => 'Hello' ),
 			),
 		) );
-		$param = $this->plugin->customize_snapshot_manager->get_front_uuid_param();
 		$this->assertContains(
-			$param . '=' . self::UUID,
+			Post_Type::FRONT_UUID_PARAM_NAME . '=' . self::UUID,
 			$post_type->filter_post_type_link( '', get_post( $post_id ) )
 		);
 
 		remove_all_filters( 'post_type_link' );
 		$post_type->init();
-		$this->assertContains( $param . '=' . self::UUID, get_permalink( $post_id ) );
+		$this->assertContains( Post_Type::FRONT_UUID_PARAM_NAME . '=' . self::UUID, get_permalink( $post_id ) );
 	}
 
 	/**
@@ -314,7 +295,10 @@ class Test_Post_Type extends \WP_UnitTestCase {
 		$post_type = $this->get_new_post_type_instance( $this->plugin->customize_snapshot_manager );
 		$post_type->init();
 
-		$post_id = $this->factory()->post->create( array( 'post_type' => $this->post_type_slug, 'post_status' => 'draft' ) );
+		$post_id = $this->factory()->post->create( array(
+			'post_type' => $this->post_type_slug,
+			'post_status' => 'draft',
+		) );
 
 		$wp_meta_boxes = array(); // WPCS: global override ok.
 		$metabox_id = $this->post_type_slug;
@@ -558,7 +542,6 @@ class Test_Post_Type extends \WP_UnitTestCase {
 	 * Find a snapshot post by UUID.
 	 *
 	 * @see Post_Type::find_post()
-	 * @see Post_Type_Back_Compat::find_post()
 	 */
 	public function test_find_post() {
 		$post_type = $this->get_new_post_type_instance( $this->plugin->customize_snapshot_manager );
@@ -621,9 +604,7 @@ class Test_Post_Type extends \WP_UnitTestCase {
 			'status' => 'publish',
 		) );
 		$snapshot_post = get_post( $post_id );
-		if ( ! $this->plugin->compat ) {
-			unset( $data['foo']['publish_error'] );
-		}
+		unset( $data['foo']['publish_error'] );
 		$this->assertEquals( $data, $post_type->get_post_content( $snapshot_post ) );
 
 		// Revision.
@@ -641,7 +622,10 @@ class Test_Post_Type extends \WP_UnitTestCase {
 		$this->assertEquals( 'baz', $content['foo']['value'] );
 
 		// Bad post data.
-		$bad_post_id = $this->factory()->post->create( array( 'post_type' => $this->post_type_slug, 'post_content' => 'BADJSON' ) );
+		$bad_post_id = $this->factory()->post->create( array(
+			'post_type' => $this->post_type_slug,
+			'post_content' => 'BADJSON',
+		) );
 		$bad_post = get_post( $bad_post_id );
 		$content = $post_type->get_post_content( $bad_post );
 		$this->assertEquals( array(), $content );
@@ -665,17 +649,28 @@ class Test_Post_Type extends \WP_UnitTestCase {
 		$this->assertInstanceOf( 'WP_Error', $r );
 		$this->assertEquals( 'missing_valid_uuid', $r->get_error_code() );
 
-		$r = $post_type->save( array( 'uuid' => self::UUID, 'data' => 'bad' ) );
+		$r = $post_type->save( array(
+			'uuid' => self::UUID,
+			'data' => 'bad',
+		) );
 		$this->assertInstanceOf( 'WP_Error', $r );
 		$this->assertEquals( 'missing_data', $r->get_error_code() );
 
 		// Error: bad_setting_params.
-		$r = $post_type->save( array( 'uuid' => self::UUID, 'data' => array( 'foo' => 'bar' ) ) );
+		$r = $post_type->save( array(
+			'uuid' => self::UUID,
+			'data' => array( 'foo' => 'bar' ),
+		) );
 		$this->assertInstanceOf( 'WP_Error', $r );
 		$this->assertEquals( 'bad_setting_params', $r->get_error_code() );
 
 		// Error: missing_value_param.
-		$r = $post_type->save( array( 'uuid' => self::UUID, 'data' => array( 'foo' => array( 'bar' => 'quux' ) ) ) );
+		$r = $post_type->save( array(
+			'uuid' => self::UUID,
+			'data' => array(
+				'foo' => array( 'bar' => 'quux' ),
+			),
+		) );
 		$this->assertInstanceOf( 'WP_Error', $r );
 		$this->assertEquals( 'missing_value_param', $r->get_error_code() );
 
@@ -710,9 +705,7 @@ class Test_Post_Type extends \WP_UnitTestCase {
 		) );
 		$this->assertInternalType( 'int', $r );
 		$expected = $data;
-		if ( ! $this->plugin->compat ) {
-			unset( $expected['foo']['publish_error'] );
-		}
+		unset( $expected['foo']['publish_error'] );
 		$this->assertEquals( $expected, $post_type->get_post_content( get_post( $r ) ) );
 
 		$this->assertEquals( get_stylesheet(), get_post_meta( $r, '_snapshot_theme', true ) );
@@ -880,12 +873,14 @@ class Test_Post_Type extends \WP_UnitTestCase {
 	public function test_handle_snapshot_merge() {
 		$ids = $this->factory()->post->create_many( 2 );
 		$posts = array_map( 'get_post', $ids );
-		$post_type_obj = $this->getMockBuilder( 'CustomizeSnapshots\Post_Type' )
-							  ->setConstructorArgs( array( $this->plugin->customize_snapshot_manager ) )
-							  ->setMethods( array( 'merge_snapshots' ) )
-							  ->getMock();
-		$post_type_obj->expects( $this->once() )
-					  ->method( 'merge_snapshots' )
+		$post_type_obj = $this
+			->getMockBuilder( 'CustomizeSnapshots\Post_Type' )
+			->setConstructorArgs( array( $this->plugin->customize_snapshot_manager ) )
+			->setMethods( array( 'merge_snapshots' ) )
+			->getMock();
+		$post_type_obj
+			->expects( $this->once() )
+			->method( 'merge_snapshots' )
 			->with( $posts )
 			->will( $this->returnValue( null ) );
 		$post_type_obj->handle_snapshot_merge( '', 'merge_snapshot', $ids );
@@ -927,7 +922,7 @@ class Test_Post_Type extends \WP_UnitTestCase {
 			),
 		);
 		$post_1 = $post_type->save( array(
-			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
+			'uuid' => wp_generate_uuid4(),
 			'status' => 'draft',
 			'data' => $value_1,
 			'date_gmt' => $date1,
@@ -961,7 +956,7 @@ class Test_Post_Type extends \WP_UnitTestCase {
 		);
 		$date2 = gmdate( 'Y-m-d H:i:s', ( time() + 60 ) );
 		$post_2 = $post_type->save( array(
-			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
+			'uuid' => wp_generate_uuid4(),
 			'status' => 'draft',
 			'data' => $value_2,
 			'date_gmt' => $date2,
@@ -1036,7 +1031,7 @@ class Test_Post_Type extends \WP_UnitTestCase {
 			),
 		);
 		$post_3 = $post_type->save( array(
-			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
+			'uuid' => wp_generate_uuid4(),
 			'status' => 'draft',
 			'data' => $value_3,
 			'date_gmt' => $date3,
@@ -1193,7 +1188,72 @@ class Test_Post_Type extends \WP_UnitTestCase {
 	 * @covers \CustomizeSnapshots\Post_Type::remap_customize_meta_cap()
 	 */
 	public function test_remap_customize_meta_cap() {
-		$this->mark_incompatible();
 		$this->markTestIncomplete();
+	}
+
+	/**
+	 * Tests display_post_states.
+	 *
+	 * @covers \CustomizeSnapshots\Post_Type::display_post_states()
+	 */
+	public function test_display_post_states() {
+		$post_type_obj = new Post_Type( $this->plugin->customize_snapshot_manager );
+
+		$post_id = $post_type_obj->save( array(
+			'uuid' => self::UUID,
+			'data' => array( 'foo' => array( 'value' => 'bar' ) ),
+		) );
+		$states = $post_type_obj->display_post_states( array(), get_post( $post_id ) );
+		$this->assertArrayNotHasKey( 'snapshot_error', $states );
+
+		update_post_meta( $post_id, 'snapshot_error_on_publish', true );
+		$states = $post_type_obj->display_post_states( array(), get_post( $post_id ) );
+		$this->assertArrayHasKey( 'snapshot_error', $states );
+	}
+
+	/**
+	 * Tests show_publish_error_admin_notice.
+	 *
+	 * @covers \CustomizeSnapshots\Post_Type::show_publish_error_admin_notice()
+	 */
+	public function test_show_publish_error_admin_notice() {
+		global $current_screen, $post;
+		wp_set_current_user( $this->factory()->user->create( array(
+			'role' => 'administrator',
+		) ) );
+		$post_type_obj = new Post_Type( $this->plugin->customize_snapshot_manager );
+		$post_type_obj->init();
+		$post_id = $post_type_obj->save( array(
+			'uuid' => self::UUID,
+			'data' => array(),
+		) );
+
+		ob_start();
+		$post_type_obj->show_publish_error_admin_notice();
+		$this->assertEmpty( ob_get_clean() );
+
+		$current_screen = \WP_Screen::get( 'customize_snapshot' ); // WPCS: Override ok.
+		$current_screen->id = 'customize_snapshot';
+		$current_screen->base = 'edit';
+		ob_start();
+		$post_type_obj->show_publish_error_admin_notice();
+		$this->assertEmpty( ob_get_clean() );
+
+		$current_screen->base = 'post';
+		ob_start();
+		$post_type_obj->show_publish_error_admin_notice();
+		$this->assertEmpty( ob_get_clean() );
+
+		$_REQUEST['snapshot_error_on_publish'] = '1';
+		wp_update_post( array(
+			'ID' => $post_id,
+			'post_status' => 'pending',
+		) );
+		$post = get_post( $post_id ); // WPCS: override ok.
+		ob_start();
+		$post_type_obj->show_publish_error_admin_notice();
+
+		$this->markTestIncomplete();
+		$this->assertContains( 'notice-error', ob_get_clean() ); // @todo Test failing.
 	}
 }
