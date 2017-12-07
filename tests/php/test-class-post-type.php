@@ -1260,4 +1260,60 @@ class Test_Post_Type extends \WP_UnitTestCase {
 		$this->markTestIncomplete();
 		$this->assertContains( 'notice-error', ob_get_clean() ); // @todo Test failing.
 	}
+
+	/**
+	 * Test get_conflicts_setting
+	 *
+	 * @covers \CustomizeSnapshots\Post_Type::get_conflicted_settings()
+	 */
+	public function test_get_conflicts_setting() {
+		$post_type = $this->get_new_post_type_instance( $this->plugin->customize_snapshot_manager );
+		$tomorrow = date( 'Y-m-d H:i:s', time() + 86400 );
+
+		$post_id1 = $post_type->save( array(
+			'uuid' => self::UUID,
+			'data' => array( 'foo' => array( 'value' => 'bar' ) ),
+			'status' => 'future',
+			'date_gmt' => $tomorrow,
+		) );
+		$post1 = get_post( $post_id1 );
+
+		$post_id2 = $post_type->save( array(
+			'uuid' => wp_generate_uuid4(),
+			'data' => array( 'foo' => array( 'value' => 'baz' ) ),
+			'status' => 'future',
+			'date_gmt' => $tomorrow,
+		) );
+		$post2 = get_post( $post_id2 );
+
+		$conflict = $post_type->get_conflicted_settings( get_post( $post_id2 ) );
+		$match_first = array(
+			'id' => (string) $post_id1,
+			'value' => 'bar',
+			'name' => $post1->post_name === $post1->post_title ? '' : $post1->post_title,
+			'uuid' => $post1->post_name,
+			'edit_link' => get_edit_post_link( $post_id1, 'raw' ),
+			'setting_param' => array(
+				'value' => 'bar',
+			),
+		);
+		$this->assertSame( array( 'foo' => array( $match_first ) ), $conflict );
+		$conflict = $post_type->get_conflicted_settings( null, array( 'foo' ) );
+		$match = array(
+			'foo' => array(
+				$match_first,
+				array(
+					'id' => (string) $post_id2,
+					'value' => 'baz',
+					'name' => $post2->post_name === $post2->post_title ? '' : $post2->post_title,
+					'uuid' => $post2->post_name,
+					'edit_link' => get_edit_post_link( $post_id2, 'raw' ),
+					'setting_param' => array(
+						'value' => 'baz',
+					),
+				),
+			),
+		);
+		$this->assertSame( $match, $conflict );
+	}
 }

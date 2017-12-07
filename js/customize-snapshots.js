@@ -1,6 +1,7 @@
-/* global wp, jQuery */
-/* eslint consistent-this: [ "error", "snapshot", "control" ] */
+/* global wp, jQuery, _ */
+/* eslint consistent-this: [ "error", "snapshot", "inspectControl" ] */
 /* eslint no-magic-numbers: ["error", { "ignore": [0, 1] }] */
+/* eslint max-nested-callbacks: ["error", 4] */
 
 (function( api, $ ) {
 	'use strict';
@@ -10,12 +11,25 @@
 		data: {
 			inspectLink: '',
 			title: '',
+			conflictNonce: '',
 			i18n: {
 				title: '',
 				savePending: '',
 				pendingSaved: '',
-				aysMsg: ''
+				aysMsg: '',
+				conflictNotification: ''
 			}
+		},
+
+		conflict: {
+			warningTemplate: wp.template( 'snapshot-conflict' ),
+			conflictButtonTemplate: wp.template( 'snapshot-conflict-button' ),
+			notificationTemplate: wp.template( 'snapshot-notification-template' ),
+			conflictValueTemplate: wp.template( 'snapshot-conflict-value' ),
+			refreshBuffer: 250,
+			controlThickboxes: {},
+			controlsWithPendingRequest: {},
+			notificationCode: 'snapshot_conflict'
 		},
 
 		initialize: function initialize( snapshotsConfig ) {
@@ -24,6 +38,8 @@
 			if ( _.isObject( snapshotsConfig ) ) {
 				_.extend( snapshot.data, snapshotsConfig );
 			}
+
+			_.bindAll( snapshot, 'addConflictButton', 'handleConflictRequestOnFirstChange', 'sendConflictRequest', 'resetConflicts' );
 
 			api.bind( 'ready', function() {
 				var saveBtn = $( '#save' );
@@ -75,6 +91,10 @@
 					api.trigger( 'customize-snapshots-update', response );
 				} );
 			} );
+
+			api.state( 'saved' ).bind( snapshot.resetConflicts );
+			api.control.bind( 'add', snapshot.addConflictButton );
+			api.control.each( snapshot.addConflictButton );
 		},
 
 		/**
@@ -204,16 +224,16 @@
 					templateId: 'snapshot-inspect-link-control'
 				} ),
 				ready: function() {
-					var control = this, link;
-					link = control.container.find( 'a' );
-					link.attr( 'href', control.setting() );
-					control.setting.bind( function( value ) {
+					var inspectControl = this, link;
+					link = inspectControl.container.find( 'a' );
+					link.attr( 'href', inspectControl.setting() );
+					inspectControl.setting.bind( function( value ) {
 					    link.attr( 'href', value );
 					} );
 
-					control.toggleInspectChangesetControl();
+					inspectControl.toggleInspectChangesetControl();
 					api.state( 'changesetStatus' ).bind( function() {
-						control.toggleInspectChangesetControl();
+						inspectControl.toggleInspectChangesetControl();
 					} );
 				},
 				toggleInspectChangesetControl: function() {
@@ -265,6 +285,214 @@
 		 */
 		getSnapshotFrontendPreviewUrl: function() {
 			return api.previewer.getFrontendPreviewUrl();
+		},
+
+		/**
+		 * Resets conflicts.
+		 *
+		 * @param {boolean} saved saved or not.
+		 * @return {void}
+		 */
+		resetConflicts: function resetConflicts( saved ) {
+			var snapshot = this;
+
+			if ( ! saved ) {
+				return;
+			}
+
+			_.each( snapshot.conflict.controlThickboxes, function( thickBox ) {
+				thickBox.remove();
+			} );
+
+			if ( snapshot.conflict.currentRequest ) {
+				snapshot.conflict.currentRequest.abort();
+				snapshot.conflict.currentRequest = null;
+			}
+
+			snapshot.conflict.controlThickboxes = {};
+			snapshot.conflict.controlsWithPendingRequest = {};
+
+			api.control.each( function( control ) {
+				_.each( control.settings, function( setting ) {
+					setting.unbind( snapshot.handleConflictRequestOnFirstChange );
+				} );
+				control.notifications.remove( snapshot.conflict.notificationCode );
+				snapshot.addConflictButton( control );
+			} );
+		},
+
+		/**
+		 * Handle conflict on first settings change.
+		 *
+		 * @param {wp.customize.Control} control Control.
+		 * @return {void}
+		 */
+		handleConflictRequestOnFirstChange: function handleConflictRequestOnFirstChange( control ) {
+			var snapshot = this;
+
+			_.each( control.settings, function( setting ) {
+				setting.unbind( snapshot.handleConflictRequestOnFirstChange );
+				snapshot.handleConflictRequest( setting, control );
+			} );
+		},
+
+		/**
+		 * Add conflict button icon on first change and trigger handleConflictRequest.
+		 *
+		 * @param {object} control where conflict button will be added.
+		 *
+		 * @return {void}
+		 */
+		addConflictButton: function addConflictButton( control ) {
+			var snapshot = this;
+
+			control.deferred.embedded.done( function() {
+				var hasDirty, updateCurrentValue, bindFirstChange = false;
+
+				if ( ! control.setting || api.section( control.section() ).extended( api.OuterSection ) ) {
+					return;
+				}
+
+				updateCurrentValue = function() {
+					_.each( control.settings, function( setting ) {
+						snapshot.updateConflictValueMarkup( setting.id, control.container );
+					} );
+				};
+
+				hasDirty = _.find( control.settings, function( setting ) {
+					return setting._dirty;
+				} );
+
+				if ( hasDirty ) {
+					snapshot.handleConflictRequestOnFirstChange( control );
+				} else {
+					bindFirstChange = true;
+				}
+				_.each( control.settings, function( setting ) {
+					if ( bindFirstChange ) {
+						setting.bind( function() {
+							snapshot.handleConflictRequestOnFirstChange( control );
+						} );
+					}
+					setting.bind( updateCurrentValue );
+				} );
+			} );
+		},
+
+		/**
+		 * Handles the snapshot conflict request
+		 *
+		 * @param {object} setting to check conflicts
+		 * @param {object} control object
+		 *
+		 * @return {void}
+		 */
+		handleConflictRequest: function handleConflictRequest( setting, control ) {
+			var snapshot = this;
+
+			if ( _.isUndefined( control ) || _.isUndefined( control.notifications ) ) {
+				return;
+			}
+
+			if ( snapshot.conflict.currentRequest ) {
+				snapshot.conflict.currentRequest.abort();
+				snapshot.conflict.currentRequest = null;
+			}
+
+			if ( snapshot.conflict.conflictRequestTimeout ) {
+				clearTimeout( snapshot.conflict.conflictRequestTimeout );
+				snapshot.conflict.conflictRequestTimeout = null;
+			}
+
+			if ( ! _.isFunction( setting.findControls ) ) {
+				return;
+			}
+
+			snapshot.conflict.controlsWithPendingRequest[ setting.id ] = setting.findControls();
+			snapshot.conflict.conflictRequestTimeout = _.delay( snapshot.sendConflictRequest, snapshot.conflict.refreshBuffer );
+		},
+
+		/**
+		 * Send Conflict Request
+		 *
+		 * @return {void}
+		 */
+		sendConflictRequest: function() {
+			var snapshot = this, settingIds;
+
+			settingIds = _.keys( snapshot.conflict.controlsWithPendingRequest );
+
+			if ( _.isEmpty( settingIds ) ) {
+				return;
+			}
+
+			snapshot.conflict.currentRequest = wp.ajax.post( 'customize_snapshot_conflict_check', {
+				setting_ids: settingIds,
+				nonce: snapshot.data.conflictNonce,
+				changeset_uuid: api.settings.changeset.uuid
+			} );
+
+			snapshot.conflict.currentRequest.done( function( response ) {
+				var multiple, controls, buttonTemplate, notification, notificationsContainer;
+
+				if ( ! _.isEmpty( response ) ) {
+					_.each( response, function( value, key ) {
+
+						snapshot.conflict.controlThickboxes[ key ] = $( $.trim( snapshot.conflict.warningTemplate( {
+							setting_id: key,
+							conflicts: value
+						} ) ) );
+
+						multiple = false;
+						controls = snapshot.conflict.controlsWithPendingRequest[ key ];
+						buttonTemplate = $( $.trim( snapshot.conflict.conflictButtonTemplate( {
+							setting_id: key
+						} ) ) );
+
+						_.each( controls, function( control ) {
+							control.notificationsTemplate = snapshot.conflict.notificationTemplate;
+							notification = new api.Notification( snapshot.conflict.notificationCode, {
+								type: 'warning',
+								message: $.trim( buttonTemplate.html() )
+							} );
+
+							control.notifications.add( snapshot.conflict.notificationCode, notification );
+
+							if ( ! multiple ) {
+								notificationsContainer = control.container.find( '.customize-control-notifications-container' );
+								if ( notificationsContainer.length ) {
+									snapshot.conflict.controlThickboxes[ key ].insertAfter( notificationsContainer );
+									snapshot.updateConflictValueMarkup( key, snapshot.conflict.controlThickboxes[key] );
+								}
+							}
+
+							control.container.find( '.snapshot-conflicts-button' ).show();
+							multiple = true;
+						} );
+					} );
+				}
+				snapshot.conflict.controlsWithPendingRequest = {};
+			} );
+		},
+
+		/**
+		 * Update markup with current value
+		 *
+		 * @param {string} settingId setting id.
+		 * @param {object} selector control container or conflict markup container.
+		 *
+		 * @return {void}
+		 */
+		updateConflictValueMarkup: function updateConflictValueMarkup( settingId, selector ) {
+			var snapshot = this, newCurrentValueMarkup,
+				snapshotCurrentValueSelector = selector.find( 'details:first .snapshot-value' );
+
+			if ( snapshotCurrentValueSelector.length ) {
+				newCurrentValueMarkup = snapshot.conflict.conflictValueTemplate( {
+					value: api( settingId ).get()
+				} );
+				snapshotCurrentValueSelector.html( newCurrentValueMarkup );
+			}
 		}
 	} );
 

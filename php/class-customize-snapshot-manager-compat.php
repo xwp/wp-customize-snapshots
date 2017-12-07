@@ -49,6 +49,7 @@ class Customize_Snapshot_Manager_Compat extends Customize_Snapshot_Manager {
 			'initialServerDate' => current_time( 'mysql', false ),
 			'initialServerTimestamp' => floor( microtime( true ) * 1000 ),
 			'previewingTheme' => isset( $preview_url_query_vars['theme'] ) ? $preview_url_query_vars['theme'] : '',
+			'conflictNonce' => wp_create_nonce( Post_Type::SLUG . '_conflict' ),
 			'i18n' => array(
 				'saveButton' => __( 'Save', 'customize-snapshots' ),
 				'updateButton' => __( 'Update', 'customize-snapshots' ),
@@ -63,6 +64,7 @@ class Customize_Snapshot_Manager_Compat extends Customize_Snapshot_Manager {
 				'errorTitle' => __( 'Error', 'customize-snapshots' ),
 				'collapseSnapshotScheduling' => __( 'Collapse changeset scheduling', 'customize-snapshots' ),
 				'expandSnapshotScheduling' => __( 'Expand changeset scheduling', 'customize-snapshots' ),
+				'conflictNotification' => __( 'Potential changeset conflicts', 'customize-snapshots' ),
 			),
 		) );
 
