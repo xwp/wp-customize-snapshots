@@ -864,12 +864,11 @@ class Post_Type {
 	/**
 	 * Merge two or more snapshots
 	 *
-	 * @param array $post_ids post id array.
+	 * @param array $posts post array.
 	 *
 	 * @return int Changeset post id.
 	 */
-	public function merge_snapshots( $post_ids ) {
-		$posts = array_map( 'get_post', $post_ids );
+	public function merge_snapshots( $posts ) {
 		usort( $posts, function( $a, $b ) {
 			$compare_a = $a->post_modified;
 			$compare_b = $b->post_modified;

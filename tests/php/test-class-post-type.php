@@ -921,7 +921,7 @@ class Test_Post_Type extends \WP_UnitTestCase {
 				),
 			),
 		);
-		$post_1 = $post_type->save( array(
+		$post_id_1 = $post_type->save( array(
 			'uuid' => wp_generate_uuid4(),
 			'status' => 'draft',
 			'data' => $value_1,
@@ -955,28 +955,32 @@ class Test_Post_Type extends \WP_UnitTestCase {
 			),
 		);
 		$date2 = gmdate( 'Y-m-d H:i:s', ( time() + 60 ) );
-		$post_2 = $post_type->save( array(
+		$post_id_2 = $post_type->save( array(
 			'uuid' => wp_generate_uuid4(),
 			'status' => 'draft',
 			'data' => $value_2,
 			'date_gmt' => $date2,
 		) );
+		$post_1 = get_post( $post_id_1 );
+		$post_2 = get_post( $post_id_2 );
 
-		$merged_post_id = $post_type->merge_snapshots( array( $post_1, $post_2 ) );
-		$post_1_uuid = get_post( $post_1 )->post_name;
-		$post_2_obj = get_post( $post_2 );
-		$post_2_uuid = $post_2_obj->post_name;
+		$merged_post_id = $post_type->merge_snapshots( array(
+			$post_1,
+			$post_2,
+		) );
+		$post_1_uuid = $post_1->post_name;
+		$post_2_uuid = $post_2->post_name;
 
 		$expected = array(
 			'foo' => array(
 				'value' => 'baz',
 				'merge_conflict' => array(
 					array(
-						'uuid' => get_post( $post_1 )->post_name,
+						'uuid' => get_post( $post_id_1 )->post_name,
 						'value' => 'bar',
 					),
 					array(
-						'uuid' => $post_2_obj->post_name,
+						'uuid' => $post_2->post_name,
 						'value' => 'baz',
 					),
 				),
