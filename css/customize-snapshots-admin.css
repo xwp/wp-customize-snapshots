@@ -48,7 +48,7 @@ a.snapshot-thickbox {
 	visibility: hidden;
 }
 
-.snapshot-conflict-details article {
+.snapshot-conflict-details article, .snapshot-conflict-details div {
 	padding: 0 10px;
 	background: #ffffff;
 	border: 1px solid #e5e5e5;

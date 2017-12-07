@@ -1276,7 +1276,7 @@ class Post_Type {
 			echo '<ul>';
 			foreach ( $value['merge_conflict'] as $conflicted_data ) {
 				echo '<li>';
-				echo '<details open>';
+				echo '<details open class="snapshot-conflict-details">';
 				echo '<summary>';
 				$input = '<input type="radio" class="snapshot-resolved-settings" data-setting-value-selector="snapshot-setting-preview-' . $setting_id_key . '"';
 				$json = wp_json_encode( array(
