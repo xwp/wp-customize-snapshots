@@ -678,40 +678,38 @@ class Customize_Snapshot_Manager {
 
 		<script type="text/html" id="tmpl-snapshot-conflict">
 			<div id="snapshot-conflicts-{{data.setting_id}}" class="snapshot-conflict-thickbox-content thickbox">
-					<# _.each( data.conflicts, function( setting ) { #>
-						<details class="snapshot-conflict-details">
-							<summary>
-								<code>{{setting.uuid}}
-									<# if ( ! _.isEmpty( setting.name ) ) {
-										if ( ! _.isEmpty( setting.uuid ) ){ #>
-											-
-										<# } #>
-										{{setting.name}}
+				<# _.each( data.conflicts, function( setting ) { #>
+					<details class="snapshot-conflict-details">
+						<summary>
+							<code>{{setting.uuid}}
+								<# if ( ! _.isEmpty( setting.name ) ) {
+									if ( ! _.isEmpty( setting.uuid ) ){ #>
+										-
 									<# } #>
-								</code>
-								<# if ( ! _.isEmpty( setting.edit_link ) ) { #>
-									<a target="_blank" href="{{setting.edit_link}}" class="dashicons dashicons-external"></a>
+									{{setting.name}}
 								<# } #>
-							</summary>
-							<article class="snapshot-value">
-								{{{setting.value}}}
-							</article>
-						</details>
-					<# }); #>
+							</code>
+							<# if ( ! _.isEmpty( setting.edit_link ) ) { #>
+								<a target="_blank" href="{{setting.edit_link}}" class="dashicons dashicons-external"></a>
+							<# } #>
+						</summary>
+						<article class="snapshot-value">
+							{{{setting.value}}}
+						</article>
+					</details>
+				<# }); #>
 			</div>
 		</script>
 
 		<script type="text/html" id="tmpl-snapshot-conflict-value">
 			<# if ( _.isEmpty( data.value ) ) { #>
-					<em><?php esc_html_e( '(Empty String)', 'customize-snapshots' ); ?></em>
+				<em><?php esc_html_e( '(Empty String)', 'customize-snapshots' ); ?></em>
 			<# } else if ( _.isString( data.value ) ||  _.isNumber( data.value ) ) { #>
-					<p>{{data.value}}</p>
-			<# } else if ( _.isBoolean(data.value) ) {
-				var temp = JSON.stringify(data.value); #>
-					<p>{{temp}}</p>
-			<# } else {
-				var temp = JSON.stringify( data.value, null, 4 ); #>
-				<pre class="pre">{{temp}}</pre>
+				<p>{{data.value}}</p>
+			<# } else if ( _.isBoolean(data.value) ) { #>
+				<p>{{ JSON.stringify(data.value) }}</p>
+			<# } else { #>
+				<pre class="pre">{{ JSON.stringify( data.value, null, 4 ) }}</pre>
 			<# } #>
 		</script>
 		<?php
