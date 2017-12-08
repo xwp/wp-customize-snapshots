@@ -494,7 +494,7 @@ class Post_Type {
 	 * @param mixed         $value Value to be printed.
 	 * @param string        $setting_id setting id.
 	 * @param array         $setting_params param raw array.
-	 * @param /WP_Post|null $post Post object of where setting belongs.
+	 * @param \WP_Post|null $post Post object of where setting belongs.
 	 *
 	 * @return string
 	 * @internal param $data
@@ -1131,8 +1131,8 @@ class Post_Type {
 	/**
 	 * Get conflicts settings
 	 *
-	 * @param \WP_Post $post post to compare conflict values.
-	 * @param array    $settings setting to search for optional.
+	 * @param \WP_Post $post     Post to compare conflict values.
+	 * @param array    $settings Setting to search for optional.
 	 *
 	 * @return array
 	 */
