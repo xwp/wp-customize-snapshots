@@ -11,7 +11,6 @@
 		data: {
 			inspectLink: '',
 			title: '',
-			conflictNonce: '',
 			i18n: {
 				title: '',
 				savePending: '',
@@ -29,7 +28,8 @@
 			refreshBuffer: 250,
 			controlThickboxes: {},
 			controlsWithPendingRequest: {},
-			notificationCode: 'snapshot_conflict'
+			notificationCode: 'snapshot_conflict',
+			nonce: ''
 		},
 
 		/**
@@ -50,6 +50,7 @@
 			api.bind( 'ready', function() {
 				var saveBtn = $( '#save' );
 
+				snapshot.conflict.nonce = api.settings.nonce['conflict-nonce'];
 				snapshot.data.title = snapshot.data.title || api.settings.changeset.uuid;
 				api.state.create( 'changesetTitle', snapshot.data.title );
 				api.state.create( 'changesetInspectUrl', snapshot.data.inspectLink );
@@ -443,7 +444,7 @@
 
 			snapshot.conflict.currentRequest = wp.ajax.post( 'customize_snapshot_conflict_check', {
 				setting_ids: settingIds,
-				nonce: snapshot.data.conflictNonce,
+				nonce: snapshot.conflict.nonce,
 				changeset_uuid: api.settings.changeset.uuid
 			} );
 

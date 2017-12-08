@@ -66,6 +66,7 @@ class Customize_Snapshot_Manager {
 		add_action( 'delete_post', array( $this, 'clean_up_nav_menus_created_auto_drafts' ) );
 		add_filter( 'customize_save_response', array( $this, 'add_snapshot_var_to_customize_save' ), 10, 2 );
 		add_action( 'wp_ajax_customize_snapshot_conflict_check', array( $this, 'handle_conflicts_snapshot_request' ) );
+		add_filter( 'customize_refresh_nonces', array( $this, 'refresh_nonces' ) );
 	}
 
 	/**
@@ -208,7 +209,6 @@ class Customize_Snapshot_Manager {
 			'addWorkaroundFor42686' => version_compare( $wp_version, '4.9', '==' ) || version_compare( $wp_version, '4.9.1', '==' ),
 			'title' => isset( $post->post_title ) ? $post->post_title : '',
 			'previewingTheme' => isset( $preview_url_query_vars['theme'] ) ? $preview_url_query_vars['theme'] : '',
-			'conflictNonce' => wp_create_nonce( Post_Type::SLUG . '_conflict' ),
 			'i18n' => array(
 				'title' => __( 'Title', 'customize-snapshots' ),
 				'savePending' => __( 'Save Pending', 'customize-snapshots' ),
@@ -222,6 +222,17 @@ class Customize_Snapshot_Manager {
 			sprintf( 'wp.customize.snapshots = new wp.customize.Snapshots( %s );', wp_json_encode( $exports ) ),
 			'after'
 		);
+	}
+
+	/**
+	 * Refreshes the conflict nonce.
+	 *
+	 * @param  array $nonces Array of nonces.
+	 * @return array $nonces Array of nonces.
+	 */
+	public function refresh_nonces( $nonces ) {
+		$nonces['conflict-nonce'] = wp_create_nonce( Post_Type::SLUG . '_conflict' );
+		return $nonces;
 	}
 
 	/**
