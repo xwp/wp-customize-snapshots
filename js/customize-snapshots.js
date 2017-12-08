@@ -32,6 +32,12 @@
 			notificationCode: 'snapshot_conflict'
 		},
 
+		/**
+		 * Initialize.
+		 *
+		 * @param {object} snapshotsConfig Snapshot configuration.
+		 * @return {void}
+		 */
 		initialize: function initialize( snapshotsConfig ) {
 			var snapshot = this;
 
@@ -112,7 +118,7 @@
 		 * @param {wp.customize.Section} section Publish settings section.
 		 * @return {void}
 		 */
-		addTitleControl: function( section ) {
+		addTitleControl: function addTitleControl( section ) {
 		    var snapshot = this, titleControl;
 
 			titleControl = new api.Control( 'changeset_title', {
@@ -142,7 +148,7 @@
 		 *
 		 * @return {{}} Query vars for scroll, device, url, and autofocus.
 		 */
-		getStateQueryVars: function() {
+		getStateQueryVars: function getStateQueryVars() {
 			var snapshot = this, queryVars;
 
 			queryVars = {
@@ -186,7 +192,7 @@
 		 * @param {wp.customize.Control} dateControl Changeset schedule date control.
 		 * @return {void}
 		 */
-		setupScheduledChangesetCountdown: function( dateControl ) {
+		setupScheduledChangesetCountdown: function setupScheduledChangesetCountdown( dateControl ) {
 			var template, countdownContainer, setNextChangesetUUID;
 
 			template = wp.template( 'snapshot-scheduled-countdown' );
@@ -225,7 +231,7 @@
 		 * @param {wp.customize.Section} section Section.
 		 * @return {void}
 		 */
-		addInspectChangesetControl: function( section ) {
+		addInspectChangesetControl: function addInspectChangesetControl( section ) {
 			var InspectLinkControl;
 
 			InspectLinkControl = api.Control.extend( {
@@ -263,7 +269,7 @@
 		 *
 		 * @return {void}
 		 */
-		addPendingToStatusControl: function() {
+		addPendingToStatusControl: function addPendingToStatusControl() {
 			var snapshot = this, params, coreStatusControl, draftIndex = 0;
 
 			coreStatusControl = api.control( 'changeset_status' );
@@ -292,14 +298,14 @@
 		 *
 		 * @returns {string} URL.
 		 */
-		getSnapshotFrontendPreviewUrl: function() {
+		getSnapshotFrontendPreviewUrl: function getSnapshotFrontendPreviewUrl() {
 			return api.previewer.getFrontendPreviewUrl();
 		},
 
 		/**
 		 * Resets conflicts.
 		 *
-		 * @param {boolean} saved saved or not.
+		 * @param {boolean} saved - If saved or not.
 		 * @return {void}
 		 */
 		resetConflicts: function resetConflicts( saved ) {
@@ -333,7 +339,7 @@
 		/**
 		 * Handle conflict on first settings change.
 		 *
-		 * @param {wp.customize.Control} control Control.
+		 * @param {wp.customize.Control} control - Control.
 		 * @return {void}
 		 */
 		handleConflictRequestOnFirstChange: function handleConflictRequestOnFirstChange( control ) {
@@ -391,8 +397,8 @@
 		/**
 		 * Handles the snapshot conflict request
 		 *
-		 * @param {object} setting to check conflicts
-		 * @param {object} control object
+		 * @param {object} setting               - Setting to check conflicts.
+		 * @param {wp.customize.Control} control - Control.
 		 *
 		 * @return {void}
 		 */
@@ -426,7 +432,7 @@
 		 *
 		 * @return {void}
 		 */
-		sendConflictRequest: function() {
+		sendConflictRequest: function sendConflictRequest() {
 			var snapshot = this, settingIds;
 
 			settingIds = _.keys( snapshot.conflict.controlsWithPendingRequest );
@@ -487,8 +493,8 @@
 		/**
 		 * Update markup with current value
 		 *
-		 * @param {string} settingId setting id.
-		 * @param {object} selector control container or conflict markup container.
+		 * @param {string} settingId - Setting id.
+		 * @param {jQuery} selector  - Control container or conflict markup container.
 		 *
 		 * @return {void}
 		 */
