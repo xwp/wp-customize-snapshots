@@ -1,6 +1,7 @@
 /* global wp, jQuery */
 /* eslint consistent-this: [ "error", "snapshot", "control" ] */
 /* eslint no-magic-numbers: ["error", { "ignore": [0, 1] }] */
+/* eslint max-nested-callbacks: [ "error", 4 ] */
 
 (function( api, $ ) {
 	'use strict';
@@ -53,6 +54,15 @@
 					snapshot.addPendingToStatusControl();
 					snapshot.addTitleControl( section );
 					snapshot.addInspectChangesetControl( section );
+
+					/**
+					 * This is not ideal but is just a workaround to fix https://core.trac.wordpress.org/ticket/42686 for 4.9 and 4.9.1.
+					 */
+					section.expanded.bind( function( expanded ) {
+						if ( snapshot.data.addWorkaroundFor42686 && expanded ) {
+							api.settings.changeset.currentUserCanPublish = true;
+						}
+					} );
 				} );
 
 				// For backward compat.

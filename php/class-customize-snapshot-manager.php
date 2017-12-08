@@ -190,6 +190,7 @@ class Customize_Snapshot_Manager {
 		$post = null;
 		$preview_url_query_vars = array();
 		$post_id = $this->get_customize_manager()->changeset_post_id();
+		$wp_version = strtok( get_bloginfo( 'version' ), '-' );
 
 		if ( $post_id ) {
 			$post = get_post( $post_id );
@@ -202,6 +203,7 @@ class Customize_Snapshot_Manager {
 		// Script data array.
 		$exports = apply_filters( 'customize_snapshots_export_data', array(
 			'inspectLink' => isset( $edit_link ) ? $edit_link : '',
+			'addWorkaroundFor42686' => version_compare( $wp_version, '4.9', '==' ) || version_compare( $wp_version, '4.9.1', '==' ),
 			'title' => isset( $post->post_title ) ? $post->post_title : '',
 			'previewingTheme' => isset( $preview_url_query_vars['theme'] ) ? $preview_url_query_vars['theme'] : '',
 			'i18n' => array(
