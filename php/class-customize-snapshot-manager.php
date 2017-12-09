@@ -660,11 +660,11 @@ class Customize_Snapshot_Manager {
 		</script>
 
 		<script type="text/html" id="tmpl-snapshot-conflict-button">
-			<?php $title_text = __( 'has potential conflicts (click to expand)', 'customize-snapshots' ); ?>
-			<# id= data.setting_id.replace( /\]/g, '\\]' ).replace( /\[/g, '\\[' ); #>
+			<# var id = data.setting_id.replace( /\]/g, '\\]' ).replace( /\[/g, '\\[' ); #>
+			<# var titleText = '<?php esc_attr_e( '%s has potential conflicts (click to expand)', 'customize-snapshots' ); ?>'; #>
 			<span>
 				<?php esc_html_e( 'Conflicts', 'customize-snapshots' ); ?>
-				<a href="<?php echo esc_url( '#TB_inline?width=600&height=550&inlineId=snapshot-conflicts-' ); ?>{{id}}" class="dashicons dashicons-warning thickbox snapshot-conflicts-button" title="{{id}} <?php echo esc_attr( $title_text ); ?>"></a>
+				<a href="<?php echo esc_url( '#TB_inline?width=600&height=550&inlineId=snapshot-conflicts-' ); ?>{{id}}" class="dashicons dashicons-warning thickbox snapshot-conflicts-button" title="{{ titleText.replace( '%s', id ) }}"></a>
 			</span>
 		</script>
 
