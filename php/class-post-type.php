@@ -454,6 +454,8 @@ class Post_Type {
 			if ( isset( $conflicts_settings[ $setting_id ] ) ) {
 				$setting_id_key = str_replace( '[', '\\[', $setting_id );
 				$setting_id_key = str_replace( ']', '\\]', $setting_id_key );
+
+				/* translators: %s: Setting id which has potential conflict. */
 				$title_text = sprintf( __( '%s has potential conflicts (click to expand)', 'customize-snapshots' ), $setting_id );
 				echo '<a href="#TB_inline?width=600&height=550&inlineId=snapshot-' . esc_attr( $setting_id_key ) . '" class="dashicons dashicons-warning thickbox snapshot-thickbox" title="' . esc_attr( $title_text ) . '"></a>'; ?>
 				<div id="snapshot-<?php echo esc_attr( $setting_id ); ?>" style="display:none;">
