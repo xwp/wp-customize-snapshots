@@ -1134,22 +1134,21 @@ class Post_Type {
 	 * Get conflicts settings
 	 *
 	 * @param \WP_Post $post     Post to compare conflict values.
-	 * @param array    $settings Setting to search for optional.
-	 *
-	 * @return array
+	 * @param array    $settings Setting IDS to search for (optional).
+	 * @return array Conflicted settings.
 	 */
 	public function get_conflicted_settings( $post, $settings = array() ) {
 		global $wpdb;
 		if ( $post && static::SLUG === get_post_type( $post ) ) {
 			$post = get_post( $post );
+			$changeset_data = $this->get_post_content( $post );
 		}
 		$conflicted_settings = array();
 		if ( empty( $settings ) ) {
-			$content = $this->get_post_content( $post );
-			if ( empty( $content ) || ! is_array( $content ) ) {
+			if ( empty( $changeset_data ) || ! is_array( $changeset_data ) ) {
 				return $conflicted_settings;
 			}
-			$settings = array_keys( $content );
+			$settings = array_keys( $changeset_data );
 			if ( empty( $settings ) ) {
 				return $conflicted_settings;
 			}
@@ -1172,22 +1171,28 @@ class Post_Type {
 		if ( ! empty( $results ) ) {
 			foreach ( $results as $item ) {
 				$data = json_decode( $item['post_content'], true );
-				$snapshot_content_keys = array_keys( $data );
-				$conflicts_keys = array_intersect( $snapshot_content_keys, $settings );
-				if ( empty( $conflicts_keys ) ) {
+				$other_changeset_setting_ids = array_keys( $data );
+				$common_setting_ids = array_intersect( $other_changeset_setting_ids, $settings );
+				if ( empty( $common_setting_ids ) ) {
 					continue;
 				}
-				foreach ( $conflicts_keys as $conflicts_key ) {
-					if ( ! isset( $conflicted_settings[ $conflicts_key ] ) ) {
-						$conflicted_settings[ $conflicts_key ] = array();
+				foreach ( $common_setting_ids as $setting_id ) {
+
+					// Skip other changesets that have the same value.
+					if ( isset( $data[ $setting_id ]['value'] ) && isset( $changeset_data[ $setting_id ]['value'] ) && $data[ $setting_id ]['value'] === $changeset_data[ $setting_id ]['value'] ) {
+						continue;
 					}
-					$conflicted_settings[ $conflicts_key ][] = array(
+
+					if ( ! isset( $conflicted_settings[ $setting_id ] ) ) {
+						$conflicted_settings[ $setting_id ] = array();
+					}
+					$conflicted_settings[ $setting_id ][] = array(
 						'id' => $item['ID'],
-						'value' => $data[ $conflicts_key ]['value'],
+						'value' => $data[ $setting_id ]['value'],
 						'name' => ( $item['post_title'] === $item['post_name'] ) ? '' : $item['post_title'],
 						'uuid' => $item['post_name'],
 						'edit_link' => get_edit_post_link( $item['ID'], 'raw' ),
-						'setting_param' => $data[ $conflicts_key ],
+						'setting_param' => $data[ $setting_id ],
 					);
 				}
 			}
