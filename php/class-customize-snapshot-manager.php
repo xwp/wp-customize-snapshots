@@ -663,7 +663,7 @@ class Customize_Snapshot_Manager {
 			<# var id = data.setting_id.replace( /\]/g, '\\]' ).replace( /\[/g, '\\[' ); #>
 			<# var titleText = <?php /* translators: %s: Setting id which has potential conflict. */ echo wp_json_encode( __( '%s has potential conflicts (click to expand)', 'customize-snapshots' ) ); ?>; #>
 			<span>
-				<?php esc_html_e( 'Conflicts', 'customize-snapshots' ); ?>
+				<?php esc_html_e( 'Potential conflicts', 'customize-snapshots' ); ?>
 				<a href="<?php echo esc_url( '#TB_inline?width=600&height=550&inlineId=snapshot-conflicts-' ); ?>{{id}}" class="dashicons dashicons-warning thickbox snapshot-conflicts-button" title="{{ titleText.replace( '%s', id ) }}"></a>
 			</span>
 		</script>

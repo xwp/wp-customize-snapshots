@@ -355,8 +355,7 @@
 		/**
 		 * Add conflict button icon on first change and trigger handleConflictRequest.
 		 *
-		 * @param {object} control where conflict button will be added.
-		 *
+		 * @param {wp.customize.Control} control - Control where conflict button will be added.
 		 * @return {void}
 		 */
 		addConflictButton: function addConflictButton( control ) {
@@ -371,7 +370,9 @@
 
 				updateCurrentValue = function() {
 					_.each( control.settings, function( setting ) {
-						snapshot.updateConflictValueMarkup( setting.id, control.container );
+						if ( setting.extended( api.Setting ) ) {
+							snapshot.updateConflictValueMarkup( setting.id, control.container );
+						}
 					} );
 				};
 
@@ -396,9 +397,9 @@
 		},
 
 		/**
-		 * Handles the snapshot conflict request
+		 * Handles the snapshot conflict request.
 		 *
-		 * @param {object} setting               - Setting to check conflicts.
+		 * @param {wp.customize.Setting} setting - Setting to check conflicts.
 		 * @param {wp.customize.Control} control - Control.
 		 *
 		 * @return {void}
@@ -452,17 +453,17 @@
 				var multiple, controls, buttonTemplate, notification, notificationsContainer;
 
 				if ( ! _.isEmpty( response ) ) {
-					_.each( response, function( value, key ) {
+					_.each( response, function( conflicts, settingId ) {
 
-						snapshot.conflict.controlThickboxes[ key ] = $( $.trim( snapshot.conflict.warningTemplate( {
-							setting_id: key,
-							conflicts: value
+						snapshot.conflict.controlThickboxes[ settingId ] = $( $.trim( snapshot.conflict.warningTemplate( {
+							setting_id: settingId,
+							conflicts: conflicts
 						} ) ) );
 
 						multiple = false;
-						controls = snapshot.conflict.controlsWithPendingRequest[ key ];
+						controls = snapshot.conflict.controlsWithPendingRequest[ settingId ];
 						buttonTemplate = $( $.trim( snapshot.conflict.conflictButtonTemplate( {
-							setting_id: key
+							setting_id: settingId
 						} ) ) );
 
 						_.each( controls, function( control ) {
@@ -477,8 +478,8 @@
 							if ( ! multiple ) {
 								notificationsContainer = control.container.find( '.customize-control-notifications-container' );
 								if ( notificationsContainer.length ) {
-									snapshot.conflict.controlThickboxes[ key ].insertAfter( notificationsContainer );
-									snapshot.updateConflictValueMarkup( key, snapshot.conflict.controlThickboxes[key] );
+									snapshot.conflict.controlThickboxes[ settingId ].insertAfter( notificationsContainer );
+									snapshot.updateConflictValueMarkup( settingId, snapshot.conflict.controlThickboxes[ settingId ] );
 								}
 							}
 
