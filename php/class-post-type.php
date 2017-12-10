@@ -1153,8 +1153,7 @@ class Post_Type {
 				return $conflicted_settings;
 			}
 		}
-		$query = $wpdb->prepare( "SELECT ID, post_name, post_title, post_status, post_content FROM $wpdb->posts WHERE post_type = %s AND post_status IN ( 'pending', 'future' ) ", static::SLUG );
-		// Todo: finalize post_status to check in.
+		$query = $wpdb->prepare( "SELECT ID, post_name, post_title, post_status, post_content FROM $wpdb->posts WHERE post_type = %s AND post_status IN ( 'pending', 'future', 'draft' ) ", static::SLUG );
 		if ( $post instanceof \WP_Post ) {
 			$query .= $wpdb->prepare( 'AND ID != %d ', $post->ID );
 		}
