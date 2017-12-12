@@ -459,7 +459,7 @@ class Post_Type {
 			echo '<summary><code>' . esc_html( $setting_id ) . '</code> ';
 			if ( 'publish' !== get_post_status( $post ) ) {
 				echo '<span class="snapshot-setting-actions">';
-				$this->resolve_conflict_markup( $setting_id, $setting_params, $snapshot_content );
+				$this->resolve_conflict_markup( $setting_id, $setting_params, $snapshot_content, $post );
 				echo '<a href="#" id="' . esc_attr( $setting_id ) . '" data-text-restore="' . esc_attr__( 'Restore setting', 'customize-snapshots' ) . '" class="snapshot-toggle-setting-removal remove">' . esc_html__( 'Remove setting', 'customize-snapshots' ) . '</a>';
 				echo '</span>';
 			}
@@ -489,6 +489,7 @@ class Post_Type {
 
 				/* translators: %s: Setting id which has potential conflict. */
 				$title_text = sprintf( __( '%s has potential conflicts (click to expand)', 'customize-snapshots' ), $setting_id );
+
 				echo '<a href="#TB_inline?width=600&height=550&inlineId=snapshot-' . esc_attr( $setting_id_key ) . '" class="dashicons dashicons-warning thickbox snapshot-thickbox" title="' . esc_attr( $title_text ) . '"></a>'; ?>
 				<div id="snapshot-<?php echo esc_attr( $setting_id ); ?>" style="display:none;">
 					<?php foreach ( $conflicts_settings[ $setting_id ] as $data ) { ?>
@@ -1270,14 +1271,28 @@ class Post_Type {
 	 * Generate resolve conflict markup.
 	 * This will add thickbox with radio button to select between conflicted setting values.
 	 *
-	 * @param string $setting_id       setting id.
-	 * @param array  $value            setting value.
-	 * @param array  $snapshot_content snapshot post-content.
+	 * @param string   $setting_id       setting id.
+	 * @param array    $value            setting value.
+	 * @param array    $snapshot_content snapshot post-content.
+	 * @param \WP_Post $post             Post object.
 	 */
-	public function resolve_conflict_markup( $setting_id, $value, $snapshot_content ) {
+	public function resolve_conflict_markup( $setting_id, $value, $snapshot_content, $post ) {
 		if ( isset( $value['merge_conflict'] ) ) {
 			$setting_id_key = str_replace( ']', '\\]', str_replace( '[', '\\[', $setting_id ) );
-			echo '<a href="#TB_inline?width=600&height=550&inlineId=snapshot-resolve-' . esc_attr( $setting_id_key ) . '" id="' . esc_attr( $setting_id ) . '" class="snapshot-resolve-setting-conflict remove thickbox">' . esc_html__( 'Change merge selection', 'customize-snapshots' ) . '</a> ';
+			switch ( $post->post_status ) {
+				case 'draft':
+					$save_as_string = __( 'Save draft', 'default' );
+					break;
+				case 'pending':
+					$save_as_string = __( 'Save as Pending', 'default' );
+					break;
+				default:
+					$save_as_string = __( 'Save', 'default' );
+					break;
+			}
+			/* translators: %s: save as draft or pending */
+			$title_text = sprintf( __( 'Pick to change selection and press \'%s\' button', 'customize-snapshots' ), $save_as_string );
+			echo '<a href="#TB_inline?width=600&height=550&inlineId=snapshot-resolve-' . esc_attr( $setting_id_key ) . '" id="' . esc_attr( $setting_id ) . '" class="snapshot-resolve-setting-conflict remove thickbox" title="' . esc_attr( $title_text ) . '">' . esc_html__( 'Change merge selection', 'customize-snapshots' ) . '</a> ';
 			echo '<div id="snapshot-resolve-' . esc_attr( $setting_id ) . '" style="display:none;">';
 			echo '<ul>';
 			foreach ( $value['merge_conflict'] as $conflicted_data ) {

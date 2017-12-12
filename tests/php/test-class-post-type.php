@@ -1125,7 +1125,13 @@ class Test_Post_Type extends \WP_UnitTestCase {
 	public function test_resolve_conflict_markup() {
 		$post_type_obj = new Post_Type( $this->plugin->customize_snapshot_manager );
 		ob_start();
-		$post_type_obj->resolve_conflict_markup( 'foo', $this->snapshot_merge_sample_data['foo'], $this->snapshot_merge_sample_data );
+		$post_id = $post_type_obj->save( array(
+			'uuid' => self::UUID,
+			'data' => $this->snapshot_merge_sample_data,
+			'status' => 'draft',
+		) );
+		$p = get_post( $post_id );
+		$post_type_obj->resolve_conflict_markup( 'foo', $this->snapshot_merge_sample_data['foo'], $this->snapshot_merge_sample_data, $p );
 		$resolve_conflict_markup = ob_get_clean();
 		$this->assertContains( 'input', $resolve_conflict_markup );
 		$this->assertContains( 'baz', $resolve_conflict_markup );
