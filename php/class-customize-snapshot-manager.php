@@ -66,6 +66,7 @@ class Customize_Snapshot_Manager {
 		add_action( 'delete_post', array( $this, 'clean_up_nav_menus_created_auto_drafts' ) );
 		add_filter( 'customize_save_response', array( $this, 'add_snapshot_var_to_customize_save' ), 10, 2 );
 		add_action( 'wp_ajax_customize_snapshot_conflict_check', array( $this, 'handle_conflicts_snapshot_request' ) );
+		add_filter( 'customize_refresh_nonces', array( $this, 'refresh_nonces' ) );
 	}
 
 	/**
@@ -192,6 +193,7 @@ class Customize_Snapshot_Manager {
 		$post = null;
 		$preview_url_query_vars = array();
 		$post_id = $this->get_customize_manager()->changeset_post_id();
+		$wp_version = strtok( get_bloginfo( 'version' ), '-' );
 
 		if ( $post_id ) {
 			$post = get_post( $post_id );
@@ -204,9 +206,9 @@ class Customize_Snapshot_Manager {
 		// Script data array.
 		$exports = apply_filters( 'customize_snapshots_export_data', array(
 			'inspectLink' => isset( $edit_link ) ? $edit_link : '',
+			'addWorkaroundFor42686' => version_compare( $wp_version, '4.9', '==' ) || version_compare( $wp_version, '4.9.1', '==' ),
 			'title' => isset( $post->post_title ) ? $post->post_title : '',
 			'previewingTheme' => isset( $preview_url_query_vars['theme'] ) ? $preview_url_query_vars['theme'] : '',
-			'conflictNonce' => wp_create_nonce( Post_Type::SLUG . '_conflict' ),
 			'i18n' => array(
 				'title' => __( 'Title', 'customize-snapshots' ),
 				'savePending' => __( 'Save Pending', 'customize-snapshots' ),
@@ -220,6 +222,17 @@ class Customize_Snapshot_Manager {
 			sprintf( 'wp.customize.snapshots = new wp.customize.Snapshots( %s );', wp_json_encode( $exports ) ),
 			'after'
 		);
+	}
+
+	/**
+	 * Refreshes the conflict nonce.
+	 *
+	 * @param  array $nonces Array of nonces.
+	 * @return array $nonces Array of nonces.
+	 */
+	public function refresh_nonces( $nonces ) {
+		$nonces['conflict-nonce'] = wp_create_nonce( Post_Type::SLUG . '_conflict' );
+		return $nonces;
 	}
 
 	/**
@@ -647,11 +660,11 @@ class Customize_Snapshot_Manager {
 		</script>
 
 		<script type="text/html" id="tmpl-snapshot-conflict-button">
-			<?php $title_text = __( 'has potential conflicts (click to expand)', 'customize-snapshots' ); ?>
-			<# id= data.setting_id.replace( /\]/g, '\\]' ).replace( /\[/g, '\\[' ); #>
+			<# var id = data.setting_id.replace( /\]/g, '\\]' ).replace( /\[/g, '\\[' ); #>
+			<# var titleText = <?php /* translators: %s: Setting id which has potential conflict. */ echo wp_json_encode( __( '%s has potential conflicts (click to expand)', 'customize-snapshots' ) ); ?>; #>
 			<span>
-				<?php esc_html_e( 'Conflicts', 'customize-snapshots' ); ?>
-				<a href="<?php echo esc_url( '#TB_inline?width=600&height=550&inlineId=snapshot-conflicts-' ); ?>{{id}}" class="dashicons dashicons-warning thickbox snapshot-conflicts-button" title="{{id}} <?php echo esc_attr( $title_text ); ?>"></a>
+				<?php esc_html_e( 'Potential conflicts', 'customize-snapshots' ); ?>
+				<a href="<?php echo esc_url( '#TB_inline?width=600&height=550&inlineId=snapshot-conflicts-' ); ?>{{id}}" class="dashicons dashicons-warning thickbox snapshot-conflicts-button" title="{{ titleText.replace( '%s', id ) }}"></a>
 			</span>
 		</script>
 
@@ -665,40 +678,38 @@ class Customize_Snapshot_Manager {
 
 		<script type="text/html" id="tmpl-snapshot-conflict">
 			<div id="snapshot-conflicts-{{data.setting_id}}" class="snapshot-conflict-thickbox-content thickbox">
-					<# _.each( data.conflicts, function( setting ) { #>
-						<details class="snapshot-conflict-details">
-							<summary>
-								<code>{{setting.uuid}}
-									<# if ( ! _.isEmpty( setting.name ) ) {
-										if ( ! _.isEmpty( setting.uuid ) ){ #>
-											-
-										<# } #>
-										{{setting.name}}
+				<# _.each( data.conflicts, function( setting ) { #>
+					<details class="snapshot-conflict-details">
+						<summary>
+							<code>{{setting.uuid}}
+								<# if ( ! _.isEmpty( setting.name ) ) {
+									if ( ! _.isEmpty( setting.uuid ) ){ #>
+										-
 									<# } #>
-								</code>
-								<# if ( ! _.isEmpty( setting.edit_link ) ) { #>
-									<a target="_blank" href="{{setting.edit_link}}" class="dashicons dashicons-external"></a>
+									{{setting.name}}
 								<# } #>
-							</summary>
-							<article class="snapshot-value">
-								{{{setting.value}}}
-							</article>
-						</details>
-					<# }); #>
+							</code>
+							<# if ( ! _.isEmpty( setting.edit_link ) ) { #>
+								<a target="_blank" href="{{setting.edit_link}}" class="dashicons dashicons-external"></a>
+							<# } #>
+						</summary>
+						<article class="snapshot-value">
+							{{{setting.value}}}
+						</article>
+					</details>
+				<# }); #>
 			</div>
 		</script>
 
 		<script type="text/html" id="tmpl-snapshot-conflict-value">
 			<# if ( _.isEmpty( data.value ) ) { #>
-					<em><?php esc_html_e( '(Empty String)', 'customize-snapshots' ); ?></em>
+				<em><?php esc_html_e( '(Empty String)', 'customize-snapshots' ); ?></em>
 			<# } else if ( _.isString( data.value ) ||  _.isNumber( data.value ) ) { #>
-					<p>{{data.value}}</p>
-			<# } else if ( _.isBoolean(data.value) ) {
-				var temp = JSON.stringify(data.value); #>
-					<p>{{temp}}</p>
-			<# } else {
-				var temp = JSON.stringify( data.value, null, 4 ); #>
-				<pre class="pre">{{temp}}</pre>
+				<p>{{data.value}}</p>
+			<# } else if ( _.isBoolean(data.value) ) { #>
+				<p>{{ JSON.stringify(data.value) }}</p>
+			<# } else { #>
+				<pre class="pre">{{ JSON.stringify( data.value, null, 4 ) }}</pre>
 			<# } #>
 		</script>
 		<?php
