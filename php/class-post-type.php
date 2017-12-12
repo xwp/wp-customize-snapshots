@@ -384,7 +384,11 @@ class Post_Type {
 	 */
 	public function render_data_metabox( $post ) {
 		$snapshot_content = $this->get_post_content( $post );
-
+		if ( 'publish' !== get_post_status( $post ) ) {
+			$conflicts_settings = $this->get_conflicted_settings( $post );
+		} else {
+			$conflicts_settings = array();
+		}
 		echo '<p>';
 		echo esc_html__( 'UUID:', 'customize-snapshots' ) . ' <code>' . esc_html( $post->post_name ) . '</code><br>';
 		echo sprintf( '%1$s %2$s %3$s', esc_html__( 'Modified:', 'customize-snapshots' ), esc_html( get_the_modified_date( '' ) ), esc_html( get_the_modified_time( '' ) ) ) . '<br>';
@@ -464,39 +468,82 @@ class Post_Type {
 				}
 				echo '</span>';
 			}
+			if ( isset( $conflicts_settings[ $setting_id ] ) ) {
+				$setting_id_key = str_replace( '[', '\\[', $setting_id );
+				$setting_id_key = str_replace( ']', '\\]', $setting_id_key );
 
+				/* translators: %s: Setting id which has potential conflict. */
+				$title_text = sprintf( __( '%s has potential conflicts (click to expand)', 'customize-snapshots' ), $setting_id );
+				echo '<a href="#TB_inline?width=600&height=550&inlineId=snapshot-' . esc_attr( $setting_id_key ) . '" class="dashicons dashicons-warning thickbox snapshot-thickbox" title="' . esc_attr( $title_text ) . '"></a>'; ?>
+				<div id="snapshot-<?php echo esc_attr( $setting_id ); ?>" style="display:none;">
+					<?php foreach ( $conflicts_settings[ $setting_id ] as $data ) { ?>
+						<details class="snapshot-conflict-details">
+							<summary>
+								<code>
+									<?php
+									echo esc_html( $data['uuid'] );
+									if ( ! empty( $data['name'] ) ) {
+										echo ' - ' . esc_html( $data['name'] );
+									}
+									?>
+									</code>
+								<a target="_blank" href="<?php echo esc_url( $data['edit_link'] ); ?>" class="dashicons dashicons-external"></a>
+							</summary>
+							<article class="snapshot-value">
+								<?php echo $this->get_printable_setting_value( $data['value'], $setting_id, $data['setting_param'], get_post( $data['id'] ) ); // WPCS: XSS ok. ?>
+							</article>
+						</details>
+					<?php } ?>
+				</div>
+				<?php
+			}
 			echo '</summary>';
 
-			if ( '' === $value ) {
-				$preview = '<p><em>' . esc_html__( '(Empty string)', 'customize-snapshots' ) . '</em></p>';
-			} elseif ( is_string( $value ) || is_numeric( $value ) ) {
-				$preview = '<p>' . esc_html( $value ) . '</p>';
-			} elseif ( is_bool( $value ) ) {
-				$preview = '<p>' . wp_json_encode( $value ) . '</p>';
-			} else {
-				$preview = sprintf( '<pre class="pre">%s</pre>', esc_html( Customize_Snapshot_Manager::encode_json( $value ) ) );
-			}
-
-			/**
-			 * Filters the previewed value for a snapshot.
-			 *
-			 * @param string $preview HTML markup.
-			 * @param array  $context {
-			 *     Context.
-			 *
-			 *     @type mixed    $value          Value being previewed.
-			 *     @type string   $setting_id     Setting args, including value.
-			 *     @type array    $setting_params Setting args, including value.
-			 *     @type \WP_Post $post           Snapshot post.
-			 * }
-			 */
-			$preview = apply_filters( 'customize_snapshot_value_preview', $preview, compact( 'value', 'setting_id', 'setting_params', 'post' ) );
-
+			$preview = $this->get_printable_setting_value( $value, $setting_id, $setting_params, $post );
 			echo $preview; // WPCS: xss ok.
 			echo '</details>';
 			echo '</li>';
 		} // End foreach().
 		echo '</ul>';
+	}
+
+	/**
+	 * Get printable setting value
+	 *
+	 * @param mixed         $value Value to be printed.
+	 * @param string        $setting_id setting id.
+	 * @param array         $setting_params param raw array.
+	 * @param \WP_Post|null $post Post object of where setting belongs.
+	 *
+	 * @return string
+	 * @internal param $data
+	 * @internal param mixed $value Setting value.
+	 */
+	public function get_printable_setting_value( $value, $setting_id = '', $setting_params = array(), $post = null ) {
+		if ( '' === $value ) {
+			$preview = '<p><em>' . esc_html__( '(Empty string)', 'customize-snapshots' ) . '</em></p>';
+		} elseif ( is_string( $value ) || is_numeric( $value ) ) {
+			$preview = '<p>' . esc_html( $value ) . '</p>';
+		} elseif ( is_bool( $value ) ) {
+			$preview = '<p>' . wp_json_encode( $value ) . '</p>';
+		} else {
+			$preview = sprintf( '<pre class="pre">%s</pre>', esc_html( Customize_Snapshot_Manager::encode_json( $value ) ) );
+		}
+		/**
+		 * Filters the previewed value for a snapshot.
+		 *
+		 * @param string $preview HTML markup.
+		 * @param array  $context {
+		 *     Context.
+		 *
+		 *     @type mixed    $value          Value being previewed.
+		 *     @type string   $setting_id     Setting args.
+		 *     @type array    $setting_params Setting args, including value.
+		 *     @type \WP_Post $post           Snapshot post.
+		 * }
+		 */
+		$preview = apply_filters( 'customize_snapshot_value_preview', $preview, compact( 'value', 'setting_id', 'setting_params', 'post' ) );
+		return $preview;
 	}
 
 	/**
@@ -1129,6 +1176,75 @@ class Post_Type {
 			<p><?php esc_html_e( 'Failed to publish snapshot due to an error with saving one of its settings. This may be due to a theme or plugin having been changed since the snapshot was created. See below.', 'customize-snapshots' ); ?></p>
 		</div>
 		<?php
+	}
+
+	/**
+	 * Get conflicts settings
+	 *
+	 * @param \WP_Post $post     Post to compare conflict values.
+	 * @param array    $settings Setting IDS to search for (optional).
+	 * @return array Conflicted settings.
+	 */
+	public function get_conflicted_settings( $post, $settings = array() ) {
+		global $wpdb;
+		if ( $post && static::SLUG === get_post_type( $post ) ) {
+			$post = get_post( $post );
+			$changeset_data = $this->get_post_content( $post );
+		}
+		$conflicted_settings = array();
+		if ( empty( $settings ) ) {
+			if ( empty( $changeset_data ) || ! is_array( $changeset_data ) ) {
+				return $conflicted_settings;
+			}
+			$settings = array_keys( $changeset_data );
+			if ( empty( $settings ) ) {
+				return $conflicted_settings;
+			}
+		}
+		$query = $wpdb->prepare( "SELECT ID, post_name, post_title, post_status, post_content FROM $wpdb->posts WHERE post_type = %s AND post_status IN ( 'pending', 'future', 'draft' ) ", static::SLUG );
+		if ( $post instanceof \WP_Post ) {
+			$query .= $wpdb->prepare( 'AND ID != %d ', $post->ID );
+		}
+		$query .= 'AND ( ';
+		$or = array();
+		foreach ( $settings as $setting_id ) {
+			$or[] = $wpdb->prepare( 'post_content LIKE %s', '%' . $wpdb->esc_like( wp_json_encode( $setting_id ) ) . '%' );
+		}
+		$query .= implode( ' OR ', $or );
+		$query .= ' )';
+
+		$results = $wpdb->get_results( $query, ARRAY_A ); // WPCS: unprepared SQL ok.
+
+		if ( ! empty( $results ) ) {
+			foreach ( $results as $item ) {
+				$data = json_decode( $item['post_content'], true );
+				$other_changeset_setting_ids = array_keys( $data );
+				$common_setting_ids = array_intersect( $other_changeset_setting_ids, $settings );
+				if ( empty( $common_setting_ids ) ) {
+					continue;
+				}
+				foreach ( $common_setting_ids as $setting_id ) {
+
+					// Skip other changesets that have the same value.
+					if ( isset( $data[ $setting_id ]['value'] ) && isset( $changeset_data[ $setting_id ]['value'] ) && $data[ $setting_id ]['value'] === $changeset_data[ $setting_id ]['value'] ) {
+						continue;
+					}
+
+					if ( ! isset( $conflicted_settings[ $setting_id ] ) ) {
+						$conflicted_settings[ $setting_id ] = array();
+					}
+					$conflicted_settings[ $setting_id ][] = array(
+						'id' => $item['ID'],
+						'value' => $data[ $setting_id ]['value'],
+						'name' => ( $item['post_title'] === $item['post_name'] ) ? '' : $item['post_title'],
+						'uuid' => $item['post_name'],
+						'edit_link' => get_edit_post_link( $item['ID'], 'raw' ),
+						'setting_param' => $data[ $setting_id ],
+					);
+				}
+			}
+		}
+		return $conflicted_settings;
 	}
 
 	/**

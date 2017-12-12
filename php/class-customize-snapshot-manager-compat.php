@@ -63,6 +63,7 @@ class Customize_Snapshot_Manager_Compat extends Customize_Snapshot_Manager {
 				'errorTitle' => __( 'Error', 'customize-snapshots' ),
 				'collapseSnapshotScheduling' => __( 'Collapse changeset scheduling', 'customize-snapshots' ),
 				'expandSnapshotScheduling' => __( 'Expand changeset scheduling', 'customize-snapshots' ),
+				'conflictNotification' => __( 'Potential changeset conflicts', 'customize-snapshots' ),
 			),
 		) );
 
