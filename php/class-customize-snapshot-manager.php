@@ -65,6 +65,8 @@ class Customize_Snapshot_Manager {
 		remove_action( 'delete_post', '_wp_delete_customize_changeset_dependent_auto_drafts' );
 		add_action( 'delete_post', array( $this, 'clean_up_nav_menus_created_auto_drafts' ) );
 		add_filter( 'customize_save_response', array( $this, 'add_snapshot_var_to_customize_save' ), 10, 2 );
+		add_action( 'wp_ajax_customize_snapshot_conflict_check', array( $this, 'handle_conflicts_snapshot_request' ) );
+		add_filter( 'customize_refresh_nonces', array( $this, 'refresh_nonces' ) );
 	}
 
 	/**
@@ -186,6 +188,7 @@ class Customize_Snapshot_Manager {
 	public function enqueue_controls_scripts() {
 		wp_enqueue_style( 'customize-snapshots' );
 		wp_enqueue_script( 'customize-snapshots' );
+		add_thickbox();
 
 		$post = null;
 		$preview_url_query_vars = array();
@@ -210,6 +213,7 @@ class Customize_Snapshot_Manager {
 				'title' => __( 'Title', 'customize-snapshots' ),
 				'savePending' => __( 'Save Pending', 'customize-snapshots' ),
 				'pendingSaved' => __( 'Pending Saved', 'customize-snapshots' ),
+				'conflictNotification' => __( 'Potential changeset conflicts', 'customize-snapshots' ),
 			),
 		) );
 
@@ -218,6 +222,17 @@ class Customize_Snapshot_Manager {
 			sprintf( 'wp.customize.snapshots = new wp.customize.Snapshots( %s );', wp_json_encode( $exports ) ),
 			'after'
 		);
+	}
+
+	/**
+	 * Refreshes the conflict nonce.
+	 *
+	 * @param  array $nonces Array of nonces.
+	 * @return array $nonces Array of nonces.
+	 */
+	public function refresh_nonces( $nonces ) {
+		$nonces['conflict-nonce'] = wp_create_nonce( Post_Type::SLUG . '_conflict' );
+		return $nonces;
 	}
 
 	/**
@@ -232,6 +247,7 @@ class Customize_Snapshot_Manager {
 		global $post;
 		$handle = 'customize-snapshots-admin';
 		if ( ( 'post.php' === $hook ) && isset( $post->post_type ) && ( Post_Type::SLUG === $post->post_type ) && ( 'publish' !== $post->post_status ) ) {
+			add_thickbox();
 			wp_enqueue_script( $handle );
 			wp_enqueue_style( $handle );
 			$exports = array(
@@ -642,6 +658,60 @@ class Customize_Snapshot_Manager {
 
 			<# } #>
 		</script>
+
+		<script type="text/html" id="tmpl-snapshot-conflict-button">
+			<# var id = data.setting_id.replace( /\]/g, '\\]' ).replace( /\[/g, '\\[' ); #>
+			<# var titleText = <?php /* translators: %s: Setting id which has potential conflict. */ echo wp_json_encode( __( '%s has potential conflicts (click to expand)', 'customize-snapshots' ) ); ?>; #>
+			<span>
+				<?php esc_html_e( 'Potential conflicts', 'customize-snapshots' ); ?>
+				<a href="<?php echo esc_url( '#TB_inline?width=600&height=550&inlineId=snapshot-conflicts-' ); ?>{{id}}" class="dashicons dashicons-warning thickbox snapshot-conflicts-button" title="{{ titleText.replace( '%s', id ) }}"></a>
+			</span>
+		</script>
+
+		<script type="text/html" id="tmpl-snapshot-notification-template">
+			<ul>
+				<# _.each( data.notifications, function( notification ) { #>
+					<li class="notice notice-{{ notification.type || 'info' }} {{ data.altNotice ? 'notice-alt' : '' }}" data-code="{{ notification.code }}" data-type="{{ notification.type }}">{{{ notification.message || notification.code }}}</li>
+				<# } ); #>
+			</ul>
+		</script>
+
+		<script type="text/html" id="tmpl-snapshot-conflict">
+			<div id="snapshot-conflicts-{{data.setting_id}}" class="snapshot-conflict-thickbox-content thickbox">
+				<# _.each( data.conflicts, function( setting ) { #>
+					<details class="snapshot-conflict-details">
+						<summary>
+							<code>{{setting.uuid}}
+								<# if ( ! _.isEmpty( setting.name ) ) {
+									if ( ! _.isEmpty( setting.uuid ) ){ #>
+										-
+									<# } #>
+									{{setting.name}}
+								<# } #>
+							</code>
+							<# if ( ! _.isEmpty( setting.edit_link ) ) { #>
+								<a target="_blank" href="{{setting.edit_link}}" class="dashicons dashicons-external"></a>
+							<# } #>
+						</summary>
+						<article class="snapshot-value">
+							{{{setting.value}}}
+						</article>
+					</details>
+				<# }); #>
+			</div>
+		</script>
+
+		<script type="text/html" id="tmpl-snapshot-conflict-value">
+			<# if ( _.isEmpty( data.value ) ) { #>
+				<em><?php esc_html_e( '(Empty String)', 'customize-snapshots' ); ?></em>
+			<# } else if ( _.isString( data.value ) ||  _.isNumber( data.value ) ) { #>
+				<p>{{data.value}}</p>
+			<# } else if ( _.isBoolean(data.value) ) { #>
+				<p>{{ JSON.stringify(data.value) }}</p>
+			<# } else { #>
+				<pre class="pre">{{ JSON.stringify( data.value, null, 4 ) }}</pre>
+			<# } #>
+		</script>
 		<?php
 	}
 
@@ -813,5 +883,73 @@ class Customize_Snapshot_Manager {
 			}
 		} // End foreach().
 		add_action( 'delete_post', array( $this, 'clean_up_nav_menus_created_auto_drafts' ) );
+	}
+
+	/**
+	 * Handle snapshot conflicts AJAX request.
+	 */
+	public function handle_conflicts_snapshot_request() {
+		$wp_customize = $this->get_customize_manager();
+		if ( ! check_ajax_referer( Post_Type::SLUG . '_conflict', 'nonce', false ) ) {
+			status_header( 400 );
+			wp_send_json_error( 'bad_nonce' );
+		}
+		if ( ! current_user_can( 'customize' ) ) {
+			status_header( 403 );
+			wp_send_json_error( 'customize_not_allowed' );
+		}
+		if ( ! isset( $_SERVER['REQUEST_METHOD'] ) || 'POST' !== $_SERVER['REQUEST_METHOD'] ) { // WPCS: input var ok.
+			status_header( 405 );
+			wp_send_json_error( 'bad_method' );
+		}
+		$changeset_uuid = wp_unslash( $_POST['changeset_uuid'] );
+		if ( ! self::is_valid_uuid( $changeset_uuid ) ) {
+			status_header( 400 );
+			wp_send_json_error( 'bad_uuid' );
+		}
+		require_once ABSPATH . WPINC . '/class-wp-customize-manager.php';
+		if ( ! ( $wp_customize instanceof \WP_Customize_Manager ) ) {
+			$wp_customize = new \WP_Customize_Manager( compact( 'changeset_uuid' ) );
+			$post_id      = $wp_customize->changeset_post_id();
+		} else {
+			$post_id = $wp_customize->find_changeset_post_id( $changeset_uuid );
+		}
+
+		if ( isset( $_POST['setting_ids'] ) ) { // WPCS: input var ok.
+			$setting_ids = array_map( function( $key ) {
+				// Credit: http://stackoverflow.com/a/1176923/1138341.
+				return preg_replace( '/[\x00-\x1F\x80-\xFF]/', '', $key );
+			}, wp_unslash( $_POST['setting_ids'] ) );
+		} else {
+			status_header( 400 );
+			wp_send_json_error( 'required_param_missing' );
+		}
+		$post = get_post( $wp_customize->changeset_post_id() );
+		if ( empty( $setting_ids ) && $post instanceof \WP_Post ) {
+			$content  = $this->post_type->get_post_content( $post );
+			$settings = array_keys( $content );
+		} else {
+			$settings = $setting_ids;
+		}
+		if ( empty( $settings ) ) {
+			status_header( 400 );
+			wp_send_json_error( 'no_setting_to_check' );
+		}
+		$changeset_post = $post_id ? get_post( $post_id ) : null;
+		$return         = $this->post_type->get_conflicted_settings( $changeset_post, $settings );
+		foreach ( $return as $setting_key => &$items ) {
+			foreach ( $items as &$item ) {
+				$item['value'] = $this->post_type->get_printable_setting_value( $item['value'], $setting_key, $item['setting_param'], get_post( $item['id'] ) );
+				unset( $item['setting_param'] );
+			}
+			array_unshift( $items, array(
+				'id' => '',
+				'value' => '',
+				'name' => __( 'Current Change', 'customize-snapshots' ),
+				'uuid' => '',
+				'edit_link' => '',
+			) );
+		}
+		wp_send_json_success( $return );
 	}
 }

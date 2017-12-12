@@ -208,6 +208,7 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		$this->assertEquals( 10, has_action( 'save_post_' . Post_Type::SLUG, array( $manager, 'save_customizer_state_query_vars' ) ) );
 		$this->assertEquals( 10, has_filter( 'wp_insert_post_data', array( $manager, 'prepare_snapshot_post_content_for_publish' ) ) );
 		$this->assertEquals( 10, has_action( 'delete_post', array( $manager, 'clean_up_nav_menus_created_auto_drafts' ) ) );
+		$this->assertEquals( 10, has_action( 'wp_ajax_customize_snapshot_conflict_check', array( $manager, 'handle_conflicts_snapshot_request' ) ) );
 	}
 
 	/**
@@ -343,7 +344,21 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::prepare_errors_for_response()
 	 */
 	public function test_prepare_errors_for_response() {
-		$this->markTestIncomplete();
+		$error = new \WP_Error();
+		$error->add( 'foo', 'Foo message', array( 'foo_data' ) );
+		$error->add( 'bar', 'Bar message', array( 'bar_data' ) );
+		$data = $this->manager->prepare_errors_for_response( $error );
+		$validate = array(
+			'foo' => array(
+				'message' => 'Foo message',
+				'data' => array( 'foo_data' ),
+			),
+			'bar' => array(
+				'message' => 'Bar message',
+				'data' => array( 'bar_data' ),
+			),
+		);
+		$this->assertSame( $validate, $data );
 	}
 
 	/**
@@ -352,7 +367,9 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager::is_valid_uuid()
 	 */
 	public function test_is_valid_uuid() {
-		$this->markTestIncomplete();
+		$this->assertTrue( Customize_Snapshot_Manager::is_valid_uuid( self::UUID ) );
+		$this->assertFalse( Customize_Snapshot_Manager::is_valid_uuid( '65aee1ffd-af47d-47dfd-9e14d-9c69b3017cd3d' ) ); // Every Last char d is extra and should not be acceptable.
+		$this->assertFalse( Customize_Snapshot_Manager::is_valid_uuid( '65aee1fg-af47-47dg-9e1g-9c69b3017cdg' ) ); // Every last char g should not be acceptable.
 	}
 
 	/**
@@ -467,6 +484,8 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 		$this->assertContains( 'tmpl-snapshot-dialog-error', $templates );
 		$this->assertContains( 'tmpl-snapshot-inspect-link-control', $templates );
 		$this->assertContains( 'tmpl-snapshot-scheduled-countdown', $templates );
+		$this->assertContains( 'tmpl-snapshot-conflict-button', $templates );
+		$this->assertContains( 'tmpl-snapshot-conflict', $templates );
 	}
 
 	/**
