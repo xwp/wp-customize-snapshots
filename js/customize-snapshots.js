@@ -329,9 +329,6 @@
 			snapshot.conflict.controlsWithPendingRequest = {};
 
 			api.control.each( function( control ) {
-				_.each( control.settings, function( setting ) {
-					setting.unbind( snapshot.handleConflictRequestOnFirstChange );
-				} );
 				control.notifications.remove( snapshot.conflict.notificationCode );
 				snapshot.addConflictButton( control );
 			} );
@@ -347,7 +344,6 @@
 			var snapshot = this;
 
 			_.each( control.settings, function( setting ) {
-				setting.unbind( snapshot.handleConflictRequestOnFirstChange );
 				snapshot.handleConflictRequest( setting, control );
 			} );
 		},
@@ -359,7 +355,7 @@
 		 * @return {void}
 		 */
 		addConflictButton: function addConflictButton( control ) {
-			var snapshot = this;
+			var snapshot = this, changeOnce, unbindAll;
 
 			control.deferred.embedded.done( function() {
 				var hasDirty, updateCurrentValue, bindFirstChange = false;
@@ -377,8 +373,23 @@
 				};
 
 				hasDirty = _.find( control.settings, function( setting ) {
-					return setting._dirty;
+					return setting.extended( api.Setting ) ? setting._dirty : false;
 				} );
+
+				changeOnce = function() {
+					this.unbind( changeOnce );
+					snapshot.handleConflictRequestOnFirstChange( control );
+				};
+
+				unbindAll = function() {
+					api.state( 'saved' ).unbind( unbindAll );
+					_.each( control.settings, function( setting ) {
+						setting.unbind( changeOnce );
+						setting.unbind( updateCurrentValue );
+					} );
+				};
+
+				api.state( 'saved' ).bind( unbindAll );
 
 				if ( hasDirty ) {
 					snapshot.handleConflictRequestOnFirstChange( control );
@@ -387,9 +398,7 @@
 				}
 				_.each( control.settings, function( setting ) {
 					if ( bindFirstChange ) {
-						setting.bind( function() {
-							snapshot.handleConflictRequestOnFirstChange( control );
-						} );
+						setting.bind( changeOnce );
 					}
 					setting.bind( updateCurrentValue );
 				} );
