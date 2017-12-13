@@ -24,7 +24,7 @@ class Test_Dashboard_Widget extends \WP_UnitTestCase {
 	/**
 	 * Test enqueue_admin_dashboard_scripts
 	 *
-	 * @covers CustomizeSnapshots\Dashboard_Widget::enqueue_admin_dashboard_scripts()
+	 * @covers \CustomizeSnapshots\Dashboard_Widget::enqueue_admin_dashboard_scripts()
 	 */
 	public function test_enqueue_admin_dashboard_scripts() {
 		$plugin = get_plugin_instance();
@@ -37,7 +37,7 @@ class Test_Dashboard_Widget extends \WP_UnitTestCase {
 	/**
 	 * Test add_widget
 	 *
-	 * @covers CustomizeSnapshots\Dashboard_Widget::add_widget()
+	 * @covers \CustomizeSnapshots\Dashboard_Widget::add_widget()
 	 */
 	public function test_add_widget() {
 		global $wp_meta_boxes;
@@ -53,7 +53,7 @@ class Test_Dashboard_Widget extends \WP_UnitTestCase {
 	/**
 	 * Test render_widget
 	 *
-	 * @covers CustomizeSnapshots\Dashboard_Widget::render_widget()
+	 * @covers \CustomizeSnapshots\Dashboard_Widget::render_widget()
 	 */
 	public function test_render_widget() {
 		$dashboard = new Dashboard_Widget( get_plugin_instance()->customize_snapshot_manager );
@@ -79,6 +79,8 @@ class Test_Dashboard_Widget extends \WP_UnitTestCase {
 
 	/**
 	 * Test handle_future_snapshot_preview_request
+	 *
+	 * @covers \CustomizeSnapshots\Dashboard_Widget::handle_future_snapshot_preview_request()
 	 */
 	public function test_handle_future_snapshot_preview_request() {
 		// Setup.
@@ -90,13 +92,13 @@ class Test_Dashboard_Widget extends \WP_UnitTestCase {
 		$date_time = new \DateTime( $search_date );
 		$data = array( 'foo' => array( 'value' => 'bar' ) );
 		$post_id_1 = $post_type_obj->save( array(
-			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
+			'uuid' => wp_generate_uuid4(),
 			'status' => 'future',
 			'date_gmt' => $date,
 			'data' => $data,
 		) );
 		$post_id_2 = $post_type_obj->save( array(
-			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
+			'uuid' => wp_generate_uuid4(),
 			'status' => 'future',
 			'date_gmt' => $date,
 			'data' => $data,

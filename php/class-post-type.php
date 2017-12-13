@@ -89,6 +89,8 @@ class Post_Type {
 		add_filter( 'content_save_pre', array( $this, 'filter_out_settings_if_removed_in_metabox' ), 10 );
 		add_action( 'admin_print_scripts-revision.php', array( $this, 'disable_revision_ui_for_published_posts' ) );
 		add_action( 'admin_notices', array( $this, 'admin_show_merge_error' ) );
+		add_filter( 'display_post_states', array( $this, 'display_post_states' ), 10, 2 );
+		add_action( 'admin_notices', array( $this, 'show_publish_error_admin_notice' ) );
 
 		// Add workaround for failure to save changes to option settings when publishing changeset outside of customizer. See https://core.trac.wordpress.org/ticket/39221#comment:14
 		if ( function_exists( '_wp_customize_publish_changeset' ) && function_exists( 'wp_doing_ajax' ) ) { // Workaround only works in WP 4.7.
@@ -96,6 +98,8 @@ class Post_Type {
 			add_action( 'transition_post_status', array( $this, 'start_pretending_customize_save_ajax_action' ), $priority - 1, 3 );
 			add_action( 'transition_post_status', array( $this, 'finish_pretending_customize_save_ajax_action' ), $priority + 1, 3 );
 		}
+		add_action( 'wp_ajax_snapshot_fork', array( $this, 'handle_snapshot_fork' ) );
+		add_action( 'admin_footer-post.php', array( $this, 'snapshot_admin_script_template' ) );
 	}
 
 	/**
@@ -108,7 +112,7 @@ class Post_Type {
 
 		add_filter( 'post_link', array( $this, 'filter_post_type_link' ), 10, 2 );
 		add_action( 'add_meta_boxes_' . static::SLUG, array( $this, 'setup_metaboxes' ), 10, 1 );
-		add_action( 'admin_menu',array( $this, 'add_admin_menu_item' ), 99 );
+		add_action( 'admin_menu', array( $this, 'add_admin_menu_item' ), 99 );
 		add_filter( 'map_meta_cap', array( $this, 'remap_customize_meta_cap' ), 5, 4 );
 		add_filter( 'bulk_actions-edit-' . static::SLUG, array( $this, 'add_snapshot_bulk_actions' ) );
 		add_filter( 'handle_bulk_actions-edit-' . static::SLUG, array( $this, 'handle_snapshot_merge' ), 10, 3 );
@@ -130,7 +134,7 @@ class Post_Type {
 		$post_type_obj->show_in_menu = true;
 		$post_type_obj->_edit_link = 'post.php?post=%d';
 		$arg = array(
-			'capability_type' => Post_Type::SLUG,
+			'capability_type' => self::SLUG,
 			'map_meta_cap' => true,
 			'capabilities' => array(
 				'publish_posts' => 'customize_publish',
@@ -210,7 +214,7 @@ class Post_Type {
 	 *
 	 * @see \sanitize_post()
 	 */
-	function suspend_kses() {
+	public function suspend_kses() {
 		if ( false !== has_filter( 'content_save_pre', 'wp_filter_post_kses' ) ) {
 			$this->kses_suspended = true;
 			kses_remove_filters();
@@ -222,7 +226,7 @@ class Post_Type {
 	 *
 	 * @see \sanitize_post()
 	 */
-	function restore_kses() {
+	public function restore_kses() {
 		if ( $this->kses_suspended ) {
 			kses_init_filters();
 			$this->kses_suspended = false;
@@ -239,6 +243,14 @@ class Post_Type {
 		$screen = static::SLUG;
 		$context = 'normal';
 		$priority = 'high';
+		add_meta_box( $id, $title, $callback, $screen, $context, $priority );
+
+		$id = static::SLUG . '-fork';
+		$title = __( 'Changeset Forks', 'customize-snapshots' );
+		$callback = array( $this, 'render_forked_metabox' );
+		$screen = static::SLUG;
+		$context = 'normal';
+		$priority = 'default';
 		add_meta_box( $id, $title, $callback, $screen, $context, $priority );
 	}
 
@@ -261,7 +273,7 @@ class Post_Type {
 	 *
 	 * @codeCoverageIgnore
 	 */
-	function suspend_kses_for_snapshot_revision_restore() {
+	public function suspend_kses_for_snapshot_revision_restore() {
 		if ( ! isset( $_GET['revision'] ) ) { // WPCS: input var ok. CSRF ok.
 			return;
 		}
@@ -373,12 +385,17 @@ class Post_Type {
 	 */
 	public function render_data_metabox( $post ) {
 		$snapshot_content = $this->get_post_content( $post );
-
+		if ( 'publish' !== get_post_status( $post ) ) {
+			$conflicts_settings = $this->get_conflicted_settings( $post );
+		} else {
+			$conflicts_settings = array();
+		}
 		echo '<p>';
 		echo esc_html__( 'UUID:', 'customize-snapshots' ) . ' <code>' . esc_html( $post->post_name ) . '</code><br>';
 		echo sprintf( '%1$s %2$s %3$s', esc_html__( 'Modified:', 'customize-snapshots' ), esc_html( get_the_modified_date( '' ) ), esc_html( get_the_modified_time( '' ) ) ) . '<br>';
 		echo '</p>';
 
+		$fork_markup = sprintf( '<button type="button" class="snapshot-fork button button-secondary">%s</button>', esc_html__( 'Fork', 'customize-snapshots' ) );
 		$merged_uuid = $this->get_snapshot_merged_uuid( $snapshot_content );
 		if ( ! empty( $merged_uuid ) ) {
 			echo '<p>';
@@ -408,6 +425,7 @@ class Post_Type {
 		}
 
 		$snapshot_theme = get_post_meta( $post->ID, '_snapshot_theme', true );
+
 		if ( ! empty( $snapshot_theme ) && get_stylesheet() !== $snapshot_theme ) {
 			echo '<p>';
 			/* translators: 1 is the theme the changeset was created for */
@@ -431,17 +449,21 @@ class Post_Type {
 
 			$frontend_view_url = get_permalink( $post->ID );
 			echo sprintf(
-				'<a href="%s" class="button button-secondary">%s</a>',
+				'<a href="%s" class="button button-secondary">%s</a> ',
 				esc_url( $frontend_view_url ),
 				esc_html__( 'Preview Changeset', 'customize-snapshots' )
 			);
+
+			echo $fork_markup; // WPCS: XSS ok.
 			echo '</p>';
+		} else {
+			echo "<p>$fork_markup</p>"; // WPCS: XSS ok.
 		}
 
 		echo '<hr>';
 
 		ksort( $snapshot_content );
-		wp_nonce_field( static::SLUG . '_settings', static::SLUG );
+		wp_nonce_field( static::SLUG . '_settings', static::SLUG, false );
 		echo '<ul id="snapshot-settings">';
 		foreach ( $snapshot_content as $setting_id => $setting_params ) {
 			if ( ! isset( $setting_params['value'] ) && ! isset( $setting_params['publish_error'] ) ) {
@@ -453,7 +475,7 @@ class Post_Type {
 			echo '<summary><code>' . esc_html( $setting_id ) . '</code> ';
 			if ( 'publish' !== get_post_status( $post ) ) {
 				echo '<span class="snapshot-setting-actions">';
-				$this->resolve_conflict_markup( $setting_id, $setting_params, $snapshot_content );
+				$this->resolve_conflict_markup( $setting_id, $setting_params, $snapshot_content, $post );
 				echo '<a href="#" id="' . esc_attr( $setting_id ) . '" data-text-restore="' . esc_attr__( 'Restore setting', 'customize-snapshots' ) . '" class="snapshot-toggle-setting-removal remove">' . esc_html__( 'Remove setting', 'customize-snapshots' ) . '</a>';
 				echo '</span>';
 			}
@@ -477,34 +499,39 @@ class Post_Type {
 				}
 				echo '</span>';
 			}
+			if ( isset( $conflicts_settings[ $setting_id ] ) ) {
+				$setting_id_key = str_replace( '[', '\\[', $setting_id );
+				$setting_id_key = str_replace( ']', '\\]', $setting_id_key );
 
+				/* translators: %s: Setting id which has potential conflict. */
+				$title_text = sprintf( __( '%s has potential conflicts (click to expand)', 'customize-snapshots' ), $setting_id );
+
+				echo '<a href="#TB_inline?width=600&height=550&inlineId=snapshot-' . esc_attr( $setting_id_key ) . '" class="dashicons dashicons-warning thickbox snapshot-thickbox" title="' . esc_attr( $title_text ) . '"></a>'; ?>
+				<div id="snapshot-<?php echo esc_attr( $setting_id ); ?>" style="display:none;">
+					<?php foreach ( $conflicts_settings[ $setting_id ] as $data ) { ?>
+						<details class="snapshot-conflict-details">
+							<summary>
+								<code>
+									<?php
+									echo esc_html( $data['uuid'] );
+									if ( ! empty( $data['name'] ) ) {
+										echo ' - ' . esc_html( $data['name'] );
+									}
+									?>
+									</code>
+								<a target="_blank" href="<?php echo esc_url( $data['edit_link'] ); ?>" class="dashicons dashicons-external"></a>
+							</summary>
+							<article class="snapshot-value">
+								<?php echo $this->get_printable_setting_value( $data['value'], $setting_id, $data['setting_param'], get_post( $data['id'] ) ); // WPCS: XSS ok. ?>
+							</article>
+						</details>
+					<?php } ?>
+				</div>
+				<?php
+			}
 			echo '</summary>';
 
-			if ( '' === $value ) {
-				$preview = '<p><em>' . esc_html__( '(Empty string)', 'customize-snapshots' ) . '</em></p>';
-			} elseif ( is_string( $value ) || is_numeric( $value ) ) {
-				$preview = '<p>' . esc_html( $value ) . '</p>';
-			} elseif ( is_bool( $value ) ) {
-				$preview = '<p>' . wp_json_encode( $value ) . '</p>';
-			} else {
-				$preview = sprintf( '<pre class="pre">%s</pre>', esc_html( Customize_Snapshot_Manager::encode_json( $value ) ) );
-			}
-
-			/**
-			 * Filters the previewed value for a snapshot.
-			 *
-			 * @param string $preview HTML markup.
-			 * @param array  $context {
-			 *     Context.
-			 *
-			 *     @type mixed    $value          Value being previewed.
-			 *     @type string   $setting_id     Setting args, including value.
-			 *     @type array    $setting_params Setting args, including value.
-			 *     @type \WP_Post $post           Snapshot post.
-			 * }
-			 */
-			$preview = apply_filters( 'customize_snapshot_value_preview', $preview, compact( 'value', 'setting_id', 'setting_params', 'post' ) );
-
+			$preview = $this->get_printable_setting_value( $value, $setting_id, $setting_params, $post );
 			echo '<div id="snapshot-setting-preview-' . esc_attr( $setting_id ) . '">';
 			echo $preview; // WPCS: xss ok.
 			echo '</div>';
@@ -515,14 +542,88 @@ class Post_Type {
 	}
 
 	/**
+	 * Get printable setting value
+	 *
+	 * @param mixed         $value Value to be printed.
+	 * @param string        $setting_id setting id.
+	 * @param array         $setting_params param raw array.
+	 * @param \WP_Post|null $post Post object of where setting belongs.
+	 *
+	 * @return string
+	 * @internal param $data
+	 * @internal param mixed $value Setting value.
+	 */
+	public function get_printable_setting_value( $value, $setting_id = '', $setting_params = array(), $post = null ) {
+		if ( '' === $value ) {
+			$preview = '<p><em>' . esc_html__( '(Empty string)', 'customize-snapshots' ) . '</em></p>';
+		} elseif ( is_string( $value ) || is_numeric( $value ) ) {
+			$preview = '<p>' . esc_html( $value ) . '</p>';
+		} elseif ( is_bool( $value ) ) {
+			$preview = '<p>' . wp_json_encode( $value ) . '</p>';
+		} else {
+			$preview = sprintf( '<pre class="pre">%s</pre>', esc_html( Customize_Snapshot_Manager::encode_json( $value ) ) );
+		}
+		/**
+		 * Filters the previewed value for a snapshot.
+		 *
+		 * @param string $preview HTML markup.
+		 * @param array  $context {
+		 *     Context.
+		 *
+		 *     @type mixed    $value          Value being previewed.
+		 *     @type string   $setting_id     Setting args.
+		 *     @type array    $setting_params Setting args, including value.
+		 *     @type \WP_Post $post           Snapshot post.
+		 * }
+		 */
+		$preview = apply_filters( 'customize_snapshot_value_preview', $preview, compact( 'value', 'setting_id', 'setting_params', 'post' ) );
+		return $preview;
+	}
+
+	/**
+	 * Renders Forked snapshot metabox.
+	 *
+	 * @param \WP_Post $post current post object.
+	 */
+	public function render_forked_metabox( $post ) {
+		$post_query = new \WP_Query( array(
+			'post_parent' => $post->ID,
+			'posts_per_page' => 100,
+			'post_type' => array( static::SLUG ),
+			'post_status' => 'any',
+		) );
+		?>
+		<ul id="snapshot-fork-list">
+			<?php foreach ( $post_query->get_posts() as $forked_changeset_post ) : ?>
+				<li>
+					<a href="<?php echo esc_url( get_edit_post_link( $forked_changeset_post ) ); ?>"><?php echo get_the_title( $forked_changeset_post ); ?></a>
+				</li>
+			<?php endforeach; ?>
+		</ul>
+		<p>
+			<?php echo sprintf( '<button type="button" class="snapshot-fork button button-secondary">%s</button>', esc_html__( 'Fork', 'customize-snapshots' ) ); ?>
+		</p>
+
+		<?php if ( $post_query->max_num_pages > 1 ) : ?>
+			<p><?php esc_html_e( 'You have more than 100 forks of this changeset :-)', 'customize-snapshots' ); ?></p>
+		<?php endif; ?>
+
+		<?php
+		if ( $post->post_parent ) {
+			$parent = get_post( $post->post_parent );
+			echo '<h2>' . esc_html__( 'Parent:', 'customize-snapshots' ) . ' <a href="' . esc_url( get_edit_post_link( $parent, 'raw' ) ) . '">' . get_the_title( $parent ) . '</a></h2>';
+		}
+	}
+
+	/**
 	 * Find a snapshot post by UUID.
 	 *
 	 * @param string $uuid UUID.
 	 * @return int|null Post ID or null if not found.
 	 */
 	public function find_post( $uuid ) {
-		$this->snapshot_manager->ensure_customize_manager();
-		return $this->snapshot_manager->customize_manager->find_changeset_post_id( $uuid );
+		$manager = $this->snapshot_manager->ensure_customize_manager();
+		return $manager->find_changeset_post_id( $uuid );
 	}
 
 	/**
@@ -720,6 +821,20 @@ class Post_Type {
 	 */
 	public function remap_customize_meta_cap( $caps, $cap ) {
 		$post_type_obj = get_post_type_object( static::SLUG );
+
+		/*
+		 * This remap_customize_meta_cap method runs at map_meta_cap priority 5 and so here we just-in-time remove
+		 * the unnecessary WP_Customize_Manager::grant_edit_post_capability_for_changeset() method added as a
+		 * map_meta_cap filter with priority 10. This method is added during autosave request in
+		 * WP_Customize_Manager::save_changeset_post() function in 4.9, but the logic in this
+		 * remap_customize_meta_cap method in Customize Snapshots makes the core function obsolete.
+		 */
+		remove_filter(
+			'map_meta_cap',
+			array( $this->snapshot_manager->get_customize_manager(), 'grant_edit_post_capability_for_changeset' ),
+			10
+		);
+
 		if ( isset( $post_type_obj->cap->$cap ) && 'customize' === $post_type_obj->cap->$cap ) {
 			foreach ( $caps as &$required_cap ) {
 				if ( 'customize' === $required_cap ) {
@@ -848,13 +963,12 @@ class Post_Type {
 	/**
 	 * Merge two or more snapshots
 	 *
-	 * @param array  $post_ids post id array.
+	 * @param array  $posts  post array.
 	 * @param string $status Merged post status.
 	 *
 	 * @return int Changeset post id.
 	 */
-	public function merge_snapshots( $post_ids, $status = 'draft' ) {
-		$posts = array_map( 'get_post', $post_ids );
+	public function merge_snapshots( $posts, $status = 'draft' ) {
 		usort( $posts, function( $a, $b ) {
 			$compare_a = $a->post_modified;
 			$compare_b = $b->post_modified;
@@ -939,7 +1053,7 @@ class Post_Type {
 			}
 		}
 		$post_id = $this->save( array(
-			'uuid' => Customize_Snapshot_Manager::generate_uuid(),
+			'uuid' => wp_generate_uuid4(),
 			'status' => $status,
 			'data' => $merged_snapshot_data,
 			'date_gmt' => gmdate( 'Y-m-d H:i:s' ),
@@ -969,7 +1083,7 @@ class Post_Type {
 	 *
 	 * In each snapshot's edit page, there are JavaScript-controlled links to remove each setting.
 	 * On clicking a setting, the JS sets a hidden input field with that setting's ID.
-	 * And these settings appear in $_POST as the array 'customize_snapshot_remove_settings.'
+	 * And these settings appear in $_POST as the array 'customize_changeset_remove_settings.'
 	 * So look for these removed settings in that array, on saving.
 	 * And possibly filter out those settings from the post content.
 	 *
@@ -1041,9 +1155,9 @@ class Post_Type {
 	 */
 	public function set_customizer_state_query_vars( $post_id, $query_vars ) {
 		$stored_query_vars = array();
-		$autofocus_query_vars = array( 'autofocus[panel]', 'autofocus[section]', 'autofocus[control]' );
+		$autofocus_query_vars = array( 'autofocus[panel]', 'autofocus[section]', 'autofocus[outer_section]', 'autofocus[control]' );
 
-		$this->snapshot_manager->ensure_customize_manager();
+		$wp_customize = $this->snapshot_manager->ensure_customize_manager();
 
 		foreach ( wp_array_slice_assoc( $query_vars, $autofocus_query_vars ) as $key => $value ) {
 			if ( preg_match( '/^[a-z|\[|\]|_|\-|0-9]+$/', $value ) ) {
@@ -1053,17 +1167,17 @@ class Post_Type {
 		if ( ! empty( $query_vars['url'] ) && wp_validate_redirect( $query_vars['url'] ) ) {
 			$stored_query_vars['url'] = esc_url_raw( $query_vars['url'] );
 		}
-		if ( isset( $query_vars['device'] ) && in_array( $query_vars['device'], array_keys( $this->snapshot_manager->customize_manager->get_previewable_devices() ), true ) ) {
+		if ( isset( $query_vars['device'] ) && in_array( $query_vars['device'], array_keys( $wp_customize->get_previewable_devices() ), true ) ) {
 			$stored_query_vars['device'] = $query_vars['device'];
 		}
 		if ( isset( $query_vars['scroll'] ) && is_int( $query_vars['scroll'] ) ) {
 			$stored_query_vars['scroll'] = $query_vars['scroll'];
 		}
 		if ( isset( $query_vars['previewing_theme'] ) ) {
-			$theme = $this->snapshot_manager->customize_manager->get_stylesheet();
+			$theme = $wp_customize->get_stylesheet();
 			$stored_query_vars['theme'] = $query_vars['previewing_theme'] ? $theme : '';
 		}
-		update_post_meta( $post_id, '_preview_url_query_vars', $stored_query_vars );
+		update_post_meta( $post_id, '_preview_url_query_vars', wp_slash( $stored_query_vars ) );
 		return $stored_query_vars;
 	}
 
@@ -1097,22 +1211,227 @@ class Post_Type {
 	}
 
 	/**
+	 * Display snapshot save error on post list table.
+	 *
+	 * @param array    $states Display states.
+	 * @param \WP_Post $post   Post object.
+	 *
+	 * @return mixed
+	 */
+	public function display_post_states( $states, $post ) {
+		if ( static::SLUG !== $post->post_type ) {
+			return $states;
+		}
+		$maybe_error = get_post_meta( $post->ID, 'snapshot_error_on_publish', true );
+		if ( $maybe_error ) {
+			$states['snapshot_error'] = __( 'Error on publish', 'customize-snapshots' );
+		}
+		if ( $post->post_parent ) {
+			$states['forked'] = __( 'Forked', 'customize-snapshots' );
+		}
+		return $states;
+	}
+
+	/**
+	 * Show an admin notice when publishing fails and the post gets kicked back to pending.
+	 */
+	public function show_publish_error_admin_notice() {
+		if ( ! function_exists( 'get_current_screen' ) ) {
+			return;
+		}
+		$current_screen = get_current_screen();
+		if ( ! $current_screen || static::SLUG !== $current_screen->id || 'post' !== $current_screen->base ) {
+			return;
+		}
+		if ( ! isset( $_REQUEST['snapshot_error_on_publish'] ) ) { // WPCS: input var ok. CSRF ok.
+			return;
+		}
+		?>
+		<div class="notice notice-error is-dismissible">
+			<p><?php esc_html_e( 'Failed to publish snapshot due to an error with saving one of its settings. This may be due to a theme or plugin having been changed since the snapshot was created. See below.', 'customize-snapshots' ); ?></p>
+		</div>
+		<?php
+	}
+
+	/**
+	 * Get conflicts settings
+	 *
+	 * @param \WP_Post $post     Post to compare conflict values.
+	 * @param array    $settings Setting IDS to search for (optional).
+	 * @return array Conflicted settings.
+	 */
+	public function get_conflicted_settings( $post, $settings = array() ) {
+		global $wpdb;
+		if ( $post && static::SLUG === get_post_type( $post ) ) {
+			$post = get_post( $post );
+			$changeset_data = $this->get_post_content( $post );
+		}
+		$conflicted_settings = array();
+		if ( empty( $settings ) ) {
+			if ( empty( $changeset_data ) || ! is_array( $changeset_data ) ) {
+				return $conflicted_settings;
+			}
+			$settings = array_keys( $changeset_data );
+			if ( empty( $settings ) ) {
+				return $conflicted_settings;
+			}
+		}
+		$query = $wpdb->prepare( "SELECT ID, post_name, post_title, post_status, post_content FROM $wpdb->posts WHERE post_type = %s AND post_status IN ( 'pending', 'future', 'draft' ) ", static::SLUG );
+		if ( $post instanceof \WP_Post ) {
+			$query .= $wpdb->prepare( 'AND ID != %d ', $post->ID );
+		}
+		$query .= 'AND ( ';
+		$or = array();
+		foreach ( $settings as $setting_id ) {
+			$or[] = $wpdb->prepare( 'post_content LIKE %s', '%' . $wpdb->esc_like( wp_json_encode( $setting_id ) ) . '%' );
+		}
+		$query .= implode( ' OR ', $or );
+		$query .= ' )';
+
+		$results = $wpdb->get_results( $query, ARRAY_A ); // WPCS: unprepared SQL ok.
+
+		if ( ! empty( $results ) ) {
+			foreach ( $results as $item ) {
+				$data = json_decode( $item['post_content'], true );
+				$other_changeset_setting_ids = array_keys( $data );
+				$common_setting_ids = array_intersect( $other_changeset_setting_ids, $settings );
+				if ( empty( $common_setting_ids ) ) {
+					continue;
+				}
+				foreach ( $common_setting_ids as $setting_id ) {
+
+					// Skip other changesets that have the same value.
+					if ( isset( $data[ $setting_id ]['value'] ) && isset( $changeset_data[ $setting_id ]['value'] ) && $data[ $setting_id ]['value'] === $changeset_data[ $setting_id ]['value'] ) {
+						continue;
+					}
+
+					if ( ! isset( $conflicted_settings[ $setting_id ] ) ) {
+						$conflicted_settings[ $setting_id ] = array();
+					}
+					$conflicted_settings[ $setting_id ][] = array(
+						'id' => $item['ID'],
+						'value' => $data[ $setting_id ]['value'],
+						'name' => ( $item['post_title'] === $item['post_name'] ) ? '' : $item['post_title'],
+						'uuid' => $item['post_name'],
+						'edit_link' => get_edit_post_link( $item['ID'], 'raw' ),
+						'setting_param' => $data[ $setting_id ],
+					);
+				}
+			}
+		}
+		return $conflicted_settings;
+	}
+
+	/**
+	 * Prints admin underscore templates.
+	 */
+	public function snapshot_admin_script_template() {
+		global $post;
+		if ( isset( $post->post_type ) && static::SLUG === $post->post_type ) {
+			?>
+			<script type="text/html" id="tmpl-snapshot-fork-item">
+				<li><a href="{{data.edit_link}}">{{data.post_title}}</a></li>
+			</script>
+			<?php
+		}
+	}
+
+	/**
+	 * Handles snapshot fork ajax request.
+	 */
+	public function handle_snapshot_fork() {
+		if ( ! check_ajax_referer( 'snapshot-fork', 'nonce', false ) ) {
+			status_header( 400 );
+			wp_send_json_error( 'bad_request' );
+		}
+
+		if ( ! isset( $_POST['post_id'] ) || ! intval( $_POST['post_id'] ) ) {
+			status_header( 400 );
+			wp_send_json_error( 'wrong_input' );
+		}
+
+		$post_id = intval( $_POST['post_id'] );
+		$parent_post = get_post( $post_id );
+		if ( static::SLUG !== $parent_post->post_type ) {
+			status_header( 400 );
+			wp_send_json_error( 'invalid-post' );
+		}
+
+		$post_type_object = get_post_type_object( static::SLUG );
+		if ( ! current_user_can( $post_type_object->cap->edit_post, $post_id ) ) {
+			status_header( 403 );
+			wp_send_json_error( 'unauthorized_user' );
+		}
+
+		$uuid = wp_generate_uuid4();
+		$new_post_arr = array(
+			'menu_order' => $parent_post->menu_order,
+			'comment_status' => $parent_post->comment_status,
+			'ping_status' => $parent_post->ping_status,
+			'post_author' => get_current_user_id(),
+			'post_content' => $parent_post->post_content,
+			'post_excerpt' => $parent_post->post_excerpt,
+			'post_mime_type' => $parent_post->post_mime_type,
+			'post_parent' => $parent_post->ID,
+			'post_password' => $parent_post->post_password,
+			'post_status' => 'draft',
+			'post_title' => ( $parent_post->post_name === $parent_post->post_title ) ? $uuid : $parent_post->post_title,
+			'post_type' => static::SLUG,
+			'post_date' => current_time( 'mysql', false ),
+			'post_date_gmt' => current_time( 'mysql', true ),
+			'post_modified' => current_time( 'mysql', false ),
+			'post_modified_gmt' => current_time( 'mysql', true ),
+			'post_name' => $uuid,
+		);
+		$all_meta = get_post_meta( $post_id );
+		if ( ! empty( $all_meta ) ) {
+			$ignore = array( '_edit_lock', '_edit_last' );
+			$new_post_arr['meta_input'] = array();
+			foreach ( $all_meta as $key => $val ) {
+				if ( ! in_array( $key, $ignore, true ) ) {
+					$new_post_arr['meta_input'][ $key ] = array_shift( $val );
+				}
+			}
+		}
+		$this->suspend_kses();
+		$forked_post_id = wp_insert_post( wp_slash( $new_post_arr ) );
+		$this->restore_kses();
+		$forked_post = get_post( $forked_post_id, ARRAY_A );
+		$forked_post['edit_link'] = get_edit_post_link( $forked_post_id, 'raw' );
+		wp_send_json_success( $forked_post );
+	}
+
+	/**
 	 * Generate resolve conflict markup.
 	 * This will add thickbox with radio button to select between conflicted setting values.
 	 *
-	 * @param string $setting_id       setting id.
-	 * @param array  $value            setting value.
-	 * @param array  $snapshot_content snapshot post-content.
+	 * @param string   $setting_id       setting id.
+	 * @param array    $value            setting value.
+	 * @param array    $snapshot_content snapshot post-content.
+	 * @param \WP_Post $post             Post object.
 	 */
-	public function resolve_conflict_markup( $setting_id, $value, $snapshot_content ) {
+	public function resolve_conflict_markup( $setting_id, $value, $snapshot_content, $post ) {
 		if ( isset( $value['merge_conflict'] ) ) {
 			$setting_id_key = str_replace( ']', '\\]', str_replace( '[', '\\[', $setting_id ) );
-			echo '<a href="#TB_inline?width=600&height=550&inlineId=snapshot-resolve-' . esc_attr( $setting_id_key ) . '" id="' . esc_attr( $setting_id ) . '" class="snapshot-resolve-setting-conflict remove thickbox">' . esc_html__( 'Change merge selection', 'customize-snapshots' ) . '</a> ';
+			switch ( $post->post_status ) {
+				case 'draft':
+					$save_as_string = __( 'Save draft', 'default' );
+					break;
+				case 'pending':
+					$save_as_string = __( 'Save as Pending', 'default' );
+					break;
+				default:
+					$save_as_string = __( 'Save', 'default' );
+					break;
+			}
+			/* translators: %s: save as draft or pending */
+			$title_text = sprintf( __( 'Pick to change selection and press \'%s\' button', 'customize-snapshots' ), $save_as_string );
+			echo '<a href="#TB_inline?width=600&height=550&inlineId=snapshot-resolve-' . esc_attr( $setting_id_key ) . '" id="' . esc_attr( $setting_id ) . '" class="snapshot-resolve-setting-conflict remove thickbox" title="' . esc_attr( $title_text ) . '">' . esc_html__( 'Change merge selection', 'customize-snapshots' ) . '</a> ';
 			echo '<div id="snapshot-resolve-' . esc_attr( $setting_id ) . '" style="display:none;">';
 			echo '<ul>';
 			foreach ( $value['merge_conflict'] as $conflicted_data ) {
 				echo '<li>';
-				echo '<details open>';
+				echo '<details open class="snapshot-conflict-details">';
 				echo '<summary>';
 				$input = '<input type="radio" class="snapshot-resolved-settings" data-setting-value-selector="snapshot-setting-preview-' . $setting_id_key . '"';
 				$json = wp_json_encode( array(
@@ -1124,16 +1443,8 @@ class Post_Type {
 				echo $input; // WPCS: xss ok.
 				echo '<code> ' . esc_html( $conflicted_data['uuid'] ) . ' </code></summary>';
 
-				// @Todo change below code with get_printable_setting_value() when https://github.com/xwp/wp-customize-snapshots/pull/71 get merged.
-				if ( '' === $conflicted_data['value'] ) {
-					$preview = '<p><em>' . esc_html__( '(Empty string)', 'customize-snapshots' ) . '</em></p>';
-				} elseif ( is_string( $conflicted_data['value'] ) || is_numeric( $conflicted_data['value'] ) ) {
-					$preview = '<p>' . esc_html( $conflicted_data['value'] ) . '</p>';
-				} elseif ( is_bool( $value ) ) {
-					$preview = '<p>' . wp_json_encode( $conflicted_data['value'] ) . '</p>';
-				} else {
-					$preview = sprintf( '<pre class="pre">%s</pre>', esc_html( Customize_Snapshot_Manager::encode_json( $conflicted_data['value'] ) ) );
-				}
+				$preview = $this->get_printable_setting_value( $conflicted_data['value'] );
+
 				echo '<div class="snapshot-conflict-setting-data">';
 				echo $preview; // WPCS: xss ok.
 				echo '</div>';

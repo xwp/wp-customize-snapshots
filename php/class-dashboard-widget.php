@@ -92,7 +92,7 @@ class Dashboard_Widget {
 				<div class="preview-future-state date-inputs clear">
 					<label>
 						<span class="screen-reader-text"><?php esc_html_e( 'Month', 'customize-snapshots' ); ?></span>
-						<?php $month = $this->manager->get_month_choices(); ?>
+						<?php $month = Customize_Snapshot_Manager_Compat::get_month_choices(); ?>
 						<select id="snapshot-date-month" class="date-input month" data-date-input="month" name="month">
 							<?php
 							foreach ( $month['month_choices'] as $month_choice ) {
@@ -132,7 +132,7 @@ class Dashboard_Widget {
 	/**
 	 * Handle future snapshot preview request.
 	 *
-	 * @return void|int post_id.
+	 * @return int|void post_id.
 	 */
 	public function handle_future_snapshot_preview_request() {
 		if ( 'POST' !== $_SERVER['REQUEST_METHOD'] || ! isset( $_POST['customize-future-snapshot-preview'] ) ) {
@@ -151,7 +151,7 @@ class Dashboard_Widget {
 			return;
 		}
 		$query = new \WP_Query( array(
-			'post_type' => $this->manager->get_post_type(),
+			'post_type' => Post_Type::SLUG,
 			'post_status' => 'future',
 			'date_query' => array(
 				'before' => $date->format( 'Y-m-d H:i:s' ),
@@ -169,7 +169,7 @@ class Dashboard_Widget {
 				// In case of single post duplicate it's data.
 				$_snapshot_post = get_post( array_shift( $mergable_posts ) );
 				$merged_snapshot_post_id = $this->manager->post_type->save( array(
-					'uuid' => Customize_Snapshot_Manager::generate_uuid(),
+					'uuid' => wp_generate_uuid4(),
 					'status' => 'auto-draft',
 					'data' => $this->manager->post_type->get_post_content( $_snapshot_post ),
 					'post_date' => current_time( 'mysql', false ),
