@@ -630,8 +630,8 @@ class Test_Customize_Snapshot_Manager extends \WP_UnitTestCase {
 	public function test_is_read_only_snapshot() {
 		$post_id = $this->factory()->post->create( array( 'post_status' => 'auto-draft' ) );
 		$post = get_post( $post_id );
-		$this->assertFalse( $this->manager->is_read_only_snapshot( $post ) );
+		$this->assertFalse( $this->manager->is_previewing_future_state_changeset( $post ) );
 		add_post_meta( $post->ID, 'is_future_preview', '1' );
-		$this->assertTrue( $this->manager->is_read_only_snapshot( $post ) );
+		$this->assertTrue( $this->manager->is_previewing_future_state_changeset( $post ) );
 	}
 }

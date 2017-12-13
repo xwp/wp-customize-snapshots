@@ -394,11 +394,26 @@ class Customize_Snapshot_Manager {
 	 */
 	public function customize_menu( $wp_admin_bar ) {
 		add_action( 'wp_before_admin_bar_render', 'wp_customize_support_script' );
-		$this->replace_customize_link( $wp_admin_bar );
-		$this->add_changesets_admin_bar_link( $wp_admin_bar );
-		$this->add_resume_snapshot_link( $wp_admin_bar );
-		$this->add_post_edit_screen_link( $wp_admin_bar );
-		$this->add_publish_changeset_link( $wp_admin_bar );
+
+		// If previewing future state of changeset only add exit changeset preview link in admin bar.
+		$wp_customize = $this->get_customize_manager();
+		$is_future_state_preview = (
+				is_customize_preview()
+				&&
+				$wp_customize->changeset_post_id()
+				&&
+				$this->is_previewing_future_state_changeset( $wp_customize->changeset_post_id() ) );
+		if ( $is_future_state_preview ) {
+			if ( $wp_admin_bar->get_node( 'customize' ) ) {
+				$wp_admin_bar->remove_menu( 'customize' );
+			}
+		} else {
+			$this->replace_customize_link( $wp_admin_bar );
+			$this->add_changesets_admin_bar_link( $wp_admin_bar );
+			$this->add_resume_snapshot_link( $wp_admin_bar );
+			$this->add_post_edit_screen_link( $wp_admin_bar );
+			$this->add_publish_changeset_link( $wp_admin_bar );
+		}
 		$this->add_snapshot_exit_link( $wp_admin_bar );
 	}
 
@@ -443,14 +458,8 @@ class Customize_Snapshot_Manager {
 			return;
 		}
 
-		$wp_customize = $this->get_customize_manager();
 		$customize_node = $wp_admin_bar->get_node( 'customize' );
 		if ( empty( $customize_node ) ) {
-			return;
-		}
-		$post_id = $wp_customize->changeset_post_id();
-		if ( $post_id && $this->is_read_only_snapshot( $post_id ) ) {
-			$wp_admin_bar->remove_menu( 'customize' );
 			return;
 		}
 
@@ -465,12 +474,15 @@ class Customize_Snapshot_Manager {
 				build_query( $preview_url_query_params ),
 				$customize_node->href
 			);
+
 		}
+		$wp_customize = $this->get_customize_manager();
 
 		$args = array(
 			Post_Type::CUSTOMIZE_UUID_PARAM_NAME => $wp_customize->changeset_uuid(),
 		);
 
+		$post_id = $wp_customize->changeset_post_id();
 		if ( $post_id ) {
 			$customizer_state_query_vars = $this->post_type->get_customizer_state_query_vars( $post_id );
 			unset( $customizer_state_query_vars['url'] );
@@ -530,7 +542,7 @@ class Customize_Snapshot_Manager {
 			return;
 		}
 		$post_id = $this->get_customize_manager()->changeset_post_id();
-		if ( ! $post_id || $this->is_read_only_snapshot( $post_id ) ) {
+		if ( ! $post_id || $this->is_previewing_future_state_changeset( $post_id ) ) {
 			return;
 		}
 		$wp_admin_bar->add_menu( array(
@@ -587,9 +599,14 @@ class Customize_Snapshot_Manager {
 		if ( ! is_customize_preview() ) {
 			return;
 		}
+		$wp_customize = $this->get_customize_manager();
+		$title = __( 'Exit Changeset Preview', 'customize-snapshots' );
+		if ( $this->is_previewing_future_state_changeset( $wp_customize->changeset_post_id() ) ) {
+			$title = __( 'Exit Preview Of Future Site State', 'customize-snapshots' );
+		}
 		$wp_admin_bar->add_menu( array(
 			'id' => 'exit-customize-snapshot',
-			'title' => __( 'Exit Changeset Preview', 'customize-snapshots' ),
+			'title' => $title,
 			'href' => remove_query_arg( Post_Type::FRONT_UUID_PARAM_NAME ),
 			'meta' => array(
 				'class' => 'ab-item ab-customize-snapshots-item',
@@ -967,14 +984,14 @@ class Customize_Snapshot_Manager {
 	}
 
 	/**
-	 * Returns whether post is readonly or not.
+	 * Returns whether changeset post is of future preview or not.
 	 *
 	 * @param \WP_Post|int $post post_object or post_id.
 	 * @return bool
 	 */
-	public function is_read_only_snapshot( $post ) {
+	public function is_previewing_future_state_changeset( $post ) {
 		$post = get_post( $post );
-		if ( ! $post ) {
+		if ( ! ( $post instanceof \WP_Post ) ) {
 			return false;
 		}
 		return ( '1' === get_post_meta( $post->ID, 'is_future_preview', true ) && 'auto-draft' === $post->post_status );
