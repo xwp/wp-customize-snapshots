@@ -71,7 +71,7 @@ class Dashboard_Widget {
 	public function add_widget() {
 		wp_add_dashboard_widget(
 			'customize_site_state_future_snapshot_preview',
-			__( 'Preview Future Site State','customize-snapshots' ),
+			__( 'Preview Future Site State', 'customize-snapshots' ),
 			array( $this, 'render_widget' )
 		);
 	}
