@@ -98,6 +98,8 @@ class Post_Type {
 			add_action( 'transition_post_status', array( $this, 'start_pretending_customize_save_ajax_action' ), $priority - 1, 3 );
 			add_action( 'transition_post_status', array( $this, 'finish_pretending_customize_save_ajax_action' ), $priority + 1, 3 );
 		}
+		add_action( 'wp_ajax_snapshot_fork', array( $this, 'handle_snapshot_fork' ) );
+		add_action( 'admin_footer-post.php', array( $this, 'snapshot_admin_script_template' ) );
 	}
 
 	/**
@@ -132,7 +134,7 @@ class Post_Type {
 		$post_type_obj->show_in_menu = true;
 		$post_type_obj->_edit_link = 'post.php?post=%d';
 		$arg = array(
-			'capability_type' => Post_Type::SLUG,
+			'capability_type' => self::SLUG,
 			'map_meta_cap' => true,
 			'capabilities' => array(
 				'publish_posts' => 'customize_publish',
@@ -241,6 +243,14 @@ class Post_Type {
 		$screen = static::SLUG;
 		$context = 'normal';
 		$priority = 'high';
+		add_meta_box( $id, $title, $callback, $screen, $context, $priority );
+
+		$id = static::SLUG . '-fork';
+		$title = __( 'Changeset Forks', 'customize-snapshots' );
+		$callback = array( $this, 'render_forked_metabox' );
+		$screen = static::SLUG;
+		$context = 'normal';
+		$priority = 'default';
 		add_meta_box( $id, $title, $callback, $screen, $context, $priority );
 	}
 
@@ -385,6 +395,7 @@ class Post_Type {
 		echo sprintf( '%1$s %2$s %3$s', esc_html__( 'Modified:', 'customize-snapshots' ), esc_html( get_the_modified_date( '' ) ), esc_html( get_the_modified_time( '' ) ) ) . '<br>';
 		echo '</p>';
 
+		$fork_markup = sprintf( '<button type="button" class="snapshot-fork button button-secondary">%s</button>', esc_html__( 'Fork', 'customize-snapshots' ) );
 		$merged_uuid = $this->get_snapshot_merged_uuid( $snapshot_content );
 		if ( ! empty( $merged_uuid ) ) {
 			echo '<p>';
@@ -414,6 +425,7 @@ class Post_Type {
 		}
 
 		$snapshot_theme = get_post_meta( $post->ID, '_snapshot_theme', true );
+
 		if ( ! empty( $snapshot_theme ) && get_stylesheet() !== $snapshot_theme ) {
 			echo '<p>';
 			/* translators: 1 is the theme the changeset was created for */
@@ -437,17 +449,21 @@ class Post_Type {
 
 			$frontend_view_url = get_permalink( $post->ID );
 			echo sprintf(
-				'<a href="%s" class="button button-secondary">%s</a>',
+				'<a href="%s" class="button button-secondary">%s</a> ',
 				esc_url( $frontend_view_url ),
 				esc_html__( 'Preview Changeset', 'customize-snapshots' )
 			);
+
+			echo $fork_markup; // WPCS: XSS ok.
 			echo '</p>';
+		} else {
+			echo "<p>$fork_markup</p>"; // WPCS: XSS ok.
 		}
 
 		echo '<hr>';
 
 		ksort( $snapshot_content );
-		wp_nonce_field( static::SLUG . '_settings', static::SLUG );
+		wp_nonce_field( static::SLUG . '_settings', static::SLUG, false );
 		echo '<ul id="snapshot-settings">';
 		foreach ( $snapshot_content as $setting_id => $setting_params ) {
 			if ( ! isset( $setting_params['value'] ) && ! isset( $setting_params['publish_error'] ) ) {
@@ -562,6 +578,41 @@ class Post_Type {
 		 */
 		$preview = apply_filters( 'customize_snapshot_value_preview', $preview, compact( 'value', 'setting_id', 'setting_params', 'post' ) );
 		return $preview;
+	}
+
+	/**
+	 * Renders Forked snapshot metabox.
+	 *
+	 * @param \WP_Post $post current post object.
+	 */
+	public function render_forked_metabox( $post ) {
+		$post_query = new \WP_Query( array(
+			'post_parent' => $post->ID,
+			'posts_per_page' => 100,
+			'post_type' => array( static::SLUG ),
+			'post_status' => 'any',
+		) );
+		?>
+		<ul id="snapshot-fork-list">
+			<?php foreach ( $post_query->get_posts() as $forked_changeset_post ) : ?>
+				<li>
+					<a href="<?php echo esc_url( get_edit_post_link( $forked_changeset_post ) ); ?>"><?php echo get_the_title( $forked_changeset_post ); ?></a>
+				</li>
+			<?php endforeach; ?>
+		</ul>
+		<p>
+			<?php echo sprintf( '<button type="button" class="snapshot-fork button button-secondary">%s</button>', esc_html__( 'Fork', 'customize-snapshots' ) ); ?>
+		</p>
+
+		<?php if ( $post_query->max_num_pages > 1 ) : ?>
+			<p><?php esc_html_e( 'You have more than 100 forks of this changeset :-)', 'customize-snapshots' ); ?></p>
+		<?php endif; ?>
+
+		<?php
+		if ( $post->post_parent ) {
+			$parent = get_post( $post->post_parent );
+			echo '<h2>' . esc_html__( 'Parent:', 'customize-snapshots' ) . ' <a href="' . esc_url( get_edit_post_link( $parent, 'raw' ) ) . '">' . get_the_title( $parent ) . '</a></h2>';
+		}
 	}
 
 	/**
@@ -1031,7 +1082,7 @@ class Post_Type {
 	 *
 	 * In each snapshot's edit page, there are JavaScript-controlled links to remove each setting.
 	 * On clicking a setting, the JS sets a hidden input field with that setting's ID.
-	 * And these settings appear in $_POST as the array 'customize_snapshot_remove_settings.'
+	 * And these settings appear in $_POST as the array 'customize_changeset_remove_settings.'
 	 * So look for these removed settings in that array, on saving.
 	 * And possibly filter out those settings from the post content.
 	 *
@@ -1125,7 +1176,7 @@ class Post_Type {
 			$theme = $wp_customize->get_stylesheet();
 			$stored_query_vars['theme'] = $query_vars['previewing_theme'] ? $theme : '';
 		}
-		update_post_meta( $post_id, '_preview_url_query_vars', $stored_query_vars );
+		update_post_meta( $post_id, '_preview_url_query_vars', wp_slash( $stored_query_vars ) );
 		return $stored_query_vars;
 	}
 
@@ -1173,6 +1224,9 @@ class Post_Type {
 		$maybe_error = get_post_meta( $post->ID, 'snapshot_error_on_publish', true );
 		if ( $maybe_error ) {
 			$states['snapshot_error'] = __( 'Error on publish', 'customize-snapshots' );
+		}
+		if ( $post->post_parent ) {
+			$states['forked'] = __( 'Forked', 'customize-snapshots' );
 		}
 		return $states;
 	}
@@ -1265,6 +1319,85 @@ class Post_Type {
 			}
 		}
 		return $conflicted_settings;
+	}
+
+	/**
+	 * Prints admin underscore templates.
+	 */
+	public function snapshot_admin_script_template() {
+		global $post;
+		if ( isset( $post->post_type ) && static::SLUG === $post->post_type ) {
+			?>
+			<script type="text/html" id="tmpl-snapshot-fork-item">
+				<li><a href="{{data.edit_link}}">{{data.post_title}}</a></li>
+			</script>
+			<?php
+		}
+	}
+
+	/**
+	 * Handles snapshot fork ajax request.
+	 */
+	public function handle_snapshot_fork() {
+		if ( ! check_ajax_referer( 'snapshot-fork', 'nonce', false ) ) {
+			status_header( 400 );
+			wp_send_json_error( 'bad_request' );
+		}
+
+		if ( ! isset( $_POST['post_id'] ) || ! intval( $_POST['post_id'] ) ) {
+			status_header( 400 );
+			wp_send_json_error( 'wrong_input' );
+		}
+
+		$post_id = intval( $_POST['post_id'] );
+		$parent_post = get_post( $post_id );
+		if ( static::SLUG !== $parent_post->post_type ) {
+			status_header( 400 );
+			wp_send_json_error( 'invalid-post' );
+		}
+
+		$post_type_object = get_post_type_object( static::SLUG );
+		if ( ! current_user_can( $post_type_object->cap->edit_post, $post_id ) ) {
+			status_header( 403 );
+			wp_send_json_error( 'unauthorized_user' );
+		}
+
+		$uuid = wp_generate_uuid4();
+		$new_post_arr = array(
+			'menu_order' => $parent_post->menu_order,
+			'comment_status' => $parent_post->comment_status,
+			'ping_status' => $parent_post->ping_status,
+			'post_author' => get_current_user_id(),
+			'post_content' => $parent_post->post_content,
+			'post_excerpt' => $parent_post->post_excerpt,
+			'post_mime_type' => $parent_post->post_mime_type,
+			'post_parent' => $parent_post->ID,
+			'post_password' => $parent_post->post_password,
+			'post_status' => 'draft',
+			'post_title' => ( $parent_post->post_name === $parent_post->post_title ) ? $uuid : $parent_post->post_title,
+			'post_type' => static::SLUG,
+			'post_date' => current_time( 'mysql', false ),
+			'post_date_gmt' => current_time( 'mysql', true ),
+			'post_modified' => current_time( 'mysql', false ),
+			'post_modified_gmt' => current_time( 'mysql', true ),
+			'post_name' => $uuid,
+		);
+		$all_meta = get_post_meta( $post_id );
+		if ( ! empty( $all_meta ) ) {
+			$ignore = array( '_edit_lock', '_edit_last' );
+			$new_post_arr['meta_input'] = array();
+			foreach ( $all_meta as $key => $val ) {
+				if ( ! in_array( $key, $ignore, true ) ) {
+					$new_post_arr['meta_input'][ $key ] = array_shift( $val );
+				}
+			}
+		}
+		$this->suspend_kses();
+		$forked_post_id = wp_insert_post( wp_slash( $new_post_arr ) );
+		$this->restore_kses();
+		$forked_post = get_post( $forked_post_id, ARRAY_A );
+		$forked_post['edit_link'] = get_edit_post_link( $forked_post_id, 'raw' );
+		wp_send_json_success( $forked_post );
 	}
 
 	/**

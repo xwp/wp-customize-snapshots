@@ -241,7 +241,7 @@ class Customize_Snapshot_Manager {
 	 * These files control the behavior and styling of links to remove settings.
 	 * Published snapshots can't be edited, so these files are not needed on those pages.
 	 *
-	 * @param String $hook Current page in admin.
+	 * @param string $hook Current page.
 	 */
 	public function enqueue_admin_scripts( $hook ) {
 		global $post;
@@ -252,6 +252,8 @@ class Customize_Snapshot_Manager {
 			wp_enqueue_style( $handle );
 			$exports = array(
 				'deleteInputName' => Post_Type::SLUG . '_remove_settings[]',
+				'forkNonce' => wp_create_nonce( 'snapshot-fork' ),
+				'postId' => get_the_ID(),
 			);
 			wp_add_inline_script(
 				$handle,
