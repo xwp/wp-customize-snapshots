@@ -77,10 +77,10 @@ var CustomizeSnapshotsAdmin = (function( $ ) {
 	/**
 	 * Change link text.
 	 *
-	 * @param {object} link jQuery selector of toggle setting removal link.
+	 * @param {jQuery} link - jQuery element of toggle setting removal link.
 	 * @return {void}
 	 */
-	component.changeLinkText = function( link ) {
+	component.changeLinkText = function changeLinkText( link ) {
 		var oldLinkText = link.text(),
 			newLinkText = link.data( 'text-restore' );
 
@@ -90,10 +90,10 @@ var CustomizeSnapshotsAdmin = (function( $ ) {
 	/**
 	 * Show setting and changeset link text.
 	 *
-	 * @param {object} link jQuery selector of toggle setting removal link.
+	 * @param {jQuery} link - jQuery element of toggle setting removal link.
 	 * @return {void}
 	 */
-	component.showSettingAndChangeLinkText = function( link ) {
+	component.showSettingAndChangeLinkText = function showSettingAndChangeLinkText( link ) {
 		var settingId = link.attr( 'id' );
 
 		link.data( component.dataSlug, component.linkActions.remove );
@@ -105,10 +105,10 @@ var CustomizeSnapshotsAdmin = (function( $ ) {
 	/**
 	 * Hide setting and change link text.
 	 *
-	 * @param {object} link jQuery selector of toggle setting removal link.
+	 * @param {jQuery} link - jQuery element of toggle setting removal link.
 	 * @return {void}
 	 */
-	component.hideSettingAndChangeLinkText = function( link ) {
+	component.hideSettingAndChangeLinkText = function hideSettingAndChangeLinkText( link ) {
 		var hiddenInput, settingId = link.attr( 'id' );
 
 		hiddenInput = $( '<input>' ).attr( {
@@ -124,10 +124,10 @@ var CustomizeSnapshotsAdmin = (function( $ ) {
 	/**
 	 * Remove or restore settings.
 	 *
-	 * @param {object} event Event.
+	 * @param {jQuery.Event} event - Event.
 	 * @return {void}
 	 */
-	component.toggleSettingRemoval = function( event ) {
+	component.toggleSettingRemoval = function toggleSettingRemoval( event ) {
 		var link = $( this );
 
 		event.preventDefault();

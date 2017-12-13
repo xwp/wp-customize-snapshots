@@ -241,7 +241,7 @@ class Customize_Snapshot_Manager {
 	 * These files control the behavior and styling of links to remove settings.
 	 * Published snapshots can't be edited, so these files are not needed on those pages.
 	 *
-	 * @param String $hook Current page.
+	 * @param string $hook Current page.
 	 */
 	public function enqueue_admin_scripts( $hook ) {
 		global $post;

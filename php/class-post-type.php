@@ -133,7 +133,7 @@ class Post_Type {
 		$post_type_obj->show_in_menu = true;
 		$post_type_obj->_edit_link = 'post.php?post=%d';
 		$arg = array(
-			'capability_type' => Post_Type::SLUG,
+			'capability_type' => self::SLUG,
 			'map_meta_cap' => true,
 			'capabilities' => array(
 				'publish_posts' => 'customize_publish',
@@ -1108,7 +1108,7 @@ class Post_Type {
 			$theme = $wp_customize->get_stylesheet();
 			$stored_query_vars['theme'] = $query_vars['previewing_theme'] ? $theme : '';
 		}
-		update_post_meta( $post_id, '_preview_url_query_vars', $stored_query_vars );
+		update_post_meta( $post_id, '_preview_url_query_vars', wp_slash( $stored_query_vars ) );
 		return $stored_query_vars;
 	}
 
@@ -1325,7 +1325,7 @@ class Post_Type {
 			}
 		}
 		$this->suspend_kses();
-		$forked_post_id = wp_insert_post( $new_post_arr );
+		$forked_post_id = wp_insert_post( wp_slash( $new_post_arr ) );
 		$this->restore_kses();
 		$forked_post = get_post( $forked_post_id, ARRAY_A );
 		$forked_post['edit_link'] = get_edit_post_link( $forked_post_id, 'raw' );
