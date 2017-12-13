@@ -163,11 +163,11 @@ class Dashboard_Widget {
 			'update_post_meta_cache' => false,
 			'update_post_term_cache' => false,
 		) );
-		$mergable_posts = $query->posts;
-		if ( ! empty( $mergable_posts ) ) {
-			if ( 1 === count( $mergable_posts ) ) {
+		$mergable_post_ids = $query->posts;
+		if ( ! empty( $mergable_post_ids ) ) {
+			if ( 1 === count( $mergable_post_ids ) ) {
 				// In case of single post duplicate it's data.
-				$_snapshot_post = get_post( array_shift( $mergable_posts ) );
+				$_snapshot_post = get_post( array_shift( $mergable_post_ids ) );
 				$merged_snapshot_post_id = $this->manager->post_type->save( array(
 					'uuid' => wp_generate_uuid4(),
 					'status' => 'auto-draft',
@@ -177,7 +177,8 @@ class Dashboard_Widget {
 				) );
 			} else {
 				// Merge posts.
-				$merged_snapshot_post_id = $this->manager->post_type->merge_snapshots( $mergable_posts, 'auto-draft' );
+				$mergeable_posts         = array_map( 'get_post', $mergable_post_ids );
+				$merged_snapshot_post_id = $this->manager->post_type->merge_snapshots( $mergeable_posts, 'auto-draft' );
 			}
 
 			if ( $merged_snapshot_post_id ) {

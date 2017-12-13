@@ -970,8 +970,17 @@ class Post_Type {
 	 */
 	public function merge_snapshots( $posts, $status = 'draft' ) {
 		usort( $posts, function( $a, $b ) {
-			$compare_a = $a->post_modified;
-			$compare_b = $b->post_modified;
+			$compare_key_a = 'post_modified';
+			$compare_key_b = 'post_modified';
+			// If status is scheduled then post_date takes more priority.
+			if ( get_post_status( $a ) === 'future' ) {
+				$compare_key_a = 'post_date';
+			}
+			if ( get_post_status( $b ) === 'future' ) {
+				$compare_key_b = 'post_date';
+			}
+			$compare_a = $a->$compare_key_a;
+			$compare_b = $b->$compare_key_b;
 			if ( '0000-00-00 00:00:00' === $compare_a ) {
 				$compare_a = $a->post_date;
 			}
