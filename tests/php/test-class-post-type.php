@@ -128,9 +128,9 @@ class Test_Post_Type extends \WP_UnitTestCase {
 	/**
 	 * Test forcing at least one revision.
 	 *
-	 * @covers Post_Type::force_at_least_one_revision
+	 * @covers \CustomizeSnapshots\Post_Type::force_at_least_one_revision
 	 */
-	function test_force_at_least_one_revision() {
+	public function test_force_at_least_one_revision() {
 		add_filter( 'wp_revisions_to_keep', '__return_zero', 1 );
 		$post_type = get_plugin_instance()->customize_snapshot_manager->post_type;
 		$post_type->init();
