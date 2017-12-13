@@ -6,7 +6,9 @@ var CustomizeSnapshotsAdmin = (function( $ ) {
 
 	var component = {
 		data: {
-			deleteInputName: 'customize_changeset_remove_settings[]'
+			deleteInputName: 'customize_changeset_remove_settings[]',
+			postId: 0,
+			forkNonce: ''
 		},
 		dataSlug: 'cs-action',
 		linkActions: {
@@ -18,18 +20,20 @@ var CustomizeSnapshotsAdmin = (function( $ ) {
 	/**
 	 * Initialize component.
 	 *
+	 * @param {object} data - Data.
 	 * @return {void}
 	 */
-	component.init = function() {
-		component.forkButton = $( '#snapshot-fork' );
-		component.forkSpinner = $( '.snapshot-fork-spinner' );
+	component.init = function( data ) {
+		_.extend( component.data, data );
+
+		component.forkButtons = $( 'button.snapshot-fork' );
 		component.forkList = $( '#snapshot-fork-list' );
 		component.toogleSettingRemovalLink = $( '.snapshot-toggle-setting-removal' );
 
 		component.forkItemTemplate = wp.template( 'snapshot-fork-item' );
 		component.toogleSettingRemovalLink.data( component.dataSlug, component.linkActions.remove );
 
-		component.forkButton.on( 'click', component.fork );
+		component.forkButtons.on( 'click', component.fork );
 		component.toogleSettingRemovalLink.on( 'click', component.toggleSettingRemoval );
 	};
 
@@ -38,26 +42,35 @@ var CustomizeSnapshotsAdmin = (function( $ ) {
 	 *
 	 * @return {void}
 	 */
-	component.fork = function( event ) {
+	component.fork = function fork() {
 		var request;
 
-		event.preventDefault();
-
-		component.forkButton.prop( 'disabled', true );
-		component.forkSpinner.addClass( 'is-active' );
+		component.forkButtons.addClass( 'disabled loading' );
 
 		request = wp.ajax.post( 'snapshot_fork', {
-			post_id: component.forkButton.data( 'post-id' ),
-			nonce: component.forkButton.data( 'nonce' )
+			post_id: component.data.postId,
+			nonce: component.data.forkNonce
 		} );
 
 		request.done( function( data ) {
-			component.forkList.append( $( $.trim( component.forkItemTemplate( data ) ) ) );
+			var listItem = $( $.trim( component.forkItemTemplate( data ) ) ), showMetaboxToggle, metaboxContainer;
+
+			// Make sure the metabox is shown and expanded.
+			showMetaboxToggle = $( '#customize_changeset-fork-hide' );
+			if ( ! showMetaboxToggle.prop( 'checked' ) ) {
+				showMetaboxToggle.click();
+			}
+			metaboxContainer = $( '#customize_changeset-fork' );
+			if ( metaboxContainer.hasClass( 'closed' ) ) {
+				metaboxContainer.find( '> .handlediv' ).click();
+			}
+
+			component.forkList.append( listItem );
+			listItem.find( 'a' ).focus();
 		} );
 
 		request.always( function() {
-			component.forkSpinner.removeClass( 'is-active' );
-			component.forkButton.prop( 'disabled', false );
+			component.forkButtons.removeClass( 'disabled loading' );
 		} );
 	};
 

@@ -407,8 +407,7 @@ class Test_Post_Type extends \WP_UnitTestCase {
 
 		$this->assertContains( 'UUID:', $metabox_content );
 		$this->assertContains( 'button-secondary', $metabox_content );
-		$this->assertContains( 'id="snapshot-fork"', $metabox_content );
-		$this->assertContains( 'snapshot-fork-spinner', $metabox_content );
+		$this->assertContains( 'class="snapshot-fork', $metabox_content );
 		$this->assertContains( '<ul id="snapshot-settings">', $metabox_content );
 		foreach ( $data as $setting_id => $setting_args ) {
 			$this->assertContains( $setting_id, $metabox_content );
@@ -435,8 +434,7 @@ class Test_Post_Type extends \WP_UnitTestCase {
 
 		$this->assertContains( 'UUID:', $metabox_content );
 		$this->assertNotContains( 'customize_snapshot_uuid', $metabox_content );
-		$this->assertContains( 'id="snapshot-fork"', $metabox_content );
-		$this->assertContains( 'snapshot-fork-spinner', $metabox_content );
+		$this->assertContains( 'class="snapshot-fork', $metabox_content );
 		$this->assertContains( '<ul id="snapshot-settings">', $metabox_content );
 		foreach ( $data as $setting_id => $setting_args ) {
 			$this->assertContains( $setting_id, $metabox_content );

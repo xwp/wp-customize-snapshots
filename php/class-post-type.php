@@ -245,7 +245,7 @@ class Post_Type {
 		add_meta_box( $id, $title, $callback, $screen, $context, $priority );
 
 		$id = static::SLUG . '-fork';
-		$title = __( 'Forked Snapshots', 'customize-snapshots' );
+		$title = __( 'Changeset Forks', 'customize-snapshots' );
 		$callback = array( $this, 'render_forked_metabox' );
 		$screen = static::SLUG;
 		$context = 'normal';
@@ -394,8 +394,7 @@ class Post_Type {
 		echo sprintf( '%1$s %2$s %3$s', esc_html__( 'Modified:', 'customize-snapshots' ), esc_html( get_the_modified_date( '' ) ), esc_html( get_the_modified_time( '' ) ) ) . '<br>';
 		echo '</p>';
 
-		$fork_markup = sprintf( '<button id="snapshot-fork" class="button button-secondary" data-post-id="%s" data-nonce="%s">%s</button>', esc_attr( $post->ID ), wp_create_nonce( 'snapshot-fork' ), esc_html__( 'Fork', 'customize-snapshots' ) );
-		$fork_markup .= '<span class="spinner snapshot-fork-spinner"></span>';
+		$fork_markup = sprintf( '<button type="button" class="snapshot-fork button button-secondary">%s</button>', esc_html__( 'Fork', 'customize-snapshots' ) );
 		$snapshot_theme = get_post_meta( $post->ID, '_snapshot_theme', true );
 
 		if ( ! empty( $snapshot_theme ) && get_stylesheet() !== $snapshot_theme ) {
@@ -554,20 +553,26 @@ class Post_Type {
 	public function render_forked_metabox( $post ) {
 		$post_query = new \WP_Query( array(
 			'post_parent' => $post->ID,
-			'posts_per_page' => 20, // Todo 20 looks fine i don't think people would have that many forks.
+			'posts_per_page' => 100,
 			'post_type' => array( static::SLUG ),
 			'post_status' => 'any',
 		) );
 		?>
 		<ul id="snapshot-fork-list">
-		<?php
-		if ( $post_query->have_posts() ) {
-			foreach ( $post_query->get_posts() as $p ) {
-				echo '<li><a href="' . esc_url( get_edit_post_link( $p ), 'raw' ) . '">' . get_the_title( $p ) . '</a></li>';
-			}
-		}
-		?>
+			<?php foreach ( $post_query->get_posts() as $forked_changeset_post ) : ?>
+				<li>
+					<a href="<?php echo esc_url( get_edit_post_link( $forked_changeset_post ) ); ?>"><?php echo get_the_title( $forked_changeset_post ); ?></a>
+				</li>
+			<?php endforeach; ?>
 		</ul>
+		<p>
+			<?php echo sprintf( '<button type="button" class="snapshot-fork button button-secondary">%s</button>', esc_html__( 'Fork', 'customize-snapshots' ) ); ?>
+		</p>
+
+		<?php if ( $post_query->max_num_pages > 1 ) : ?>
+			<p><?php esc_html_e( 'You have more than 100 forks of this changeset :-)', 'customize-snapshots' ); ?></p>
+		<?php endif; ?>
+
 		<?php
 		if ( $post->post_parent ) {
 			$parent = get_post( $post->post_parent );

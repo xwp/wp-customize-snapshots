@@ -252,6 +252,8 @@ class Customize_Snapshot_Manager {
 			wp_enqueue_style( $handle );
 			$exports = array(
 				'deleteInputName' => Post_Type::SLUG . '_remove_settings[]',
+				'forkNonce' => wp_create_nonce( 'snapshot-fork' ),
+				'postId' => get_the_ID(),
 			);
 			wp_add_inline_script(
 				$handle,
