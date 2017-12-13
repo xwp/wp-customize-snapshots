@@ -311,6 +311,31 @@ class Customize_Snapshot_Manager_Compat extends Customize_Snapshot_Manager {
 	}
 
 	/**
+	 * Generate options for the month Select.
+	 *
+	 * Based on touch_time().
+	 *
+	 * @see touch_time()
+	 *
+	 * @return array
+	 */
+	public static function get_month_choices() {
+		global $wp_locale;
+		$months = array();
+		for ( $i = 1; $i < 13; $i = $i + 1 ) {
+			$month_number = zeroise( $i, 2 );
+			$month_text = $wp_locale->get_month_abbrev( $wp_locale->get_month( $i ) );
+
+			/* translators: 1: month number (01, 02, etc.), 2: month abbreviation */
+			$months[ $i ]['text'] = sprintf( __( '%1$s-%2$s', 'customize-snapshots' ), $month_number, $month_text );
+			$months[ $i ]['value'] = $month_number;
+		}
+		return array(
+			'month_choices' => $months,
+		);
+	}
+
+	/**
 	 * Override default date values to a post.
 	 *
 	 * @param \WP_Post $post Post.
@@ -334,30 +359,5 @@ class Customize_Snapshot_Manager_Compat extends Customize_Snapshot_Manager {
 			}
 		}
 		return $post;
-	}
-
-	/**
-	 * Generate options for the month Select.
-	 *
-	 * Based on touch_time().
-	 *
-	 * @see touch_time()
-	 *
-	 * @return array
-	 */
-	public static function get_month_choices() {
-		global $wp_locale;
-		$months = array();
-		for ( $i = 1; $i < 13; $i = $i + 1 ) {
-			$month_number = zeroise( $i, 2 );
-			$month_text = $wp_locale->get_month_abbrev( $wp_locale->get_month( $i ) );
-
-			/* translators: 1: month number (01, 02, etc.), 2: month abbreviation */
-			$months[ $i ]['text'] = sprintf( __( '%1$s-%2$s', 'customize-snapshots' ), $month_number, $month_text );
-			$months[ $i ]['value'] = $month_number;
-		}
-		return array(
-			'month_choices' => $months,
-		);
 	}
 }
