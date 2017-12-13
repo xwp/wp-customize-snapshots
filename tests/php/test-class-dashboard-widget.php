@@ -87,21 +87,23 @@ class Test_Dashboard_Widget extends \WP_UnitTestCase {
 		$plugin = $this->get_new_plugin_instance();
 		$manager = $plugin->customize_snapshot_manager;
 		$post_type_obj = $manager->post_type;
-		$date = gmdate( 'Y-m-d H:i:s', ( time() + DAY_IN_SECONDS + ( get_option( 'gmt_offset' ) * HOUR_IN_SECONDS ) ) );
+		$date_1 = gmdate( 'Y-m-d H:i:s', ( time() + DAY_IN_SECONDS + ( get_option( 'gmt_offset' ) * HOUR_IN_SECONDS ) ) );
+		$date_2 = gmdate( 'Y-m-d H:i:s', ( time() + DAY_IN_SECONDS + ( get_option( 'gmt_offset' ) * ( HOUR_IN_SECONDS * 2 ) ) ) );
 		$search_date = gmdate( 'Y-m-d H:i:s', ( time() + DAY_IN_SECONDS + DAY_IN_SECONDS + ( get_option( 'gmt_offset' ) * HOUR_IN_SECONDS ) ) );
 		$date_time = new \DateTime( $search_date );
-		$data = array( 'foo' => array( 'value' => 'bar' ) );
+		$data_1 = array( 'foo' => array( 'value' => 'bar' ) );
+		$data_2 = array( 'foo' => array( 'value' => 'baz' ) );
 		$post_id_1 = $post_type_obj->save( array(
 			'uuid' => wp_generate_uuid4(),
 			'status' => 'future',
-			'date_gmt' => $date,
-			'data' => $data,
+			'date_gmt' => $date_1,
+			'data' => $data_1,
 		) );
 		$post_id_2 = $post_type_obj->save( array(
 			'uuid' => wp_generate_uuid4(),
 			'status' => 'future',
-			'date_gmt' => $date,
-			'data' => $data,
+			'date_gmt' => $date_2,
+			'data' => $data_2,
 		) );
 
 		// Setup post var.
@@ -135,7 +137,7 @@ class Test_Dashboard_Widget extends \WP_UnitTestCase {
 		$duplicate_post = get_post( $new_duplicate_post_id );
 		$this->assertEquals( 'auto-draft', $duplicate_post->post_status );
 		$this->assertEquals( '1', get_post_meta( $duplicate_post->ID, 'is_future_preview', true ) );
-		$this->assertSame( $data, $dashboard->manager->post_type->get_post_content( $duplicate_post ) );
+		$this->assertSame( $data_2, $dashboard->manager->post_type->get_post_content( $duplicate_post ) );
 		remove_filter( 'wp_redirect', '__return_null', 99 );
 
 		wp_update_post( array(
