@@ -57,6 +57,13 @@ class Test_Dashboard_Widget extends \WP_UnitTestCase {
 	 */
 	public function test_render_widget() {
 		$dashboard = new Dashboard_Widget( get_plugin_instance()->customize_snapshot_manager );
+
+		$this->factory()->post->create_many( 2, array(
+			'post_type' => Post_Type::SLUG,
+			'post_date' => gmdate( 'Y-m-d H:i:s', time() + MONTH_IN_SECONDS ),
+			'post_content' => wp_json_encode( array() ),
+		) );
+
 		$dashboard->error_code = 1;
 		ob_start();
 		$dashboard->render_widget();

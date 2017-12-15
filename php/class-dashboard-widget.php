@@ -48,8 +48,8 @@ class Dashboard_Widget {
 
 		$this->error = array(
 			1 => __( 'Please select future date.', 'customize-snapshots' ),
-			2 => __( 'No snapshot found to preview for given date.', 'customize-snapshots' ),
-			3 => __( 'Something went wrong while merging snapshots.', 'customize-snapshots' ),
+			2 => __( 'No changesets found to preview for given date.', 'customize-snapshots' ),
+			3 => __( 'Something went wrong while merging changesets.', 'customize-snapshots' ),
 		);
 	}
 
@@ -80,6 +80,70 @@ class Dashboard_Widget {
 	 * Render widget.
 	 */
 	public function render_widget() {
+		$scheduled_changeset_count = 0;
+		$post_counts = wp_count_posts( Post_Type::SLUG );
+		if ( ! empty( $post_counts->future ) ) {
+			$scheduled_changeset_count = $post_counts->future;
+		}
+
+		if ( 0 === $scheduled_changeset_count ) {
+			?>
+			<p>
+				<em>
+					<?php
+					echo wp_kses_post(
+						sprintf(
+							/* translators: %s is URL to list of changesets */
+							__( 'There are no <a href="%s">Customizer changesets</a> currently scheduled.', 'customize-snapshots' ),
+							esc_url( admin_url( 'edit.php?post_status=future&post_type=customize_changeset' ) )
+						)
+					);
+					?>
+				</em>
+			</p>
+			<?php
+			return;
+		} elseif ( 1 === $scheduled_changeset_count ) {
+			$changeset_posts = get_posts( array(
+				'post_type' => Post_Type::SLUG,
+				'post_status' => 'future',
+				'posts_per_page' => 1,
+			) );
+			?>
+			<p>
+				<?php
+				echo wp_kses_post(
+					sprintf(
+						/* translators: %1$s is URL to inspect scheduled changeset, %2$s is URL to preview changeset */
+						__( 'You only have one <a href="%1$s">scheduled changeset</a>. <a href="%2$s" class="button button-secondary">Preview</a>', 'customize-snapshots' ),
+						get_edit_post_link( $changeset_posts[0]->ID ),
+						get_permalink( $changeset_posts[0]->ID )
+					)
+				);
+				?>
+			</p>
+			<?php
+			return;
+		} else {
+			?>
+			<p>
+				<?php
+				echo wp_kses_post( sprintf(
+					/* translators: %s is link to scheduled changeset(s) */
+					_n(
+						'Select a future date to preview how the site will appear when the %1$s <a href="%2$s">scheduled changeset</a> is published.',
+						'Select a future date to preview how the site will appear when one or more of the %1$s <a href="%2$s">scheduled changesets</a> are published.',
+						$scheduled_changeset_count,
+						'customize-snapshots'
+					),
+					number_format_i18n( $scheduled_changeset_count ),
+					esc_url( admin_url( 'edit.php?post_status=future&post_type=customize_changeset' ) )
+				) );
+				?>
+			</p>
+			<?php
+		}
+
 		$date_time = current_time( 'mysql' );
 		$date_time = new \DateTime( $date_time );
 		if ( isset( $_POST['year'], $_POST['month'], $_POST['day'], $_POST['hour'], $_POST['minute'], $_REQUEST['_wpnonce'] ) && wp_verify_nonce( $_REQUEST['_wpnonce'], 'customize_site_state_future_snapshot_preview' ) ) {
@@ -88,15 +152,19 @@ class Dashboard_Widget {
 				$date_time = $user_date_time;
 			}
 		}
+
+		$autofocus = '';
 		if ( $this->error_code ) {
-			echo '<p class="error-message">' . esc_html( $this->error[ $this->error_code ] ) . '</p>';
-		} ?>
+			echo '<div class="notice inline notice-error notice-alt"><p>' . esc_html( $this->error[ $this->error_code ] ) . '</p></div>';
+			$autofocus = ' autofocus ';
+		}
+		?>
 		<form method="post">
 			<div class="preview-future-state date-inputs clear">
 				<label>
 					<span class="screen-reader-text"><?php esc_html_e( 'Month', 'customize-snapshots' ); ?></span>
 					<?php $month = Customize_Snapshot_Manager_Compat::get_month_choices(); ?>
-					<select id="snapshot-date-month" class="date-input month" data-date-input="month" name="month">
+					<select <?php echo $autofocus; // WPCS: xss ok. ?> id="snapshot-date-month" class="date-input month" data-date-input="month" name="month">
 						<?php
 						foreach ( $month['month_choices'] as $month_choice ) :
 							?>
