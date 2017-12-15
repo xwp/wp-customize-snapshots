@@ -427,7 +427,7 @@ class Test_Post_Type extends \WP_UnitTestCase {
 		$data = array(
 			'knoa8sdhpasidg0apbdpahcas' => array(
 				'value' => 'a09sad0as9hdgw22dutacs',
-				'merged_uuid' => array( self::UUID ),
+				'merged_changeset_uuids' => array( self::UUID ),
 			),
 			'n0nee8fa9s7ap9sdga9sdas9c' => array( 'value' => 'lasdbaosd81vvajgcaf22k' ),
 		);
@@ -493,7 +493,7 @@ class Test_Post_Type extends \WP_UnitTestCase {
 		$data = array(
 			'knoa8sdhpasidg0apbdpahcas' => array(
 				'value' => 'a09sad0as9hdgw22dutacs',
-				'merged_uuid' => array( self::UUID ),
+				'merged_changeset_uuids' => array( self::UUID ),
 			),
 			'foo' => array(
 				'value' => '',
@@ -952,7 +952,7 @@ class Test_Post_Type extends \WP_UnitTestCase {
 			),
 			'quux' => array(
 				'value' => 'foo val',
-				'merged_uuid' => array(
+				'merged_changeset_uuids' => array(
 					'a-uuid',
 				),
 			),
@@ -988,7 +988,7 @@ class Test_Post_Type extends \WP_UnitTestCase {
 			),
 			'quux' => array(
 				'value' => 'foo val',
-				'merged_uuid' => array(
+				'merged_changeset_uuids' => array(
 					'a-uuid',
 					'b-uuid',
 				),
@@ -1037,14 +1037,14 @@ class Test_Post_Type extends \WP_UnitTestCase {
 			),
 			'qux' => array(
 				'value' => 'same',
-				'merged_uuid' => array(
+				'merged_changeset_uuids' => array(
 					$post_1_uuid,
 					$post_2_uuid,
 				),
 			),
 			'quux' => array(
 				'value' => 'foo val',
-				'merged_uuid' => array(
+				'merged_changeset_uuids' => array(
 					'a-uuid',
 					'b-uuid',
 				),
@@ -1069,7 +1069,7 @@ class Test_Post_Type extends \WP_UnitTestCase {
 			),
 			'baz' => array(
 				'value' => 'zab',
-				'merged_uuid' => array(
+				'merged_changeset_uuids' => array(
 					$post_2_uuid,
 				),
 			),
@@ -1161,8 +1161,8 @@ class Test_Post_Type extends \WP_UnitTestCase {
 		$key_for_settings = $this->post_type_slug . '_remove_settings';
 		$_REQUEST[ $nonce_key ] = $_POST[ $nonce_key ] = wp_create_nonce( $this->post_type_slug . '_settings' );
 		$_REQUEST[ $key_for_settings ] = $_POST[ $key_for_settings ] = array( 'foo' );
-		$content = $post_type_obj->filter_out_settings_if_removed_in_metabox( $post->post_content );
-		$data = json_decode( $content, true );
+		$content = $post_type_obj->filter_out_settings_if_removed_in_metabox( wp_slash( $post->post_content ) );
+		$data = json_decode( wp_unslash( $content ), true );
 		$this->assertArrayNotHasKey( 'foo', $data );
 	}
 
@@ -1215,8 +1215,8 @@ class Test_Post_Type extends \WP_UnitTestCase {
 				'uuid' => 'abc',
 			) ),
 		);
-		$content = $post_type_obj->filter_selected_conflict_setting( $post->post_content );
-		$data = json_decode( $content, true );
+		$content = $post_type_obj->filter_selected_conflict_setting( wp_slash( $post->post_content ) );
+		$data = json_decode( wp_unslash( $content ), true );
 		$this->assertSame( array(
 			'baz',
 		), $data['foo']['value'] );
@@ -1226,12 +1226,12 @@ class Test_Post_Type extends \WP_UnitTestCase {
 	/**
 	 * Test get_snapshot_merged_uuid.
 	 *
-	 * @covers CustomizeSnapshots\Post_Type::get_snapshot_merged_uuid()
+	 * @covers CustomizeSnapshots\Post_Type::_get_merged_changesets()
 	 */
 	public function test_get_snapshot_merged_uuid() {
 		$post_type_obj = $this->get_new_post_type_instance( $this->plugin->customize_snapshot_manager );
-		$uuid = $post_type_obj->get_snapshot_merged_uuid( array(
-			'foo' => array( 'merged_uuid' => array( 'uuid-1' ) ),
+		$uuid = $post_type_obj->_get_merged_changesets( array(
+			'foo' => array( 'merged_changeset_uuids' => array( 'uuid-1' ) ),
 			'bar' => array(
 				'merge_conflict' => array(
 					array( 'uuid' => 'uuid-2' ),
