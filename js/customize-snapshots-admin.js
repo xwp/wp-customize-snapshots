@@ -35,6 +35,9 @@ var CustomizeSnapshotsAdmin = (function( $ ) {
 
 		component.forkButtons.on( 'click', component.fork );
 		component.toogleSettingRemovalLink.on( 'click', component.toggleSettingRemoval );
+
+		component.resolveConflcit = $( 'input.snapshot-resolved-settings' );
+		component.resolveConflcit.on( 'change', component.conflictSetting );
 	};
 
 	/**
@@ -139,5 +142,15 @@ var CustomizeSnapshotsAdmin = (function( $ ) {
 		}
 	};
 
+	/**
+	 * Change setting value on change of conflict setting.
+	 *
+	 * @return {void}
+	 */
+	component.conflictSetting = function() {
+		var $this = $( this ),
+			selector = '#' + $this.data( 'settingValueSelector' );
+		$( selector ).html( $this.parents( 'details' ).find( '.snapshot-conflict-setting-data' ).html() );
+	};
 	return component;
-})( jQuery );
+} )( jQuery );
