@@ -83,50 +83,76 @@ class Dashboard_Widget {
 		$date_time = current_time( 'mysql' );
 		$date_time = new \DateTime( $date_time );
 		if ( isset( $_POST['year'], $_POST['month'], $_POST['day'], $_POST['hour'], $_POST['minute'], $_REQUEST['_wpnonce'] ) && wp_verify_nonce( $_REQUEST['_wpnonce'], 'customize_site_state_future_snapshot_preview' ) ) {
-			$date_time->setTimestamp( strtotime( "{$_POST['year']}-{$_POST['month']}-{$_POST['day']} {$_POST['hour']}:{$_POST['minute']}" ) );
+			$user_date_time = $this->get_date();
+			if ( false !== $user_date_time ) {
+				$date_time = $user_date_time;
+			}
 		}
 		if ( $this->error_code ) {
 			echo '<p class="error-message">' . esc_html( $this->error[ $this->error_code ] ) . '</p>';
 		} ?>
 		<form method="post">
-				<div class="preview-future-state date-inputs clear">
-					<label>
-						<span class="screen-reader-text"><?php esc_html_e( 'Month', 'customize-snapshots' ); ?></span>
-						<?php $month = Customize_Snapshot_Manager_Compat::get_month_choices(); ?>
-						<select id="snapshot-date-month" class="date-input month" data-date-input="month" name="month">
-							<?php
-							foreach ( $month['month_choices'] as $month_choice ) {
-								echo '<option value="' . esc_attr( $month_choice['value'] ) . '" ' . selected( $date_time->format( 'm' ), $month_choice['value'], false ) . '>' . esc_html( $month_choice['text'] ) . '</option>';
-							}
+			<div class="preview-future-state date-inputs clear">
+				<label>
+					<span class="screen-reader-text"><?php esc_html_e( 'Month', 'customize-snapshots' ); ?></span>
+					<?php $month = Customize_Snapshot_Manager_Compat::get_month_choices(); ?>
+					<select id="snapshot-date-month" class="date-input month" data-date-input="month" name="month">
+						<?php
+						foreach ( $month['month_choices'] as $month_choice ) :
 							?>
-						</select>
-					</label>
-					<label>
-						<span class="screen-reader-text"><?php esc_html_e( 'Day', 'customize-snapshots' ); ?></span>
-						<input type="number" size="2" maxlength="2" autocomplete="off" class="date-input day" data-date-input="day" min="1" max="31" value="<?php echo esc_attr( $date_time->format( 'd' ) ); ?>" name="day"/>
-					</label>
-					<span class="time-special-char">,</span>
-					<label>
-						<span class="screen-reader-text"><?php esc_html_e( 'Year', 'customize-snapshots' ); ?></span>
-						<input type="number" size="4" maxlength="4" autocomplete="off" class="date-input year" data-date-input="year" min="<?php echo intval( $date_time->format( 'Y' ) ); ?>" value="<?php echo intval( $date_time->format( 'Y' ) ); ?>" max="9999" name="year" />
-					</label>
-					<span class="time-special-char">@</span>
-					<label>
-						<span class="screen-reader-text"><?php esc_html_e( 'Hour', 'customize-snapshots' ); ?></span>
-						<input type="number" size="2" maxlength="2" autocomplete="off" class="date-input hour" data-date-input="hour" min="0" max="23" value="<?php echo intval( $date_time->format( 'G' ) ); ?>" name="hour" />
-					</label>
-					<span class="time-special-char">:</span>
-					<label>
-						<span class="screen-reader-text"><?php esc_html_e( 'Minute', 'customize-snapshots' ); ?></span>
-						<input type="number" size="2" maxlength="2" autocomplete="off" class="date-input minute" data-date-input="minute" min="0" max="59" value="<?php echo intval( $date_time->format( 'i' ) ); ?>" name="minute" />
-					</label>
-					<?php
-					wp_nonce_field( 'customize_site_state_future_snapshot_preview' );
-					submit_button( 'Preview', 'primary', 'customize-future-snapshot-preview', false );
-					?>
+							<option value="<?php echo esc_attr( $month_choice['value'] ); ?>" <?php selected( $date_time->format( 'm' ), $month_choice['value'] ); ?>> <?php echo esc_html( $month_choice['text'] ); ?></option>
+							<?php
+						endforeach;
+						?>
+					</select>
+				</label>
+				<label>
+					<span class="screen-reader-text"><?php esc_html_e( 'Day', 'customize-snapshots' ); ?></span>
+					<input type="number" size="2" maxlength="2" autocomplete="off" class="date-input day" data-date-input="day" min="1" max="31" value="<?php echo esc_attr( $date_time->format( 'd' ) ); ?>" name="day"/>
+				</label>
+				<span class="time-special-char">,</span>
+				<label>
+					<span class="screen-reader-text"><?php esc_html_e( 'Year', 'customize-snapshots' ); ?></span>
+					<input type="number" size="4" maxlength="4" autocomplete="off" class="date-input year" data-date-input="year" min="<?php echo intval( $date_time->format( 'Y' ) ); ?>" value="<?php echo intval( $date_time->format( 'Y' ) ); ?>" max="9999" name="year" />
+				</label>
+				<span class="time-special-char">@</span>
+				<label>
+					<span class="screen-reader-text"><?php esc_html_e( 'Hour', 'customize-snapshots' ); ?></span>
+					<input type="number" size="2" maxlength="2" autocomplete="off" class="date-input hour" data-date-input="hour" min="0" max="23" value="<?php echo intval( $date_time->format( 'G' ) ); ?>" name="hour" />
+				</label>
+				<span class="time-special-char">:</span>
+				<label>
+					<span class="screen-reader-text"><?php esc_html_e( 'Minute', 'customize-snapshots' ); ?></span>
+					<input type="number" size="2" maxlength="2" autocomplete="off" class="date-input minute" data-date-input="minute" min="0" max="59" value="<?php echo intval( $date_time->format( 'i' ) ); ?>" name="minute" />
+				</label>
+				<?php
+				wp_nonce_field( 'customize_site_state_future_snapshot_preview' );
+				submit_button( 'Preview', 'primary', 'customize-future-snapshot-preview', false );
+				?>
 			</div>
 		</form>
 		<?php
+	}
+
+	/**
+	 * Get date object from POST data.
+	 */
+	private function get_date() {
+		$keys = array( 'year', 'month', 'day', 'hour', 'minute' );
+		$should_fail = false;
+		foreach ( $keys as $key ) {
+			if ( ! is_numeric( $_POST[ $key ] ) ) {
+				$should_fail = true;
+				break;
+			}
+		}
+		if ( ! $should_fail ) {
+			$date_time = new \DateTime();
+			$time_string = sprintf( '%d-%d-%d %d:%d', intval( $_POST['year'] ), intval( $_POST['month'] ), intval( $_POST['day'] ), intval( $_POST['hour'] ), intval( $_POST['minute'] ) );
+			$date_time->setTimestamp( strtotime( $time_string ) );
+			return $date_time;
+		}
+		return false;
 	}
 
 	/**
@@ -143,8 +169,10 @@ class Dashboard_Widget {
 			$this->error_code = 1;
 			return;
 		}
-		$date = new \DateTime();
-		$date->setTimestamp( strtotime( "{$_POST['year']}-{$_POST['month']}-{$_POST['day']} {$_POST['hour']}:{$_POST['minute']}" ) );
+		$date = $this->get_date();
+		if ( false === $date ) {
+			return;
+		}
 		$current_date = new \DateTime( current_time( 'mysql' ) );
 		if ( ! $date || $date <= $current_date ) {
 			$this->error_code = 1;

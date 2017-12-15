@@ -398,11 +398,12 @@ class Customize_Snapshot_Manager {
 		// If previewing future state of changeset only add exit changeset preview link in admin bar.
 		$wp_customize = $this->get_customize_manager();
 		$is_future_state_preview = (
-				is_customize_preview()
-				&&
-				$wp_customize->changeset_post_id()
-				&&
-				$this->is_previewing_future_state_changeset( $wp_customize->changeset_post_id() ) );
+			is_customize_preview()
+			&&
+			$wp_customize->changeset_post_id()
+			&&
+			$this->is_previewing_future_state_changeset( $wp_customize->changeset_post_id() )
+		);
 		if ( $is_future_state_preview ) {
 			if ( $wp_admin_bar->get_node( 'customize' ) ) {
 				$wp_admin_bar->remove_menu( 'customize' );
@@ -602,7 +603,7 @@ class Customize_Snapshot_Manager {
 		$wp_customize = $this->get_customize_manager();
 		$title = __( 'Exit Changeset Preview', 'customize-snapshots' );
 		if ( $this->is_previewing_future_state_changeset( $wp_customize->changeset_post_id() ) ) {
-			$title = __( 'Exit Preview Of Future Site State', 'customize-snapshots' );
+			$title = __( 'Exit Preview of Future Site State', 'customize-snapshots' );
 		}
 		$wp_admin_bar->add_menu( array(
 			'id' => 'exit-customize-snapshot',
