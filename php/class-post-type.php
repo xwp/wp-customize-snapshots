@@ -396,7 +396,7 @@ class Post_Type {
 		echo '</p>';
 
 		$fork_markup = sprintf( '<button type="button" class="snapshot-fork button button-secondary">%s</button>', esc_html__( 'Fork', 'customize-snapshots' ) );
-		$merged_uuid = $this->get_snapshot_merged_uuid( $snapshot_content );
+		$merged_uuid = $this->_get_merged_changesets( $snapshot_content );
 		if ( ! empty( $merged_uuid ) ) {
 			echo '<p>';
 			echo '<strong>';
@@ -417,7 +417,7 @@ class Post_Type {
 						echo get_the_title( $uuid_post ) . ' - ' . esc_html( $uuid_post->post_name );
 					}
 				}
-				echo ( 'future' === $uuid_post->post_status ) ? ' (Scheduled)' : '';
+				echo ( 'future' === $uuid_post->post_status ) ? __( ' (Scheduled)', 'customize-snapshots' ) : '';
 				echo '<a href="' . esc_url( get_edit_post_link( $uuid_post_id ) ) . '" class="dashicons dashicons-external"></a></li>';
 			}
 			echo '</ul>';
@@ -500,8 +500,10 @@ class Post_Type {
 				echo '</span>';
 			}
 			if ( isset( $conflicts_settings[ $setting_id ] ) ) {
-				$setting_id_key = str_replace( '[', '\\[', $setting_id );
-				$setting_id_key = str_replace( ']', '\\]', $setting_id_key );
+				/*
+				 * Because jQuery selector with square brackets needs escaping. https://api.jquery.com/category/selectors/
+				 */
+				$setting_id_key = str_replace( ']', '\\]', str_replace( '[', '\\[', $setting_id ) );
 
 				/* translators: %s: Setting id which has potential conflict. */
 				$title_text = sprintf( __( '%s has potential conflicts (click to expand)', 'customize-snapshots' ), $setting_id );
@@ -1010,13 +1012,13 @@ class Post_Type {
 			// Store contributed snapshot id in setting.
 			$uuid = array();
 			foreach ( $snapshot_post_data as $post_data ) {
-				if ( isset( $post_data['data'][ $key ]['merged_uuid'] ) && is_array( $post_data['data'][ $key ]['merged_uuid'] ) ) {
-					$uuid = array_merge( $uuid, $post_data['data'][ $key ]['merged_uuid'] );
+				if ( isset( $post_data['data'][ $key ]['merged_changeset_uuids'] ) && is_array( $post_data['data'][ $key ]['merged_changeset_uuids'] ) ) {
+					$uuid = array_merge( $uuid, $post_data['data'][ $key ]['merged_changeset_uuids'] );
 				} elseif ( isset( $post_data['data'][ $key ] ) ) {
 					$uuid[] = $post_data['uuid'];
 				}
 			}
-			$merged_snapshot_data[ $key ]['merged_uuid'] = array_values( array_unique( $uuid ) );
+			$merged_snapshot_data[ $key ]['merged_changeset_uuids'] = array_values( array_unique( $uuid ) );
 		}
 
 		foreach ( $conflict_keys as $key => $i ) {
@@ -1031,8 +1033,8 @@ class Post_Type {
 						'value' => $post_data['data'][ $key ]['value'],
 					);
 				}
-				if ( isset( $post_data['data'][ $key ]['merged_uuid'] ) ) {
-					$uuid = array_merge( $uuid, $post_data['data'][ $key ]['merged_uuid'] );
+				if ( isset( $post_data['data'][ $key ]['merged_changeset_uuids'] ) ) {
+					$uuid = array_merge( $uuid, $post_data['data'][ $key ]['merged_changeset_uuids'] );
 				} else {
 					$uuid[] = $post_data['uuid'];
 				}
@@ -1041,8 +1043,8 @@ class Post_Type {
 			$values = array_unique( $values, SORT_REGULAR );
 			if ( 1 === count( $values ) ) {
 				// If all values are same there is no conflict so store normally as contributed snapshot ids.
-				$merged_snapshot_data[ $key ]['merged_uuid'] = ! empty( $uuid ) ? $uuid : wp_list_pluck( $original_values, 'uuid' );
-				$merged_snapshot_data[ $key ]['merged_uuid'] = array_values( array_unique( $merged_snapshot_data[ $key ]['merged_uuid'] ) ); // Array_values to reset keys.
+				$merged_snapshot_data[ $key ]['merged_changeset_uuids'] = ! empty( $uuid ) ? $uuid : wp_list_pluck( $original_values, 'uuid' );
+				$merged_snapshot_data[ $key ]['merged_changeset_uuids'] = array_values( array_unique( $merged_snapshot_data[ $key ]['merged_changeset_uuids'] ) ); // Array_values to reset keys.
 				unset( $merged_snapshot_data[ $key ]['merge_conflict'], $merged_snapshot_data[ $key ]['selected_uuid'] );
 			} else {
 				// If we have more than one unique value means it is conflicting.
@@ -1122,7 +1124,7 @@ class Post_Type {
 		foreach ( $_POST[ $key_for_settings ] as $setting_id_to_unset ) { // WPCS: input var ok. Sanitization ok, since array items only to be used to unset array keys.
 			unset( $data[ $setting_id_to_unset ] );
 		}
-		$content = Customize_Snapshot_Manager::encode_json( $data );
+		$content = wp_slash( Customize_Snapshot_Manager::encode_json( $data ) );
 
 		return $content;
 	}
@@ -1432,7 +1434,7 @@ class Post_Type {
 				echo '<li>';
 				echo '<details open class="snapshot-conflict-details">';
 				echo '<summary>';
-				$input = '<input type="radio" class="snapshot-resolved-settings" data-setting-value-selector="snapshot-setting-preview-' . $setting_id_key . '"';
+				$input = '<input type="radio" class="snapshot-resolved-settings" data-setting-value-selector="snapshot-setting-preview-' . esc_attr( $setting_id_key ) . '"';
 				$json = wp_json_encode( array(
 					'setting_id' => $setting_id,
 					'uuid' => $conflicted_data['uuid'],
@@ -1456,6 +1458,8 @@ class Post_Type {
 
 	/**
 	 * Change conflicted value in post_content, if they were changed in the meta box.
+	 *
+	 * @global \WP_Post $post
 	 *
 	 * @param String $content Post content to filter.
 	 * @return String $content Post content, possibly filtered.
@@ -1507,26 +1511,29 @@ class Post_Type {
 				}
 			}
 		}
-		$content = Customize_Snapshot_Manager::encode_json( $snapshot_data );
+		$content = wp_slash( Customize_Snapshot_Manager::encode_json( $snapshot_data ) );
 		return $content;
 	}
 
 	/**
 	 * Get snapshot merged uuid from post_content
 	 *
+	 * @internal
+	 *
 	 * @param array $post_content snapshot data.
+	 *
 	 * @return array merged snapshot.
 	 */
-	public function get_snapshot_merged_uuid( $post_content ) {
-		$snapshot_merged_uuid = array();
+	public function _get_merged_changesets( $post_content ) {
+		$changeset_merged_uuids = array();
 		foreach ( $post_content as $key => $value ) {
-			if ( isset( $value['merged_uuid'] ) ) {
-				$snapshot_merged_uuid = array_merge( $snapshot_merged_uuid, $value['merged_uuid'] );
+			if ( isset( $value['merged_changeset_uuids'] ) ) {
+				$changeset_merged_uuids = array_merge( $changeset_merged_uuids, $value['merged_changeset_uuids'] );
 			} elseif ( isset( $value['merge_conflict'] ) ) {
 				$temp_uuid = wp_list_pluck( $value['merge_conflict'], 'uuid' );
-				$snapshot_merged_uuid = array_merge( $snapshot_merged_uuid, $temp_uuid );
+				$changeset_merged_uuids = array_merge( $changeset_merged_uuids, $temp_uuid );
 			}
 		}
-		return array_unique( $snapshot_merged_uuid );
+		return array_unique( $changeset_merged_uuids );
 	}
 }
