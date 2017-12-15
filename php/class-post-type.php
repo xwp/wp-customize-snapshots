@@ -965,14 +965,24 @@ class Post_Type {
 	/**
 	 * Merge two or more snapshots
 	 *
-	 * @param array $posts post array.
+	 * @param array  $posts  post array.
+	 * @param string $status Merged post status.
 	 *
 	 * @return int Changeset post id.
 	 */
-	public function merge_snapshots( $posts ) {
+	public function merge_snapshots( $posts, $status = 'draft' ) {
 		usort( $posts, function( $a, $b ) {
-			$compare_a = $a->post_modified;
-			$compare_b = $b->post_modified;
+			$compare_key_a = 'post_modified';
+			$compare_key_b = 'post_modified';
+			// If status is scheduled then post_date takes more priority.
+			if ( get_post_status( $a ) === 'future' ) {
+				$compare_key_a = 'post_date';
+			}
+			if ( get_post_status( $b ) === 'future' ) {
+				$compare_key_b = 'post_date';
+			}
+			$compare_a = $a->$compare_key_a;
+			$compare_b = $b->$compare_key_b;
 			if ( '0000-00-00 00:00:00' === $compare_a ) {
 				$compare_a = $a->post_date;
 			}
@@ -1055,7 +1065,7 @@ class Post_Type {
 		}
 		$post_id = $this->save( array(
 			'uuid' => wp_generate_uuid4(),
-			'status' => 'draft',
+			'status' => $status,
 			'data' => $merged_snapshot_data,
 			'date_gmt' => gmdate( 'Y-m-d H:i:s' ),
 		) );

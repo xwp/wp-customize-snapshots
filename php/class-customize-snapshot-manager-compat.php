@@ -165,7 +165,7 @@ class Customize_Snapshot_Manager_Compat extends Customize_Snapshot_Manager {
 	 * Add edit box template.
 	 */
 	public function add_edit_box_template() {
-		$data = $this->get_month_choices();
+		$data = self::get_month_choices();
 		?>
 		<script type="text/html" id="tmpl-snapshot-edit-container">
 			<div id="customize-snapshot">
@@ -319,7 +319,7 @@ class Customize_Snapshot_Manager_Compat extends Customize_Snapshot_Manager {
 	 *
 	 * @return array
 	 */
-	public function get_month_choices() {
+	public static function get_month_choices() {
 		global $wp_locale;
 		$months = array();
 		for ( $i = 1; $i < 13; $i = $i + 1 ) {

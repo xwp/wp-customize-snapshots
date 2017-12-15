@@ -926,6 +926,13 @@ class Test_Post_Type extends \WP_UnitTestCase {
 			->with( $posts )
 			->will( $this->returnValue( null ) );
 		$post_type_obj->handle_snapshot_merge( '', 'merge_snapshot', $ids );
+
+		$input = 'http://example.com';
+		$url = $post_type_obj->handle_snapshot_merge( $input, 'fishy_Action', array( 1, 2 ) );
+		$this->assertEquals( 'http://example.com', $url );
+
+		$url = $post_type_obj->handle_snapshot_merge( $input, 'merge_snapshot', array( 1 ) );
+		$this->assertContains( 'merge-error=1', $url );
 	}
 
 	/**
