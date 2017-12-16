@@ -27,6 +27,13 @@ class Test_Post_Type extends \WP_UnitTestCase {
 	const UUID = '65aee1ff-af47-47df-9e14-9c69b3017cd3';
 
 	/**
+	 * Merge sample data
+	 *
+	 * @var array
+	 */
+	public $snapshot_merge_sample_data;
+
+	/**
 	 * Post type slug.
 	 *
 	 * @var string
@@ -41,6 +48,30 @@ class Test_Post_Type extends \WP_UnitTestCase {
 		$GLOBALS['wp_customize'] = null; // WPCS: Global override ok.
 		$this->plugin = get_plugin_instance();
 		$this->post_type_slug = Post_Type::SLUG;
+		$this->snapshot_merge_sample_data = array(
+			'foo' => array(
+				'value' => 'bar',
+				'merge_conflict' => array(
+					array(
+						'uuid' => 'abc',
+						'value' => array( 'baz' ),
+					),
+					array(
+						'uuid' => 'pqr',
+						'value' => '',
+					),
+					array(
+						'uuid' => 'lmn',
+						'value' => false,
+					),
+					array(
+						'uuid' => 'xyz',
+						'value' => 'bar',
+					),
+				),
+				'selected_uuid' => 'xyz',
+			),
+		);
 	}
 
 	/**
@@ -95,6 +126,8 @@ class Test_Post_Type extends \WP_UnitTestCase {
 		$this->assertEquals( 10, has_action( 'admin_notices', array( $post_type_obj, 'show_publish_error_admin_notice' ) ) );
 		$this->assertEquals( 10, has_action( 'wp_ajax_snapshot_fork', array( $post_type_obj, 'handle_snapshot_fork' ) ) );
 		$this->assertEquals( 10, has_action( 'admin_footer-post.php', array( $post_type_obj, 'snapshot_admin_script_template' ) ) );
+		$this->assertEquals( 10, has_action( 'admin_notices', array( $post_type_obj, 'admin_show_merge_error' ) ) );
+		$this->assertEquals( 11, has_filter( 'content_save_pre', array( $post_type_obj, 'filter_selected_conflict_setting' ) ) );
 	}
 
 	/**
@@ -392,7 +425,10 @@ class Test_Post_Type extends \WP_UnitTestCase {
 		$post_type = $this->get_new_post_type_instance( $this->plugin->customize_snapshot_manager );
 		$post_type->init();
 		$data = array(
-			'knoa8sdhpasidg0apbdpahcas' => array( 'value' => 'a09sad0as9hdgw22dutacs' ),
+			'knoa8sdhpasidg0apbdpahcas' => array(
+				'value' => 'a09sad0as9hdgw22dutacs',
+				'merged_changeset_uuids' => array( self::UUID ),
+			),
 			'n0nee8fa9s7ap9sdga9sdas9c' => array( 'value' => 'lasdbaosd81vvajgcaf22k' ),
 		);
 		$post_id = $post_type->save( array(
@@ -408,6 +444,7 @@ class Test_Post_Type extends \WP_UnitTestCase {
 		$this->assertContains( 'UUID:', $metabox_content );
 		$this->assertContains( 'button-secondary', $metabox_content );
 		$this->assertContains( 'class="snapshot-fork', $metabox_content );
+		$this->assertContains( 'snapshot-merged-list', $metabox_content );
 		$this->assertContains( '<ul id="snapshot-settings">', $metabox_content );
 		foreach ( $data as $setting_id => $setting_args ) {
 			$this->assertContains( $setting_id, $metabox_content );
@@ -452,6 +489,45 @@ class Test_Post_Type extends \WP_UnitTestCase {
 		$post_type->render_data_metabox( get_post( $post_id ) );
 		$metabox_content = ob_get_clean();
 		$this->assertContains( 'changeset was made when a different theme was active', $metabox_content );
+
+		$data = array(
+			'knoa8sdhpasidg0apbdpahcas' => array(
+				'value' => 'a09sad0as9hdgw22dutacs',
+				'merged_changeset_uuids' => array( self::UUID ),
+			),
+			'foo' => array(
+				'value' => '',
+				'publish_error' => 'invalid_value',
+			),
+			'bar' => array(
+				'value' => false,
+				'publish_error' => 'unrecognized_setting',
+			),
+			'baz' => array(
+				'value' => array( 'foo_key' => 'bar_value' ),
+				'publish_error' => 'unexpected_value',
+			),
+			'qux' => array(
+				'value' => null,
+				'publish_error' => 'null_value',
+			),
+		);
+		$post_id = $post_type->save( array(
+			'uuid' => self::UUID,
+			'data' => $data,
+			'status' => 'draft',
+		) );
+		ob_start();
+		$post_type->render_data_metabox( get_post( $post_id ) );
+		$metabox_content = ob_get_clean();
+		$this->assertContains( 'class="error-message"', $metabox_content );
+		$this->assertContains( 'unexpected_value', $metabox_content );
+		$this->assertContains( 'Publish error', $metabox_content );
+		$this->assertContains( 'Missing value', $metabox_content );
+		$this->assertContains( 'Unrecognized setting', $metabox_content );
+		$this->assertContains( 'Invalid value', $metabox_content );
+		$this->assertContains( '(Empty string)', $metabox_content );
+		$this->assertContains( '<pre', $metabox_content );
 	}
 
 	/**
@@ -823,7 +899,7 @@ class Test_Post_Type extends \WP_UnitTestCase {
 	/**
 	 * Tests add_snapshot_bulk_actions
 	 *
-	 * @see Post_Type::add_snapshot_bulk_actions()
+	 * @covers CustomizeSnapshots\Post_Type::add_snapshot_bulk_actions()
 	 */
 	public function test_add_snapshot_bulk_actions() {
 		$post_type = $this->get_new_post_type_instance( $this->plugin->customize_snapshot_manager );
@@ -850,6 +926,13 @@ class Test_Post_Type extends \WP_UnitTestCase {
 			->with( $posts )
 			->will( $this->returnValue( null ) );
 		$post_type_obj->handle_snapshot_merge( '', 'merge_snapshot', $ids );
+
+		$input = 'http://example.com';
+		$url = $post_type_obj->handle_snapshot_merge( $input, 'fishy_Action', array( 1, 2 ) );
+		$this->assertEquals( 'http://example.com', $url );
+
+		$url = $post_type_obj->handle_snapshot_merge( $input, 'merge_snapshot', array( 1 ) );
+		$this->assertContains( 'merge-error=1', $url );
 	}
 
 	/**
@@ -860,48 +943,141 @@ class Test_Post_Type extends \WP_UnitTestCase {
 	public function test_merge_snapshots() {
 		$post_type = $this->get_new_post_type_instance( $this->plugin->customize_snapshot_manager );
 		$date1 = gmdate( 'Y-m-d H:i:s' );
-		$post_1 = $post_type->save( array(
-			'uuid' => wp_generate_uuid4(),
-			'status' => 'draft',
-			'data' => array(
-				'foo' => array(
-					'value' => 'bar',
+		$value_1 = array(
+			'foo' => array(
+				'value' => 'bar',
+			),
+			'qux' => array(
+				'value' => 'same',
+			),
+			'quux' => array(
+				'value' => 'foo val',
+				'merged_changeset_uuids' => array(
+					'a-uuid',
 				),
 			),
+			'corge' => array(
+				'value' => 'foo val 4',
+				'merge_conflict' => array(
+					array(
+						'uuid' => 'c-uuid',
+						'value' => 'foo val 3',
+					),
+					array(
+						'uuid' => 'd-uuid',
+						'value' => 'foo val 4',
+					),
+				),
+			),
+		);
+		$post_id_1 = $post_type->save( array(
+			'uuid' => wp_generate_uuid4(),
+			'status' => 'draft',
+			'data' => $value_1,
 			'date_gmt' => $date1,
 		) );
-		$value = array(
+		$value_2 = array(
 			'foo' => array(
 				'value' => 'baz',
 			),
 			'baz' => array(
 				'value' => 'zab',
 			),
+			'qux' => array(
+				'value' => 'same',
+			),
+			'quux' => array(
+				'value' => 'foo val',
+				'merged_changeset_uuids' => array(
+					'a-uuid',
+					'b-uuid',
+				),
+			),
+			'corge' => array(
+				'value' => 'foo val 5',
+				'merge_conflict' => array(
+					array(
+						'uuid' => 'e-uuid',
+						'value' => 'foo val 5',
+					),
+				),
+			),
 		);
 		$date2 = gmdate( 'Y-m-d H:i:s', ( time() + 60 ) );
-		$post_2 = $post_type->save( array(
+		$post_id_2 = $post_type->save( array(
 			'uuid' => wp_generate_uuid4(),
 			'status' => 'draft',
-			'data' => $value,
+			'data' => $value_2,
 			'date_gmt' => $date2,
 		) );
+		$post_1 = get_post( $post_id_1 );
+		$post_2 = get_post( $post_id_2 );
 
-		$merged_post_id = $post_type->merge_snapshots( array( $post_1, $post_2 ) );
-		$merged_post = get_post( $merged_post_id );
-		$value['foo']['merge_conflict'] = array(
-			array(
-				'uuid' => get_post( $post_1 )->post_name,
-				'value' => 'bar',
-			),
-			array(
-				'uuid' => get_post( $post_2 )->post_name,
+		$merged_post_id = $post_type->merge_snapshots( array(
+			$post_1,
+			$post_2,
+		) );
+		$post_1_uuid = $post_1->post_name;
+		$post_2_uuid = $post_2->post_name;
+
+		$expected = array(
+			'foo' => array(
 				'value' => 'baz',
+				'merge_conflict' => array(
+					array(
+						'uuid' => get_post( $post_id_1 )->post_name,
+						'value' => 'bar',
+					),
+					array(
+						'uuid' => $post_2->post_name,
+						'value' => 'baz',
+					),
+				),
+				'selected_uuid' => $post_2_uuid,
+			),
+			'qux' => array(
+				'value' => 'same',
+				'merged_changeset_uuids' => array(
+					$post_1_uuid,
+					$post_2_uuid,
+				),
+			),
+			'quux' => array(
+				'value' => 'foo val',
+				'merged_changeset_uuids' => array(
+					'a-uuid',
+					'b-uuid',
+				),
+			),
+			'corge' => array(
+				'value' => 'foo val 5',
+				'merge_conflict' => array(
+					array(
+						'uuid' => 'c-uuid',
+						'value' => 'foo val 3',
+					),
+					array(
+						'uuid' => 'd-uuid',
+						'value' => 'foo val 4',
+					),
+					array(
+						'uuid' => 'e-uuid',
+						'value' => 'foo val 5',
+					),
+				),
+				'selected_uuid' => 'e-uuid',
+			),
+			'baz' => array(
+				'value' => 'zab',
+				'merged_changeset_uuids' => array(
+					$post_2_uuid,
+				),
 			),
 		);
-		$this->assertSame( $value, $post_type->get_post_content( $merged_post ) );
+		$merged_post = get_post( $merged_post_id );
+		$this->assertSame( $expected, $post_type->get_post_content( $merged_post ) );
 
 		$date3 = gmdate( 'Y-m-d H:i:s', ( time() + 120 ) );
-
 		$value_3 = array(
 			'baz' => array(
 				'value' => 'z',
@@ -915,24 +1091,29 @@ class Test_Post_Type extends \WP_UnitTestCase {
 		) );
 		$post_3 = get_post( $post_3 );
 		$merge_result_post = get_post( $post_type->merge_snapshots( array( $post_1, $post_2, $post_3 ) ) );
-		$value['baz']['value'] = 'z';
-		$value['baz']['merge_conflict'] = array(
-			array(
-				'uuid'  => get_post( $post_2 )->post_name,
-				'value' => 'zab',
+		$baz_confict_expected = array(
+			'value'          => 'z',
+			'merge_conflict' => array(
+				array(
+					'uuid'  => $post_2_uuid,
+					'value' => 'zab',
+				),
+				array(
+					'uuid'  => $post_3->post_name,
+					'value' => 'z',
+				),
 			),
-			array(
-				'uuid'  => $post_3->post_name,
-				'value' => 'z',
-			),
+			'selected_uuid' => $post_3->post_name,
 		);
-		$this->assertSame( $value, $post_type->get_post_content( $merge_result_post ) );
+		$result_content = $post_type->get_post_content( $merge_result_post );
+		$this->assertArrayHasKey( 'baz', $result_content );
+		$this->assertSame( $baz_confict_expected, $result_content['baz'] );
 	}
 
 	/**
 	 * Test admin_show_merge_error
 	 *
-	 * @see Post_Type::admin_show_merge_error()
+	 * @covers CustomizeSnapshots\Post_Type::admin_show_merge_error()
 	 */
 	public function test_admin_show_merge_error() {
 		$post_type_obj = $this->get_new_post_type_instance( $this->plugin->customize_snapshot_manager );
@@ -980,9 +1161,84 @@ class Test_Post_Type extends \WP_UnitTestCase {
 		$key_for_settings = $this->post_type_slug . '_remove_settings';
 		$_REQUEST[ $nonce_key ] = $_POST[ $nonce_key ] = wp_create_nonce( $this->post_type_slug . '_settings' );
 		$_REQUEST[ $key_for_settings ] = $_POST[ $key_for_settings ] = array( 'foo' );
-		$content = $post_type_obj->filter_out_settings_if_removed_in_metabox( $post->post_content );
-		$data = json_decode( $content, true );
+		$content = $post_type_obj->filter_out_settings_if_removed_in_metabox( wp_slash( $post->post_content ) );
+		$data = json_decode( wp_unslash( $content ), true );
 		$this->assertArrayNotHasKey( 'foo', $data );
+	}
+
+	/**
+	 * Test resolve_conflict_markup.
+	 *
+	 * @covers CustomizeSnapshots\Post_Type::resolve_conflict_markup()
+	 */
+	public function test_resolve_conflict_markup() {
+		$post_type_obj = new Post_Type( $this->plugin->customize_snapshot_manager );
+		ob_start();
+		$post_id = $post_type_obj->save( array(
+			'uuid' => self::UUID,
+			'data' => $this->snapshot_merge_sample_data,
+			'status' => 'draft',
+		) );
+		$p = get_post( $post_id );
+		$post_type_obj->resolve_conflict_markup( 'foo', $this->snapshot_merge_sample_data['foo'], $this->snapshot_merge_sample_data, $p );
+		$resolve_conflict_markup = ob_get_clean();
+		$this->assertContains( 'input', $resolve_conflict_markup );
+		$this->assertContains( 'baz', $resolve_conflict_markup );
+		$this->assertContains( 'bar', $resolve_conflict_markup );
+		$this->assertContains( 'name="' . Post_Type::SLUG . '_resolve_conflict_uuid[0]"', $resolve_conflict_markup );
+		$this->assertContains( '<details', $resolve_conflict_markup );
+		$this->assertContains( '<pre', $resolve_conflict_markup );
+	}
+
+	/**
+	 * Test filter_selected_conflict_setting.
+	 *
+	 * @covers CustomizeSnapshots\Post_Type::filter_selected_conflict_setting()
+	 */
+	public function test_filter_selected_conflict_setting() {
+		global $post;
+		$post_type_obj = $this->get_new_post_type_instance( $this->plugin->customize_snapshot_manager );
+		$post_type_obj->init();
+		wp_set_current_user( $admin_user_id = $this->factory()->user->create( array( 'role' => 'administrator' ) ) );
+		$post_id = $post_type_obj->save( array(
+			'uuid' => self::UUID,
+			'data' => $this->snapshot_merge_sample_data,
+			'status' => 'draft',
+		) );
+		$post = get_post( $post_id );
+		$nonce_key = $this->post_type_slug;
+		$resolve_setting_key = $this->post_type_slug . '_resolve_conflict_uuid';
+		$_REQUEST[ $nonce_key ] = $_POST[ $nonce_key ] = wp_create_nonce( $this->post_type_slug . '_settings' );
+		$_REQUEST[ $resolve_setting_key ] = $_POST[ $resolve_setting_key ] = array(
+			wp_json_encode( array(
+				'setting_id' => 'foo',
+				'uuid' => 'abc',
+			) ),
+		);
+		$content = $post_type_obj->filter_selected_conflict_setting( wp_slash( $post->post_content ) );
+		$data = json_decode( wp_unslash( $content ), true );
+		$this->assertSame( array(
+			'baz',
+		), $data['foo']['value'] );
+		$this->assertEquals( 'abc', $data['foo']['selected_uuid'] );
+	}
+
+	/**
+	 * Test get_snapshot_merged_uuid.
+	 *
+	 * @covers CustomizeSnapshots\Post_Type::_get_merged_changesets()
+	 */
+	public function test_get_snapshot_merged_uuid() {
+		$post_type_obj = $this->get_new_post_type_instance( $this->plugin->customize_snapshot_manager );
+		$uuid = $post_type_obj->_get_merged_changesets( array(
+			'foo' => array( 'merged_changeset_uuids' => array( 'uuid-1' ) ),
+			'bar' => array(
+				'merge_conflict' => array(
+					array( 'uuid' => 'uuid-2' ),
+				),
+			),
+		) );
+		$this->assertSame( array( 'uuid-1', 'uuid-2' ), $uuid );
 	}
 
 	/**

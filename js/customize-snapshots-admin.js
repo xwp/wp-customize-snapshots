@@ -36,6 +36,9 @@ var CustomizeSnapshotsAdmin = (function( $ ) {
 		component.forkButtons.on( 'click', component.fork );
 		component.toogleSettingRemovalLink.on( 'click', component.toggleSettingRemoval );
 
+		component.resolveConflcit = $( 'input.snapshot-resolved-settings' );
+		component.resolveConflcit.on( 'change', component.conflictSetting );
+
 		component.splitButton = $( '#split-activate' );
 		component.splitCheckbox = $( 'input[type="checkbox"].split-snapshot' );
 		component.splitButton.on( 'click', component.splitSnapshot );
@@ -143,6 +146,23 @@ var CustomizeSnapshotsAdmin = (function( $ ) {
 		}
 	};
 
+	/**
+	 * Change setting value on change of conflict setting.
+	 *
+	 * @return {void}
+	 */
+	component.conflictSetting = function() {
+		var $this = $( this ),
+			selector = '#' + $this.data( 'settingValueSelector' );
+		$( selector ).html( $this.parents( 'details' ).find( '.snapshot-conflict-setting-data' ).html() );
+	};
+
+	/**
+	 * Split snapshot.
+	 *
+	 * @param {jQuery.Event} event - Event.
+	 * @return {void}
+	 */
 	component.splitSnapshot = function( event ) {
 		var splitClassName = 'split-snapshot-hide';
 
@@ -158,4 +178,4 @@ var CustomizeSnapshotsAdmin = (function( $ ) {
 	};
 
 	return component;
-})( jQuery );
+} )( jQuery );

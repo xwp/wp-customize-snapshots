@@ -31,6 +31,13 @@ class Customize_Snapshot_Manager {
 	public $post_type;
 
 	/**
+	 * Dashboard_Widget object.
+	 *
+	 * @var Dashboard_Widget
+	 */
+	public $dashboard_widget;
+
+	/**
 	 * Constructor.
 	 *
 	 * @access public
@@ -47,6 +54,7 @@ class Customize_Snapshot_Manager {
 	 * @global \WP_Customize_Manager $wp_customize
 	 */
 	public function hooks() {
+		$this->dashboard_widget = new Dashboard_Widget( $this );
 		add_action( 'init', array( $this->post_type, 'init' ) );
 		add_action( 'customize_controls_enqueue_scripts', array( $this, 'enqueue_controls_scripts' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
@@ -386,11 +394,27 @@ class Customize_Snapshot_Manager {
 	 */
 	public function customize_menu( $wp_admin_bar ) {
 		add_action( 'wp_before_admin_bar_render', 'wp_customize_support_script' );
-		$this->replace_customize_link( $wp_admin_bar );
-		$this->add_changesets_admin_bar_link( $wp_admin_bar );
-		$this->add_resume_snapshot_link( $wp_admin_bar );
-		$this->add_post_edit_screen_link( $wp_admin_bar );
-		$this->add_publish_changeset_link( $wp_admin_bar );
+
+		// If previewing future state of changeset only add exit changeset preview link in admin bar.
+		$wp_customize = $this->get_customize_manager();
+		$is_future_state_preview = (
+			is_customize_preview()
+			&&
+			$wp_customize->changeset_post_id()
+			&&
+			$this->is_previewing_future_state_changeset( $wp_customize->changeset_post_id() )
+		);
+		if ( $is_future_state_preview ) {
+			if ( $wp_admin_bar->get_node( 'customize' ) ) {
+				$wp_admin_bar->remove_menu( 'customize' );
+			}
+		} else {
+			$this->replace_customize_link( $wp_admin_bar );
+			$this->add_changesets_admin_bar_link( $wp_admin_bar );
+			$this->add_resume_snapshot_link( $wp_admin_bar );
+			$this->add_post_edit_screen_link( $wp_admin_bar );
+			$this->add_publish_changeset_link( $wp_admin_bar );
+		}
 		$this->add_snapshot_exit_link( $wp_admin_bar );
 	}
 
@@ -451,15 +475,15 @@ class Customize_Snapshot_Manager {
 				build_query( $preview_url_query_params ),
 				$customize_node->href
 			);
-		}
 
+		}
 		$wp_customize = $this->get_customize_manager();
+
 		$args = array(
 			Post_Type::CUSTOMIZE_UUID_PARAM_NAME => $wp_customize->changeset_uuid(),
 		);
 
 		$post_id = $wp_customize->changeset_post_id();
-
 		if ( $post_id ) {
 			$customizer_state_query_vars = $this->post_type->get_customizer_state_query_vars( $post_id );
 			unset( $customizer_state_query_vars['url'] );
@@ -519,7 +543,7 @@ class Customize_Snapshot_Manager {
 			return;
 		}
 		$post_id = $this->get_customize_manager()->changeset_post_id();
-		if ( ! $post_id ) {
+		if ( ! $post_id || $this->is_previewing_future_state_changeset( $post_id ) ) {
 			return;
 		}
 		$wp_admin_bar->add_menu( array(
@@ -576,9 +600,14 @@ class Customize_Snapshot_Manager {
 		if ( ! is_customize_preview() ) {
 			return;
 		}
+		$wp_customize = $this->get_customize_manager();
+		$title = __( 'Exit Changeset Preview', 'customize-snapshots' );
+		if ( $this->is_previewing_future_state_changeset( $wp_customize->changeset_post_id() ) ) {
+			$title = __( 'Exit Preview of Future Site State', 'customize-snapshots' );
+		}
 		$wp_admin_bar->add_menu( array(
 			'id' => 'exit-customize-snapshot',
-			'title' => __( 'Exit Changeset Preview', 'customize-snapshots' ),
+			'title' => $title,
 			'href' => remove_query_arg( Post_Type::FRONT_UUID_PARAM_NAME ),
 			'meta' => array(
 				'class' => 'ab-item ab-customize-snapshots-item',
@@ -666,7 +695,7 @@ class Customize_Snapshot_Manager {
 			<# var titleText = <?php /* translators: %s: Setting id which has potential conflict. */ echo wp_json_encode( __( '%s has potential conflicts (click to expand)', 'customize-snapshots' ) ); ?>; #>
 			<span>
 				<?php esc_html_e( 'Potential conflicts', 'customize-snapshots' ); ?>
-				<a href="<?php echo esc_url( '#TB_inline?width=600&height=550&inlineId=snapshot-conflicts-' ); ?>{{id}}" class="dashicons dashicons-warning thickbox snapshot-conflicts-button" title="{{ titleText.replace( '%s', id ) }}"></a>
+				<a href="<?php echo esc_url( '#TB_inline?width=600&height=550&inlineId=snapshot-conflicts-' ); ?>{{id}}" class="dashicons dashicons-warning thickbox snapshot-conflicts-button" title="{{ titleText.replace( '%s', data.setting_id ) }}"></a>
 			</span>
 		</script>
 
@@ -953,5 +982,19 @@ class Customize_Snapshot_Manager {
 			) );
 		}
 		wp_send_json_success( $return );
+	}
+
+	/**
+	 * Returns whether changeset post is of future preview or not.
+	 *
+	 * @param \WP_Post|int $post post_object or post_id.
+	 * @return bool
+	 */
+	public function is_previewing_future_state_changeset( $post ) {
+		$post = get_post( $post );
+		if ( ! ( $post instanceof \WP_Post ) ) {
+			return false;
+		}
+		return ( '1' === get_post_meta( $post->ID, 'is_future_preview', true ) && 'auto-draft' === $post->post_status );
 	}
 }

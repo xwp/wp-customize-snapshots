@@ -1,3 +1,7 @@
+details .snapshot-setting-actions{
+	display: inline-block;
+	float: right;
+}
 details.snapshot-setting-removed summary {
 	text-decoration: line-through;
 }
@@ -7,8 +11,8 @@ details:not(.snapshot-setting-removed) .snapshot-toggle-setting-removal {
 details:not(.snapshot-setting-removed) .snapshot-toggle-setting-removal:hover {
 	color: #f00
 }
-details .snapshot-toggle-setting-removal {
-	float: right;
+.snapshot-merged-list a{
+	vertical-align: bottom;
 }
 
 a.snapshot-thickbox {
@@ -44,7 +48,7 @@ a.snapshot-thickbox {
 	visibility: hidden;
 }
 
-.snapshot-conflict-details article {
+.snapshot-conflict-details article, .snapshot-conflict-details div {
 	padding: 0 10px;
 	background: #ffffff;
 	border: 1px solid #e5e5e5;

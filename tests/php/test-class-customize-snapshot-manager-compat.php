@@ -236,7 +236,7 @@ class Test_Customize_Snapshot_Manager_Compat extends \WP_UnitTestCase {
 	 * @covers \CustomizeSnapshots\Customize_Snapshot_Manager_Compat::get_month_choices()
 	 */
 	public function test_get_month_choices() {
-		$data = $this->manager->get_month_choices();
+		$data = Customize_Snapshot_Manager_Compat::get_month_choices();
 		$this->assertArrayHasKey( 'month_choices', $data );
 		$this->assertCount( 12, $data['month_choices'] );
 	}
