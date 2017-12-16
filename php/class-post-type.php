@@ -99,9 +99,7 @@ class Post_Type {
 		add_filter( 'post_row_actions', array( $this, 'filter_post_row_actions' ), 10, 2 );
 		add_filter( 'user_has_cap', array( $this, 'filter_user_has_cap' ), 10, 2 );
 		add_action( 'post_submitbox_minor_actions', array( $this, 'hide_disabled_publishing_actions' ) );
-		add_filter( 'content_save_pre', array( $this, 'filter_selected_conflict_setting' ), 11 ); // 11 because remove customize setting is set on 10.
-		add_filter( 'content_save_pre', array( $this, 'filter_out_settings_if_removed_in_metabox' ), 10 );
-		add_filter( 'content_save_pre', array( $this, 'filter_snapshot_split_data' ), 100 );
+		$this->set_content_save_pre_hook();
 		add_action( 'admin_print_scripts-revision.php', array( $this, 'disable_revision_ui_for_published_posts' ) );
 		add_action( 'admin_notices', array( $this, 'admin_show_merge_error' ) );
 		add_filter( 'display_post_states', array( $this, 'display_post_states' ), 10, 2 );
@@ -1636,10 +1634,10 @@ class Post_Type {
 			$new_post_arr['meta_input']['_snapshot_theme'] = $theme;
 		}
 		$this->suspend_kses();
-		// Remove key so it doesn't save recursively.
-		unset( $_REQUEST[ $split_key ], $_POST[ $split_key ] );
+		$this->remove_content_save_pre_hook();
 		$this->split_snapshot_id = wp_insert_post( $new_post_arr );
 		$this->split_processing_post_id = $post->ID;
+		$this->set_content_save_pre_hook();
 		$this->restore_kses();
 		$content = Customize_Snapshot_Manager::encode_json( $data );
 		add_action( 'post_updated', array( $this, 'redirect_split_post' ), 100 );
@@ -1657,6 +1655,24 @@ class Post_Type {
 		}
 		wp_safe_redirect( get_edit_post_link( $this->split_snapshot_id, 'raw' ) );
 		exit;
+	}
+
+	/**
+	 * Set content_save_pre_hook
+	 */
+	private function set_content_save_pre_hook() {
+		add_filter( 'content_save_pre', array( $this, 'filter_selected_conflict_setting' ), 11 ); // 11 because remove customize setting is set on 10.
+		add_filter( 'content_save_pre', array( $this, 'filter_out_settings_if_removed_in_metabox' ), 10 );
+		add_filter( 'content_save_pre', array( $this, 'filter_snapshot_split_data' ), 100 );
+	}
+
+	/**
+	 * Remove content_save_pre_hook
+	 */
+	private function remove_content_save_pre_hook() {
+		remove_filter( 'content_save_pre', array( $this, 'filter_selected_conflict_setting' ), 11 );
+		remove_filter( 'content_save_pre', array( $this, 'filter_out_settings_if_removed_in_metabox' ), 10 );
+		remove_filter( 'content_save_pre', array( $this, 'filter_snapshot_split_data' ), 100 );
 	}
 
 }

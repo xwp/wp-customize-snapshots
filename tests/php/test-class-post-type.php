@@ -1444,8 +1444,6 @@ class Test_Post_Type extends \WP_UnitTestCase {
 			$post_type_obj,
 			'redirect_split_post',
 		) ) );
-		$this->assertArrayNotHasKey( $split_key, $_REQUEST );
-		$this->assertArrayNotHasKey( $split_key, $_POST );
 		$should_null = $post_type_obj->redirect_split_post( $split_post->ID + 1 );
 		$this->assertNull( $should_null );
 	}
