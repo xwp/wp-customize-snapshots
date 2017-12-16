@@ -471,7 +471,10 @@ class Post_Type {
 			if ( $should_allow_split ) {
 				$split_text = __( 'Split', 'customize-snapshots' );
 				echo sprintf( '<button id="split-activate" class="button button-secondary" data-cancel-text="%s" data-original-text="%s">%s</button>',
-				esc_html__( 'Cancel Split', 'customize-snapshots' ), esc_attr( $split_text ), esc_html( $split_text ) );
+					esc_html__( 'Cancel Split', 'customize-snapshots' ),
+					esc_attr( $split_text ),
+					esc_html( $split_text )
+				);
 			}
 			echo '</p>';
 		} else {
@@ -1635,12 +1638,12 @@ class Post_Type {
 		}
 		$this->suspend_kses();
 		$this->remove_content_save_pre_hook();
-		$this->split_snapshot_id = wp_insert_post( $new_post_arr );
+		$this->split_snapshot_id = wp_insert_post( wp_slash( $new_post_arr ) );
 		$this->split_processing_post_id = $post->ID;
 		$this->set_content_save_pre_hook();
 		$this->restore_kses();
-		$content = Customize_Snapshot_Manager::encode_json( $data );
-		add_action( 'post_updated', array( $this, 'redirect_split_post' ), 100 );
+		$content = wp_slash( Customize_Snapshot_Manager::encode_json( $data ) );
+		add_action( 'shutdown', array( $this, 'redirect_split_post' ), 100 );
 		return $content;
 	}
 

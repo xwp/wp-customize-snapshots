@@ -1432,7 +1432,7 @@ class Test_Post_Type extends \WP_UnitTestCase {
 		) );
 		$post = get_post( $post_id ); // WPCS: override ok.
 		$content = $post_type_obj->filter_snapshot_split_data( $post->post_content );
-		$data = json_decode( $content, true );
+		$data = json_decode( wp_unslash( $content ), true );
 		$this->assertArrayNotHasKey( 'foo', $data );
 		$this->assertNotEmpty( $post_type_obj->split_snapshot_id );
 		$this->assertEquals( $post->ID, $post_type_obj->split_processing_post_id );
@@ -1440,7 +1440,7 @@ class Test_Post_Type extends \WP_UnitTestCase {
 		$split_data = json_decode( $split_post->post_content, true );
 		$this->assertCount( 1, $split_data );
 		$this->assertArrayHasKey( 'foo', $split_data );
-		$this->assertEquals( 100, has_action( 'post_updated', array(
+		$this->assertEquals( 100, has_action( 'shutdown', array(
 			$post_type_obj,
 			'redirect_split_post',
 		) ) );
