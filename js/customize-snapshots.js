@@ -78,7 +78,7 @@
 					snapshot.addInspectChangesetControl( section );
 
 					/**
-					 * This is not ideal but is just a workaround to fix https://core.trac.wordpress.org/ticket/42686 for 4.9 and 4.9.1.
+					 * This is not ideal but is just a workaround to fix https://core.trac.wordpress.org/ticket/42686 for 4.9, 4.9.1, and 4.9.2.
 					 */
 					section.expanded.bind( function( expanded ) {
 						if ( snapshot.data.addWorkaroundFor42686 && expanded ) {
