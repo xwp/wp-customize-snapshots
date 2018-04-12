@@ -70,6 +70,7 @@ class Customize_Snapshot_Manager {
 		add_action( 'save_post_' . Post_Type::SLUG, array( $this, 'create_initial_changeset_revision' ) );
 		add_action( 'save_post_' . Post_Type::SLUG, array( $this, 'save_customizer_state_query_vars' ) );
 		add_filter( 'wp_insert_post_data', array( $this, 'prepare_snapshot_post_content_for_publish' ) );
+		add_filter( 'user_has_cap', array( $this, 'filter_user_has_cap' ), 10, 3 );
 		remove_action( 'delete_post', '_wp_delete_customize_changeset_dependent_auto_drafts' );
 		add_action( 'delete_post', array( $this, 'clean_up_nav_menus_created_auto_drafts' ) );
 		add_filter( 'customize_save_response', array( $this, 'add_snapshot_var_to_customize_save' ), 10, 2 );
@@ -744,6 +745,60 @@ class Customize_Snapshot_Manager {
 			<# } #>
 		</script>
 		<?php
+	}
+
+	/**
+	 * Let unauthenticated users see posts published in a changeset.
+	 *
+	 * @param array $allcaps All capabilities.
+	 * @param array $caps    Capabilities.
+	 * @param array $args    Args.
+	 * @return array All capabilities.
+	 */
+	public function filter_user_has_cap( $allcaps, $caps, $args ) {
+		if (
+			! $this->current_snapshot_uuid
+			||
+			! isset( $args[2] )
+			||
+			(
+				'read_post' !== $args[0]
+				&&
+				'read_page' !== $args[0]
+			)
+		) {
+			return $allcaps;
+		}
+
+		$post = get_post( $args[2] );
+		if ( ! $post ) {
+			return $allcaps;
+		}
+
+		// Check if the status of the post is 'published' within the changeset.
+		$changeset_id = $this->post_type->find_post( $this->current_snapshot_uuid );
+		if ( ! $changeset_id ) {
+			return $allcaps;
+		}
+
+		$data = $this->post_type->get_post_content( get_post( absint( $changeset_id ) ) );
+
+		$allow_cap = false;
+		$key = 'post[' . $post->post_type . '][' . $post->ID . ']';
+
+		if ( isset( $data[ $key ] ) ) {
+			$changeset_post_values = $data[ $key ]['value'];
+			if ( isset( $changeset_post_values['post_status'] ) ) {
+				$allow_cap = 'publish' === $changeset_post_values['post_status'];
+				if ( ! $allow_cap && isset( $allcaps['read_private_posts'] ) && true === $allcaps['read_private_posts'] ) {
+					$allow_cap = 'private' === $changeset_post_values['post_status'];
+				}
+			}
+		}
+
+		$allcaps[ $caps[0] ] = $allow_cap;
+
+		return $allcaps;
 	}
 
 	/**
